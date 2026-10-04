@@ -28,7 +28,9 @@ import type {
   NutritionTargetsInput,
 } from '@sharpit/app/lib/validators/food-log';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
+import type { MappedGenericFood } from '@sharpit/app/lib/nutrition/food-log/ciqual';
 import { fetchOffProduct } from './open-food-facts-client';
+import { ciqualFoodByCode } from './ciqual-search';
 import type { Prisma } from '@prisma/client';
 
 /**
@@ -168,6 +170,12 @@ async function ensureProductHealth(product: FoodProduct): Promise<FoodProduct> {
   if (product.source === 'CUSTOM') {
     return persistPartialHealth(product);
   }
+  if (product.source === 'CIQUAL' && product.ciqualCode !== null) {
+    const food = ciqualFoodByCode(product.ciqualCode);
+    return food
+      ? prisma.foodProduct.update({ where: { id: product.id }, data: productData(food) })
+      : product;
+  }
   return product;
 }
 
@@ -231,7 +239,7 @@ export async function listFoodLogDay(
 
 async function productForEntry(athleteId: string, productId: string): Promise<FoodProduct> {
   const product = await prisma.foodProduct.findFirst({
-    where: { id: productId, OR: [{ source: 'OFF' }, { ownerId: athleteId }] },
+    where: { id: productId, OR: [{ source: { in: ['OFF', 'CIQUAL'] } }, { ownerId: athleteId }] },
   });
   if (!product) {
     throw new FoodLogNotFoundError('Aliment introuvable');
@@ -379,7 +387,10 @@ function customHealth(label: CustomLabel): Prisma.InputJsonValue {
   }) as unknown as Prisma.InputJsonValue;
 }
 
-function productData(food: MappedFood) {
+/** What a cached product holds, from Open Food Facts or Ciqual alike. */
+type ProductFields = Omit<MappedFood, 'barcode'> | MappedGenericFood;
+
+function productData(food: ProductFields) {
   return {
     name: food.name,
     brand: food.brand,
@@ -439,6 +450,32 @@ export async function cacheSearchResults(foods: MappedFood[]): Promise<FoodProdu
         prisma.foodProduct.upsert({
           where: { barcode: food.barcode },
           create: { source: 'OFF', barcode: food.barcode, ...productData(food) },
+          update: productData(food),
+        }),
+    ),
+  );
+}
+
+/**
+ * Ciqual foods cached as products, so an entry can point at what was picked. A current row stays
+ * as stored; a missing or outdated one is written from the bundled table.
+ */
+export async function cacheGenericFoods(foods: MappedGenericFood[]): Promise<FoodProduct[]> {
+  const stored = await prisma.foodProduct.findMany({
+    where: { ciqualCode: { in: foods.map((food) => food.ciqualCode) } },
+  });
+  const current = new Map(
+    stored
+      .filter((product) => healthOf(product)?.scoreVersion === FOOD_HEALTH_SCORE_VERSION)
+      .map((product) => [product.ciqualCode, product] as const),
+  );
+  return Promise.all(
+    foods.map(
+      (food) =>
+        current.get(food.ciqualCode) ??
+        prisma.foodProduct.upsert({
+          where: { ciqualCode: food.ciqualCode },
+          create: { source: 'CIQUAL', ciqualCode: food.ciqualCode, ...productData(food) },
           update: productData(food),
         }),
     ),

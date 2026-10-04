@@ -11,6 +11,7 @@ import { isBarcode } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import {
   addFoodLogEntry,
+  cacheGenericFoods,
   cacheSearchResults,
   createCustomFood,
   deleteCustomFood,
@@ -28,6 +29,7 @@ import {
   updateFoodLogEntry,
 } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
 import { searchOffProducts } from '@sharpit/server/lib/nutrition/food-log/open-food-facts-client';
+import { searchCiqualFoods } from '@sharpit/server/lib/nutrition/food-log/ciqual-search';
 import { loadDeclaredDiet } from '@sharpit/server/lib/nutrition/analysis/nutrition-analysis-inputs';
 import {
   checkRateLimit,
@@ -139,7 +141,10 @@ async function limited(athleteId: string) {
     : NextResponse.json(rateLimitJsonResponse(rateLimit).body, { status: 429 });
 }
 
-/** `GET /api/v1/food-log/foods?q=` — own foods first, then Open Food Facts. */
+/**
+ * `GET /api/v1/food-log/foods?q=` — own foods, generic foods from Ciqual (ADR-065), then Open Food
+ * Facts. Generic foods come from the bundled table, so they answer even when OFF does not.
+ */
 export async function searchFoods(request: NextRequest) {
   const query = request.nextUrl.searchParams.get('q')?.trim() ?? '';
   if (query.length < 2 || query.length > 80) {
@@ -151,8 +156,9 @@ export async function searchFoods(request: NextRequest) {
     if (blocked) {
       return blocked;
     }
-    const [own, off, diets] = await Promise.all([
+    const [own, generic, off, diets] = await Promise.all([
       searchOwnFoods(athleteId, query),
+      cacheGenericFoods(searchCiqualFoods(query)),
       searchOffProducts(query)
         .then(cacheSearchResults)
         .catch((error) => {
@@ -163,6 +169,7 @@ export async function searchFoods(request: NextRequest) {
     ]);
     return NextResponse.json({
       own: own.map((product) => servedProduct(product, diets)),
+      generic: generic.map((product) => servedProduct(product, diets)),
       products: (off ?? []).map((product) => servedProduct(product, diets)),
       offUnavailable: off === null,
     });

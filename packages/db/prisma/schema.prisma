@@ -616,6 +616,8 @@ model FoodProduct {
   id             String            @id @default(cuid())
   source         FoodProductSource
   barcode        String?           @unique
+  /// ANSES Ciqual food code, for a generic food (ADR-065).
+  ciqualCode     Int?              @unique
   ownerId        String?
   owner          AthleteProfile?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   name           String
@@ -649,6 +651,7 @@ enum NutritionTargetMode {
 enum FoodProductSource {
   OFF
   CUSTOM
+  CIQUAL
 }
 
 /// One food eaten, as the athlete logged it in SHARPIT (ADR-061). Nutrients are a snapshot taken

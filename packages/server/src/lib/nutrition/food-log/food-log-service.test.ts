@@ -158,7 +158,10 @@ describe('food log service', () => {
       }),
     ).rejects.toBeInstanceOf(service.FoodLogNotFoundError);
     expect(prisma.foodProduct.findFirst).toHaveBeenCalledWith({
-      where: { id: 'someone-elses', OR: [{ source: 'OFF' }, { ownerId: 'athlete-1' }] },
+      where: {
+        id: 'someone-elses',
+        OR: [{ source: { in: ['OFF', 'CIQUAL'] } }, { ownerId: 'athlete-1' }],
+      },
     });
     expect(prisma.foodLogEntry.create).not.toHaveBeenCalled();
   });
@@ -341,6 +344,27 @@ describe('food log service', () => {
     expect(prisma.foodProduct.upsert).toHaveBeenCalledTimes(1);
     expect(prisma.foodProduct.upsert).toHaveBeenCalledWith(
       expect.objectContaining({ where: { barcode: '111' } }),
+    );
+  });
+
+  it('caches a Ciqual food once, keeping a current row as stored', async () => {
+    const { prisma, service } = await setup();
+    const { ciqualFoodByCode } = await import('./ciqual-search');
+    const banana = ciqualFoodByCode(13005)!;
+    const egg = ciqualFoodByCode(22000) ?? { ...banana, ciqualCode: 22000 };
+    const stored = { id: 'p-banana', ciqualCode: 13005, health: banana.health };
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([stored] as never);
+    vi.mocked(prisma.foodProduct.upsert).mockResolvedValue({ id: 'p-egg' } as never);
+
+    const cached = await service.cacheGenericFoods([banana, egg]);
+
+    expect(cached.map((product) => product.id)).toEqual(['p-banana', 'p-egg']);
+    expect(prisma.foodProduct.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.foodProduct.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { ciqualCode: 22000 },
+        create: expect.objectContaining({ source: 'CIQUAL', ciqualCode: 22000 }),
+      }),
     );
   });
 

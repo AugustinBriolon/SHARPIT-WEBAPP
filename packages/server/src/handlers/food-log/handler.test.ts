@@ -13,6 +13,9 @@ vi.mock('@sharpit/server/lib/rate-limit', () => ({
 vi.mock('@sharpit/server/lib/nutrition/food-log/open-food-facts-client', () => ({
   searchOffProducts: vi.fn(),
 }));
+vi.mock('@sharpit/server/lib/nutrition/food-log/ciqual-search', () => ({
+  searchCiqualFoods: vi.fn(() => [{ ciqualCode: 13005 }]),
+}));
 vi.mock('@sharpit/server/lib/nutrition/analysis/nutrition-analysis-inputs', () => ({
   loadDeclaredDiet: vi.fn().mockResolvedValue({ ids: ['vegan'], labels: ['Végétalien'] }),
 }));
@@ -24,6 +27,7 @@ vi.mock('@sharpit/server/lib/nutrition/food-log/food-log-service', () => {
   return {
     FoodLogNotFoundError,
     addFoodLogEntry: vi.fn(),
+    cacheGenericFoods: vi.fn(async () => [{ id: 'banana' }]),
     cacheSearchResults: vi.fn(),
     createCustomFood: vi.fn(),
     deleteCustomFood: vi.fn(),
@@ -127,7 +131,7 @@ describe('/api/food-log', () => {
 describe('/api/food-log/foods', () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it('searches own foods and Open Food Facts, and says when OFF is down', async () => {
+  it('searches own foods, Ciqual and Open Food Facts, and says when OFF is down', async () => {
     const { GET } = await import('./foods/handler');
     const log = await service();
     const { searchOffProducts } =
@@ -140,6 +144,7 @@ describe('/api/food-log/foods', () => {
 
     expect(body).toEqual({
       own: [{ id: 'own', served: true }],
+      generic: [{ id: 'banana', served: true }],
       products: [],
       offUnavailable: true,
     });

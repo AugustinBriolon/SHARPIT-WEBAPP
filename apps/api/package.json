@@ -29,7 +29,8 @@
     "garmin:import-tokens": "tsx scripts/import-garmin-tokens.ts",
     "smoke:must-private": "tsx scripts/smoke-must-private.ts",
     "smoke:api-host": "tsx scripts/smoke-api-host.ts",
-    "bench:coach-models": "tsx --env-file=.env scripts/bench-coach-models.ts"
+    "bench:coach-models": "tsx --env-file=.env scripts/bench-coach-models.ts",
+    "data:ciqual": "tsx scripts/build-ciqual-foods.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.9",
