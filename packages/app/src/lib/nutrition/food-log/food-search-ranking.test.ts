@@ -52,6 +52,13 @@ describe('rankFoodsByName', () => {
     ).toEqual(['Riz complet', 'Riz complet bio', 'Riz basmati complet', 'Galettes de complet riz']);
   });
 
+  it('puts the very word typed before one that only folds to it', () => {
+    expect(names('pates', ['Pâté breton', 'Pâtes alimentaires, cuites'])).toEqual([
+      'Pâtes alimentaires, cuites',
+      'Pâté breton',
+    ]);
+  });
+
   it('keeps the order when the query is empty', () => {
     expect(names('  ', ['b', 'a'])).toEqual(['b', 'a']);
   });
