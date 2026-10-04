@@ -1,8 +1,14 @@
 import {
+  notifySessionsDone,
   notifySourcesToReconnect,
   wakeAppForWidgets,
 } from '@sharpit/server/lib/push/athlete-notifications';
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
+import { addTrainingDays } from '@sharpit/core/training/training-day';
+import {
+  analyzeLinkedPlannedSessions,
+  autoLinkActivitiesOfDay,
+} from '@sharpit/server/lib/planned-session/linking/session-linking';
 import { sendMorningPushOnceNightIsRead } from '@sharpit/server/lib/push/morning-push';
 import { prisma } from '@sharpit/db/client';
 import { mapWithConcurrency } from '@sharpit/server/lib/async/map-with-concurrency';
@@ -49,6 +55,30 @@ async function athleteStateNeedsRefresh(
   });
 }
 
+/**
+ * The scheduled sync imports activities without pairing them with the plan — the app paired
+ * them only once opened. Pairs today's and yesterday's now, so the day is computed with the
+ * session done and the athlete hears « Séance comptée » without opening the app.
+ */
+async function countRecentSessions(athleteId: string): Promise<void> {
+  try {
+    const today = trainingDayIdNow();
+    const linked = await Promise.all(
+      [addTrainingDays(today, -1), today].map((day) =>
+        autoLinkActivitiesOfDay(athleteId, new Date(`${day}T12:00:00`)),
+      ),
+    );
+    const sessionIds = linked.flat();
+    if (sessionIds.length === 0) {
+      return;
+    }
+    after(() => analyzeLinkedPlannedSessions(athleteId, sessionIds));
+    await notifySessionsDone(athleteId, sessionIds, today);
+  } catch (error) {
+    console.error('[cron/sync] count sessions', athleteId, error);
+  }
+}
+
 function unauthorized() {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
@@ -79,6 +109,7 @@ async function syncOneAthlete(
     return result;
   }
 
+  await countRecentSessions(athleteId);
   await backfillStreamsIfNeeded(athleteId, accounts, result);
   // Art. 9: without health consent, skip Twin/briefing refresh — skipSync still
   // re-reads stored dailyHealth/HRV and would recreate purged evidence.

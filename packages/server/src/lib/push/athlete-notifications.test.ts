@@ -1,14 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findUnique = vi.fn();
+const findMany = vi.fn();
+const findFirst = vi.fn();
 const set = vi.fn();
 const sendPushToAthlete = vi.fn().mockResolvedValue({ sent: 1, failed: 0, deactivated: 0 });
 
-vi.mock('@sharpit/db/client', () => ({ prisma: { athleteProfile: { findUnique } } }));
+vi.mock('@sharpit/db/client', () => ({
+  prisma: { athleteProfile: { findUnique }, plannedSession: { findMany, findFirst } },
+}));
 vi.mock('@sharpit/server/lib/redis', () => ({ redis: { set } }));
 vi.mock('@sharpit/server/lib/push/athlete-push', () => ({ sendPushToAthlete }));
 
 const {
+  activityPath,
+  notifySessionsDone,
   notifySourcesToReconnect,
   notifyWeeklyReviewReady,
   reconnectAlert,
@@ -67,6 +73,70 @@ describe('athlete notifications', () => {
       expect.objectContaining({ nx: true }),
     );
     expect(sendPushToAthlete.mock.calls[0][1].url).toBe(WEEKLY_REVIEW_PATH);
+  });
+});
+
+describe('notifySessionsDone', () => {
+  const linked = (id: string, day: string, durationMin = 50, doneSec = 46 * 60) => ({
+    id,
+    date: new Date(`${day}T00:00:00.000Z`),
+    durationMin,
+    activityId: `act-${id}`,
+    activity: { duration: doneSec },
+  });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    findUnique.mockResolvedValue(profile());
+    set.mockResolvedValue('OK');
+    findFirst.mockResolvedValue({
+      type: 'BIKE',
+      intensity: 'ENDURANCE',
+      date: new Date('2026-10-02T00:00:00.000Z'),
+    });
+  });
+
+  it('says the session counted and what comes next, opening the activity', async () => {
+    findMany.mockResolvedValue([linked('s1', '2026-10-01')]);
+    await notifySessionsDone('a1', ['s1'], '2026-10-01');
+    expect(sendPushToAthlete).toHaveBeenCalledWith('a1', {
+      aps: {
+        alert: {
+          title: 'Séance comptée · 92 % du plan',
+          body: 'Prochaine : Vélo endurance demain',
+        },
+        sound: 'default',
+        'thread-id': 'session-done',
+        category: 'SESSION_DONE',
+      },
+      url: activityPath('act-s1'),
+    });
+  });
+
+  it('stays quiet about a session older than yesterday — a history import', async () => {
+    findMany.mockResolvedValue([linked('s1', '2026-09-20')]);
+    await notifySessionsDone('a1', ['s1'], '2026-10-01');
+    expect(sendPushToAthlete).not.toHaveBeenCalled();
+  });
+
+  it('says each session once', async () => {
+    findMany.mockResolvedValue([linked('s1', '2026-09-30')]);
+    set.mockResolvedValue(null);
+    await notifySessionsDone('a1', ['s1'], '2026-10-01');
+    expect(set).toHaveBeenCalledWith(
+      'push:session-done:s1',
+      1,
+      expect.objectContaining({ nx: true }),
+    );
+    expect(sendPushToAthlete).not.toHaveBeenCalled();
+  });
+
+  it('respects a switched-off preference', async () => {
+    findUnique.mockResolvedValue(profile({ version: 1, sessionDone: false }));
+    await notifySessionsDone('a1', ['s1'], '2026-10-01');
+    expect(findMany).not.toHaveBeenCalled();
+    expect(sendPushToAthlete).not.toHaveBeenCalled();
   });
 });
 

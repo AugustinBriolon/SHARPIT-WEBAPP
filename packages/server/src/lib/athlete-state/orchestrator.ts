@@ -98,11 +98,23 @@ async function autoLinkAndCollectSessionIds(
     const { autoLinkActivities } =
       await import('@sharpit/server/lib/planned-session/linking/session-linking');
     const result = await autoLinkActivities(athleteId, activityIds);
+    await announceSessionsDone(athleteId, result.sessionIds);
     return result.sessionIds;
   } catch (error) {
     console.error('[athlete-state/auto-link]', error);
     return [];
   }
+}
+
+/** « Séance comptée » for the sessions a sync just counted. Never throws. */
+async function announceSessionsDone(athleteId: string, sessionIds: string[]): Promise<void> {
+  if (sessionIds.length === 0) {
+    return;
+  }
+  const { notifySessionsDone } = await import('@sharpit/server/lib/push/athlete-notifications');
+  await notifySessionsDone(athleteId, sessionIds).catch((error) =>
+    console.error('[athlete-state/session-done-push]', athleteId, error),
+  );
 }
 
 /**

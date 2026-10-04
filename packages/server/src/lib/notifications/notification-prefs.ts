@@ -4,9 +4,9 @@ import { z } from 'zod';
  * Which pushes the athlete wants (Paramètres → Notifications). Stored versioned on
  * `AthleteProfile.notificationPrefs`; null or anything unreadable means the defaults.
  *
- * Only `morningVerdict` drives a push today: it goes out as soon as the night reaches the
- * server (a sync, an Apple Health upload), with a 09:30 UTC fallback. `morningTime` is stored,
- * unused since the push follows the night rather than a clock.
+ * `morningVerdict` goes out as soon as the night reaches the server (a sync, an Apple Health
+ * upload), with a 09:30 UTC fallback; `sessionDone` once a synced activity counts for a planned
+ * session. `morningTime` is stored, unused since the push follows the night rather than a clock.
  */
 export type NotificationPrefs = {
   version: 1;
@@ -15,6 +15,8 @@ export type NotificationPrefs = {
   morningTime: string | null;
   weeklyReview: boolean;
   sessionReminder: boolean;
+  /** « Séance comptée » after a synced activity is linked to the plan. */
+  sessionDone: boolean;
   syncAlerts: boolean;
 };
 
@@ -24,6 +26,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   morningTime: null,
   weeklyReview: true,
   sessionReminder: true,
+  sessionDone: true,
   syncAlerts: true,
 };
 
@@ -40,6 +43,7 @@ export const notificationPrefsPatchSchema = z
     morningTime,
     weeklyReview: z.boolean(),
     sessionReminder: z.boolean(),
+    sessionDone: z.boolean(),
     syncAlerts: z.boolean(),
   })
   .partial()
