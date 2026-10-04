@@ -18,7 +18,7 @@ export function normalizeFoodText(text: string): string {
 }
 
 /** « bananes », « tomates » and « noix » read as the word typed without its plural. */
-function singular(word: string): string {
+export function singular(word: string): string {
   return word.length > 3 && /[sx]$/.test(word) ? word.slice(0, -1) : word;
 }
 
@@ -84,15 +84,16 @@ function tierOf(name: string, query: string): number {
   return name.includes(query) ? TIER.substring : TIER.elsewhere;
 }
 
-type Ranked<T> = { food: T; tier: number; words: number; index: number };
+type Ranked<T> = { food: T; tier: number; sameLead: number; words: number; index: number };
 
 function compare<T>(a: Ranked<T>, b: Ranked<T>): number {
-  return b.tier - a.tier || a.words - b.words || a.index - b.index;
+  return b.tier - a.tier || b.sameLead - a.sameLead || a.words - b.words || a.index - b.index;
 }
 
 /**
- * Best match first: tier of the match, then the shorter name (« Banane » before « Banane plantain
- * frite »), then the original order, which carries the source's own relevance.
+ * Best match first: tier of the match, then a name opening on the very word typed (« pâtes » before
+ * « pâté », which fold to the same letters), then the shorter name (« Banane » before « Banane
+ * plantain frite »), then the original order, which carries the source's own relevance.
  */
 export function rankFoodsByName<T extends RankableFood>(query: string, foods: T[]): T[] {
   const normalizedQuery = normalizeFoodText(query);
@@ -102,7 +103,9 @@ export function rankFoodsByName<T extends RankableFood>(query: string, foods: T[
   return foods
     .map((food, index) => {
       const name = normalizeFoodText(food.name);
-      return { food, tier: tierOf(name, normalizedQuery), words: name.split(' ').length, index };
+      const words = name.split(' ');
+      const sameLead = words[0] === normalizedQuery.split(' ')[0] ? 1 : 0;
+      return { food, tier: tierOf(name, normalizedQuery), sameLead, words: words.length, index };
     })
     .sort(compare)
     .map((ranked) => ranked.food);
