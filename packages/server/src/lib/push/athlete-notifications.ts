@@ -3,6 +3,7 @@ import { prisma } from '@sharpit/db/client';
 import { resolveNotificationPrefs } from '@sharpit/server/lib/notifications/notification-prefs';
 import { sendPushToAthlete } from '@sharpit/server/lib/push/athlete-push';
 import { redis } from '@sharpit/server/lib/redis';
+import { loadWeekProgress } from '@sharpit/server/lib/planned-session/adherence/plan-adherence-service';
 import {
   missedSessionAlert,
   missedSessionLabel,
@@ -119,6 +120,7 @@ export async function notifySessionsDone(
     })),
     await nextPlannedSession(athleteId, today),
     today,
+    await loadWeekProgress(athleteId, today),
   );
   const delivery = await sendPushToAthlete(athleteId, {
     aps: { alert, sound: 'default', 'thread-id': 'session-done', category: 'SESSION_DONE' },

@@ -47,6 +47,19 @@ describe('session done alert', () => {
     );
   });
 
+  it('says where the week stands once it holds more than one session', () => {
+    const done = [{ plannedMin: 50, doneSec: 50 * 60 }];
+    expect(sessionDoneAlert(done, null, today, { done: 3, planned: 5 }).body).toBe(
+      '3 sur 5 cette semaine. Rien d’autre de prévu pour l’instant : profite.',
+    );
+    expect(sessionDoneAlert(done, null, today, { done: 4, planned: 4 }).body).toMatch(
+      /^Semaine bouclée : 4 sur 4\./,
+    );
+    expect(sessionDoneAlert(done, null, today, { done: 1, planned: 1 }).body).toBe(
+      'Rien d’autre de prévu pour l’instant : profite.',
+    );
+  });
+
   it('leaves the share out when the plan had no duration', () => {
     expect(planShare([{ plannedMin: null, doneSec: 1800 }])).toBeNull();
     expect(sessionDoneAlert([{ plannedMin: null, doneSec: 1800 }], null, today).title).toBe(

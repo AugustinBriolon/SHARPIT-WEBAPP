@@ -27,6 +27,9 @@ export type NextPlannedSession = SessionKind & {
   day: string;
 };
 
+/** This week's sessions: done out of all planned. */
+export type WeekProgress = { done: number; planned: number };
+
 /** A session of yesterday that no activity counted for. */
 export type MissedSession = SessionKind & {
   brickGroupId: string | null;
@@ -60,21 +63,25 @@ const SPORT_NAME: Record<ActivityType, string> = {
 };
 
 /**
- * « Séance dans la boîte · 92 % du plan » / « On se retrouve demain pour ton vélo endurance. »
- * The share is the recorded time against the planned time, the one measure every source and every
- * sport has; a word is added only when it sits well short of the plan or well beyond it.
+ * « Séance dans la boîte · 92 % du plan » / « 3 sur 5 cette semaine. On se retrouve demain pour
+ * ton vélo endurance. » The share is the recorded time against the planned time, the one measure
+ * every source and every sport has; a word is added only when it sits well short of the plan or
+ * well beyond it. The week's count is the outcome the plan is measured by, said to the athlete.
  */
 export function sessionDoneAlert(
   counted: readonly CountedSession[],
   next: NextPlannedSession | null,
   today: string,
+  week: WeekProgress | null = null,
 ): { title: string; body: string } {
   const lead =
     counted.length > 1 ? `${counted.length} séances dans la boîte` : 'Séance dans la boîte';
   const share = planShare(counted);
   return {
     title: share === null ? lead : `${lead} · ${share} % du plan`,
-    body: [shareRemark(share), nextSessionLine(next, today)].filter(Boolean).join(' '),
+    body: [shareRemark(share), weekLine(week), nextSessionLine(next, today)]
+      .filter(Boolean)
+      .join(' '),
   };
 }
 
@@ -156,6 +163,16 @@ function shareRemark(share: number | null): string | null {
     return 'Pas tout le plan, mais c’est fait — c’est ce qui compte.';
   }
   return share > BEYOND_PLAN ? 'Plus que prévu : pense à bien récupérer.' : null;
+}
+
+/** Said once the week holds more than one session: one out of one says nothing. */
+function weekLine(week: WeekProgress | null): string | null {
+  if (!week || week.planned < 2) {
+    return null;
+  }
+  return week.done >= week.planned
+    ? `Semaine bouclée : ${week.planned} sur ${week.planned}.`
+    : `${week.done} sur ${week.planned} cette semaine.`;
 }
 
 function nextSessionLine(next: NextPlannedSession | null, today: string): string {

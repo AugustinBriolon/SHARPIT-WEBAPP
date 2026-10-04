@@ -16,6 +16,10 @@ vi.mock('@sharpit/db/client', () => ({
 }));
 vi.mock('@sharpit/server/lib/redis', () => ({ redis: { set } }));
 vi.mock('@sharpit/server/lib/push/athlete-push', () => ({ sendPushToAthlete }));
+const loadWeekProgress = vi.fn().mockResolvedValue({ done: 3, planned: 5 });
+vi.mock('@sharpit/server/lib/planned-session/adherence/plan-adherence-service', () => ({
+  loadWeekProgress,
+}));
 
 const {
   activityPath,
@@ -111,7 +115,7 @@ describe('notifySessionsDone', () => {
       aps: {
         alert: {
           title: 'Séance dans la boîte · 92 % du plan',
-          body: 'On se retrouve demain pour ton vélo endurance.',
+          body: '3 sur 5 cette semaine. On se retrouve demain pour ton vélo endurance.',
         },
         sound: 'default',
         'thread-id': 'session-done',
