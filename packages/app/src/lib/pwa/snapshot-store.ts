@@ -2,6 +2,10 @@
  * Offline Snapshot persistence — the only module in this feature that touches
  * IndexedDB. Validation logic lives in snapshot-store-validation.ts (pure);
  * this file is a thin I/O wrapper around it.
+ *
+ * The offline copy is best effort: when the browser cannot open the database (Safari's
+ * « Unable to open database file on disk », private browsing) a read finds nothing and a write
+ * or a clear does nothing — never an error the page did not ask for (Sentry SHARPIT-WEBAPP-1).
  */
 
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
@@ -31,7 +35,23 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveSnapshot(input: {
+async function bestEffort<T>(operation: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await operation();
+  } catch {
+    return fallback;
+  }
+}
+
+export function saveSnapshot(input: {
+  ownerKey: string;
+  snapshot: AthleteSnapshot;
+  now?: Date;
+}): Promise<void> {
+  return bestEffort(() => writeSnapshot(input), undefined);
+}
+
+async function writeSnapshot(input: {
   ownerKey: string;
   snapshot: AthleteSnapshot;
   now?: Date;
@@ -58,7 +78,14 @@ export async function saveSnapshot(input: {
   }
 }
 
-export async function loadSnapshot(input: {
+export function loadSnapshot(input: {
+  ownerKey: string;
+  now?: Date;
+}): Promise<PersistedSnapshotEntry | null> {
+  return bestEffort(() => readSnapshot(input), null);
+}
+
+async function readSnapshot(input: {
   ownerKey: string;
   now?: Date;
 }): Promise<PersistedSnapshotEntry | null> {
@@ -90,7 +117,11 @@ export async function loadSnapshot(input: {
   return raw as PersistedSnapshotEntry;
 }
 
-export async function clearSnapshot(): Promise<void> {
+export function clearSnapshot(): Promise<void> {
+  return bestEffort(deleteSnapshot, undefined);
+}
+
+async function deleteSnapshot(): Promise<void> {
   const db = await openDb();
   try {
     await new Promise<void>((resolve, reject) => {

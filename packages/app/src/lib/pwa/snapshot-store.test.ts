@@ -1,5 +1,5 @@
 import 'fake-indexeddb/auto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { saveSnapshot, loadSnapshot, clearSnapshot } from './snapshot-store';
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
 
@@ -63,5 +63,19 @@ describe('snapshot-store (IndexedDB, fake-indexeddb)', () => {
     });
     const loaded = await loadSnapshot({ ownerKey: 'user_123', now: NOW });
     expect(loaded?.snapshot.snapshotId).toBe('snap-2');
+  });
+
+  it('stays quiet when the browser cannot open the database (Safari, private browsing)', async () => {
+    const open = vi.spyOn(indexedDB, 'open').mockImplementation(() => {
+      throw new DOMException('Unable to open database file on disk', 'UnknownError');
+    });
+
+    await expect(loadSnapshot({ ownerKey: 'athlete-1', now: NOW })).resolves.toBeNull();
+    await expect(
+      saveSnapshot({ ownerKey: 'athlete-1', snapshot: fakeSnapshot(), now: NOW }),
+    ).resolves.toBeUndefined();
+    await expect(clearSnapshot()).resolves.toBeUndefined();
+
+    open.mockRestore();
   });
 });
