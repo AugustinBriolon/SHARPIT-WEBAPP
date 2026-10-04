@@ -41,8 +41,31 @@ const SKYR = {
   sugarPer100g: 4,
   saltPer100g: 0.1,
   saturatedFatPer100g: 0.1,
-  health: { score: 80, scoreVersion: 1, coverage: 'full' },
+  health: {
+    score: 80,
+    scoreVersion: 2,
+    coverage: 'full',
+    detail: 'full',
+    dietFacts: { vegan: 'no', vegetarian: 'yes', gluten: 'absent', milk: 'contains' },
+  },
   fetchedAt: new Date(),
+};
+
+const MAPPED_SKYR = {
+  barcode: SKYR.barcode,
+  name: SKYR.name,
+  brand: SKYR.brand,
+  kcalPer100g: SKYR.kcalPer100g,
+  proteinPer100g: SKYR.proteinPer100g,
+  carbsPer100g: SKYR.carbsPer100g,
+  fatPer100g: SKYR.fatPer100g,
+  fiberPer100g: null,
+  sugarPer100g: SKYR.sugarPer100g,
+  saltPer100g: SKYR.saltPer100g,
+  saturatedFatPer100g: SKYR.saturatedFatPer100g,
+  servingGrams: null,
+  servingLabel: null,
+  health: SKYR.health,
 };
 
 const DAY = new Date('2026-10-01T00:00:00.000Z');
@@ -251,7 +274,7 @@ describe('food log service', () => {
       where: { id: 'mine' },
       data: expect.objectContaining({
         kcalPer100g: 120,
-        health: expect.objectContaining({ coverage: 'partial', scoreVersion: 1 }),
+        health: expect.objectContaining({ coverage: 'partial', scoreVersion: 2 }),
       }),
     });
 
@@ -270,25 +293,13 @@ describe('food log service', () => {
       health: null,
       fetchedAt: new Date('2020-01-01T00:00:00.000Z'),
     };
-    const scored = { ...SKYR, health: { score: 72, scoreVersion: 1, coverage: 'full' } };
+    const scored = { ...SKYR, health: { ...SKYR.health, score: 72 } };
     vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([
       { ...storedEntry(), product: unscored },
     ] as never);
     vi.mocked(prisma.foodProduct.findUnique).mockResolvedValue(unscored as never);
     vi.mocked(fetchOffProduct).mockResolvedValue({
-      barcode: SKYR.barcode,
-      name: SKYR.name,
-      brand: SKYR.brand,
-      kcalPer100g: SKYR.kcalPer100g,
-      proteinPer100g: SKYR.proteinPer100g,
-      carbsPer100g: SKYR.carbsPer100g,
-      fatPer100g: SKYR.fatPer100g,
-      fiberPer100g: null,
-      sugarPer100g: SKYR.sugarPer100g,
-      saltPer100g: SKYR.saltPer100g,
-      saturatedFatPer100g: SKYR.saturatedFatPer100g,
-      servingGrams: null,
-      servingLabel: null,
+      ...MAPPED_SKYR,
       health: scored.health,
     } as never);
     vi.mocked(prisma.foodProduct.upsert).mockResolvedValue(scored as never);
@@ -298,8 +309,63 @@ describe('food log service', () => {
     expect(day).toEqual([
       expect.objectContaining({
         id: 'e1',
-        health: expect.objectContaining({ score: 72, scoreVersion: 1 }),
+        health: expect.objectContaining({ score: 72, scoreVersion: 2, dietFit: [] }),
       }),
+    ]);
+  });
+
+  it('re-reads OFF for a product cached from a search hit, to get its additives', async () => {
+    const { prisma, service } = await setup();
+    const { fetchOffProduct } = await import('./open-food-facts-client');
+    const summary = { ...SKYR, health: { ...SKYR.health, detail: 'summary' } };
+    vi.mocked(prisma.foodProduct.findUnique).mockResolvedValue(summary as never);
+    vi.mocked(fetchOffProduct).mockResolvedValue(MAPPED_SKYR as never);
+    vi.mocked(prisma.foodProduct.upsert).mockResolvedValue(SKYR as never);
+
+    expect(await service.findProductByBarcode(SKYR.barcode)).toBe(SKYR);
+    expect(fetchOffProduct).toHaveBeenCalledWith(SKYR.barcode);
+  });
+
+  it('keeps a current product as stored when a search hit comes back', async () => {
+    const { prisma, service } = await setup();
+    const outdated = { ...SKYR, id: 'p-old', barcode: '111', health: { scoreVersion: 1 } };
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([SKYR, outdated] as never);
+    vi.mocked(prisma.foodProduct.upsert).mockResolvedValue({ ...outdated, id: 'p-new' } as never);
+
+    const cached = await service.cacheSearchResults([
+      MAPPED_SKYR,
+      { ...MAPPED_SKYR, barcode: '111' },
+    ] as never);
+
+    expect(cached.map((product) => product.id)).toEqual(['p-skyr', 'p-new']);
+    expect(prisma.foodProduct.upsert).toHaveBeenCalledTimes(1);
+    expect(prisma.foodProduct.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { barcode: '111' } }),
+    );
+  });
+
+  it("ranks the athlete's own foods by how their name reads against the query", async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([
+      { id: 'a', name: 'Porridge banane' },
+      { id: 'b', name: 'Banane' },
+    ] as never);
+
+    const found = await service.searchOwnFoods('athlete-1', 'banane');
+
+    expect(found.map((product) => product.id)).toEqual(['b', 'a']);
+  });
+
+  it("serves a food with the athlete's diets read against it", async () => {
+    const { service } = await setup();
+    const served = service.servedProduct(SKYR as never, {
+      ids: ['vegan', 'keto'],
+      labels: ['Végétalien', 'Cétogène'],
+    });
+
+    expect(served.health?.dietFit).toEqual([
+      expect.objectContaining({ diet: 'vegan', status: 'incompatible' }),
+      expect.objectContaining({ diet: 'keto', status: 'compatible' }),
     ]);
   });
 });

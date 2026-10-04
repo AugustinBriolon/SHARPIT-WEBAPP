@@ -12,6 +12,12 @@ import {
   FOOD_HEALTH_SCORE_VERSION,
   type FoodHealthAssessment,
 } from '@sharpit/app/lib/nutrition/food-log/food-health-score';
+import {
+  assessDietFit,
+  UNKNOWN_DIET_FACTS,
+  type DietFit,
+} from '@sharpit/app/lib/nutrition/food-log/food-diet-fit';
+import { rankFoodsByName } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
 import { SHARPIT_NUTRITION_PROVIDER } from '@sharpit/app/lib/nutrition/food-log/nutrition-source';
 import { gramsFromPercent } from '@sharpit/app/lib/nutrition/food-log/nutrition-targets';
 import type {
@@ -33,6 +39,12 @@ import type { Prisma } from '@prisma/client';
 
 /** OFF products are re-read after a month: brands reformulate. */
 const OFF_CACHE_DAYS = 30;
+
+/** The diets the athlete declared in the journal, as `loadDeclaredDiet` reads them. */
+export type DeclaredDiets = { ids: string[]; labels: string[] };
+export const NO_DIETS: DeclaredDiets = { ids: [], labels: [] };
+
+export type ServedHealth = FoodHealthAssessment & { dietFit: DietFit[] };
 
 export class FoodLogNotFoundError extends Error {}
 
@@ -169,17 +181,29 @@ async function persistPartialHealth(product: FoodProduct): Promise<FoodProduct> 
   }
   return prisma.foodProduct.update({
     where: { id: product.id },
-    data: {
-      health: customHealth({
-        sugarPer100g: product.sugarPer100g,
-        saltPer100g: product.saltPer100g,
-        saturatedFatPer100g: product.saturatedFatPer100g,
-      }),
-    },
+    data: { health: customHealth(product) },
   });
 }
 
-export async function listFoodLogDay(athleteId: string, trainingDayId: string) {
+/** The stored score with the athlete's diets read against it; facts are per food, fit per athlete. */
+export function servedHealth(product: FoodProduct, diets: DeclaredDiets): ServedHealth | null {
+  const health = healthOf(product);
+  if (!health) {
+    return null;
+  }
+  const facts = health.dietFacts ?? UNKNOWN_DIET_FACTS;
+  return { ...health, dietFit: assessDietFit(facts, product.carbsPer100g, diets) };
+}
+
+export function servedProduct(product: FoodProduct, diets: DeclaredDiets) {
+  return { ...product, health: servedHealth(product, diets) };
+}
+
+export async function listFoodLogDay(
+  athleteId: string,
+  trainingDayId: string,
+  diets: DeclaredDiets = NO_DIETS,
+) {
   const rows = await prisma.foodLogEntry.findMany({
     where: { athleteId, date: foodLogDayDate(trainingDayId) },
     orderBy: { createdAt: 'asc' },
@@ -200,7 +224,7 @@ export async function listFoodLogDay(athleteId: string, trainingDayId: string) {
     const resolved = product ? (refreshed.get(product.id) ?? product) : null;
     return {
       ...entry,
-      health: resolved ? healthOf(resolved) : null,
+      health: resolved ? servedHealth(resolved, diets) : null,
     };
   });
 }
@@ -321,28 +345,37 @@ function healthOf(product: FoodProduct): FoodHealthAssessment | null {
   return value as FoodHealthAssessment;
 }
 
-/** Age or an outdated Sharpit score formula: re-read OFF (or recompute custom). */
-function needsOffRefresh(product: FoodProduct): boolean {
-  if (product.source !== 'OFF') {
-    return false;
-  }
-  if (isStale(product)) {
-    return true;
-  }
-  const health = healthOf(product);
-  return !health || health.scoreVersion !== FOOD_HEALTH_SCORE_VERSION;
+/** Fresh, and scored by the current formula. */
+function isCurrent(product: FoodProduct): boolean {
+  return !isStale(product) && healthOf(product)?.scoreVersion === FOOD_HEALTH_SCORE_VERSION;
 }
 
-function customHealth(input: {
+/**
+ * Age, an outdated score formula, or a score built from a search hit: re-read OFF. A barcode
+ * read is how a search hit gets its additive list.
+ */
+function needsOffRefresh(product: FoodProduct): boolean {
+  return product.source === 'OFF' && (!isCurrent(product) || healthOf(product)?.detail !== 'full');
+}
+
+type CustomLabel = {
+  kcalPer100g?: number | null;
+  proteinPer100g?: number | null;
+  fiberPer100g?: number | null;
   sugarPer100g?: number | null;
   saltPer100g?: number | null;
   saturatedFatPer100g?: number | null;
-}): Prisma.InputJsonValue {
+};
+
+function customHealth(label: CustomLabel): Prisma.InputJsonValue {
   return computeFoodHealth({
     kind: 'custom',
-    sugarPer100g: input.sugarPer100g,
-    saltPer100g: input.saltPer100g,
-    saturatedFatPer100g: input.saturatedFatPer100g,
+    kcalPer100g: label.kcalPer100g,
+    proteinPer100g: label.proteinPer100g,
+    fiberPer100g: label.fiberPer100g,
+    sugarPer100g: label.sugarPer100g,
+    saltPer100g: label.saltPer100g,
+    saturatedFatPer100g: label.saturatedFatPer100g,
   }) as unknown as Prisma.InputJsonValue;
 }
 
@@ -387,25 +420,42 @@ export async function findProductByBarcode(barcode: string): Promise<FoodProduct
   });
 }
 
-/** OFF search results cached as products, so an entry can point at what was picked. */
+/**
+ * OFF search results cached as products, so an entry can point at what was picked. A product
+ * already current stays as stored: a search hit must not overwrite the additive list a barcode
+ * read brought, and an unchanged row costs no write.
+ */
 export async function cacheSearchResults(foods: MappedFood[]): Promise<FoodProduct[]> {
+  const stored = await prisma.foodProduct.findMany({
+    where: { barcode: { in: foods.map((food) => food.barcode) } },
+  });
+  const current = new Map(
+    stored.filter(isCurrent).map((product) => [product.barcode, product] as const),
+  );
   return Promise.all(
-    foods.map((food) =>
-      prisma.foodProduct.upsert({
-        where: { barcode: food.barcode },
-        create: { source: 'OFF', barcode: food.barcode, ...productData(food) },
-        update: productData(food),
-      }),
+    foods.map(
+      (food) =>
+        current.get(food.barcode) ??
+        prisma.foodProduct.upsert({
+          where: { barcode: food.barcode },
+          create: { source: 'OFF', barcode: food.barcode, ...productData(food) },
+          update: productData(food),
+        }),
     ),
   );
 }
 
+const OWN_SEARCH_CANDIDATES = 30;
+const OWN_SEARCH_RESULTS = 10;
+
+/** The athlete's own foods matching the query, best name match first (ADR-064). */
 export async function searchOwnFoods(athleteId: string, query: string) {
-  return prisma.foodProduct.findMany({
+  const foods = await prisma.foodProduct.findMany({
     where: { ownerId: athleteId, name: { contains: query, mode: 'insensitive' } },
     orderBy: { updatedAt: 'desc' },
-    take: 10,
+    take: OWN_SEARCH_CANDIDATES,
   });
+  return rankFoodsByName(query, foods).slice(0, OWN_SEARCH_RESULTS);
 }
 
 export async function createCustomFood(athleteId: string, input: CustomFoodInput) {
@@ -456,17 +506,12 @@ export async function updateCustomFood(
 ) {
   await assertOwnFood(athleteId, id);
   const current = await prisma.foodProduct.findUniqueOrThrow({ where: { id } });
-  const merged = {
-    sugarPer100g: input.sugarPer100g !== undefined ? input.sugarPer100g : current.sugarPer100g,
-    saltPer100g: input.saltPer100g !== undefined ? input.saltPer100g : current.saltPer100g,
-    saturatedFatPer100g:
-      input.saturatedFatPer100g !== undefined
-        ? input.saturatedFatPer100g
-        : current.saturatedFatPer100g,
-  };
+  const typed = Object.fromEntries(
+    Object.entries(input).filter(([, value]) => value !== undefined),
+  ) as CustomLabel;
   return prisma.foodProduct.update({
     where: { id },
-    data: { ...input, health: customHealth(merged) },
+    data: { ...input, health: customHealth({ ...current, ...typed }) },
   });
 }
 

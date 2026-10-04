@@ -5,6 +5,7 @@ import {
   type MappedFood,
   type OffProduct,
 } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
+import { rankFoodsByName } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
 
 /**
  * Open Food Facts, read from the server only (ADR-061): the athlete's device never calls OFF,
@@ -66,7 +67,13 @@ export async function fetchOffProduct(
   return mapOffProduct({ ...body.product, code: body.product.code ?? barcode });
 }
 
-/** French-first search, keeping only products the log can use. */
+/** OFF ranks by popularity: ask for twice what is shown, so the plain product can rise. */
+const CANDIDATES_PER_RESULT = 2;
+
+/**
+ * French-first search, keeping only products the log can use, best name match first (ADR-064).
+ * A search hit lacks the additive list: its score is a summary until the product is opened.
+ */
 export async function searchOffProducts(
   query: string,
   { limit = 20, fetcher = fetch }: { limit?: number; fetcher?: Fetch } = {},
@@ -74,11 +81,14 @@ export async function searchOffProducts(
   const params = new URLSearchParams({
     q: query,
     langs: 'fr,en',
-    page_size: String(limit),
+    page_size: String(limit * CANDIDATES_PER_RESULT),
     fields: OFF_FIELDS.join(','),
   });
   const body = (await getJson(`${SEARCH_URL}?${params}`, fetcher)) as {
     hits?: OffProduct[];
   } | null;
-  return (body?.hits ?? []).map(mapOffProduct).filter((food): food is MappedFood => food !== null);
+  const foods = (body?.hits ?? [])
+    .map((hit) => mapOffProduct(hit, 'summary'))
+    .filter((food): food is MappedFood => food !== null);
+  return rankFoodsByName(query, foods).slice(0, limit);
 }

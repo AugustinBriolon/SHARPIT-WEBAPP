@@ -13,6 +13,9 @@ vi.mock('@sharpit/server/lib/rate-limit', () => ({
 vi.mock('@sharpit/server/lib/nutrition/food-log/open-food-facts-client', () => ({
   searchOffProducts: vi.fn(),
 }));
+vi.mock('@sharpit/server/lib/nutrition/analysis/nutrition-analysis-inputs', () => ({
+  loadDeclaredDiet: vi.fn().mockResolvedValue({ ids: ['vegan'], labels: ['Végétalien'] }),
+}));
 vi.mock('@sharpit/server/lib/nutrition/import/mfp-export-import', () => ({
   importMfpExport: vi.fn(),
 }));
@@ -31,6 +34,7 @@ vi.mock('@sharpit/server/lib/nutrition/food-log/food-log-service', () => {
     listOwnFoods: vi.fn(),
     recentFoods: vi.fn(),
     searchOwnFoods: vi.fn(),
+    servedProduct: vi.fn((product: object) => ({ ...product, served: true })),
     setNutritionTargets: vi.fn(),
     updateCustomFood: vi.fn(),
     updateFoodLogEntry: vi.fn(),
@@ -67,7 +71,10 @@ describe('/api/food-log', () => {
       targets: { kcal: 2600 },
       recent: [],
     });
-    expect(log.listFoodLogDay).toHaveBeenCalledWith('athlete-1', '2026-10-01');
+    expect(log.listFoodLogDay).toHaveBeenCalledWith('athlete-1', '2026-10-01', {
+      ids: ['vegan'],
+      labels: ['Végétalien'],
+    });
   });
 
   it('asks for the day', async () => {
@@ -131,7 +138,11 @@ describe('/api/food-log/foods', () => {
 
     const body = await (await GET(new NextRequest(`${BASE}/foods?q=skyr`))).json();
 
-    expect(body).toEqual({ own: [{ id: 'own' }], products: [], offUnavailable: true });
+    expect(body).toEqual({
+      own: [{ id: 'own', served: true }],
+      products: [],
+      offUnavailable: true,
+    });
   });
 
   it('refuses a one-letter search', async () => {
@@ -194,7 +205,7 @@ describe('/api/food-log/foods/mine and /foods/[id]', () => {
     const log = await service();
     vi.mocked(log.listOwnFoods).mockResolvedValue([{ id: 'mine' }] as never);
 
-    expect(await (await GET()).json()).toEqual({ foods: [{ id: 'mine' }] });
+    expect(await (await GET()).json()).toEqual({ foods: [{ id: 'mine', served: true }] });
     expect(log.listOwnFoods).toHaveBeenCalledWith('athlete-1');
   });
 

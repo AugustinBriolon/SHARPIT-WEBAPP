@@ -72,6 +72,68 @@ describe('mapOffProduct', () => {
     expect(food?.health.score).toBeLessThan(40);
   });
 
+  it('keeps a search hit as a summary: additives counted, diets read', () => {
+    const food = mapOffProduct(
+      {
+        code: '3017620422003',
+        product_name: 'Nutella',
+        nutriments: {
+          'energy-kcal_100g': 539,
+          proteins_100g: 6.3,
+          carbohydrates_100g: 57.5,
+          fat_100g: 30.9,
+        },
+        nutriscore_grade: 'e',
+        nutriscore_score: '31',
+        additives_n: 2,
+        ingredients_n: 9,
+        ingredients_analysis_tags: ['en:non-vegan', 'en:vegetarian'],
+        allergens_tags: ['en:milk', 'en:nuts'],
+      },
+      'summary',
+    );
+    expect(food?.health).toMatchObject({
+      detail: 'summary',
+      additivesKnown: 'count',
+      additiveCount: 2,
+      nutriScore: 'e',
+      dietFacts: { vegan: 'no', vegetarian: 'yes', gluten: 'absent', milk: 'contains' },
+    });
+  });
+
+  it('treats a product without readable ingredients as additives unknown', () => {
+    const food = mapOffProduct({
+      code: '2000000000001',
+      product_name: 'Bananes',
+      nutriments: {
+        'energy-kcal_100g': 89,
+        proteins_100g: 1.1,
+        carbohydrates_100g: 20,
+        fat_100g: 0.3,
+      },
+      additives_tags: [],
+      categories_tags: ['en:fresh-fruits'],
+    });
+    expect(food?.health.additivesKnown).toBe('unknown');
+    expect(food?.health.dietFacts.vegan).toBe('yes');
+  });
+
+  it('counts an additive and its sub-variant once', () => {
+    const food = mapOffProduct({
+      code: '3017620422003',
+      product_name: 'Nutella',
+      nutriments: {
+        'energy-kcal_100g': 539,
+        proteins_100g: 6.3,
+        carbohydrates_100g: 57.5,
+        fat_100g: 30.9,
+      },
+      additives_tags: ['en:e322', 'en:e322i'],
+      ingredients_n: 9,
+    });
+    expect(food?.health.additives.map((item) => item.code)).toEqual(['E322']);
+  });
+
   it('reads energy from kJ when kcal is missing', () => {
     const food = mapOffProduct({
       code: '12345678',

@@ -78,5 +78,17 @@ describe('searchOffProducts', () => {
 
     expect(foods.map((food) => food.barcode)).toEqual(['5690845000621']);
     expect(String(vi.mocked(fetcher).mock.calls[0]![0])).toContain('q=skyr');
+    expect(foods[0]!.health.detail).toBe('summary');
+  });
+
+  it('asks for twice the results, then keeps the best name matches', async () => {
+    const nectar = { ...SKYR, code: '1111111111111', product_name: 'Nectar de banane' };
+    const banana = { ...SKYR, code: '2222222222222', product_name: 'Bananes' };
+    const fetcher = respond(200, { hits: [nectar, banana] });
+
+    const foods = await searchOffProducts('banane', { limit: 1, fetcher });
+
+    expect(foods.map((food) => food.name)).toEqual(['Bananes']);
+    expect(String(vi.mocked(fetcher).mock.calls[0]![0])).toContain('page_size=2');
   });
 });

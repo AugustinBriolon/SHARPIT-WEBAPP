@@ -3,6 +3,7 @@
 **Status:** Approved for implementation (2026-10-02)  
 **Surfaces:** iOS first (selection, logged entry, food sheet); web later  
 **Depends on:** ADR-061 food log + Open Food Facts
+**Revised by:** [ADR-063](../../adr/ADR-063-the-food-score-explains-itself-and-reads-the-athletes-diet.md) — formula v2 (estimated Nutri-Score, additive count, ceiling, highlights, diet fit). The v1 formula below is historical.
 
 ## Goal
 

@@ -1,8 +1,10 @@
 import type { FoodPer100g } from './food-log-math';
+import { dietFactsFromOff } from './food-diet-fit';
 import {
   computeFoodHealth,
   levelFromAmount,
   type FoodHealthAssessment,
+  type HealthDetail,
   type NutrientFlags,
   type NutrientLevel,
   type NutriScoreLetter,
@@ -25,9 +27,17 @@ export const OFF_FIELDS = [
   'serving_quantity',
   'serving_size',
   'nutriscore_grade',
+  'nutriscore_score',
   'nova_group',
   'nutrient_levels',
   'additives_tags',
+  'additives_n',
+  'ingredients_n',
+  'ingredients_analysis_tags',
+  'allergens_tags',
+  'traces_tags',
+  'labels_tags',
+  'categories_tags',
 ] as const;
 
 export type OffNutriments = Partial<Record<string, number | string>>;
@@ -45,9 +55,17 @@ export type OffProduct = {
   serving_quantity?: number | string;
   serving_size?: string;
   nutriscore_grade?: string;
+  nutriscore_score?: number | string;
   nova_group?: number | string;
   nutrient_levels?: OffNutrientLevels;
   additives_tags?: string[];
+  additives_n?: number | string;
+  ingredients_n?: number | string;
+  ingredients_analysis_tags?: string[];
+  allergens_tags?: string[];
+  traces_tags?: string[];
+  labels_tags?: string[];
+  categories_tags?: string[];
 };
 
 export type MappedFood = FoodPer100g & {
@@ -62,8 +80,46 @@ export type MappedFood = FoodPer100g & {
 };
 
 function numberOf(value: unknown): number | null {
-  const parsed = typeof value === 'string' ? Number(value) : value;
-  return typeof parsed === 'number' && Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+  const parsed = signedNumberOf(value);
+  return parsed !== null && parsed >= 0 ? parsed : null;
+}
+
+/** Nutri-Score points go below zero. */
+function signedNumberOf(value: unknown): number | null {
+  const parsed = typeof value === 'string' && value.trim() !== '' ? Number(value) : value;
+  return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : null;
+}
+
+function tagsOf(value: unknown): string[] | null {
+  return Array.isArray(value)
+    ? value.filter((tag): tag is string => typeof tag === 'string')
+    : null;
+}
+
+const BEVERAGE_CATEGORY = 'en:beverages';
+const SPORTS_CATEGORIES = [
+  'en:sports-nutrition',
+  'en:energy-gels',
+  'en:sports-drinks',
+  'en:energy-bars-for-sport',
+];
+
+function hasCategory(product: OffProduct, wanted: string[]): boolean {
+  return (tagsOf(product.categories_tags) ?? []).some((category) => wanted.includes(category));
+}
+
+/**
+ * The additive list when OFF gave it. OFF's search index carries only the count, and a product
+ * with no readable ingredients has neither — that is « unknown », not « no additive ».
+ */
+function additiveFacts(product: OffProduct): { tags: string[] | null; count: number | null } {
+  const ingredientsRead = (numberOf(product.ingredients_n) ?? 0) > 0;
+  const tags = tagsOf(product.additives_tags);
+  if (tags && (tags.length > 0 || ingredientsRead)) {
+    return { tags, count: tags.length };
+  }
+  const count = numberOf(product.additives_n);
+  return { tags: null, count: ingredientsRead || (count ?? 0) > 0 ? count : null };
 }
 
 /** kcal per 100 g, from kJ when OFF only carries energy in kJ. */
@@ -121,11 +177,54 @@ function nutrientFlagsFromOff(
   };
 }
 
+function healthOf(
+  product: OffProduct,
+  food: { kcal: number; protein: number; fiber: number | null; sugars: number | null },
+  detail: HealthDetail,
+): FoodHealthAssessment {
+  const nutriments = product.nutriments ?? {};
+  const additives = additiveFacts(product);
+  return computeFoodHealth({
+    nutriScore: asNutriScore(product.nutriscore_grade),
+    nutriScorePoints: signedNumberOf(product.nutriscore_score),
+    isBeverage: hasCategory(product, [BEVERAGE_CATEGORY]),
+    isSportsNutrition: hasCategory(product, SPORTS_CATEGORIES),
+    nova: asNova(product.nova_group),
+    nutrientLevels: nutrientFlagsFromOff(product.nutrient_levels, nutriments),
+    nutrients: {
+      kcal: food.kcal,
+      protein: food.protein,
+      fiber: food.fiber,
+      sugars: food.sugars,
+      salt: numberOf(nutriments['salt_100g']),
+      saturatedFat: numberOf(nutriments['saturated-fat_100g']),
+      fruitVegetableShare: numberOf(
+        nutriments['fruits-vegetables-legumes-estimate-from-ingredients_100g'],
+      ),
+    },
+    additiveTags: additives.tags,
+    additiveCount: additives.count,
+    dietFacts: dietFactsFromOff({
+      ingredientsAnalysis: tagsOf(product.ingredients_analysis_tags),
+      allergens: tagsOf(product.allergens_tags),
+      traces: tagsOf(product.traces_tags),
+      labels: tagsOf(product.labels_tags),
+      categories: tagsOf(product.categories_tags),
+      ingredientCount: numberOf(product.ingredients_n),
+    }),
+    detail,
+  });
+}
+
 /**
  * A product the log can use, or null: no name or no energy and macros means a half-filled OFF
- * entry, and logging it would show a meal as zero.
+ * entry, and logging it would show a meal as zero. `detail` says whether OFF answered with the
+ * whole product (barcode read) or a search hit, which lacks the additive list.
  */
-export function mapOffProduct(product: OffProduct): MappedFood | null {
+export function mapOffProduct(
+  product: OffProduct,
+  detail: HealthDetail = 'full',
+): MappedFood | null {
   const nutriments = product.nutriments ?? {};
   const name = (product.product_name_fr || product.product_name || '').trim();
   const kcal = kcalPer100g(nutriments);
@@ -146,7 +245,7 @@ export function mapOffProduct(product: OffProduct): MappedFood | null {
   const sugarPer100g = numberOf(nutriments['sugars_100g']);
   const saltPer100g = numberOf(nutriments['salt_100g']);
   const saturatedFatPer100g = numberOf(nutriments['saturated-fat_100g']);
-  const nutrientLevels = nutrientFlagsFromOff(product.nutrient_levels, nutriments);
+  const fiberPer100g = numberOf(nutriments['fiber_100g']);
   return {
     barcode: product.code,
     name,
@@ -155,18 +254,13 @@ export function mapOffProduct(product: OffProduct): MappedFood | null {
     proteinPer100g: protein,
     carbsPer100g: carbs,
     fatPer100g: fat,
-    fiberPer100g: numberOf(nutriments['fiber_100g']),
+    fiberPer100g,
     sugarPer100g,
     saltPer100g,
     saturatedFatPer100g,
     servingGrams: servingGrams && servingGrams > 0 ? servingGrams : null,
     servingLabel: product.serving_size?.trim() || null,
-    health: computeFoodHealth({
-      nutriScore: asNutriScore(product.nutriscore_grade),
-      nova: asNova(product.nova_group),
-      nutrientLevels,
-      additiveTags: product.additives_tags ?? [],
-    }),
+    health: healthOf(product, { kcal, protein, fiber: fiberPer100g, sugars: sugarPer100g }, detail),
   };
 }
 

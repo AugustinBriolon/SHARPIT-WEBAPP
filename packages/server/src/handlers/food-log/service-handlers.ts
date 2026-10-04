@@ -22,11 +22,13 @@ import {
   listOwnFoods,
   recentFoods,
   searchOwnFoods,
+  servedProduct,
   setNutritionTargets,
   updateCustomFood,
   updateFoodLogEntry,
 } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
 import { searchOffProducts } from '@sharpit/server/lib/nutrition/food-log/open-food-facts-client';
+import { loadDeclaredDiet } from '@sharpit/server/lib/nutrition/analysis/nutrition-analysis-inputs';
 import {
   checkRateLimit,
   rateLimitJsonResponse,
@@ -70,12 +72,19 @@ export async function getDay(request: NextRequest) {
   }
   try {
     const athleteId = await getCurrentAthleteId();
-    const [entries, targets, recent] = await Promise.all([
-      listFoodLogDay(athleteId, trainingDayId),
+    const diets = loadDeclaredDiet(athleteId);
+    const [entries, targets, recent, declared] = await Promise.all([
+      diets.then((declared) => listFoodLogDay(athleteId, trainingDayId, declared)),
       getNutritionTargets(athleteId),
       recentFoods(athleteId),
+      diets,
     ]);
-    return NextResponse.json({ trainingDayId, entries, targets, recent });
+    return NextResponse.json({
+      trainingDayId,
+      entries,
+      targets,
+      recent: recent.map((item) => ({ ...item, product: servedProduct(item.product, declared) })),
+    });
   } catch (error) {
     return failure('day', error);
   }
@@ -142,7 +151,7 @@ export async function searchFoods(request: NextRequest) {
     if (blocked) {
       return blocked;
     }
-    const [own, off] = await Promise.all([
+    const [own, off, diets] = await Promise.all([
       searchOwnFoods(athleteId, query),
       searchOffProducts(query)
         .then(cacheSearchResults)
@@ -150,8 +159,13 @@ export async function searchFoods(request: NextRequest) {
           console.error('[api/v1/food-log] off search', error);
           return null;
         }),
+      loadDeclaredDiet(athleteId),
     ]);
-    return NextResponse.json({ own, products: off ?? [], offUnavailable: off === null });
+    return NextResponse.json({
+      own: own.map((product) => servedProduct(product, diets)),
+      products: (off ?? []).map((product) => servedProduct(product, diets)),
+      offUnavailable: off === null,
+    });
   } catch (error) {
     return failure('search', error);
   }
@@ -168,9 +182,12 @@ export async function foodByBarcode(code: string) {
     if (blocked) {
       return blocked;
     }
-    const product = await findProductByBarcode(code);
+    const [product, diets] = await Promise.all([
+      findProductByBarcode(code),
+      loadDeclaredDiet(athleteId),
+    ]);
     return product
-      ? NextResponse.json({ product })
+      ? NextResponse.json({ product: servedProduct(product, diets) })
       : NextResponse.json({ error: 'Produit inconnu d’Open Food Facts' }, { status: 404 });
   } catch (error) {
     console.error('[api/v1/food-log] barcode', error);
@@ -186,10 +203,11 @@ export async function addCustomFood(request: NextRequest) {
     if (!body.ok) {
       return body.response;
     }
-    return NextResponse.json(
-      { product: await createCustomFood(athleteId, body.data) },
-      { status: 201 },
-    );
+    const [product, diets] = await Promise.all([
+      createCustomFood(athleteId, body.data),
+      loadDeclaredDiet(athleteId),
+    ]);
+    return NextResponse.json({ product: servedProduct(product, diets) }, { status: 201 });
   } catch (error) {
     return failure('custom food', error);
   }
@@ -198,7 +216,12 @@ export async function addCustomFood(request: NextRequest) {
 /** `GET /api/v1/food-log/foods/mine` — the athlete's own foods, to pick, edit or delete. */
 export async function getOwnFoods() {
   try {
-    return NextResponse.json({ foods: await listOwnFoods(await getCurrentAthleteId()) });
+    const athleteId = await getCurrentAthleteId();
+    const [foods, diets] = await Promise.all([
+      listOwnFoods(athleteId),
+      loadDeclaredDiet(athleteId),
+    ]);
+    return NextResponse.json({ foods: foods.map((product) => servedProduct(product, diets)) });
   } catch (error) {
     return failure('own foods', error);
   }
@@ -212,7 +235,11 @@ export async function editCustomFood(request: NextRequest, id: string) {
     if (!body.ok) {
       return body.response;
     }
-    return NextResponse.json({ product: await updateCustomFood(athleteId, id, body.data) });
+    const [product, diets] = await Promise.all([
+      updateCustomFood(athleteId, id, body.data),
+      loadDeclaredDiet(athleteId),
+    ]);
+    return NextResponse.json({ product: servedProduct(product, diets) });
   } catch (error) {
     return failure('edit food', error);
   }
