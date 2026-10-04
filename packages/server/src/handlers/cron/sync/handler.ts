@@ -1,4 +1,5 @@
 import {
+  notifyMissedSessions,
   notifySessionsDone,
   notifySourcesToReconnect,
   wakeAppForWidgets,
@@ -36,6 +37,8 @@ import {
   type AthleteSyncResult,
 } from '@sharpit/server/lib/sync/athlete-provider-sync';
 
+const MISSED_SESSION_UTC_HOUR = 11;
+
 /** Bounded concurrency across athletes — each provider call is already rate-limit-aware per account. */
 const ATHLETE_CONCURRENCY = 3;
 
@@ -58,7 +61,7 @@ async function athleteStateNeedsRefresh(
 /**
  * The scheduled sync imports activities without pairing them with the plan — the app paired
  * them only once opened. Pairs today's and yesterday's now, so the day is computed with the
- * session done and the athlete hears « Séance comptée » without opening the app.
+ * session done and the athlete hears « Séance dans la boîte » without opening the app.
  */
 async function countRecentSessions(athleteId: string): Promise<void> {
   try {
@@ -110,6 +113,13 @@ async function syncOneAthlete(
   }
 
   await countRecentSessions(athleteId);
+  // Midday, once yesterday's late sessions had every chance to arrive and away from the morning
+  // verdict: « Dommage pour hier », at most once a day.
+  if (new Date().getUTCHours() >= MISSED_SESSION_UTC_HOUR) {
+    await notifyMissedSessions(athleteId).catch((error) =>
+      console.error('[cron/sync] missed session push', athleteId, error),
+    );
+  }
   await backfillStreamsIfNeeded(athleteId, accounts, result);
   // Art. 9: without health consent, skip Twin/briefing refresh — skipSync still
   // re-reads stored dailyHealth/HRV and would recreate purged evidence.

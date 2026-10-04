@@ -71,7 +71,7 @@ export function buildMorningPushPayload(
     snapshot.primaryProductMessage ||
     snapshot.briefing?.content?.split('\n').find((l) => l.trim().length > 0) ||
     snapshot.insufficientDataMessage ||
-    'Tes recommandations du jour sont prêtes dans SharpIt.';
+    'Ta lecture du jour t’attend dans SharpIt.';
 
   // Cap length cleanly for lock screen presentation
   const body = rawBody.length > 140 ? `${rawBody.slice(0, 137).trim()}…` : rawBody;
@@ -86,7 +86,7 @@ export function buildMorningPushPayload(
   };
 }
 
-/** « Ta nuit propose d'alléger : Endurance → Récupération · 40 → 30 min », while it waits. */
+/** « Ta nuit invite à lever le pied : Endurance → Récupération · 40 → 30 min », while it waits. */
 export function morningProposalLine(
   proposal: MorningRecalibrationPresentation | null,
 ): string | null {
@@ -94,7 +94,9 @@ export function morningProposalLine(
     return null;
   }
   const lead =
-    proposal.direction === 'DOWN' ? 'Ta nuit propose d’alléger' : 'Ta nuit permet d’en faire plus';
+    proposal.direction === 'DOWN'
+      ? 'Ta nuit invite à lever le pied'
+      : 'Tu as bien récupéré, on peut monter d’un cran';
   return `${lead} : ${proposal.changeSummary}`;
 }
 

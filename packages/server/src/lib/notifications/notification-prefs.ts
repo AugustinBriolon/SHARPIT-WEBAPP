@@ -6,7 +6,7 @@ import { z } from 'zod';
  *
  * `morningVerdict` goes out as soon as the night reaches the server (a sync, an Apple Health
  * upload), with a 09:30 UTC fallback; `sessionDone` once a synced activity counts for a planned
- * session. `morningTime` is stored, unused since the push follows the night rather than a clock.
+ * session; `missedSession` the day after a session nothing counted for. `morningTime` is stored, unused since the push follows the night rather than a clock.
  */
 export type NotificationPrefs = {
   version: 1;
@@ -15,8 +15,10 @@ export type NotificationPrefs = {
   morningTime: string | null;
   weeklyReview: boolean;
   sessionReminder: boolean;
-  /** « Séance comptée » after a synced activity is linked to the plan. */
+  /** « Séance dans la boîte » after a synced activity is linked to the plan. */
   sessionDone: boolean;
+  /** « Dommage pour hier » the day after a planned session nothing counted for. */
+  missedSession: boolean;
   syncAlerts: boolean;
 };
 
@@ -27,6 +29,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   weeklyReview: true,
   sessionReminder: true,
   sessionDone: true,
+  missedSession: true,
   syncAlerts: true,
 };
 
@@ -44,6 +47,7 @@ export const notificationPrefsPatchSchema = z
     weeklyReview: z.boolean(),
     sessionReminder: z.boolean(),
     sessionDone: z.boolean(),
+    missedSession: z.boolean(),
     syncAlerts: z.boolean(),
   })
   .partial()

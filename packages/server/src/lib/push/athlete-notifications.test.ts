@@ -3,17 +3,24 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const findUnique = vi.fn();
 const findMany = vi.fn();
 const findFirst = vi.fn();
+const count = vi.fn();
 const set = vi.fn();
 const sendPushToAthlete = vi.fn().mockResolvedValue({ sent: 1, failed: 0, deactivated: 0 });
 
 vi.mock('@sharpit/db/client', () => ({
-  prisma: { athleteProfile: { findUnique }, plannedSession: { findMany, findFirst } },
+  prisma: {
+    athleteProfile: { findUnique },
+    plannedSession: { findMany, findFirst },
+    activity: { count },
+  },
 }));
 vi.mock('@sharpit/server/lib/redis', () => ({ redis: { set } }));
 vi.mock('@sharpit/server/lib/push/athlete-push', () => ({ sendPushToAthlete }));
 
 const {
   activityPath,
+  CATCH_UP_PATH,
+  notifyMissedSessions,
   notifySessionsDone,
   notifySourcesToReconnect,
   notifyWeeklyReviewReady,
@@ -38,9 +45,9 @@ describe('athlete notifications', () => {
       'Garmin',
       'Strava',
     ]);
-    expect(reconnectAlert(['Garmin']).title).toBe('Garmin est déconnecté');
+    expect(reconnectAlert(['Garmin']).title).toBe('Garmin s’est déconnecté');
     expect(reconnectAlert(['Garmin', 'Strava', 'Withings']).title).toBe(
-      'Garmin, Strava et Withings sont déconnectés',
+      'Garmin, Strava et Withings se sont déconnectés',
     );
   });
 
@@ -48,7 +55,7 @@ describe('athlete notifications', () => {
     await notifySourcesToReconnect('a1', ['Garmin', 'Garmin activities']);
     expect(sendPushToAthlete).toHaveBeenCalledTimes(1);
     const [[, payload]] = sendPushToAthlete.mock.calls;
-    expect(payload.aps.alert.title).toBe('Garmin est déconnecté');
+    expect(payload.aps.alert.title).toBe('Garmin s’est déconnecté');
     expect(payload.url).toBe(SOURCES_PATH);
   });
 
@@ -103,8 +110,8 @@ describe('notifySessionsDone', () => {
     expect(sendPushToAthlete).toHaveBeenCalledWith('a1', {
       aps: {
         alert: {
-          title: 'Séance comptée · 92 % du plan',
-          body: 'Prochaine : Vélo endurance demain',
+          title: 'Séance dans la boîte · 92 % du plan',
+          body: 'On se retrouve demain pour ton vélo endurance.',
         },
         sound: 'default',
         'thread-id': 'session-done',
@@ -137,6 +144,58 @@ describe('notifySessionsDone', () => {
     await notifySessionsDone('a1', ['s1'], '2026-10-01');
     expect(findMany).not.toHaveBeenCalled();
     expect(sendPushToAthlete).not.toHaveBeenCalled();
+  });
+});
+
+describe('notifyMissedSessions', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    findUnique.mockResolvedValue(profile());
+    set.mockResolvedValue('OK');
+    count.mockResolvedValue(0);
+    findMany.mockResolvedValue([{ type: 'RUN', intensity: 'THRESHOLD', brickGroupId: null }]);
+  });
+
+  it('regrets yesterday’s session and opens the catch-up with it', async () => {
+    await notifyMissedSessions('a1', '2026-10-02');
+    expect(findMany.mock.calls[0][0].where.date).toEqual(new Date('2026-10-01T00:00:00.000Z'));
+    expect(sendPushToAthlete).toHaveBeenCalledWith('a1', {
+      aps: {
+        alert: {
+          title: 'Dommage pour hier',
+          body: 'Ta course seuil n’a pas eu lieu. On réorganise ta semaine ensemble ?',
+        },
+        sound: 'default',
+        'thread-id': 'missed-session',
+        category: 'MISSED_SESSION',
+      },
+      url: CATCH_UP_PATH,
+      catchUp: { label: 'Course seuil', day: '2026-10-01' },
+    });
+  });
+
+  it('stays quiet when the athlete trained anyway', async () => {
+    count.mockResolvedValue(1);
+    await notifyMissedSessions('a1', '2026-10-02');
+    expect(sendPushToAthlete).not.toHaveBeenCalled();
+  });
+
+  it('says it once a day', async () => {
+    set.mockResolvedValue(null);
+    await notifyMissedSessions('a1', '2026-10-02');
+    expect(set).toHaveBeenCalledWith(
+      'push:missed-session:a1:2026-10-01',
+      1,
+      expect.objectContaining({ nx: true }),
+    );
+    expect(sendPushToAthlete).not.toHaveBeenCalled();
+  });
+
+  it('respects a switched-off preference', async () => {
+    findUnique.mockResolvedValue(profile({ version: 1, missedSession: false }));
+    await notifyMissedSessions('a1', '2026-10-02');
+    expect(findMany).not.toHaveBeenCalled();
   });
 });
 

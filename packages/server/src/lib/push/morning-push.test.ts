@@ -279,7 +279,7 @@ describe('morning-push', () => {
     it('leads the morning push with the proposal while it waits', () => {
       const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app', proposal);
       expect(payload.body).toBe(
-        'Ta nuit propose d’alléger : Endurance → Récupération · 40 → 30 min',
+        'Ta nuit invite à lever le pied : Endurance → Récupération · 40 → 30 min',
       );
     });
 

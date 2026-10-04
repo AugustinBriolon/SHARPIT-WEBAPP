@@ -106,7 +106,7 @@ async function autoLinkAndCollectSessionIds(
   }
 }
 
-/** « Séance comptée » for the sessions a sync just counted. Never throws. */
+/** « Séance dans la boîte » for the sessions a sync just counted. Never throws. */
 async function announceSessionsDone(athleteId: string, sessionIds: string[]): Promise<void> {
   if (sessionIds.length === 0) {
     return;

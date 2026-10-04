@@ -35,7 +35,7 @@ async function tellAthleteTheWeekIsReady(athleteId: string, plan: PlanPayload) {
     aps: {
       alert: {
         title: 'Ta semaine est prête',
-        body: `${count} séance${count > 1 ? 's' : ''} proposée${count > 1 ? 's' : ''} par le coach, à valider avant de les ajouter.`,
+        body: `J’ai préparé ${count} séance${count > 1 ? 's' : ''} pour toi. Jette un œil et garde celles qui te vont.`,
       },
       sound: 'default',
       'thread-id': 'plan-generation',

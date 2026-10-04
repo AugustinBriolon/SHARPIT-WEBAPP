@@ -4,13 +4,17 @@ import { resolveNotificationPrefs } from '@sharpit/server/lib/notifications/noti
 import { sendPushToAthlete } from '@sharpit/server/lib/push/athlete-push';
 import { redis } from '@sharpit/server/lib/redis';
 import {
+  missedSessionAlert,
+  missedSessionLabel,
   sessionDoneAlert,
   type NextPlannedSession,
-} from '@sharpit/server/lib/push/session-done-alert';
+} from '@sharpit/server/lib/push/session-alerts';
 
 /** Where a tap on each push lands in the app. */
 export const WEEKLY_REVIEW_PATH = '/plan/review';
 export const SOURCES_PATH = '/settings/sources';
+/** Opens « Ajuster le planning » with the miss said, as « Rattraper ma semaine » does. */
+export const CATCH_UP_PATH = '/plan/catch-up';
 export const activityPath = (activityId: string) => `/activity/${activityId}`;
 
 /** A source to reconnect is said at most this often: a warning repeated daily is noise. */
@@ -18,8 +22,9 @@ const RECONNECT_ALERT_TTL_SECONDS = 3 * 24 * 3600;
 const WEEKLY_REVIEW_ALERT_TTL_SECONDS = 8 * 24 * 3600;
 /** Outlives the window a session is announced in (today and yesterday). */
 const SESSION_DONE_ALERT_TTL_SECONDS = 3 * 24 * 3600;
+const MISSED_SESSION_ALERT_TTL_SECONDS = 3 * 24 * 3600;
 
-type NotificationKind = 'weeklyReview' | 'syncAlerts' | 'sessionDone';
+type NotificationKind = 'weeklyReview' | 'syncAlerts' | 'sessionDone' | 'missedSession';
 
 async function wants(athleteId: string, kind: NotificationKind): Promise<boolean> {
   const profile = await prisma.athleteProfile.findUnique({
@@ -42,7 +47,7 @@ async function firstTime(key: string, ttlSeconds: number): Promise<boolean> {
   return (await redis.set(key, 1, { nx: true, ex: ttlSeconds })) === 'OK';
 }
 
-/** « Ton bilan de la semaine est prêt » — once per week, for an athlete who wants it. */
+/** « Ta semaine en revue est prête » — once per week, for an athlete who wants it. */
 export async function notifyWeeklyReviewReady(athleteId: string, weekStart: string) {
   if (!(await wants(athleteId, 'weeklyReview'))) {
     return;
@@ -58,8 +63,8 @@ export async function notifyWeeklyReviewReady(athleteId: string, weekStart: stri
   const delivery = await sendPushToAthlete(athleteId, {
     aps: {
       alert: {
-        title: 'Ton bilan de la semaine est prêt',
-        body: 'Ce qui a marché, ce qui est à surveiller et la semaine prochaine.',
+        title: 'Ta semaine en revue est prête',
+        body: 'Ce qui a bien marché, ce qu’on garde à l’œil et ce qui t’attend la semaine prochaine.',
       },
       sound: 'default',
       'thread-id': 'weekly-review',
@@ -71,7 +76,7 @@ export async function notifyWeeklyReviewReady(athleteId: string, weekStart: stri
 }
 
 /**
- * « Séance comptée · 92 % du plan » once synced activities were linked to planned sessions —
+ * « Séance dans la boîte · 92 % du plan » once synced activities were linked to planned sessions —
  * the feedback within the hour after the session (E1). Only a session of today or yesterday: a
  * history import links weeks of sessions and none of them is news. Each session once.
  */
@@ -120,6 +125,61 @@ export async function notifySessionsDone(
     url: activityPath(first.activityId),
   });
   console.info('[push] session done', delivery);
+}
+
+/**
+ * « Dommage pour hier » — yesterday's planned sessions that nothing counted for, said once, with
+ * « Ajuster le planning » one tap away (F1). Quiet when the athlete trained anyway (another sport,
+ * a session the plan did not pair) and about a recovery session, which nothing needs to make up.
+ */
+export async function notifyMissedSessions(
+  athleteId: string,
+  today: string = trainingDayIdForNow(),
+) {
+  if (!(await wants(athleteId, 'missedSession'))) {
+    return;
+  }
+  const yesterday = addTrainingDays(today, -1);
+  const day = {
+    gte: new Date(`${yesterday}T00:00:00.000Z`),
+    lt: new Date(`${today}T00:00:00.000Z`),
+  };
+  const missed = await prisma.plannedSession.findMany({
+    where: {
+      athleteId,
+      date: day.gte,
+      activityId: null,
+      completed: false,
+      OR: [{ intensity: null }, { intensity: { not: 'RECOVERY' } }],
+    },
+    orderBy: [{ startTime: 'asc' }, { brickOrder: 'asc' }],
+    select: { type: true, intensity: true, brickGroupId: true },
+  });
+  if (
+    missed.length === 0 ||
+    (await prisma.activity.count({ where: { athleteId, date: day } })) > 0
+  ) {
+    return;
+  }
+  if (
+    !(await firstTime(
+      `push:missed-session:${athleteId}:${yesterday}`,
+      MISSED_SESSION_ALERT_TTL_SECONDS,
+    ))
+  ) {
+    return;
+  }
+  const delivery = await sendPushToAthlete(athleteId, {
+    aps: {
+      alert: missedSessionAlert(missed),
+      sound: 'default',
+      'thread-id': 'missed-session',
+      category: 'MISSED_SESSION',
+    },
+    url: CATCH_UP_PATH,
+    catchUp: { label: missedSessionLabel(missed), day: yesterday },
+  });
+  console.info('[push] missed session', delivery);
 }
 
 /** The first planned session from today on that no activity has counted for yet. */
@@ -185,8 +245,8 @@ export function reconnectAlert(sources: readonly string[]): { title: string; bod
       : `${sources.slice(0, -1).join(', ')} et ${sources[sources.length - 1]}`;
   const one = sources.length === 1;
   return {
-    title: `${names} ${one ? 'est déconnecté' : 'sont déconnectés'}`,
-    body: `Reconnecte-${one ? 'le' : 'les'} dans Sources de données pour que tes données continuent d’arriver.`,
+    title: `${names} ${one ? 's’est déconnecté' : 'se sont déconnectés'}`,
+    body: `Reconnecte-${one ? 'le' : 'les'} dans Sources de données, sinon tes données ne m’arrivent plus.`,
   };
 }
 
