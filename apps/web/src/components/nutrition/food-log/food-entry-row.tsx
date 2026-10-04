@@ -3,6 +3,7 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import { Button } from '@sharpit/ui/components/ui/button';
 import { ColoredMacroPills } from '@/components/nutrition/nutrition-macro-display';
+import { FoodHealthBadge } from '@/components/nutrition/food-log/food-health';
 import type { FoodLogEntryPayload } from '@sharpit/app/lib/nutrition/food-log/food-log-day';
 
 function formatGrams(grams: number): string {
@@ -31,7 +32,10 @@ export function FoodEntryRow({
         </p>
       </div>
       <div className="shrink-0 text-right">
-        <p className="text-data font-medium tabular-nums">{Math.round(entry.kcal)} kcal</p>
+        <p className="text-data flex items-center justify-end gap-2 font-medium tabular-nums">
+          {entry.health ? <FoodHealthBadge health={entry.health} /> : null}
+          {Math.round(entry.kcal)} kcal
+        </p>
         <ColoredMacroPills
           carbs={entry.carbs}
           className="mt-0.5 justify-end"

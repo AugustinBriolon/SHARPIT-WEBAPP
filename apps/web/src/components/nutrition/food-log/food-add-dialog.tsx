@@ -35,6 +35,7 @@ function FoodAddStepBody({ flow }: { flow: FoodAddFlow }) {
   if (state.step === 'portion' && state.picked) {
     return (
       <FoodPortionStep
+        completing={flow.completing}
         error={state.error}
         grams={state.grams}
         meal={state.meal}

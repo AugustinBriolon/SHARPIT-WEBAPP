@@ -161,6 +161,132 @@ describe('FoodSearchResults', () => {
   });
 });
 
+const HEALTH = {
+  score: 31,
+  scoreVersion: 2,
+  grade: 'mediocre',
+  coverage: 'full',
+  nutriScore: 'd',
+  nutriScoreEstimated: false,
+  nova: 4,
+  nutrientFlags: { sugars: 'high', salt: 'high', saturatedFat: 'low' },
+  additives: [{ code: 'E250', name: 'Nitrite de sodium', risk: 'high' }],
+  additivesKnown: 'list',
+  additiveCount: 1,
+  highlights: [
+    { key: 'salt_high', tone: 'negative', label: 'Trop salé', detail: '2,1 g/100 g' },
+    { key: 'protein_rich', tone: 'positive', label: 'Riche en protéines', detail: '21 g/100 g' },
+  ],
+  dietFacts: { vegan: 'no', vegetarian: 'no', gluten: 'absent', milk: 'unknown' },
+  detail: 'full',
+  dietFit: [
+    {
+      diet: 'vegetarian',
+      label: 'Végétarien',
+      status: 'incompatible',
+      reason: 'Contient des ingrédients non végétariens',
+    },
+  ],
+} as NonNullable<FoodProductPayload['health']>;
+
+describe('Sharpit score', () => {
+  it('lists generic foods with Ciqual credited, each row with its score and broken diets', () => {
+    const banana = {
+      ...SKYR,
+      id: 'banana',
+      source: 'CIQUAL' as const,
+      brand: null,
+      name: 'Banane, pulpe, crue',
+      health: { ...HEALTH, score: 91, grade: 'excellent' as const, dietFit: [] },
+    };
+    const html = renderToStaticMarkup(
+      createElement(FoodSearchResults, {
+        listing: 'results',
+        results: {
+          own: [],
+          generic: [banana],
+          products: [{ ...SKYR, health: HEALTH }],
+          offUnavailable: false,
+        },
+        recent: [],
+        error: null,
+        onPick: noop,
+      }),
+    );
+
+    expect(html.indexOf('Aliments de base')).toBeLessThan(html.indexOf('Produits'));
+    expect(html).toContain('Aliment de base · 62 kcal / 100 g');
+    expect(html).toContain('Table Ciqual 2020, Anses (Licence Ouverte)');
+    expect(html).toContain('Score Sharpit 91, Excellent');
+    expect(html).toContain('Hors régime : Végétarien');
+  });
+
+  it('reads the score on the portion: summary, diets, reasons, additives and method', () => {
+    const html = renderToStaticMarkup(
+      createElement(FoodPortionStep, {
+        picked: { product: { ...SKYR, health: HEALTH }, lastGrams: null },
+        grams: '100',
+        meal: 'LUNCH',
+        error: null,
+        onGrams: noop,
+        onMeal: noop,
+        onSubmit: noop,
+      }),
+    );
+
+    for (const text of [
+      'Médiocre',
+      '1 point à surveiller',
+      'Nutri-Score D · NOVA 4',
+      'Mon régime',
+      'Trop salé',
+      '2,1 g/100 g',
+      'Points forts',
+      '1 additif',
+      'Comment est calculé le score ?',
+      'Indicateur Sharpit, pas un avis médical.',
+    ]) {
+      expect(html).toContain(text);
+    }
+  });
+
+  it('says the additives are being read while a search hit completes', () => {
+    const html = renderToStaticMarkup(
+      createElement(FoodPortionStep, {
+        picked: {
+          product: { ...SKYR, health: { ...HEALTH, additivesKnown: 'count', additiveCount: 2 } },
+          lastGrams: null,
+        },
+        grams: '100',
+        meal: 'LUNCH',
+        error: null,
+        completing: true,
+        onGrams: noop,
+        onMeal: noop,
+        onSubmit: noop,
+      }),
+    );
+
+    expect(html).toContain('2 additifs, lecture du détail…');
+  });
+
+  it('shows no score block for a food without one', () => {
+    const html = renderToStaticMarkup(
+      createElement(FoodPortionStep, {
+        picked: { product: { ...SKYR, health: { ...HEALTH, coverage: 'none' } }, lastGrams: null },
+        grams: '100',
+        meal: 'LUNCH',
+        error: null,
+        onGrams: noop,
+        onMeal: noop,
+        onSubmit: noop,
+      }),
+    );
+
+    expect(html).not.toContain('Score Sharpit');
+  });
+});
+
 describe('FoodPortionStep', () => {
   it('offers the portion presets, previews the nutrients and credits Open Food Facts', () => {
     const html = renderToStaticMarkup(

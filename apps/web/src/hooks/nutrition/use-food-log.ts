@@ -195,7 +195,7 @@ export function useImportMfpExport() {
 /** What the optimistic row shows until the server answers with the real entry. */
 export type FoodLogEntryPreview = Pick<
   FoodLogEntryPayload,
-  'name' | 'brand' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'sugar'
+  'name' | 'brand' | 'kcal' | 'protein' | 'carbs' | 'fat' | 'fiber' | 'sugar' | 'health'
 >;
 
 export type AddFoodLogEntryVars = {

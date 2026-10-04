@@ -8,7 +8,11 @@ import { portionPreview } from '@/components/nutrition/food-log/food-log-forms';
 import type { PickedFood } from '@/components/nutrition/food-log/food-add-flow-state';
 import { portionPresets } from '@sharpit/app/lib/nutrition/food-log/food-log-day';
 import type { FoodMealKey } from '@sharpit/app/lib/nutrition/food-log/food-log-math';
-import { OPEN_FOOD_FACTS_ATTRIBUTION } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
+import { FoodHealthDetails, FoodHealthSummary } from '@/components/nutrition/food-log/food-health';
+import {
+  foodSourcesAttribution,
+  shownHealth,
+} from '@sharpit/app/lib/nutrition/food-log/food-health-view';
 import { cn } from '@sharpit/app/lib/utils';
 
 function PresetChips({
@@ -46,11 +50,14 @@ export function FoodPortionStep({
   grams,
   meal,
   error,
+  completing = false,
   onGrams,
   onMeal,
   onSubmit,
 }: {
   picked: PickedFood;
+  /** A search hit's additives are being read by barcode. */
+  completing?: boolean;
   grams: string;
   meal: FoodMealKey;
   error: string | null;
@@ -59,6 +66,8 @@ export function FoodPortionStep({
   onSubmit: () => void;
 }) {
   const { product } = picked;
+  const health = shownHealth(product.health);
+  const attribution = foodSourcesAttribution([product]);
   return (
     <form
       className="space-y-4"
@@ -71,14 +80,15 @@ export function FoodPortionStep({
         <p className="text-card-title">{product.name}</p>
         {product.brand ? <p className="text-muted-foreground text-xs">{product.brand}</p> : null}
       </div>
+      {health ? <FoodHealthSummary health={health} /> : null}
       <PresetChips grams={grams} picked={picked} onGrams={onGrams} />
       <FoodNumberField label="Quantité" name="grams" unit="g" value={grams} onChange={onGrams} />
       <FoodNutrientsPreview nutrients={portionPreview(product, grams)} />
       <FoodMealSelect id="food-portion-meal" value={meal} onChange={onMeal} />
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       <div className="flex items-center justify-between gap-3">
-        {product.source === 'OFF' ? (
-          <p className="text-muted-foreground text-[11px]">{OPEN_FOOD_FACTS_ATTRIBUTION}</p>
+        {attribution ? (
+          <p className="text-muted-foreground text-[11px]">{attribution}</p>
         ) : (
           <span />
         )}
@@ -86,6 +96,14 @@ export function FoodPortionStep({
           Ajouter
         </Button>
       </div>
+      {health ? (
+        <section
+          aria-label="Détail du score Sharpit"
+          className="border-analysis-border/15 border-t pt-4"
+        >
+          <FoodHealthDetails completing={completing} health={health} />
+        </section>
+      ) : null}
     </form>
   );
 }

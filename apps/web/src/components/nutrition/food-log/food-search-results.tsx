@@ -7,7 +7,7 @@ import type {
   FoodSearchPayload,
   RecentFoodPayload,
 } from '@sharpit/app/lib/nutrition/food-log/food-log-day';
-import { OPEN_FOOD_FACTS_ATTRIBUTION } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
+import { foodSourcesAttribution } from '@sharpit/app/lib/nutrition/food-log/food-health-view';
 
 function Note({ children }: { children: React.ReactNode }) {
   return <p className="text-muted-foreground px-2 py-3 text-sm">{children}</p>;
@@ -20,18 +20,27 @@ function SearchResults({
   results: FoodSearchPayload;
   onPick: (product: FoodProductPayload) => void;
 }) {
-  const empty = results.own.length === 0 && results.products.length === 0;
+  const generic = results.generic ?? [];
+  const empty = results.own.length === 0 && generic.length === 0 && results.products.length === 0;
   return (
     <div className="space-y-4">
       <FoodProductList products={results.own} title="Mes aliments" onPick={onPick} />
       <FoodProductList
-        footnote={OPEN_FOOD_FACTS_ATTRIBUTION}
+        footnote={foodSourcesAttribution(generic) ?? undefined}
+        products={generic}
+        title="Aliments de base"
+        onPick={onPick}
+      />
+      <FoodProductList
+        footnote={foodSourcesAttribution(results.products) ?? undefined}
         products={results.products}
-        title="Open Food Facts"
+        title="Produits"
         onPick={onPick}
       />
       {results.offUnavailable ? (
-        <Note>Open Food Facts ne répond pas : seuls tes aliments sont listés.</Note>
+        <Note>
+          Open Food Facts ne répond pas : seuls tes aliments et les aliments de base sont listés.
+        </Note>
       ) : null}
       {empty && !results.offUnavailable ? (
         <Note>Aucun aliment trouvé. Crée-le ou passe par la saisie rapide.</Note>
@@ -58,9 +67,11 @@ export function FoodSearchResults({
     return <Note>{error}</Note>;
   }
   if (listing === 'recent') {
+    const products = recent.map((item) => item.product);
     return (
       <FoodProductList
-        products={recent.map((item) => item.product)}
+        footnote={foodSourcesAttribution(products) ?? undefined}
+        products={products}
         title="Récents"
         onPick={onPick}
       />

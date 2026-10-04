@@ -115,7 +115,11 @@ export function buildPortionEntry(
   if (!result.ok) {
     return result;
   }
-  const preview = { name: product.name, brand: product.brand ?? null };
+  const preview = {
+    name: product.name,
+    brand: product.brand ?? null,
+    health: product.health ?? null,
+  };
   return {
     ok: true,
     value: {
@@ -179,6 +183,11 @@ function customFoodFields(form: FormData) {
     proteinPer100g: decimalOrUnset(form.get('proteinPer100g')),
     carbsPer100g: decimalOrUnset(form.get('carbsPer100g')),
     fatPer100g: decimalOrUnset(form.get('fatPer100g')),
+    // Optional: with sugars, salt and saturated fat, the Sharpit score reads the whole label.
+    fiberPer100g: parseDecimal(form.get('fiberPer100g')),
+    sugarPer100g: parseDecimal(form.get('sugarPer100g')),
+    saltPer100g: parseDecimal(form.get('saltPer100g')),
+    saturatedFatPer100g: parseDecimal(form.get('saturatedFatPer100g')),
     servingGrams: parseDecimal(form.get('servingGrams')),
   };
 }

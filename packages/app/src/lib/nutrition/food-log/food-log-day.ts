@@ -1,6 +1,7 @@
 import { FOOD_MEALS, type FoodMealKey, type FoodPer100g } from './food-log-math';
 import type { NutritionTargetMode } from './nutrition-targets';
 import type { FoodLogEntryCreateInput } from '@sharpit/app/lib/validators/food-log';
+import type { ServedFoodHealth } from './food-health-score';
 
 /**
  * The food log as the athlete reads it (ADR-061): the wire shapes of `/api/food-log`, the day
@@ -28,16 +29,21 @@ export type FoodLogEntryPayload = {
   fat: number;
   fiber?: number | null;
   sugar?: number | null;
+  /** The linked product's Sharpit score, live (ADR-063); absent for a quick add. */
+  health?: ServedFoodHealth | null;
 };
 
 export type FoodProductPayload = FoodPer100g & {
   id: string;
-  source: 'OFF' | 'CUSTOM';
+  source: 'OFF' | 'CUSTOM' | 'CIQUAL';
   barcode?: string | null;
   name: string;
   brand?: string | null;
   servingGrams?: number | null;
   servingLabel?: string | null;
+  saltPer100g?: number | null;
+  saturatedFatPer100g?: number | null;
+  health?: ServedFoodHealth | null;
 };
 
 /** Grams are always set from the split in `PERCENT` mode; the shares are kept to prefill it. */
@@ -75,6 +81,8 @@ export type FoodLogDayPayload = {
 
 export type FoodSearchPayload = {
   own: FoodProductPayload[];
+  /** Generic foods from the Ciqual table (ADR-065). */
+  generic?: FoodProductPayload[];
   products: FoodProductPayload[];
   offUnavailable: boolean;
 };

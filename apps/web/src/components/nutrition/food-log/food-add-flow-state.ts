@@ -33,6 +33,7 @@ export type FoodAddAction =
   | { type: 'close' }
   | { type: 'query'; query: string }
   | { type: 'pick'; picked: PickedFood }
+  | { type: 'complete'; product: FoodProductPayload }
   | { type: 'grams'; grams: string }
   | { type: 'meal'; meal: FoodMealKey }
   | { type: 'step'; step: Exclude<FoodAddStep, 'portion' | 'editFood'> }
@@ -73,6 +74,11 @@ export function foodAddReducer(state: FoodAddState, action: FoodAddAction): Food
       return { ...state, query: action.query, error: null };
     case 'pick':
       return pickedState(state, action.picked);
+    // The full product read by barcode replaces the search hit, if the athlete is still on it.
+    case 'complete':
+      return state.picked?.product.id === action.product.id
+        ? { ...state, picked: { ...state.picked, product: action.product } }
+        : state;
     case 'grams':
       return { ...state, grams: action.grams, error: null };
     case 'meal':
@@ -106,6 +112,11 @@ export function foodSearchListing(
 /** Where « back » leads: an edited food returns to « Mes aliments », every other step to search. */
 export function previousFoodAddStep(step: FoodAddStep): 'search' | 'mine' {
   return step === 'editFood' ? 'mine' : 'search';
+}
+
+/** A search hit scored from OFF's summary: its barcode read brings the additive list (ADR-063). */
+export function needsCompletion(product: FoodProductPayload): boolean {
+  return product.source === 'OFF' && !!product.barcode && product.health?.detail === 'summary';
 }
 
 /** The weight last logged for a product, so a search pick offers it like a recent one. */

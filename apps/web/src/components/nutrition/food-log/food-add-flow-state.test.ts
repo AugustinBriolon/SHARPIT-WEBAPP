@@ -4,6 +4,7 @@ import {
   foodSearchListing,
   initialFoodAddState,
   lastGramsFor,
+  needsCompletion,
   previousFoodAddStep,
 } from './food-add-flow-state';
 import type { FoodProductPayload } from '@sharpit/app/lib/nutrition/food-log/food-log-day';
@@ -52,6 +53,36 @@ describe('foodAddReducer', () => {
     const failed = foodAddReducer(initialFoodAddState(), { type: 'fail', message: 'Inconnu' });
     expect(foodAddReducer(failed, { type: 'query', query: 'sk' }).error).toBeNull();
     expect(foodAddReducer(failed, { type: 'grams', grams: '12' }).error).toBeNull();
+  });
+});
+
+describe('search hit completion', () => {
+  const summary = {
+    ...SKYR,
+    barcode: '5690845000621',
+    health: { detail: 'summary' },
+  } as FoodProductPayload;
+
+  it('reads by barcode only an OFF search hit scored from its summary', () => {
+    expect(needsCompletion(summary)).toBe(true);
+    expect(needsCompletion({ ...summary, health: { detail: 'full' } } as FoodProductPayload)).toBe(
+      false,
+    );
+    expect(needsCompletion({ ...summary, source: 'CIQUAL' })).toBe(false);
+    expect(needsCompletion({ ...summary, barcode: null })).toBe(false);
+  });
+
+  it('swaps in the full product only while the athlete is still on it', () => {
+    const picked = foodAddReducer(initialFoodAddState(), {
+      type: 'pick',
+      picked: { product: summary, lastGrams: null },
+    });
+    const full = { ...summary, name: 'Skyr complet' };
+    expect(foodAddReducer(picked, { type: 'complete', product: full }).picked?.product.name).toBe(
+      'Skyr complet',
+    );
+    const other = foodAddReducer(picked, { type: 'complete', product: { ...full, id: 'other' } });
+    expect(other).toBe(picked);
   });
 });
 

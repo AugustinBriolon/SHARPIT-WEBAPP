@@ -68,6 +68,7 @@ describe('buildPortionEntry', () => {
           fat: 0.3,
           fiber: null,
           sugar: null,
+          health: null,
         },
       },
     });
@@ -122,7 +123,7 @@ describe('buildEntryUpdate', () => {
 });
 
 describe('buildCustomFood', () => {
-  it('reads a food per 100 g, the brand and serving optional', () => {
+  it('reads a food per 100 g, the brand, serving and label details optional', () => {
     const result = buildCustomFood(
       form({
         name: 'Granola maison',
@@ -131,6 +132,7 @@ describe('buildCustomFood', () => {
         proteinPer100g: '12',
         carbsPer100g: '55,5',
         fatPer100g: '18',
+        saltPer100g: '0,4',
         servingGrams: '',
       }),
     );
@@ -143,6 +145,10 @@ describe('buildCustomFood', () => {
         proteinPer100g: 12,
         carbsPer100g: 55.5,
         fatPer100g: 18,
+        fiberPer100g: null,
+        sugarPer100g: null,
+        saltPer100g: 0.4,
+        saturatedFatPer100g: null,
         servingGrams: null,
       },
     });
@@ -212,7 +218,7 @@ describe('targets in percent', () => {
 });
 
 describe('buildCustomFoodUpdate', () => {
-  it('sends the edited food, a blank serving clearing it', () => {
+  it('sends the edited food, a blank serving or label detail clearing it', () => {
     expect(
       buildCustomFoodUpdate(
         form({
@@ -234,6 +240,10 @@ describe('buildCustomFoodUpdate', () => {
         proteinPer100g: 5,
         carbsPer100g: 22,
         fatPer100g: 3.2,
+        fiberPer100g: null,
+        sugarPer100g: null,
+        saltPer100g: null,
+        saturatedFatPer100g: null,
         servingGrams: null,
       },
     });

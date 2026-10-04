@@ -6,6 +6,7 @@ import {
   foodSearchListing,
   initialFoodAddState,
   lastGramsFor,
+  needsCompletion,
   type FoodAddAction,
   type FoodAddState,
 } from '@/components/nutrition/food-log/food-add-flow-state';
@@ -129,6 +130,21 @@ function useOwnFoodWrites(state: FoodAddState, dispatch: Dispatch) {
   };
 }
 
+/** Reads a picked search hit by barcode, quietly: on failure the summary score stays shown. */
+function useFoodCompletion(dispatch: Dispatch) {
+  const lookup = useFoodBarcodeLookup();
+  return {
+    completing: lookup.isPending,
+    complete: (product: FoodProductPayload) => {
+      if (needsCompletion(product) && product.barcode) {
+        lookup.mutate(product.barcode, {
+          onSuccess: (full) => dispatch({ type: 'complete', product: full }),
+        });
+      }
+    },
+  };
+}
+
 function stateSetters(dispatch: Dispatch) {
   return {
     start: (meal: FoodMealKey) => dispatch({ type: 'start', meal }),
@@ -142,8 +158,11 @@ function stateSetters(dispatch: Dispatch) {
 
 export function useFoodAddFlow(trainingDayId: string, recent: RecentFoodPayload[]) {
   const [state, dispatch] = useReducer(foodAddReducer, undefined, initialFoodAddState);
-  const pickProduct = (product: FoodProductPayload) =>
+  const { completing, complete } = useFoodCompletion(dispatch);
+  const pickProduct = (product: FoodProductPayload) => {
     dispatch({ type: 'pick', picked: { product, lastGrams: lastGramsFor(recent, product.id) } });
+    complete(product);
+  };
   const { log, ...writes } = useFoodAddWrites(trainingDayId, dispatch, pickProduct);
   const context = { meal: state.meal, trainingDayId };
 
@@ -155,6 +174,7 @@ export function useFoodAddFlow(trainingDayId: string, recent: RecentFoodPayload[
     ...useOwnFoodWrites(state, dispatch),
     ...stateSetters(dispatch),
     pickProduct,
+    completing,
     logPortion: () =>
       state.picked && log(buildPortionEntry(state.picked.product, state.grams, context)),
     logQuick: (form: FormData) => log(buildQuickEntry(form, context)),

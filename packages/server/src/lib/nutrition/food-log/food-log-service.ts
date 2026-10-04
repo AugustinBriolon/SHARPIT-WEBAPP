@@ -11,11 +11,11 @@ import {
   computeFoodHealth,
   FOOD_HEALTH_SCORE_VERSION,
   type FoodHealthAssessment,
+  type ServedFoodHealth,
 } from '@sharpit/app/lib/nutrition/food-log/food-health-score';
 import {
   assessDietFit,
   UNKNOWN_DIET_FACTS,
-  type DietFit,
 } from '@sharpit/app/lib/nutrition/food-log/food-diet-fit';
 import { rankFoodsByName } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
 import { SHARPIT_NUTRITION_PROVIDER } from '@sharpit/app/lib/nutrition/food-log/nutrition-source';
@@ -45,8 +45,6 @@ const OFF_CACHE_DAYS = 30;
 /** The diets the athlete declared in the journal, as `loadDeclaredDiet` reads them. */
 export type DeclaredDiets = { ids: string[]; labels: string[] };
 export const NO_DIETS: DeclaredDiets = { ids: [], labels: [] };
-
-export type ServedHealth = FoodHealthAssessment & { dietFit: DietFit[] };
 
 export class FoodLogNotFoundError extends Error {}
 
@@ -194,7 +192,7 @@ async function persistPartialHealth(product: FoodProduct): Promise<FoodProduct> 
 }
 
 /** The stored score with the athlete's diets read against it; facts are per food, fit per athlete. */
-export function servedHealth(product: FoodProduct, diets: DeclaredDiets): ServedHealth | null {
+export function servedHealth(product: FoodProduct, diets: DeclaredDiets): ServedFoodHealth | null {
   const health = healthOf(product);
   if (!health) {
     return null;

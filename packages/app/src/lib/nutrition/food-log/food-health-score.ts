@@ -1,5 +1,5 @@
 import { additiveRisk, type AdditiveInfo, type AdditiveRisk } from './additives-risk';
-import { UNKNOWN_DIET_FACTS, type DietFacts } from './food-diet-fit';
+import { UNKNOWN_DIET_FACTS, type DietFacts, type DietFit } from './food-diet-fit';
 import { foodHighlights, type FoodHighlight, type NutrientLevel } from './food-health-highlights';
 import {
   estimateNutriScorePoints,
@@ -46,6 +46,9 @@ export type FoodHealthAssessment = {
   dietFacts: DietFacts;
   detail: HealthDetail;
 };
+
+/** The stored assessment with the athlete's declared diets read against it, as the API serves it. */
+export type ServedFoodHealth = FoodHealthAssessment & { dietFit: DietFit[] };
 
 /** Per-100 g values from the label; null when not given. */
 export type HealthNutrients = {
