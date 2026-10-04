@@ -351,6 +351,7 @@ model AthleteProfile {
 
   /// APNs device tokens for native push notifications (SHARPIT-APP).
   deviceTokens DeviceToken[]
+  feedback     AthleteFeedback[]
 
   /// SharpIt Pro entitlements (Apple, Stripe, manual) — `tier` is derived from them.
   subscriptions Subscription[]
@@ -430,6 +431,22 @@ model Subscription {
   updatedAt DateTime @updatedAt
 
   @@index([athleteId])
+}
+
+/// What an athlete wrote through « Donner un avis » in the app — the beta's voice. Their own words,
+/// exported with their data and deleted with their account.
+model AthleteFeedback {
+  id         String         @id @default(cuid())
+  athleteId  String
+  athlete    AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  message    String
+  /// Where it was written from: `settings`, `activity`…
+  context    String?
+  /// The app's version and build, e.g. `1.0 (202610041900)`.
+  appVersion String?
+  createdAt  DateTime       @default(now())
+
+  @@index([athleteId, createdAt])
 }
 
 model DeviceToken {

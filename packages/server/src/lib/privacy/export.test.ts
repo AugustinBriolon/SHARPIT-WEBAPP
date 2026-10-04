@@ -24,6 +24,7 @@ vi.mock('@sharpit/db/client', () => ({
     dailyBriefing: { findMany: (...args: unknown[]) => findManyMock(...args) },
     weeklyReview: { findMany: (...args: unknown[]) => findManyMock(...args) },
     performanceRecord: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    athleteFeedback: { findMany: (...args: unknown[]) => findManyMock(...args) },
     garminAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
     stravaAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
     googleAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
