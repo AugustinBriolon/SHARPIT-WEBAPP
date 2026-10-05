@@ -35,6 +35,10 @@
       "schedule": "30 9 * * *"
     },
     {
+      "path": "/api/cron/beta-report",
+      "schedule": "0 7 * * 1"
+    },
+    {
       "path": "/api/cron/privacy-purge",
       "schedule": "15 3 * * *"
     }
