@@ -68,6 +68,7 @@
 | [ADR-063](./ADR-063-the-food-score-explains-itself-and-reads-the-athletes-diet.md) | Food score v2: estimated Nutri-Score, honest additives, highlights, diet fit               | Accepted                          |
 | [ADR-064](./ADR-064-food-search-ranks-by-how-the-name-reads.md)                    | Food search ranks by how the name reads against the query                                  | Accepted                          |
 | [ADR-065](./ADR-065-generic-foods-come-from-the-ciqual-table.md)                   | Generic foods from the bundled ANSES Ciqual table, searched in memory                      | Accepted                          |
+| [ADR-066](./ADR-066-own-foods-are-scored-from-their-label-on-every-read.md)        | Own foods scored from their label on every read, missing lines bounded                     | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

@@ -162,10 +162,7 @@ async function ensureProductHealth(product: FoodProduct): Promise<FoodProduct> {
     if (refreshed && healthOf(refreshed)) {
       return refreshed;
     }
-    // OFF unavailable: still surface a partial score from stored nutrients when possible.
-    return persistPartialHealth(product);
-  }
-  if (product.source === 'CUSTOM') {
+    // OFF unavailable: still surface a partial score from the stored label.
     return persistPartialHealth(product);
   }
   if (product.source === 'CIQUAL' && product.ciqualCode !== null) {
@@ -178,22 +175,19 @@ async function ensureProductHealth(product: FoodProduct): Promise<FoodProduct> {
 }
 
 async function persistPartialHealth(product: FoodProduct): Promise<FoodProduct> {
-  if (
-    product.sugarPer100g === null &&
-    product.saltPer100g === null &&
-    product.saturatedFatPer100g === null
-  ) {
-    return product;
-  }
   return prisma.foodProduct.update({
     where: { id: product.id },
     data: { health: customHealth(product) },
   });
 }
 
-/** The stored score with the athlete's diets read against it; facts are per food, fit per athlete. */
+/**
+ * The score with the athlete's diets read against it; facts are per food, fit per athlete. An own
+ * food is scored from its label on every read (ADR-066): a food created before a field or a
+ * formula existed reads the current score, with nothing to migrate.
+ */
 export function servedHealth(product: FoodProduct, diets: DeclaredDiets): ServedFoodHealth | null {
-  const health = healthOf(product);
+  const health = product.source === 'CUSTOM' ? labelHealth(product) : healthOf(product);
   if (!health) {
     return null;
   }
@@ -367,22 +361,30 @@ function needsOffRefresh(product: FoodProduct): boolean {
 type CustomLabel = {
   kcalPer100g?: number | null;
   proteinPer100g?: number | null;
+  carbsPer100g?: number | null;
+  fatPer100g?: number | null;
   fiberPer100g?: number | null;
   sugarPer100g?: number | null;
   saltPer100g?: number | null;
   saturatedFatPer100g?: number | null;
 };
 
-function customHealth(label: CustomLabel): Prisma.InputJsonValue {
+function labelHealth(label: CustomLabel): FoodHealthAssessment {
   return computeFoodHealth({
     kind: 'custom',
     kcalPer100g: label.kcalPer100g,
     proteinPer100g: label.proteinPer100g,
+    carbsPer100g: label.carbsPer100g,
+    fatPer100g: label.fatPer100g,
     fiberPer100g: label.fiberPer100g,
     sugarPer100g: label.sugarPer100g,
     saltPer100g: label.saltPer100g,
     saturatedFatPer100g: label.saturatedFatPer100g,
-  }) as unknown as Prisma.InputJsonValue;
+  });
+}
+
+function customHealth(label: CustomLabel): Prisma.InputJsonValue {
+  return labelHealth(label) as unknown as Prisma.InputJsonValue;
 }
 
 /** What a cached product holds, from Open Food Facts or Ciqual alike. */

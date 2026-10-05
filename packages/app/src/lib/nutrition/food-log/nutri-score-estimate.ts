@@ -49,16 +49,69 @@ function pointsFor(value: number, thresholds: readonly number[]): number {
   return thresholds.filter((threshold) => value > threshold).length;
 }
 
+type PointParts = {
+  energy: number;
+  sugars: number;
+  saturatedFat: number;
+  salt: number;
+  protein: number;
+  fiber: number | null;
+  fruitVegetableShare?: number | null;
+};
+
+function totalPoints(parts: PointParts): number {
+  const unfavourable = parts.energy + parts.sugars + parts.saturatedFat + parts.salt;
+  const fiber = pointsFor(parts.fiber ?? 0, FIBER_G);
+  const protein = unfavourable >= PROTEIN_CAP_FROM ? 0 : pointsFor(parts.protein, PROTEIN_G);
+  return unfavourable - fiber - protein - fruitVegetablePoints(parts.fruitVegetableShare);
+}
+
 /** Nutri-Score points: lower is better (−17 … 55). */
 export function estimateNutriScorePoints(nutrients: NutriScoreNutrients): number {
-  const unfavourable =
-    pointsFor(nutrients.kcal * KJ_PER_KCAL, ENERGY_KJ) +
-    pointsFor(nutrients.sugars, SUGARS_G) +
-    pointsFor(nutrients.saturatedFat, SATURATED_FAT_G) +
-    pointsFor(nutrients.salt, SALT_G);
-  const fiber = pointsFor(nutrients.fiber ?? 0, FIBER_G);
-  const protein = unfavourable >= PROTEIN_CAP_FROM ? 0 : pointsFor(nutrients.protein, PROTEIN_G);
-  return unfavourable - fiber - protein - fruitVegetablePoints(nutrients.fruitVegetableShare);
+  return totalPoints({
+    ...nutrients,
+    energy: pointsFor(nutrients.kcal * KJ_PER_KCAL, ENERGY_KJ),
+    sugars: pointsFor(nutrients.sugars, SUGARS_G),
+    saturatedFat: pointsFor(nutrients.saturatedFat, SATURATED_FAT_G),
+    salt: pointsFor(nutrients.salt, SALT_G),
+  });
+}
+
+/** A label typed by the athlete: energy and the three macros always, the rest when known. */
+export type LabelNutrients = {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number | null;
+  sugars: number | null;
+  saturatedFat: number | null;
+  salt: number | null;
+};
+
+/**
+ * Half the points of a label's own ceiling when the value is missing: sugars are at most the
+ * carbohydrates, saturated fat at most the fat. Neither flatters nor condemns the food.
+ */
+function boundedPoints(value: number | null, ceiling: number, thresholds: readonly number[]) {
+  return value === null
+    ? Math.round(pointsFor(ceiling, thresholds) / 2)
+    : pointsFor(value, thresholds);
+}
+
+/**
+ * Nutri-Score points from an incomplete label (ADR-066): a missing sugar or saturated-fat value
+ * reads half its ceiling's points; a missing salt, which nothing on the label bounds, reads none.
+ */
+export function estimateNutriScorePointsFromLabel(label: LabelNutrients): number {
+  return totalPoints({
+    energy: pointsFor(label.kcal * KJ_PER_KCAL, ENERGY_KJ),
+    sugars: boundedPoints(label.sugars, label.carbs, SUGARS_G),
+    saturatedFat: boundedPoints(label.saturatedFat, label.fat, SATURATED_FAT_G),
+    salt: label.salt === null ? 0 : pointsFor(label.salt, SALT_G),
+    protein: label.protein,
+    fiber: label.fiber,
+  });
 }
 
 /** Letter bands of the 2023 general-food scale. */

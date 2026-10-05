@@ -380,6 +380,32 @@ describe('food log service', () => {
     expect(found.map((product) => product.id)).toEqual(['b', 'a']);
   });
 
+  it('scores an own food from its label on every read, whatever was stored', async () => {
+    const { service } = await setup();
+    const granola = {
+      id: 'mine',
+      source: 'CUSTOM',
+      kcalPer100g: 450,
+      proteinPer100g: 12,
+      carbsPer100g: 55,
+      fatPer100g: 18,
+      fiberPer100g: null,
+      sugarPer100g: null,
+      saltPer100g: null,
+      saturatedFatPer100g: null,
+      health: { score: null, scoreVersion: 1, coverage: 'none' },
+    };
+
+    const served = service.servedProduct(granola as never, { ids: ['keto'], labels: ['Cétogène'] });
+
+    expect(served.health).toMatchObject({ coverage: 'partial', scoreVersion: 2 });
+    expect(served.health?.score).toEqual(expect.any(Number));
+    expect(served.health?.highlights[0]?.key).toBe('label_incomplete');
+    expect(served.health?.dietFit).toEqual([
+      expect.objectContaining({ diet: 'keto', status: 'incompatible' }),
+    ]);
+  });
+
   it("serves a food with the athlete's diets read against it", async () => {
     const { service } = await setup();
     const served = service.servedProduct(SKYR as never, {

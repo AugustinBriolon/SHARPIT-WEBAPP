@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { estimateNutriScorePoints, nutriScoreLetterOf } from './nutri-score-estimate';
+import {
+  estimateNutriScorePoints,
+  estimateNutriScorePointsFromLabel,
+  nutriScoreLetterOf,
+} from './nutri-score-estimate';
 
 describe('estimateNutriScorePoints', () => {
   it('grades a chocolate spread E', () => {
@@ -37,6 +41,33 @@ describe('estimateNutriScorePoints', () => {
     expect(nutriScoreLetterOf(estimateNutriScorePoints(banana))).toBe('c');
     expect(
       nutriScoreLetterOf(estimateNutriScorePoints({ ...banana, fruitVegetableShare: 100 })),
+    ).toBe('a');
+  });
+});
+
+describe('estimateNutriScorePointsFromLabel', () => {
+  const chicken = { kcal: 110, protein: 23, carbs: 0, fat: 2, fiber: null };
+
+  it('matches the full estimate when the label is complete', () => {
+    const full = { ...chicken, sugars: 0, saturatedFat: 0.6, salt: 0.15 };
+    expect(estimateNutriScorePointsFromLabel(full)).toBe(estimateNutriScorePoints(full));
+  });
+
+  it('reads a missing sugar or saturated fat as half its ceiling, and a missing salt as none', () => {
+    const rice = { kcal: 130, protein: 2.7, carbs: 28, fat: 0.3, fiber: null };
+    // Energy 1 + sugars half of 28 g's 8 points (4) + saturated fat 0 + salt 0 − protein 1.
+    expect(
+      estimateNutriScorePointsFromLabel({ ...rice, sugars: null, saturatedFat: null, salt: null }),
+    ).toBe(4);
+    expect(
+      nutriScoreLetterOf(
+        estimateNutriScorePointsFromLabel({
+          ...chicken,
+          sugars: null,
+          saturatedFat: null,
+          salt: null,
+        }),
+      ),
     ).toBe('a');
   });
 });

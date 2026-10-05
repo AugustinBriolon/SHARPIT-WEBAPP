@@ -174,6 +174,39 @@ describe('computeFoodHealth — own food', () => {
     expect(health.highlights.map((item) => item.key)).toContain('protein_rich');
   });
 
+  it('scores a label with only energy and macros, and says what is missing', () => {
+    const health = computeFoodHealth({
+      kind: 'custom',
+      kcalPer100g: 450,
+      proteinPer100g: 12,
+      carbsPer100g: 55,
+      fatPer100g: 18,
+    });
+    expect(health.coverage).toBe('partial');
+    expect(health.score).not.toBeNull();
+    expect(health.nutriScoreEstimated).toBe(true);
+    expect(health.highlights[0]).toEqual({
+      key: 'label_incomplete',
+      tone: 'neutral',
+      label: 'Étiquette incomplète',
+      detail: 'Sucres, graisses saturées, sel non renseignés : score estimé',
+    });
+  });
+
+  it('names no missing line when the label is complete', () => {
+    const health = computeFoodHealth({
+      kind: 'custom',
+      kcalPer100g: 120,
+      proteinPer100g: 22,
+      carbsPer100g: 1,
+      fatPer100g: 2,
+      sugarPer100g: 1,
+      saltPer100g: 0.2,
+      saturatedFatPer100g: 1,
+    });
+    expect(health.highlights.map((item) => item.key)).not.toContain('label_incomplete');
+  });
+
   it('falls back to nutrient levels when part of the label is missing', () => {
     const health = computeFoodHealth({ kind: 'custom', kcalPer100g: 200, sugarPer100g: 20 });
     expect(health.coverage).toBe('partial');

@@ -3,6 +3,7 @@ import { UNKNOWN_DIET_FACTS, type DietFacts, type DietFit } from './food-diet-fi
 import { foodHighlights, type FoodHighlight, type NutrientLevel } from './food-health-highlights';
 import {
   estimateNutriScorePoints,
+  estimateNutriScorePointsFromLabel,
   nutriScoreLetterOf,
   type NutriScoreLetter,
 } from './nutri-score-estimate';
@@ -82,6 +83,8 @@ export type CustomHealthInput = {
   kind: 'custom';
   kcalPer100g?: number | null;
   proteinPer100g?: number | null;
+  carbsPer100g?: number | null;
+  fatPer100g?: number | null;
   fiberPer100g?: number | null;
   sugarPer100g?: number | null;
   saltPer100g?: number | null;
@@ -248,8 +251,51 @@ function clampScore(score: number): number {
   return Math.min(100, Math.max(0, Math.round(score)));
 }
 
-function customAssessment(input: CustomHealthInput): FoodHealthAssessment {
-  const nutrients: HealthNutrients = {
+const LABEL_LINES = [
+  ['sugars', 'sucres'],
+  ['saturatedFat', 'graisses saturées'],
+  ['salt', 'sel'],
+] as const;
+
+/** Energy and macros known: an estimate even when sugars, saturated fat or salt are missing. */
+function labelNutrition(input: CustomHealthInput, nutrients: HealthNutrients): Nutrition | null {
+  const { kcal, protein } = nutrients;
+  const carbs = input.carbsPer100g ?? null;
+  const fat = input.fatPer100g ?? null;
+  if (kcal === null || protein === null || carbs === null || fat === null) {
+    return null;
+  }
+  const points = estimateNutriScorePointsFromLabel({
+    kcal,
+    protein,
+    carbs,
+    fat,
+    fiber: nutrients.fiber,
+    sugars: nutrients.sugars,
+    saturatedFat: nutrients.saturatedFat,
+    salt: nutrients.salt,
+  });
+  const letter = nutriScoreLetterOf(points);
+  return { points: letterPoints(letter, points), letter, estimated: true };
+}
+
+/** Says which label lines the estimate went without, so the athlete knows what to fill in. */
+function incompleteLabelNote(nutrients: HealthNutrients): FoodHighlight | null {
+  const missing = LABEL_LINES.filter(([key]) => nutrients[key] === null).map(([, word]) => word);
+  if (missing.length === 0) {
+    return null;
+  }
+  const list = missing.join(', ');
+  return {
+    key: 'label_incomplete',
+    tone: 'neutral',
+    label: 'Étiquette incomplète',
+    detail: `${list.charAt(0).toUpperCase()}${list.slice(1)} non renseigné${missing.length > 1 ? 's' : ''} : score estimé`,
+  };
+}
+
+function customNutrients(input: CustomHealthInput): HealthNutrients {
+  return {
     kcal: input.kcalPer100g ?? null,
     protein: input.proteinPer100g ?? null,
     fiber: input.fiberPer100g ?? null,
@@ -257,13 +303,25 @@ function customAssessment(input: CustomHealthInput): FoodHealthAssessment {
     salt: input.saltPer100g ?? null,
     saturatedFat: input.saturatedFatPer100g ?? null,
   };
-  const nutrientFlags: NutrientFlags = {
+}
+
+function flagsOf(nutrients: HealthNutrients): NutrientFlags {
+  return {
     sugars: levelFromAmount('sugars', nutrients.sugars),
     salt: levelFromAmount('salt', nutrients.salt),
     saturatedFat: levelFromAmount('saturatedFat', nutrients.saturatedFat),
   };
-  const nutrition = nutritionOf(nutrients, nutrientFlags);
+}
+
+function customAssessment(input: CustomHealthInput): FoodHealthAssessment {
+  const nutrients = customNutrients(input);
+  const nutrientFlags = flagsOf(nutrients);
+  const nutrition =
+    estimatedNutrition(nutrients) ??
+    labelNutrition(input, nutrients) ??
+    nutritionOf(nutrients, nutrientFlags);
   const score = nutrition === null ? null : clampScore(nutrition.points);
+  const note = score === null ? null : incompleteLabelNote(nutrients);
   return {
     score,
     scoreVersion: FOOD_HEALTH_SCORE_VERSION,
@@ -276,13 +334,16 @@ function customAssessment(input: CustomHealthInput): FoodHealthAssessment {
     additives: [],
     additivesKnown: 'unknown',
     additiveCount: null,
-    highlights: foodHighlights({
-      ...nutrients,
-      levels: nutrientFlags,
-      nova: null,
-      additives: null,
-      isSportsNutrition: false,
-    }),
+    highlights: [
+      ...(note ? [note] : []),
+      ...foodHighlights({
+        ...nutrients,
+        levels: nutrientFlags,
+        nova: null,
+        additives: null,
+        isSportsNutrition: false,
+      }),
+    ],
     dietFacts: UNKNOWN_DIET_FACTS,
     detail: 'full',
   };
