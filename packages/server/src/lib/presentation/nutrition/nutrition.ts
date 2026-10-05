@@ -1,13 +1,11 @@
 import { format, parseISO, subDays } from 'date-fns';
 import { isSet } from '@sharpit/shared/value';
-import type { FuelFeatureSet } from '@sharpit/core/features/types';
 import type {
   NutritionDaySummary,
   NutritionGoalsProgress,
   NutritionFuelDensity,
   NutritionViewModel,
 } from '@sharpit/app/presentation/nutrition-view-model';
-import { featureEngine } from '@sharpit/server/lib/engines/feature-engine';
 import {
   getLiveNutrientGoals,
   getMfpAccount,
@@ -17,7 +15,6 @@ import {
   macroGPerKg,
 } from '@sharpit/server/lib/nutrition/body-weight-for-fuel';
 import { buildGoalsProgress } from '@sharpit/app/lib/nutrition/goals-progress';
-import { fuelFeatureSetToDensity } from '@sharpit/app/lib/nutrition/fuel-density-display';
 import { normalizeStoredMeals } from '@sharpit/server/lib/nutrition/meal-display';
 import { loadDeclaredDiet } from '@sharpit/server/lib/nutrition/analysis/nutrition-analysis-inputs';
 import { prisma } from '@sharpit/db/client';
@@ -71,7 +68,14 @@ function mapRow(r: NutritionRow): NutritionDaySummary {
   };
 }
 
-async function fallbackFuelDensity(
+/**
+ * Protein and carbohydrates per kilogram of the latest weigh-in, read from the day's row. It is
+ * the Feature Engine's fuel extraction (same rule: something logged, the same weigh-in window),
+ * done here rather than through `computeDayFeatures`, which recomputes and saves every feature
+ * of the day — load, recovery, body, condition, sessions — to read this one pair of numbers,
+ * and made each read of the food log wait on all of them.
+ */
+async function loadFuelDensity(
   athleteId: string,
   trainingDayId: string,
   row: NutritionRow,
@@ -90,29 +94,6 @@ async function fallbackFuelDensity(
   }
 
   return { proteinGPerKg, carbohydratesGPerKg, referenceWeightKg };
-}
-
-async function loadFuelDensity(
-  athleteId: string,
-  trainingDayId: string,
-  row?: NutritionRow,
-): Promise<NutritionFuelDensity | null> {
-  try {
-    const dayFeatures = await featureEngine.computeDayFeatures(athleteId, trainingDayId);
-    if (dayFeatures.fuel !== 'PENDING') {
-      const fromEngine = fuelFeatureSetToDensity(dayFeatures.fuel as FuelFeatureSet);
-      if (fromEngine) {
-        return fromEngine;
-      }
-    }
-  } catch (error) {
-    console.error('[nutrition] fuel density lookup failed:', error);
-  }
-
-  if (!row) {
-    return null;
-  }
-  return fallbackFuelDensity(athleteId, trainingDayId, row);
 }
 
 async function resolveGoalsProgress(
@@ -207,16 +188,21 @@ async function buildConnectedNutritionViewModel(
   );
 
   const history: NutritionDaySummary[] = rows.map(mapRow);
-  const selectedRow = rows.find((d) => format(d.date, 'yyyy-MM-dd') === selectedDayId);
-  const selectedDayBase = history.find((d) => d.date === selectedDayId) ?? null;
-  const selectedDay = await enrichDayIfPresent(athleteId, selectedDayBase, selectedRow);
+  const enrichDay = (dayId: string) =>
+    enrichDayIfPresent(
+      athleteId,
+      history.find((d) => d.date === dayId) ?? null,
+      rows.find((d) => format(d.date, 'yyyy-MM-dd') === dayId),
+    );
 
-  const todayRow = rows.find((d) => format(d.date, 'yyyy-MM-dd') === todayId);
-  const todayBase = history.find((d) => d.date === todayId) ?? null;
-  const today = await enrichDayIfPresent(athleteId, todayBase, todayRow);
+  // The selected day is today on every read of the Résumé card: enrich it once.
+  const [selectedDay, today, diet] = await Promise.all([
+    enrichDay(selectedDayId),
+    selectedDayId === todayId ? null : enrichDay(todayId),
+    loadDeclaredDiet(athleteId),
+  ]);
 
   const emptyState = buildNutritionEmptyState(selectedDay, selectedDayId, todayId);
-  const diet = await loadDeclaredDiet(athleteId);
 
   return {
     connected: true,
@@ -224,7 +210,7 @@ async function buildConnectedNutritionViewModel(
     diet,
     coachReading: null,
     selectedDay,
-    today,
+    today: selectedDayId === todayId ? selectedDay : today,
     history,
     emptyState,
   };
