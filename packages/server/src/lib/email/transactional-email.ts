@@ -6,8 +6,12 @@ export type TransactionalEmail = {
   text: string;
 };
 
-/** Sender, overridable per environment; the domain must be verified at Resend. */
-const DEFAULT_FROM = 'SharpIt <noreply@sharpit.app>';
+/**
+ * Sender, overridable per environment (`EMAIL_FROM`); the domain must be verified at Resend. A real
+ * mailbox rather than a « noreply »: an athlete's reply reaches the team, and spam filters trust a
+ * sender that can be answered.
+ */
+const DEFAULT_FROM = 'SharpIt <contact@sharpit.app>';
 
 /**
  * Sends one transactional e-mail through Resend's HTTP API. Best effort by design: it never
