@@ -259,7 +259,22 @@ function quickEntryFields(quick: NonNullable<FoodLogEntryCreateInput['quick']>) 
   };
 }
 
-export async function addFoodLogEntry(athleteId: string, input: FoodLogEntryCreateInput) {
+/**
+ * The entry as the day lists it: with its food's score. A write answers this, so a client that
+ * swaps its row for the server's echo keeps the score (it lost it on every portion change).
+ */
+async function servedEntry(entry: FoodLogEntry, diets: DeclaredDiets) {
+  const product = entry.productId
+    ? await prisma.foodProduct.findUnique({ where: { id: entry.productId } })
+    : null;
+  return { ...entry, health: product ? servedHealth(product, diets) : null };
+}
+
+export async function addFoodLogEntry(
+  athleteId: string,
+  input: FoodLogEntryCreateInput,
+  diets: DeclaredDiets = NO_DIETS,
+) {
   const fields = input.productId
     ? await productEntryFields(athleteId, input.productId, input.grams)
     : quickEntryFields(input.quick!);
@@ -273,7 +288,7 @@ export async function addFoodLogEntry(athleteId: string, input: FoodLogEntryCrea
     },
   });
   await recomputeFoodLogDay(athleteId, input.trainingDayId);
-  return entry;
+  return servedEntry(entry, diets);
 }
 
 async function productEntryFields(athleteId: string, productId: string, grams: number) {
@@ -319,6 +334,7 @@ export async function updateFoodLogEntry(
   athleteId: string,
   id: string,
   input: FoodLogEntryUpdateInput,
+  diets: DeclaredDiets = NO_DIETS,
 ) {
   const entry = await ownedEntry(athleteId, id);
   const nutrients =
@@ -330,7 +346,7 @@ export async function updateFoodLogEntry(
     data: { ...nutrients, grams: input.grams ?? entry.grams, meal: input.meal ?? entry.meal },
   });
   await recomputeFoodLogDay(athleteId, trainingDayIdOf(entry.date));
-  return updated;
+  return servedEntry(updated, diets);
 }
 
 export async function deleteFoodLogEntry(athleteId: string, id: string): Promise<void> {

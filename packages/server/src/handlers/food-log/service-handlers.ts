@@ -100,8 +100,9 @@ export async function addEntry(request: NextRequest) {
     if (!body.ok) {
       return body.response;
     }
+    const diets = await loadDeclaredDiet(athleteId);
     return NextResponse.json(
-      { entry: await addFoodLogEntry(athleteId, body.data) },
+      { entry: await addFoodLogEntry(athleteId, body.data, diets) },
       { status: 201 },
     );
   } catch (error) {
@@ -117,7 +118,8 @@ export async function updateEntry(request: NextRequest, id: string) {
     if (!body.ok) {
       return body.response;
     }
-    return NextResponse.json({ entry: await updateFoodLogEntry(athleteId, id, body.data) });
+    const diets = await loadDeclaredDiet(athleteId);
+    return NextResponse.json({ entry: await updateFoodLogEntry(athleteId, id, body.data, diets) });
   } catch (error) {
     return failure('update', error);
   }

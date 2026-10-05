@@ -195,6 +195,19 @@ describe('food log service', () => {
     });
   });
 
+  it('answers a new portion with the food score, so the row keeps it', async () => {
+    const { prisma, service } = await setup();
+    const logged = storedEntry({ productId: 'p-skyr', grams: 150 });
+    vi.mocked(prisma.foodLogEntry.findFirst).mockResolvedValue(logged as never);
+    vi.mocked(prisma.foodProduct.findUnique).mockResolvedValue(SKYR as never);
+    vi.mocked(prisma.foodLogEntry.update).mockResolvedValue({ ...logged, grams: 200 } as never);
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([logged] as never);
+
+    const entry = await service.updateFoodLogEntry('athlete-1', 'e1', { grams: 200 });
+
+    expect(entry).toMatchObject({ grams: 200, health: { score: 80 } });
+  });
+
   it('serves a fresh cached barcode without calling Open Food Facts', async () => {
     const { prisma, service } = await setup();
     const { fetchOffProduct } = await import('./open-food-facts-client');
