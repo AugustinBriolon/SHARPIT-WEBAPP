@@ -1,12 +1,21 @@
 'use client';
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
+  HOME_LOCATION_CHECK_INTERVAL_MS,
   canAttemptSilentGeolocation,
+  isSilentHomeLocationRefreshDue,
   readHomeLocationEverGranted,
   readLastHomeLocationRefreshMs,
-  shouldRefreshHomeLocation,
   writeHomeLocationEverGranted,
   writeLastHomeLocationRefreshMs,
 } from '@sharpit/app/lib/geocoding/home-location-refresh';
@@ -39,6 +48,7 @@ async function queryGeolocationPermission(): Promise<PermissionState | 'unknown'
 function useDeviceLocationController(): DeviceLocationContextValue {
   const queryClient = useQueryClient();
   const [state, setState] = useState<DeviceLocationState>('idle');
+  const lastSilentAttemptMs = useRef<number | null>(null);
 
   const persist = useCallback(
     async (latitude: number, longitude: number) => {
@@ -59,9 +69,16 @@ function useDeviceLocationController(): DeviceLocationContextValue {
 
   const trySilentRefresh = useCallback(async () => {
     const now = Date.now();
-    if (!shouldRefreshHomeLocation(readLastHomeLocationRefreshMs(), now)) {
+    if (
+      !isSilentHomeLocationRefreshDue(
+        readLastHomeLocationRefreshMs(),
+        lastSilentAttemptMs.current,
+        now,
+      )
+    ) {
       return;
     }
+    lastSilentAttemptMs.current = now;
 
     const everGranted = readHomeLocationEverGranted();
     const permission = await queryGeolocationPermission();
@@ -82,15 +99,23 @@ function useDeviceLocationController(): DeviceLocationContextValue {
   }, [trySilentRefresh]);
 
   useEffect(() => {
-    function onVisibilityChange() {
+    function refreshIfVisible() {
       if (document.visibilityState !== 'visible') {
         return;
       }
       void trySilentRefresh();
     }
 
-    document.addEventListener('visibilitychange', onVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', onVisibilityChange);
+    // A tab left open never changes visibility: the timer and window focus
+    // keep the city from freezing on the first read.
+    const timer = window.setInterval(refreshIfVisible, HOME_LOCATION_CHECK_INTERVAL_MS);
+    document.addEventListener('visibilitychange', refreshIfVisible);
+    window.addEventListener('focus', refreshIfVisible);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+      window.removeEventListener('focus', refreshIfVisible);
+    };
   }, [trySilentRefresh]);
 
   return { state, ask };

@@ -6,10 +6,23 @@
  * the morning header must not freeze forever — travel without a travel-context
  * entry would keep showing yesterday's town. Soft refresh is throttled (1h)
  * and attempted silently on Safari when the Permissions API cannot answer.
+ * It is checked on load, whenever the page comes back (visibility or window
+ * focus) and on a timer while it stays open, so a tab left open does not
+ * freeze on the first city either.
  */
 
 /** Soft auto-refresh window when visiting Today with permission already granted. */
 export const HOME_LOCATION_REFRESH_MS = 60 * 60 * 1000;
+
+/** How often an open, visible Today checks whether the refresh window has elapsed. */
+export const HOME_LOCATION_CHECK_INTERVAL_MS = 5 * 60 * 1000;
+
+/**
+ * Minimum gap between two silent attempts. Focus and visibility fire together
+ * when a tab comes back, and a failed attempt records no refresh, so without
+ * it one return would read the position twice.
+ */
+export const HOME_LOCATION_ATTEMPT_COOLDOWN_MS = 60 * 1000;
 
 /** Ignore GPS jitter below this distance when deciding whether to persist. */
 export const HOME_LOCATION_MOVE_METERS = 2_000;
@@ -37,6 +50,21 @@ export function shouldRefreshHomeLocation(
     return true;
   }
   return nowMs - lastRefreshAtMs >= intervalMs;
+}
+
+/**
+ * Whether a silent refresh is due: the refresh window has elapsed and no other
+ * attempt started within the cooldown.
+ */
+export function isSilentHomeLocationRefreshDue(
+  lastRefreshAtMs: number | null,
+  lastAttemptAtMs: number | null,
+  nowMs: number,
+): boolean {
+  if (!shouldRefreshHomeLocation(lastRefreshAtMs, nowMs)) {
+    return false;
+  }
+  return lastAttemptAtMs === null || nowMs - lastAttemptAtMs >= HOME_LOCATION_ATTEMPT_COOLDOWN_MS;
 }
 
 /** Great-circle distance in metres (haversine). */

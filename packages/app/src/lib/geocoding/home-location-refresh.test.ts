@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  HOME_LOCATION_ATTEMPT_COOLDOWN_MS,
+  HOME_LOCATION_CHECK_INTERVAL_MS,
   HOME_LOCATION_MOVE_METERS,
   HOME_LOCATION_REFRESH_MS,
   canAttemptSilentGeolocation,
+  isSilentHomeLocationRefreshDue,
   distanceMeters,
   hasMovedSignificantly,
   readHomeLocationEverGranted,
@@ -28,6 +31,34 @@ describe('shouldRefreshHomeLocation', () => {
   it('refreshes once the window has elapsed', () => {
     expect(shouldRefreshHomeLocation(now - HOME_LOCATION_REFRESH_MS, now)).toBe(true);
     expect(shouldRefreshHomeLocation(now - HOME_LOCATION_REFRESH_MS - 1, now)).toBe(true);
+  });
+});
+
+describe('isSilentHomeLocationRefreshDue', () => {
+  const now = 1_700_000_000_000;
+  const stale = now - HOME_LOCATION_REFRESH_MS;
+
+  it('checks well inside the refresh window so an open tab catches it', () => {
+    expect(HOME_LOCATION_CHECK_INTERVAL_MS).toBeLessThan(HOME_LOCATION_REFRESH_MS);
+  });
+
+  it('is due once the window has elapsed and nothing was attempted', () => {
+    expect(isSilentHomeLocationRefreshDue(stale, null, now)).toBe(true);
+    expect(isSilentHomeLocationRefreshDue(null, null, now)).toBe(true);
+  });
+
+  it('is not due inside the refresh window', () => {
+    expect(isSilentHomeLocationRefreshDue(now - 1_000, null, now)).toBe(false);
+  });
+
+  it('does not start a second attempt when focus and visibility fire together', () => {
+    expect(isSilentHomeLocationRefreshDue(stale, now - 10, now)).toBe(false);
+  });
+
+  it('retries a failed attempt once the cooldown has passed', () => {
+    expect(
+      isSilentHomeLocationRefreshDue(stale, now - HOME_LOCATION_ATTEMPT_COOLDOWN_MS, now),
+    ).toBe(true);
   });
 });
 
