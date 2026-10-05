@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 
 const state = vi.hoisted(() => ({ userId: null as string | null, authCalls: 0 }));
@@ -94,6 +94,29 @@ describe('apiProxy', () => {
     expect(read.status).toBe(200);
     expect(write.status).toBe(403);
     expect(await write.json()).toEqual({ error: 'Mode démo : lecture seule' });
+  });
+
+  describe('local dev bypass', () => {
+    afterEach(() => vi.unstubAllEnvs());
+
+    it('lets a web call without a token through in development, without asking Clerk', async () => {
+      vi.stubEnv('NODE_ENV', 'development');
+      vi.stubEnv('DEV_BYPASS_CLERK', 'true');
+
+      const response = await run('http://localhost:3001/api/web/viewer');
+
+      expect(response.status).toBe(200);
+      expect(state.authCalls).toBe(0);
+      expect(response.headers.get('cache-control')).toBe('private, no-store');
+      expect((await run('http://localhost:3001/welcome')).status).toBe(404);
+    });
+
+    it('never bypasses outside development', async () => {
+      vi.stubEnv('NODE_ENV', 'production');
+      vi.stubEnv('DEV_BYPASS_CLERK', 'true');
+
+      expect((await run('https://api.sharpit.app/api/web/viewer')).status).toBe(401);
+    });
   });
 
   it('serves no other path', async () => {

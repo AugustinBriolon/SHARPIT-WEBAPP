@@ -1,5 +1,6 @@
 import { type NextFetchEvent, type NextRequest, NextResponse } from 'next/server';
 import { clerkMiddleware } from '@clerk/nextjs/server';
+import { isDevClerkBypass } from '@sharpit/app/lib/dev/dev-auth';
 import {
   apiHostError,
   isSelfAuthenticatedPath,
@@ -56,13 +57,17 @@ function asNextResponse(response: Response): NextResponse {
  * Crons carry `Bearer <CRON_SECRET>`, which is not a Clerk token, and OAuth callbacks and App
  * Store notifications carry none: they skip Clerk and their route authenticates the caller
  * (cron secret, signed `state`, signed payload) and refuses everything it cannot verify.
+ *
+ * The local dev bypass (`DEV_BYPASS_CLERK`, development only) has no Clerk session to send:
+ * it skips the Bearer and Clerk, and `getCurrentAthleteId` resolves the local athlete.
  */
 export async function apiProxy(req: NextRequest, event: NextFetchEvent): Promise<NextResponse> {
-  const screened = screenApiHostRequest(req);
+  const devBypass = isDevClerkBypass();
+  const screened = screenApiHostRequest(req, { requireBearer: !devBypass });
   if (screened) {
     return screened;
   }
-  if (isSelfAuthenticatedPath(req.nextUrl.pathname)) {
+  if (devBypass || isSelfAuthenticatedPath(req.nextUrl.pathname)) {
     return sealApiHostResponse(req, NextResponse.next());
   }
   const response = (await bearerProxy(req, event)) ?? NextResponse.next();

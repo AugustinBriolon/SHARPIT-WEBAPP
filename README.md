@@ -178,7 +178,10 @@ Clerk needs outbound HTTPS from **your browser** and from **Node** (`yarn dev`) 
    ```
 
 3. **SSL inspection** — if IT provides a root CA: `export NODE_EXTRA_CA_CERTS=/path/to/corp-ca.pem`
-4. **Local dev only** — add `DEV_BYPASS_CLERK=true` to `.env`, restart `yarn dev`, open `http://localhost:3000/` (not production-safe).
+4. **Local dev only** — add `DEV_BYPASS_CLERK=true` and `NEXT_PUBLIC_DEV_BYPASS_CLERK=true` to both
+   `apps/web/.env` and `apps/api/.env`, restart `yarn dev`, open `http://localhost:3000/` (not
+   production-safe). The web then sends no token and `api.` skips the Bearer and Clerk; requests act as
+   the oldest non-demo `AthleteProfile` of the local database, so it needs one row.
 
 ## Tests
 

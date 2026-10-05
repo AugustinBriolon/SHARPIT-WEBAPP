@@ -54,6 +54,15 @@ describe('api host guards', () => {
     expect(response?.headers.get('cache-control')).toBe('private, no-store');
   });
 
+  it('waives the Bearer only when asked (the local dev bypass), still guarding paths', () => {
+    const tokenless = request('http://localhost:3001/api/web/viewer');
+    expect(screenApiHostRequest(tokenless, { requireBearer: false })).toBeNull();
+    expect(
+      screenApiHostRequest(request('http://localhost:3001/welcome'), { requireBearer: false })
+        ?.status,
+    ).toBe(404);
+  });
+
   it('lets provider callbacks and App Store notifications through without a Bearer', () => {
     for (const path of [
       '/api/strava/callback',

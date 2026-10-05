@@ -109,8 +109,12 @@ export function apiHostPreflight(req: NextRequest): NextResponse {
 /**
  * Everything that can be answered before Clerk runs: pages, preflights and requests with no
  * Bearer at all (except the public callbacks). Null means "let it through to authentication".
+ * `requireBearer: false` is the local dev bypass only (`isDevClerkBypass`), where no token exists.
  */
-export function screenApiHostRequest(req: NextRequest): NextResponse | null {
+export function screenApiHostRequest(
+  req: NextRequest,
+  { requireBearer = true }: { requireBearer?: boolean } = {},
+): NextResponse | null {
   if (!isApiHostPath(req.nextUrl.pathname)) {
     return apiHostError(req, 404, 'Not found');
   }
@@ -120,7 +124,7 @@ export function screenApiHostRequest(req: NextRequest): NextResponse | null {
   if (PUBLIC_PATHS.some((pattern) => pattern.test(req.nextUrl.pathname))) {
     return null;
   }
-  if (!hasBearer(req)) {
+  if (requireBearer && !hasBearer(req)) {
     return apiHostError(req, 401, 'Bearer token required');
   }
   return null;
