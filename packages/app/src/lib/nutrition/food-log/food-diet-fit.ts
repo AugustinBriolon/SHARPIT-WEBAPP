@@ -141,7 +141,8 @@ function carbVerdict(
   carbsPer100g: number,
   [compatible, uncertain]: readonly [number, number],
 ): Verdict {
-  const amount = `${Math.round(carbsPer100g * 10) / 10} g de glucides/100 g`;
+  const grams = String(Math.round(carbsPer100g * 10) / 10).replace('.', ',');
+  const amount = `${grams} g de glucides/100 g`;
   if (carbsPer100g <= compatible) {
     return { status: 'compatible', reason: amount };
   }

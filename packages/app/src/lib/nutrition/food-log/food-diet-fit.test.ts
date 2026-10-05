@@ -73,6 +73,7 @@ describe('assessDietFit', () => {
     ]);
     expect(fit[0]!.label).toBe('Végétalien');
     expect(fit[3]!.reason).toBe('Contient du lait');
+    expect(fit[4]!.reason).toBe('57,5 g de glucides/100 g');
   });
 
   it('reads carbohydrates per 100 g for keto and low carb', () => {
