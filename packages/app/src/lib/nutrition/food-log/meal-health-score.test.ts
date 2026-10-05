@@ -48,9 +48,9 @@ describe('mealHealth', () => {
     const rich = mealHealth('DINNER', [
       entry({ meal: 'DINNER', kcal: 500, protein: 32, score: 70 }),
     ]);
-    expect(rich?.highlights[0]).toMatchObject({ key: 'meal_protein', tone: 'positive' });
+    expect(rich?.highlights[0]).toMatchObject({ key: 'protein_meal', tone: 'positive' });
     const poor = mealHealth('LUNCH', [entry({ kcal: 650, protein: 9, score: 50 })]);
-    expect(poor?.highlights[0]).toMatchObject({ key: 'meal_protein_low', tone: 'negative' });
+    expect(poor?.highlights[0]).toMatchObject({ key: 'protein_meal_low', tone: 'negative' });
     const snack = mealHealth('SNACKS', [
       entry({ meal: 'SNACKS', kcal: 450, protein: 2, score: 40 }),
     ]);
@@ -81,7 +81,7 @@ describe('foodLogDayHealth', () => {
     ]);
     expect(health.day?.score).toBe(70);
     expect(health.day?.highlights).toContainEqual(
-      expect.objectContaining({ key: 'day_fiber_low', detail: '18 g sur 25 g conseillés' }),
+      expect.objectContaining({ key: 'fiber_day_low', detail: '18 g sur 25 g conseillés' }),
     );
     expect(health.meals.BREAKFAST?.score).toBe(90);
     expect(health.meals.DINNER).toBeNull();

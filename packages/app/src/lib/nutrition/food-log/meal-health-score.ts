@@ -95,10 +95,10 @@ function proteinHighlight(scope: Scope, kcal: number, protein: number): FoodHigh
   }
   const detail = `${Math.round(protein)} g dans le repas`;
   if (protein >= MEAL_PROTEIN_G) {
-    return { key: 'meal_protein', tone: 'positive', label: 'Protéines au rendez-vous', detail };
+    return { key: 'protein_meal', tone: 'positive', label: 'Protéines au rendez-vous', detail };
   }
   return kcal >= MAIN_MEAL_KCAL
-    ? { key: 'meal_protein_low', tone: 'negative', label: 'Peu de protéines', detail }
+    ? { key: 'protein_meal_low', tone: 'negative', label: 'Peu de protéines', detail }
     : null;
 }
 
@@ -108,8 +108,8 @@ function fiberHighlight(scope: Scope, fiber: number | null): FoodHighlight | nul
   }
   const detail = `${Math.round(fiber)} g sur ${DAY_FIBER_G} g conseillés`;
   return fiber >= DAY_FIBER_G
-    ? { key: 'day_fiber', tone: 'positive', label: 'Fibres suffisantes', detail }
-    : { key: 'day_fiber_low', tone: 'negative', label: 'Peu de fibres', detail };
+    ? { key: 'fiber_day', tone: 'positive', label: 'Fibres suffisantes', detail }
+    : { key: 'fiber_day_low', tone: 'negative', label: 'Peu de fibres', detail };
 }
 
 function ultraProcessedHighlight(share: number | null): FoodHighlight | null {
