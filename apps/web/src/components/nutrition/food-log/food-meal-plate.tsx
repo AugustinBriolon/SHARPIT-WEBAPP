@@ -73,7 +73,7 @@ function MealPlateMenu({ group, actions }: { group: FoodLogMealGroup; actions: F
             onClick={() => onCopyYesterday(group.meal)}
           >
             <CopyPlus className="size-3.5" aria-hidden />
-            Copier le repas d’hier
+            Copier le repas de la veille
           </DropdownMenuItem>
         ) : null}
         {onSaveMeal && group.entries.length > 0 ? (

@@ -71,8 +71,8 @@ describe('FoodLogSection', () => {
   });
 
   it('offers to copy yesterday on an empty day, only when it can', () => {
-    expect(section({ display: 'empty' })).not.toContain('Copier hier');
-    expect(section({ display: 'empty', onCopyDay: noop })).toContain('Copier hier');
+    expect(section({ display: 'empty' })).not.toContain('Copier la veille');
+    expect(section({ display: 'empty', onCopyDay: noop })).toContain('Copier la veille');
   });
 
   it('gives each meal its menu once copy and save are wired', () => {

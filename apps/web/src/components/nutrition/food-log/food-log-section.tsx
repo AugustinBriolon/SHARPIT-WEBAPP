@@ -49,7 +49,7 @@ function FirstMealInvitation({
 }) {
   return (
     <InkEmptyState
-      description="Cherche un aliment, saisis son code-barres, entre un repas à la main ou reprends ta journée d’hier."
+      description="Cherche un aliment, saisis son code-barres, entre un repas à la main ou reprends ta journée de la veille."
       icon={Utensils}
       title="Rien de noté pour cette journée"
       action={
@@ -61,7 +61,7 @@ function FirstMealInvitation({
           {onCopyYesterday ? (
             <Button size="sm" type="button" variant="secondary" onClick={onCopyYesterday}>
               <CopyPlus aria-hidden />
-              Copier hier
+              Copier la veille
             </Button>
           ) : null}
         </div>

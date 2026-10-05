@@ -20,8 +20,9 @@ copy a meal, saved meals, recipes.
 
 1. **Copy.** `POST /api/v1/food-log/copy` `{ fromTrainingDayId, toTrainingDayId, fromMeal?, toMeal? }`
    writes the source entries into the target day as new snapshots — a meal (into the same meal, or
-   `toMeal`) or a whole day. The clients offer « Copier le repas d'hier » on each meal and « Copier
-   hier » on an empty day. An empty source is said, never a silent no-op.
+   `toMeal`) or a whole day. The clients offer « Copier le repas de la veille » on each meal and
+   « Copier la veille » on an empty day — the day before the one shown, not the calendar's
+   yesterday. An empty source is said, never a silent no-op.
 2. **Saved meals.** `SavedMeal { name, items Json }` keeps the entries of a logged meal as they were
    (`POST /api/v1/food-log/meals { name, trainingDayId, meal }`). `GET` lists them last used first,
    each with its totals and its score (ADR-070, from the products' live scores);
