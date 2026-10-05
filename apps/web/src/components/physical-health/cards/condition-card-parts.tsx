@@ -32,6 +32,7 @@ import {
   type SensitiveZone,
 } from '@sharpit/app/lib/physical-health/sensitive-zones';
 import { useClientNow } from '@/hooks/use-client-now';
+import { ZoneFollowUpStrip } from '@/components/physical-health/cards/zone-follow-up-strip';
 import { cn } from '@sharpit/app/lib/utils';
 
 function TrendIcon({ trend }: { trend: string }) {
@@ -295,6 +296,7 @@ export function ConditionCardActions({
 
   return (
     <CardContent className="pt-0">
+      <ZoneFollowUpStrip legacyNoteId={condition.legacyPhysicalNoteId} />
       <ConditionCardChips due={due} loadingCount={loadingCount} unverifiable={unverifiable} />
       <div className="flex flex-wrap gap-2 pt-1">
         {condition.legacyPhysicalNoteId && onEditLegacy ? (
