@@ -45,6 +45,7 @@ export type V1TodaySource = {
       secondary?: string | null;
       activityType?: ActivityType;
       plannedSessionId?: string | null;
+      isKey?: boolean;
       metrics?: Array<{ label: string; value: string; unit: string }> | null;
       brickLegs?: ReadonlyArray<BrickLegSource> | null;
       brickTransitionsSec?: ReadonlyArray<number | null> | null;
@@ -123,6 +124,8 @@ export type V1TodayResponse = {
      * brick line is identified by its group, so only this addresses the session itself.
      */
     plannedSessionId: string | null;
+    /** One of the week's key sessions (F2): the ones that carry the preparation. */
+    isKey: boolean;
     /**
      * Set on a brick line: its legs, so a client opens the chain as one session rather
      * than its first leg alone. Null on any other line.
@@ -264,6 +267,7 @@ function projectSessions(
     sport: sportLabel(line.activityType),
     priority: index === 0,
     plannedSessionId: line.plannedSessionId ?? null,
+    isKey: line.isKey ?? false,
     brickLegs:
       line.brickLegs?.map(({ id, type, title, durationMin, completed, activityId, actual }) => ({
         id,
@@ -413,6 +417,7 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         secondary: line.secondary,
         activityType: line.activityType,
         plannedSessionId: line.plannedSessionId,
+        isKey: line.isKey,
         metrics: line.metrics,
         brickLegs: line.brickLegs,
         brickTransitionsSec: line.brickTransitionsSec,

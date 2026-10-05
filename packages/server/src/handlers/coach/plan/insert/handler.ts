@@ -4,6 +4,7 @@ import {
   generatedSessionPayload,
   type GeneratedSessionInput,
 } from '@sharpit/app/lib/planned-session/generated-session-payload';
+import { chooseKeySessions } from '@sharpit/app/lib/planned-session/key-sessions';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { createPlannedSessionFromBody } from '@sharpit/server/handlers/planned-sessions/handler';
 import {
@@ -24,12 +25,24 @@ const generatedSessionSchema = z.object({
   durationMin: z.number(),
   load: z.number(),
   decisionId: z.string().nullish(),
+  key: z.boolean().nullish(),
 });
 
 const insertBodySchema = z.object({
   goalId: z.string().nullish(),
   sessions: z.array(generatedSessionSchema).min(1).max(21),
 });
+
+/**
+ * The key sessions as the proposal marked them; a client that did not send them back gets the
+ * same rule applied here, so a week never lands without its key sessions.
+ */
+function keySessionsOf(sessions: z.infer<typeof generatedSessionSchema>[]): Set<number> {
+  if (sessions.some((session) => session.key)) {
+    return new Set(sessions.flatMap((session, index) => (session.key ? [index] : [])));
+  }
+  return chooseKeySessions(sessions);
+}
 
 /**
  * Adds a week the coach generated to the plan — the native twin of the web generator's
@@ -49,13 +62,15 @@ export async function POST(request: NextRequest) {
     }
 
     const goalId = parsed.data.goalId ?? null;
-    const payloads = parsed.data.sessions.map((session) =>
+    const keys = keySessionsOf(parsed.data.sessions);
+    const payloads = parsed.data.sessions.map((session, index) =>
       generatedSessionPayload(
         {
           ...session,
           startTime: session.startTime ?? null,
           description: session.description ?? '',
           decisionId: session.decisionId ?? null,
+          key: keys.has(index),
         } as GeneratedSessionInput,
         goalId,
       ),

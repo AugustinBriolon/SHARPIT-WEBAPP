@@ -1,4 +1,6 @@
 import { addTrainingDays } from '@sharpit/core/training/training-day';
+import { countsAsKey } from '@sharpit/app/lib/planned-session/key-sessions';
+import { mondayOf } from '@sharpit/app/lib/plan/training-week';
 
 /**
  * How much of the plan the athlete follows — the product's outcome (« ≥ 70 % of planned sessions
@@ -12,6 +14,8 @@ export type AdherenceSession = {
   day: string;
   completed: boolean;
   brickGroupId: string | null;
+  /** One of the week's key sessions (F2); absent on sessions read before the flag existed. */
+  isKey?: boolean;
 };
 
 export type Adherence = {
@@ -22,6 +26,8 @@ export type Adherence = {
 };
 
 export type OutcomeAdherence = Adherence & {
+  /** The same count over the key sessions only — whether the preparation itself holds. */
+  key: Adherence;
   /** First day of the window, YYYY-MM-DD. */
   start: string;
   /** The four weeks are over: the rate is final. */
@@ -53,6 +59,7 @@ export function planUnits(sessions: readonly AdherenceSession[]): AdherenceSessi
       continue;
     }
     brick.completed = brick.completed && session.completed;
+    brick.isKey = brick.isKey || session.isKey;
     brick.day = session.day < brick.day ? session.day : brick.day;
   }
   return units;
@@ -66,8 +73,10 @@ export function adherence(
   sessions: readonly AdherenceSession[],
   window: { from: string; to: string },
   today: string,
+  options: { keysOnly?: boolean } = {},
 ): Adherence {
-  const due = planUnits(sessions).filter(
+  const units = options.keysOnly ? keyUnits(planUnits(sessions)) : planUnits(sessions);
+  const due = units.filter(
     (unit) =>
       unit.day >= window.from &&
       unit.day < window.to &&
@@ -87,10 +96,21 @@ export function outcomeAdherence(
   const counted = adherence(sessions, { from: start, to }, today);
   return {
     ...counted,
+    key: adherence(sessions, { from: start, to }, today, { keysOnly: true }),
     start,
     complete: today >= to,
     meetsTarget: counted.rate === null ? null : counted.rate >= ADHERENCE_TARGET,
   };
+}
+
+/** The key sessions, week by week — every session of a week where none is marked. */
+function keyUnits(units: readonly AdherenceSession[]): AdherenceSession[] {
+  const weeksWithKeys = new Set(
+    units.filter((unit) => unit.isKey).map((unit) => mondayOf(unit.day)),
+  );
+  return units.filter((unit) =>
+    countsAsKey({ isKey: Boolean(unit.isKey) }, weeksWithKeys.has(mondayOf(unit.day))),
+  );
 }
 
 /** This week, Monday to Sunday: sessions done out of all planned, the ones still ahead included. */
@@ -102,10 +122,4 @@ export function weekProgress(
   const nextMonday = addTrainingDays(monday, 7);
   const week = planUnits(sessions).filter((unit) => unit.day >= monday && unit.day < nextMonday);
   return { done: week.filter((unit) => unit.completed).length, planned: week.length };
-}
-
-/** The Monday of the week holding `day`, YYYY-MM-DD. */
-export function mondayOf(day: string): string {
-  const weekday = new Date(`${day}T12:00:00.000Z`).getUTCDay();
-  return addTrainingDays(day, -((weekday + 6) % 7));
 }

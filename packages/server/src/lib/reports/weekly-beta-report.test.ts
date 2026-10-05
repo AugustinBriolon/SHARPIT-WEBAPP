@@ -24,6 +24,7 @@ const outcome = {
       planned: 10,
       done: 8,
       rate: 0.8,
+      key: { planned: 4, done: 4, rate: 1 },
       complete: true,
       meetsTarget: true,
     },
@@ -33,6 +34,7 @@ const outcome = {
       planned: 0,
       done: 0,
       rate: null,
+      key: { planned: 0, done: 0, rate: null },
       complete: false,
       meetsTarget: null,
     },
@@ -62,9 +64,11 @@ describe('weekly beta report', () => {
       '1 sur 1 athlète(s) ayant fini leurs 4 semaines l’atteignent (100 %).',
     );
     expect(report.text).toContain(
-      '- a1 · depuis le 2026-09-01 · 8/10 (80 %) · 4 semaines finies · atteint',
+      '- a1 · depuis le 2026-09-01 · 8/10 (80 %) · clés 4/4 (100 %) · 4 semaines finies · atteint',
     );
-    expect(report.text).toContain('- a2 · depuis le 2026-09-28 · 0/0 (—) · en cours');
+    expect(report.text).toContain(
+      '- a2 · depuis le 2026-09-28 · 0/0 (—) · clés 0/0 (—) · en cours',
+    );
     expect(report.text).toContain(
       '- 2026-10-03 · a2 · settings · 1.0 (42)\n  La notif du matin\n  est top',
     );

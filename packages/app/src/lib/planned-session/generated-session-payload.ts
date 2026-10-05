@@ -22,6 +22,8 @@ export type GeneratedSessionInput = {
   durationMin: number;
   load: number;
   decisionId: string | null;
+  /** One of the week's key sessions (`chooseKeySessions`). */
+  key?: boolean;
 };
 
 export function generatedSessionPayload(session: GeneratedSessionInput, goalId: string | null) {
@@ -49,6 +51,7 @@ export function generatedSessionPayload(session: GeneratedSessionInput, goalId: 
     load: session.load,
     intensity: session.intensity,
     goalId,
+    isKey: session.key ?? false,
     decisionId: session.decisionId,
   };
 }

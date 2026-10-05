@@ -1,4 +1,6 @@
 import { addTrainingDays, trainingDayIdForNow } from '@sharpit/core/training/training-day';
+import { mondayOf } from '@sharpit/app/lib/plan/training-week';
+import { countsAsKey } from '@sharpit/app/lib/planned-session/key-sessions';
 import { prisma } from '@sharpit/db/client';
 import { resolveNotificationPrefs } from '@sharpit/server/lib/notifications/notification-prefs';
 import { sendPushToAthlete } from '@sharpit/server/lib/push/athlete-push';
@@ -130,9 +132,10 @@ export async function notifySessionsDone(
 }
 
 /**
- * « Dommage pour hier » — yesterday's planned sessions that nothing counted for, said once, with
- * « Ajuster le planning » one tap away (F1). Quiet when the athlete trained anyway (another sport,
- * a session the plan did not pair) and about a recovery session, which nothing needs to make up.
+ * « Dommage pour hier » — yesterday's key sessions that nothing counted for, said once, with
+ * « Ajuster le planning » one tap away (F1). Quiet about an optional session (F2), when the athlete
+ * trained anyway (another sport, a session the plan did not pair) and about a recovery session,
+ * which nothing needs to make up.
  */
 export async function notifyMissedSessions(
   athleteId: string,
@@ -146,17 +149,7 @@ export async function notifyMissedSessions(
     gte: new Date(`${yesterday}T00:00:00.000Z`),
     lt: new Date(`${today}T00:00:00.000Z`),
   };
-  const missed = await prisma.plannedSession.findMany({
-    where: {
-      athleteId,
-      date: day.gte,
-      activityId: null,
-      completed: false,
-      OR: [{ intensity: null }, { intensity: { not: 'RECOVERY' } }],
-    },
-    orderBy: [{ startTime: 'asc' }, { brickOrder: 'asc' }],
-    select: { type: true, intensity: true, brickGroupId: true },
-  });
+  const missed = await missedKeySessions(athleteId, yesterday);
   if (
     missed.length === 0 ||
     (await prisma.activity.count({ where: { athleteId, date: day } })) > 0
@@ -182,6 +175,37 @@ export async function notifyMissedSessions(
     catchUp: { label: missedSessionLabel(missed), day: yesterday },
   });
   console.info('[push] missed session', delivery);
+}
+
+/** Yesterday's sessions nothing counted for, the key ones only — all of them in a week with none. */
+async function missedKeySessions(athleteId: string, yesterday: string) {
+  const missed = await prisma.plannedSession.findMany({
+    where: {
+      athleteId,
+      date: new Date(`${yesterday}T00:00:00.000Z`),
+      activityId: null,
+      completed: false,
+      OR: [{ intensity: null }, { intensity: { not: 'RECOVERY' } }],
+    },
+    orderBy: [{ startTime: 'asc' }, { brickOrder: 'asc' }],
+    select: { type: true, intensity: true, brickGroupId: true, isKey: true },
+  });
+  if (missed.length === 0) {
+    return missed;
+  }
+  const monday = mondayOf(yesterday);
+  const weekHasKeys =
+    (await prisma.plannedSession.count({
+      where: {
+        athleteId,
+        isKey: true,
+        date: {
+          gte: new Date(`${monday}T00:00:00.000Z`),
+          lt: new Date(`${addTrainingDays(monday, 7)}T00:00:00.000Z`),
+        },
+      },
+    })) > 0;
+  return missed.filter((session) => countsAsKey(session, weekHasKeys));
 }
 
 /** The first planned session from today on that no activity has counted for yet. */

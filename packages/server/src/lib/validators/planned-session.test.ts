@@ -66,6 +66,11 @@ describe('createPlannedSessionSchema', () => {
 });
 
 describe('updatePlannedSessionSchema', () => {
+  it('marks or unmarks a key session on its own', () => {
+    expect(updatePlannedSessionSchema.parse({ isKey: true })).toEqual({ isKey: true });
+    expect(updatePlannedSessionSchema.safeParse({ isKey: 'false' }).success).toBe(false);
+  });
+
   it('rejects a mismatched sport when the patch carries the type', () => {
     const parsed = updatePlannedSessionSchema.safeParse({
       type: 'SWIM',

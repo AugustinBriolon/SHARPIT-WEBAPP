@@ -41,6 +41,7 @@ import {
   type CoachPlan,
 } from '@sharpit/app/lib/validators/coach';
 import type { z } from 'zod';
+import { chooseKeySessions } from '@sharpit/app/lib/planned-session/key-sessions';
 import { buildGateContext } from '@sharpit/server/lib/plan-gate/build-context';
 import { evaluatePlan } from '@sharpit/server/lib/plan-gate/evaluate-plan';
 import type { GateProposal } from '@sharpit/app/lib/plan-gate/types';
@@ -387,6 +388,7 @@ export type PlanPayload = {
     startTime: string | null;
     decisionId: string;
     breakdown: PlannedSessionBreakdown;
+    key: boolean;
   })[];
   gate: ReturnType<typeof evaluatePlan>;
 };
@@ -467,10 +469,12 @@ async function finalizePlan(
     // Resolved like a planned session's, so a proposal opens on the steps it would store.
     const profile = await getAthleteProfile(athleteId);
     const thresholds = athleteThresholds(profile);
-    const sessionsWithDecisionId = kept.map((index) => {
+    const keySessions = chooseKeySessions(kept.map((index) => sessions[index]));
+    const sessionsWithDecisionId = kept.map((index, position) => {
       const s = sessions[index];
       return {
         ...s,
+        key: keySessions.has(position),
         breakdown: buildPlannedSessionSteps(s, thresholds, {
           defaultPoolLengthM: profile?.defaultPoolLengthM,
         }),

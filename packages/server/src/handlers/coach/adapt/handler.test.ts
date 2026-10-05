@@ -172,6 +172,45 @@ describe('POST /api/coach/adapt', () => {
     expect(body.retryAfterSeconds).toBe(5_400);
   });
 
+  it('tells the coach which upcoming sessions are key, and to protect them', async () => {
+    const { runStructuredCoachStream } =
+      await import('@sharpit/server/lib/coach/stream-structured-generation');
+    const { getPlannedSessionsForCoach } = await import('@sharpit/server/lib/queries');
+    vi.mocked(getPlannedSessionsForCoach).mockResolvedValue([
+      {
+        id: 'key-1',
+        date: new Date('2026-07-21T00:00:00Z'),
+        type: 'RUN',
+        intensity: 'THRESHOLD',
+        durationMin: 50,
+        load: 70,
+        title: 'Seuil',
+        completed: false,
+        isKey: true,
+        brickGroupId: null,
+      },
+    ] as never);
+    vi.mocked(runStructuredCoachStream).mockResolvedValue({
+      output: { summary: 'Rien à changer', changes: [] },
+      usage: { inputTokens: 10, outputTokens: 10, totalTokens: 20 },
+    } as never);
+
+    const { POST } = await importRoute();
+    await consumeCoachProgressStream<AdaptPayload, unknown>(
+      await POST(
+        new Request('http://localhost/api/coach/adapt', {
+          method: 'POST',
+          body: JSON.stringify({}),
+        }),
+      ),
+    );
+
+    const call = vi.mocked(runStructuredCoachStream).mock.calls.at(-1)?.[0];
+    expect(call?.prompt).toContain('id=key-1');
+    expect(call?.prompt).toMatch(/id=key-1 .*\[clé\]/);
+    expect(call?.system).toContain("sacrifie d'abord les séances non clés");
+  });
+
   it('does not gate REMOVE changes — they pass through with no gate entry', async () => {
     const { runStructuredCoachStream } =
       await import('@sharpit/server/lib/coach/stream-structured-generation');

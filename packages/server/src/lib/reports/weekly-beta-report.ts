@@ -81,7 +81,8 @@ function athletesSection(outcome: OutcomeReport): string {
   }
   const lines = outcome.rows.map((row) => {
     const window = row.complete ? '4 semaines finies' : 'en cours';
-    return `- ${row.athleteId} · depuis le ${row.start} · ${row.done}/${row.planned} (${percent(row.rate)}) · ${window}${targetMark(row.meetsTarget)}`;
+    const key = `clés ${row.key.done}/${row.key.planned} (${percent(row.key.rate)})`;
+    return `- ${row.athleteId} · depuis le ${row.start} · ${row.done}/${row.planned} (${percent(row.rate)}) · ${key} · ${window}${targetMark(row.meetsTarget)}`;
   });
   return `Athlètes (${outcome.rows.length}) :\n${lines.join('\n')}`;
 }

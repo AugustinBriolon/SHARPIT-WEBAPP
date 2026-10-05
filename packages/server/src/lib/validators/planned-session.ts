@@ -86,6 +86,7 @@ const basePlannedSessionSchema = z.object({
   load: optionalNumber,
   intensity: sessionIntensitySchema.optional().nullable(),
   completed: z.coerce.boolean().optional(),
+  isKey: z.boolean().optional(),
   goalId: optionalString,
   ...contextualFields,
 });

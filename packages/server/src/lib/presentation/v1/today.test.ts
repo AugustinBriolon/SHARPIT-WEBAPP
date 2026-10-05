@@ -83,6 +83,7 @@ describe('projectV1Today', () => {
         sport: 'Course',
         priority: true,
         plannedSessionId: null,
+        isKey: false,
         brickLegs: null,
         brickTransitionsSec: null,
         brickGroupId: null,

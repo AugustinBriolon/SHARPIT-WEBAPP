@@ -310,6 +310,7 @@ function mapDaySummaryLineForView(
     // The real prescription behind the line. A brick's `id` is its group, so a client
     // that needs to address the session itself cannot derive it from `id` alone.
     plannedSessionId: plannedId,
+    isKey: line.plannedSession?.isKey ?? false,
     metrics: daySummaryLineMetrics(line),
     morningChoiceLabel: morningChoiceForLine(plannedId, sessionChoice),
     brickLegs: line.brickLegs ?? null,

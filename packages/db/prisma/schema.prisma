@@ -1590,6 +1590,9 @@ model PlannedSession {
   load                  Float? // charge / TSS prévue
   intensity             SessionIntensity?
   completed             Boolean           @default(false)
+  /// One of the week's two or three sessions that matter most (key-sessions.ts). A week with
+  /// none marked counts every session as key — the plans made before the flag existed.
+  isKey                 Boolean           @default(false)
 
   /// Contextual intention — athlete-declared (not engine output).
   exposureSetting      String? // INDOOR | OUTDOOR | UNKNOWN

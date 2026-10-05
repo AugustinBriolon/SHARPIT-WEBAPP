@@ -110,6 +110,7 @@ export const plannedSessionCoachSelect = {
   startTime: true,
   description: true,
   completed: true,
+  isKey: true,
   analysis: true,
   exposureSetting: true,
   locationLabel: true,

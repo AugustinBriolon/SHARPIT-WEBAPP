@@ -4,13 +4,14 @@ const findUnique = vi.fn();
 const findMany = vi.fn();
 const findFirst = vi.fn();
 const count = vi.fn();
+const keyCount = vi.fn().mockResolvedValue(0);
 const set = vi.fn();
 const sendPushToAthlete = vi.fn().mockResolvedValue({ sent: 1, failed: 0, deactivated: 0 });
 
 vi.mock('@sharpit/db/client', () => ({
   prisma: {
     athleteProfile: { findUnique },
-    plannedSession: { findMany, findFirst },
+    plannedSession: { findMany, findFirst, count: keyCount },
     activity: { count },
   },
 }));
@@ -177,6 +178,24 @@ describe('notifyMissedSessions', () => {
       url: CATCH_UP_PATH,
       catchUp: { label: 'Course seuil', day: '2026-10-01' },
     });
+  });
+
+  it('stays quiet about an optional session in a week with key sessions', async () => {
+    keyCount.mockResolvedValueOnce(2);
+    findMany.mockResolvedValueOnce([
+      { type: 'SWIM', intensity: 'ENDURANCE', brickGroupId: null, isKey: false },
+    ]);
+    await notifyMissedSessions('a1', '2026-10-02');
+    expect(sendPushToAthlete).not.toHaveBeenCalled();
+  });
+
+  it('regrets a missed key session', async () => {
+    keyCount.mockResolvedValueOnce(2);
+    findMany.mockResolvedValueOnce([
+      { type: 'RUN', intensity: 'THRESHOLD', brickGroupId: null, isKey: true },
+    ]);
+    await notifyMissedSessions('a1', '2026-10-02');
+    expect(sendPushToAthlete).toHaveBeenCalledTimes(1);
   });
 
   it('stays quiet when the athlete trained anyway', async () => {

@@ -152,6 +152,7 @@ Pour chaque ajustement, choisis une action :
 - ADD : ajouter une nouvelle séance (sessionId=null, fournis une date yyyy-MM-dd dans la fenêtre).
 
 Principes :
+- Les séances marquées [clé] portent la préparation : quand une séance est manquée ou la semaine trop chargée, sacrifie d'abord les séances non clés, et déplace une séance clé manquée plutôt que de la supprimer.
 - Si l'athlète a fait plus dur/long que prévu (fatigue accrue), allège ou recule les séances clés.
 - S'il a fait plus facile ou manqué, tu peux densifier raisonnablement.
 - Respecte la périodisation vers la course et la règle 80/20.
@@ -191,6 +192,7 @@ function buildUpcomingLines(upcoming: UpcomingSession[]) {
       p.load ? `${Math.round(p.load)} TSS` : null,
       p.title ? `"${p.title}"` : null,
       p.brickGroupId ? '[brick]' : null,
+      p.isKey ? '[clé]' : null,
       p.completed ? '[réalisée]' : null,
     ]
       .filter(Boolean)

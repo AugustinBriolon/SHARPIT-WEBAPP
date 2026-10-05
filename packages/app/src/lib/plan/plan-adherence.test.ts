@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { mondayOf } from '@sharpit/app/lib/plan/training-week';
 import {
   adherence,
-  mondayOf,
   outcomeAdherence,
   planUnits,
   weekProgress,
@@ -64,6 +64,20 @@ describe('plan adherence', () => {
       complete: true,
       meetsTarget: true,
     });
+  });
+
+  it('counts the key sessions apart, every session of a week with none', () => {
+    const key = (day: string, completed: boolean) => ({ ...session(day, completed), isKey: true });
+    const sessions = [
+      key('2026-09-02', true),
+      session('2026-09-03', false), // optional, missed
+      key('2026-09-05', true),
+      session('2026-09-09', true), // a week with no key session: counts
+      session('2026-09-10', false),
+    ];
+    const outcome = outcomeAdherence(sessions, '2026-09-01', '2026-10-02');
+    expect(outcome).toMatchObject({ planned: 5, done: 3 });
+    expect(outcome.key).toEqual({ planned: 4, done: 3, rate: 0.75 });
   });
 
   it('counts the week from Monday, the sessions ahead included', () => {

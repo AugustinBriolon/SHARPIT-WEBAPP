@@ -2,13 +2,13 @@ import { addTrainingDays } from '@sharpit/core/training/training-day';
 import { prisma } from '@sharpit/db/client';
 import {
   ADHERENCE_TARGET,
-  mondayOf,
   OUTCOME_WINDOW_DAYS,
   outcomeAdherence,
   weekProgress,
   type AdherenceSession,
   type OutcomeAdherence,
 } from '@sharpit/app/lib/plan/plan-adherence';
+import { mondayOf } from '@sharpit/app/lib/plan/training-week';
 import { DEMO_CLERK_USER_ID } from '@sharpit/app/lib/demo/demo-session';
 
 export type OutcomeRow = OutcomeAdherence & { athleteId: string };
@@ -24,17 +24,19 @@ export type OutcomeReport = {
   share: number | null;
 };
 
-const sessionFields = { date: true, completed: true, brickGroupId: true } as const;
+const sessionFields = { date: true, completed: true, brickGroupId: true, isKey: true } as const;
 
 function toAdherenceSession(session: {
   date: Date;
   completed: boolean;
   brickGroupId: string | null;
+  isKey: boolean;
 }): AdherenceSession {
   return {
     day: dayOf(session.date),
     completed: session.completed,
     brickGroupId: session.brickGroupId,
+    isKey: session.isKey,
   };
 }
 
