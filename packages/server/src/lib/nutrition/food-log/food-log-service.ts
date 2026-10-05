@@ -17,7 +17,10 @@ import {
   assessDietFit,
   UNKNOWN_DIET_FACTS,
 } from '@sharpit/app/lib/nutrition/food-log/food-diet-fit';
-import { rankFoodsByName } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
+import {
+  matchesFoodQuery,
+  rankFoodsByName,
+} from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
 import { SHARPIT_NUTRITION_PROVIDER } from '@sharpit/app/lib/nutrition/food-log/nutrition-source';
 import { gramsFromPercent } from '@sharpit/app/lib/nutrition/food-log/nutrition-targets';
 import type {
@@ -201,8 +204,31 @@ export function servedHealth(product: FoodProduct, diets: DeclaredDiets): Served
   return { ...health, dietFit: assessDietFit(facts, product.carbsPer100g, diets) };
 }
 
+/**
+ * Where a food's values come from when they are more than the crowd's (ADR-069): Ciqual's are
+ * measured by ANSES, an Open Food Facts product's given by its manufacturer or checked by a
+ * moderator. Null for crowd-sourced products and the athlete's own foods.
+ */
+export type FoodVerifiedBy = 'ciqual' | 'producer' | 'checked';
+
+export function verifiedByOf(product: FoodProduct): FoodVerifiedBy | null {
+  if (product.source === 'CIQUAL') {
+    return 'ciqual';
+  }
+  if (product.source === 'OFF' && product.verification) {
+    return product.verification === 'PRODUCER' ? 'producer' : 'checked';
+  }
+  return null;
+}
+
 export function servedProduct(product: FoodProduct, diets: DeclaredDiets) {
-  return { ...product, health: servedHealth(product, diets) };
+  const verifiedBy = verifiedByOf(product);
+  return {
+    ...product,
+    health: servedHealth(product, diets),
+    verified: verifiedBy !== null,
+    verifiedBy,
+  };
 }
 
 export async function listFoodLogDay(
@@ -427,6 +453,7 @@ function productData(food: ProductFields) {
     servingGrams: food.servingGrams,
     servingLabel: food.servingLabel,
     health: food.health as unknown as Prisma.InputJsonValue,
+    verification: 'verification' in food ? food.verification : null,
     fetchedAt: new Date(),
   };
 }
@@ -466,15 +493,23 @@ export async function cacheSearchResults(foods: MappedFood[]): Promise<FoodProdu
     stored.filter(isCurrent).map((product) => [product.barcode, product] as const),
   );
   return Promise.all(
-    foods.map(
-      (food) =>
-        current.get(food.barcode) ??
-        prisma.foodProduct.upsert({
+    foods.map((food) => {
+      const kept = current.get(food.barcode);
+      if (!kept) {
+        return prisma.foodProduct.upsert({
           where: { barcode: food.barcode },
           create: { source: 'OFF', barcode: food.barcode, ...productData(food) },
           update: productData(food),
-        }),
-    ),
+        });
+      }
+      // A current row still learns its verification, which a row stored before ADR-069 lacks.
+      return kept.verification === food.verification
+        ? kept
+        : prisma.foodProduct.update({
+            where: { id: kept.id },
+            data: { verification: food.verification },
+          });
+    }),
   );
 }
 
@@ -504,17 +539,74 @@ export async function cacheGenericFoods(foods: MappedGenericFood[]): Promise<Foo
   );
 }
 
-const OWN_SEARCH_CANDIDATES = 30;
+const OWN_FOODS_READ = 500;
 const OWN_SEARCH_RESULTS = 10;
 
-/** The athlete's own foods matching the query, best name match first (ADR-064). */
+/**
+ * The athlete's own foods matching the query by name or brand, plural or synonym, best match
+ * first (ADR-064, ADR-069). An athlete keeps a few hundred at most: read them and match here, so
+ * « skyr maison » and « maison skyr » both find « Skyr (maison) ».
+ */
 export async function searchOwnFoods(athleteId: string, query: string) {
   const foods = await prisma.foodProduct.findMany({
-    where: { ownerId: athleteId, name: { contains: query, mode: 'insensitive' } },
+    where: { ownerId: athleteId, source: 'CUSTOM' },
     orderBy: { updatedAt: 'desc' },
-    take: OWN_SEARCH_CANDIDATES,
+    take: OWN_FOODS_READ,
   });
-  return rankFoodsByName(query, foods).slice(0, OWN_SEARCH_RESULTS);
+  const matching = foods.filter((food) => matchesFoodQuery(food, query));
+  return rankFoodsByName(query, matching).slice(0, OWN_SEARCH_RESULTS);
+}
+
+/** How far back « already eaten » reaches, and how many foods it weighs. */
+const EATEN_WINDOW_DAYS = 90;
+const EATEN_FOODS_READ = 300;
+const EATEN_SEARCH_RESULTS = 5;
+
+export type EatenFood = { product: FoodProduct; timesEaten: number; lastGrams: number };
+
+/**
+ * The foods the athlete logged in the last 90 days that match the query, the most eaten first
+ * among names that read alike (ADR-069): what MyFitnessPal lists first, and what an athlete
+ * searching « skyr » most likely means.
+ */
+export async function searchEatenFoods(
+  athleteId: string,
+  query: string,
+  now: Date = new Date(),
+): Promise<EatenFood[]> {
+  const since = new Date(now.getTime() - EATEN_WINDOW_DAYS * 86_400_000);
+  const counts = await prisma.foodLogEntry.groupBy({
+    by: ['productId'],
+    where: { athleteId, productId: { not: null }, createdAt: { gte: since } },
+    _count: { _all: true },
+    orderBy: { _count: { productId: 'desc' } },
+    take: EATEN_FOODS_READ,
+  });
+  const ids = counts.flatMap((row) => (row.productId ? [row.productId] : []));
+  if (ids.length === 0) {
+    return [];
+  }
+  const products = await prisma.foodProduct.findMany({ where: { id: { in: ids } } });
+  const matching = products.filter((product) => matchesFoodQuery(product, query));
+  if (matching.length === 0) {
+    return [];
+  }
+  const times = new Map(counts.map((row) => [row.productId, row._count._all] as const));
+  const ranked = rankFoodsByName(query, matching, {
+    preference: (product) => times.get(product.id) ?? 0,
+  }).slice(0, EATEN_SEARCH_RESULTS);
+  const lastEntries = await prisma.foodLogEntry.findMany({
+    where: { athleteId, productId: { in: ranked.map((product) => product.id) } },
+    orderBy: { createdAt: 'desc' },
+    distinct: ['productId'],
+    select: { productId: true, grams: true },
+  });
+  const lastGrams = new Map(lastEntries.map((entry) => [entry.productId, entry.grams] as const));
+  return ranked.map((product) => ({
+    product,
+    timesEaten: times.get(product.id) ?? 0,
+    lastGrams: lastGrams.get(product.id) ?? 100,
+  }));
 }
 
 export async function createCustomFood(athleteId: string, input: CustomFoodInput) {

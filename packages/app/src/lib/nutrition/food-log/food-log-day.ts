@@ -44,6 +44,9 @@ export type FoodProductPayload = FoodPer100g & {
   saltPer100g?: number | null;
   saturatedFatPer100g?: number | null;
   health?: ServedFoodHealth | null;
+  /** Values measured (Ciqual) or given by the manufacturer / checked on OFF (ADR-069). */
+  verified?: boolean;
+  verifiedBy?: 'ciqual' | 'producer' | 'checked' | null;
 };
 
 /** Grams are always set from the split in `PERCENT` mode; the shares are kept to prefill it. */
@@ -79,7 +82,12 @@ export type FoodLogDayPayload = {
   recent: RecentFoodPayload[];
 };
 
+/** A food the athlete logged in the last 90 days, matching the search (ADR-069). */
+export type EatenFoodPayload = RecentFoodPayload & { timesEaten: number };
+
 export type FoodSearchPayload = {
+  /** Listed first; not repeated in the lists below. */
+  eaten?: EatenFoodPayload[];
   own: FoodProductPayload[];
   /** Generic foods from the Ciqual table (ADR-065). */
   generic?: FoodProductPayload[];

@@ -91,4 +91,18 @@ describe('searchOffProducts', () => {
     expect(foods.map((food) => food.name)).toEqual(['Bananes']);
     expect(String(vi.mocked(fetcher).mock.calls[0]![0])).toContain('page_size=2');
   });
+
+  it('puts a verified, complete product first among names that read alike, and merges twins', async () => {
+    const crowd = { ...SKYR, code: '1111111111111' };
+    const twin = { ...SKYR, code: '2222222222222' };
+    const producer = { ...SKYR, code: '3333333333333', brands: 'Danone', owner: 'org-danone' };
+    const fetcher = respond(200, { hits: [crowd, twin, producer] });
+
+    const foods = await searchOffProducts('skyr', { fetcher });
+
+    expect(foods.map((food) => [food.barcode, food.verification])).toEqual([
+      ['3333333333333', 'PRODUCER'],
+      ['1111111111111', null],
+    ]);
+  });
 });

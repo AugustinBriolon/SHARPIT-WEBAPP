@@ -159,8 +159,10 @@ function stateSetters(dispatch: Dispatch) {
 export function useFoodAddFlow(trainingDayId: string, recent: RecentFoodPayload[]) {
   const [state, dispatch] = useReducer(foodAddReducer, undefined, initialFoodAddState);
   const { completing, complete } = useFoodCompletion(dispatch);
+  const search = useFoodAddSearch(state, recent);
   const pickProduct = (product: FoodProductPayload) => {
-    dispatch({ type: 'pick', picked: { product, lastGrams: lastGramsFor(recent, product.id) } });
+    const logged = [...recent, ...(search.results?.eaten ?? [])];
+    dispatch({ type: 'pick', picked: { product, lastGrams: lastGramsFor(logged, product.id) } });
     complete(product);
   };
   const { log, ...writes } = useFoodAddWrites(trainingDayId, dispatch, pickProduct);
@@ -169,7 +171,7 @@ export function useFoodAddFlow(trainingDayId: string, recent: RecentFoodPayload[
   return {
     state,
     recent,
-    ...useFoodAddSearch(state, recent),
+    ...search,
     ...writes,
     ...useOwnFoodWrites(state, dispatch),
     ...stateSetters(dispatch),

@@ -22,6 +22,7 @@ import {
   listFoodLogDay,
   listOwnFoods,
   recentFoods,
+  searchEatenFoods,
   searchOwnFoods,
   servedProduct,
   setNutritionTargets,
@@ -144,8 +145,9 @@ async function limited(athleteId: string) {
 }
 
 /**
- * `GET /api/v1/food-log/foods?q=` — own foods, generic foods from Ciqual (ADR-065), then Open Food
- * Facts. Generic foods come from the bundled table, so they answer even when OFF does not.
+ * `GET /api/v1/food-log/foods?q=` — the foods the athlete already ate (ADR-069), own foods, generic
+ * foods from Ciqual (ADR-065), then Open Food Facts. A food listed as eaten is not listed again
+ * below. Generic foods come from the bundled table, so they answer even when OFF does not.
  */
 export async function searchFoods(request: NextRequest) {
   const query = request.nextUrl.searchParams.get('q')?.trim() ?? '';
@@ -158,7 +160,8 @@ export async function searchFoods(request: NextRequest) {
     if (blocked) {
       return blocked;
     }
-    const [own, generic, off, diets] = await Promise.all([
+    const [eaten, own, generic, off, diets] = await Promise.all([
+      searchEatenFoods(athleteId, query),
       searchOwnFoods(athleteId, query),
       cacheGenericFoods(searchCiqualFoods(query)),
       searchOffProducts(query)
@@ -169,10 +172,17 @@ export async function searchFoods(request: NextRequest) {
         }),
       loadDeclaredDiet(athleteId),
     ]);
+    const eatenIds = new Set(eaten.map((food) => food.product.id));
+    const notEaten = (product: { id: string }) => !eatenIds.has(product.id);
     return NextResponse.json({
-      own: own.map((product) => servedProduct(product, diets)),
-      generic: generic.map((product) => servedProduct(product, diets)),
-      products: (off ?? []).map((product) => servedProduct(product, diets)),
+      eaten: eaten.map(({ product, timesEaten, lastGrams }) => ({
+        product: servedProduct(product, diets),
+        timesEaten,
+        lastGrams,
+      })),
+      own: own.filter(notEaten).map((product) => servedProduct(product, diets)),
+      generic: generic.filter(notEaten).map((product) => servedProduct(product, diets)),
+      products: (off ?? []).filter(notEaten).map((product) => servedProduct(product, diets)),
       offUnavailable: off === null,
     });
   } catch (error) {

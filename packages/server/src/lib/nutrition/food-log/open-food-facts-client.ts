@@ -5,7 +5,10 @@ import {
   type MappedFood,
   type OffProduct,
 } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
-import { rankFoodsByName } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
+import {
+  dedupeFoods,
+  rankFoodsByName,
+} from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
 
 /**
  * Open Food Facts, read from the server only (ADR-061): the athlete's device never calls OFF,
@@ -70,8 +73,19 @@ export async function fetchOffProduct(
 /** OFF ranks by popularity: ask for twice what is shown, so the plain product can rise. */
 const CANDIDATES_PER_RESULT = 2;
 
+/** Among names that read alike, a product whose data the manufacturer gave or a moderator checked. */
+function verifiedFirst(food: MappedFood): number {
+  return food.verification ? 1 : 0;
+}
+
+/** Then a full label, then a product sold in France; OFF's own order (popularity) breaks ties. */
+function labelQuality(food: MappedFood): number {
+  return (food.quality.labelComplete ? 2 : 0) + (food.quality.soldInFrance ? 1 : 0);
+}
+
 /**
- * French-first search, keeping only products the log can use, best name match first (ADR-064).
+ * French-first search, keeping only products the log can use, best name match first (ADR-064),
+ * verified and complete products first among alike names, duplicates merged (ADR-069).
  * A search hit lacks the additive list: its score is a summary until the product is opened.
  */
 export async function searchOffProducts(
@@ -90,5 +104,9 @@ export async function searchOffProducts(
   const foods = (body?.hits ?? [])
     .map((hit) => mapOffProduct(hit, 'summary'))
     .filter((food): food is MappedFood => food !== null);
-  return rankFoodsByName(query, foods).slice(0, limit);
+  const ranked = rankFoodsByName(query, foods, {
+    preference: verifiedFirst,
+    quality: labelQuality,
+  });
+  return dedupeFoods(ranked).slice(0, limit);
 }

@@ -9,6 +9,7 @@ import {
   incompatibleDiets,
   shownHealth,
   splitHighlights,
+  foodVerifiedLabel,
 } from './food-health-view';
 import type { FoodHighlight } from './food-health-highlights';
 
@@ -98,5 +99,12 @@ describe('food health view', () => {
     expect(shownHealth({ coverage: 'none' })).toBeNull();
     expect(shownHealth({ coverage: 'partial' })).toEqual({ coverage: 'partial' });
     expect(shownHealth(undefined)).toBeNull();
+  });
+});
+
+describe('foodVerifiedLabel', () => {
+  it('names where verified values come from', () => {
+    expect(foodVerifiedLabel('producer')).toBe('Vérifié · données du fabricant');
+    expect(foodVerifiedLabel(null)).toBeNull();
   });
 });

@@ -651,6 +651,8 @@ model FoodProduct {
   servingLabel         String?
   /// Sharpit health score snapshot (`FoodHealthAssessment`); null when not yet computed.
   health               Json?
+  /// Open Food Facts only: why the product is trusted beyond the crowd (ADR-069); null when not.
+  verification         FoodVerification?
   fetchedAt            DateTime          @default(now())
 
   createdAt DateTime       @default(now())
@@ -663,6 +665,12 @@ model FoodProduct {
 enum NutritionTargetMode {
   GRAMS
   PERCENT
+}
+
+/// Open Food Facts product data given by the manufacturer, or checked by a moderator (ADR-069).
+enum FoodVerification {
+  PRODUCER
+  CHECKED
 }
 
 enum FoodProductSource {
