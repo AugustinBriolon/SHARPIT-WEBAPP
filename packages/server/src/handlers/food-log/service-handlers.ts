@@ -8,6 +8,7 @@ import {
   nutritionTargetsSchema,
 } from '@sharpit/app/lib/validators/food-log';
 import { isBarcode } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
+import { foodLogDayHealth } from '@sharpit/app/lib/nutrition/food-log/meal-health-score';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import {
   addFoodLogEntry,
@@ -22,6 +23,7 @@ import {
   listFoodLogDay,
   listOwnFoods,
   recentFoods,
+  searchEatenFoods,
   searchOwnFoods,
   servedProduct,
   setNutritionTargets,
@@ -45,7 +47,7 @@ import {
 
 const DAY_ID = /^\d{4}-\d{2}-\d{2}$/;
 
-async function parseBody<T>(request: NextRequest, schema: ZodType<T>) {
+export async function parseBody<T>(request: NextRequest, schema: ZodType<T>) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   return parsed.success
     ? { ok: true as const, data: parsed.data }
@@ -58,7 +60,7 @@ async function parseBody<T>(request: NextRequest, schema: ZodType<T>) {
       };
 }
 
-function failure(tag: string, error: unknown) {
+export function failure(tag: string, error: unknown) {
   if (error instanceof FoodLogNotFoundError) {
     return NextResponse.json({ error: error.message }, { status: 404 });
   }
@@ -66,7 +68,10 @@ function failure(tag: string, error: unknown) {
   return NextResponse.json({ error: 'Journal alimentaire indisponible' }, { status: 500 });
 }
 
-/** `GET /api/v1/food-log?trainingDayId=` — the day's entries, the targets and recent foods. */
+/**
+ * `GET /api/v1/food-log?trainingDayId=` — the day's entries, the score of each meal and of the day
+ * (ADR-070), the targets and recent foods.
+ */
 export async function getDay(request: NextRequest) {
   const trainingDayId = request.nextUrl.searchParams.get('trainingDayId');
   if (!trainingDayId || !DAY_ID.test(trainingDayId)) {
@@ -84,6 +89,7 @@ export async function getDay(request: NextRequest) {
     return NextResponse.json({
       trainingDayId,
       entries,
+      health: foodLogDayHealth(entries),
       targets,
       recent: recent.map((item) => ({ ...item, product: servedProduct(item.product, declared) })),
     });
@@ -144,8 +150,9 @@ async function limited(athleteId: string) {
 }
 
 /**
- * `GET /api/v1/food-log/foods?q=` — own foods, generic foods from Ciqual (ADR-065), then Open Food
- * Facts. Generic foods come from the bundled table, so they answer even when OFF does not.
+ * `GET /api/v1/food-log/foods?q=` — the foods the athlete already ate (ADR-069), own foods, generic
+ * foods from Ciqual (ADR-065), then Open Food Facts. A food listed as eaten is not listed again
+ * below. Generic foods come from the bundled table, so they answer even when OFF does not.
  */
 export async function searchFoods(request: NextRequest) {
   const query = request.nextUrl.searchParams.get('q')?.trim() ?? '';
@@ -158,7 +165,8 @@ export async function searchFoods(request: NextRequest) {
     if (blocked) {
       return blocked;
     }
-    const [own, generic, off, diets] = await Promise.all([
+    const [eaten, own, generic, off, diets] = await Promise.all([
+      searchEatenFoods(athleteId, query),
       searchOwnFoods(athleteId, query),
       cacheGenericFoods(searchCiqualFoods(query)),
       searchOffProducts(query)
@@ -169,10 +177,17 @@ export async function searchFoods(request: NextRequest) {
         }),
       loadDeclaredDiet(athleteId),
     ]);
+    const eatenIds = new Set(eaten.map((food) => food.product.id));
+    const notEaten = (product: { id: string }) => !eatenIds.has(product.id);
     return NextResponse.json({
-      own: own.map((product) => servedProduct(product, diets)),
-      generic: generic.map((product) => servedProduct(product, diets)),
-      products: (off ?? []).map((product) => servedProduct(product, diets)),
+      eaten: eaten.map(({ product, timesEaten, lastGrams }) => ({
+        product: servedProduct(product, diets),
+        timesEaten,
+        lastGrams,
+      })),
+      own: own.filter(notEaten).map((product) => servedProduct(product, diets)),
+      generic: generic.filter(notEaten).map((product) => servedProduct(product, diets)),
+      products: (off ?? []).filter(notEaten).map((product) => servedProduct(product, diets)),
       offUnavailable: off === null,
     });
   } catch (error) {

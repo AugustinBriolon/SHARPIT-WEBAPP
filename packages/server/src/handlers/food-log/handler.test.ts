@@ -37,6 +37,7 @@ vi.mock('@sharpit/server/lib/nutrition/food-log/food-log-service', () => {
     listFoodLogDay: vi.fn(),
     listOwnFoods: vi.fn(),
     recentFoods: vi.fn(),
+    searchEatenFoods: vi.fn(async () => []),
     searchOwnFoods: vi.fn(),
     servedProduct: vi.fn((product: object) => ({ ...product, served: true })),
     setNutritionTargets: vi.fn(),
@@ -72,6 +73,10 @@ describe('/api/food-log', () => {
     expect(await response.json()).toEqual({
       trainingDayId: '2026-10-01',
       entries: [],
+      health: {
+        day: null,
+        meals: { BREAKFAST: null, LUNCH: null, DINNER: null, SNACKS: null },
+      },
       targets: { kcal: 2600 },
       recent: [],
     });
@@ -143,10 +148,34 @@ describe('/api/food-log/foods', () => {
     const body = await (await GET(new NextRequest(`${BASE}/foods?q=skyr`))).json();
 
     expect(body).toEqual({
+      eaten: [],
       own: [{ id: 'own', served: true }],
       generic: [{ id: 'banana', served: true }],
       products: [],
       offUnavailable: true,
+    });
+  });
+
+  it('lists the foods already eaten first, and not again below', async () => {
+    const { GET } = await import('./foods/handler');
+    const log = await service();
+    const { searchOffProducts } =
+      await import('@sharpit/server/lib/nutrition/food-log/open-food-facts-client');
+    vi.mocked(log.searchEatenFoods).mockResolvedValue([
+      { product: { id: 'banana' }, timesEaten: 12, lastGrams: 120 },
+    ] as never);
+    vi.mocked(log.searchOwnFoods).mockResolvedValue([]);
+    vi.mocked(searchOffProducts).mockResolvedValue([]);
+    vi.mocked(log.cacheSearchResults).mockResolvedValue([{ id: 'nectar' }] as never);
+
+    const body = await (await GET(new NextRequest(`${BASE}/foods?q=banane`))).json();
+
+    expect(body).toEqual({
+      eaten: [{ product: { id: 'banana', served: true }, timesEaten: 12, lastGrams: 120 }],
+      own: [],
+      generic: [],
+      products: [{ id: 'nectar', served: true }],
+      offUnavailable: false,
     });
   });
 

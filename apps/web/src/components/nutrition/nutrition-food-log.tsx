@@ -4,6 +4,8 @@ import { FoodAddDialog } from '@/components/nutrition/food-log/food-add-dialog';
 import { FoodEntryEditDialog } from '@/components/nutrition/food-log/food-entry-edit-dialog';
 import { FoodLogSection } from '@/components/nutrition/food-log/food-log-section';
 import { MfpImportDialog } from '@/components/nutrition/food-log/mfp-import-dialog';
+import { SaveMealDialog } from '@/components/nutrition/food-log/save-meal-dialog';
+import { useMealTemplates } from '@/components/nutrition/food-log/use-meal-templates';
 import { NutritionTargetsDialog } from '@/components/nutrition/food-log/nutrition-targets-dialog';
 import { useMfpImport } from '@/components/nutrition/food-log/use-mfp-import';
 import { useFoodAddFlow } from '@/components/nutrition/food-log/use-food-add-flow';
@@ -29,6 +31,7 @@ function useNutritionFoodLog(trainingDayId: string) {
     editor: useFoodEntryEditor(trainingDayId),
     targets: useNutritionTargetsEditor(trainingDayId, day.data?.targets ?? null),
     mfpImport: useMfpImport(),
+    templates: useMealTemplates(trainingDayId),
   };
 }
 
@@ -42,21 +45,28 @@ export function NutritionFoodLog({
   importedMeals: NutritionMealSummary[];
   mfpConnected: boolean;
 }) {
-  const { day, entries, groups, flow, editor, targets, mfpImport } =
+  const { day, entries, groups, flow, editor, targets, mfpImport, templates } =
     useNutritionFoodLog(trainingDayId);
   const mfp = useMfpSync();
 
   return (
     <>
       <FoodLogSection
-        actions={{ onAdd: flow.start, onDelete: editor.remove, onEdit: editor.openEditor }}
         display={foodLogDisplay(entries.length, importedMeals.length)}
         groups={groups}
         importedMeals={importedMeals}
         loading={day.isPending}
         mfpSync={mfpConnected ? { syncing: mfp.syncing, onSync: mfp.handleSync } : null}
         unavailable={day.isError}
+        actions={{
+          onAdd: flow.start,
+          onDelete: editor.remove,
+          onEdit: editor.openEditor,
+          onCopyYesterday: templates.copyMealFromYesterday,
+          onSaveMeal: templates.openSaveMeal,
+        }}
         onAddFirst={() => flow.start(mealForHour(new Date().getHours()))}
+        onCopyDay={templates.copyDayFromYesterday}
         onImport={() => mfpImport.setOpen(true)}
         onTargets={() => targets.setOpen(true)}
       />
@@ -68,6 +78,11 @@ export function NutritionFoodLog({
         onClose={editor.close}
         onDraftChange={editor.patchDraft}
         onSave={editor.save}
+      />
+      <SaveMealDialog
+        group={templates.savingMeal}
+        onClose={templates.closeSaveMeal}
+        onSave={templates.saveMeal}
       />
       <NutritionTargetsDialog editor={targets} targets={day.data?.targets ?? null} />
       <MfpImportDialog

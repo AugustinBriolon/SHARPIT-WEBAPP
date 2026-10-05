@@ -121,3 +121,17 @@ describe('Mes aliments', () => {
     });
   });
 });
+
+describe('Mes repas and recipes', () => {
+  it('opens the saved meals and the recipe builder from the search, back to the search', () => {
+    const open = foodAddReducer(initialFoodAddState(), { type: 'start', meal: 'DINNER' });
+    expect(foodAddReducer(open, { type: 'step', step: 'meals' })).toMatchObject({
+      step: 'meals',
+      meal: 'DINNER',
+    });
+    const recipe = foodAddReducer(open, { type: 'step', step: 'recipe' });
+    expect(recipe).toMatchObject({ step: 'recipe', editing: null });
+    expect(previousFoodAddStep('meals')).toBe('search');
+    expect(previousFoodAddStep('recipe')).toBe('search');
+  });
+});

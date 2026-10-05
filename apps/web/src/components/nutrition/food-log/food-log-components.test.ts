@@ -1,9 +1,12 @@
 import { createElement } from 'react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { FoodLogSection, type FoodLogSectionProps } from './food-log-section';
 import { FoodPortionStep } from './food-portion-step';
 import { FoodSearchResults } from './food-search-results';
+import { FoodRecipeStep, ingredientHits } from './food-recipe-step';
+import { FoodSavedMealsStep } from './food-saved-meals-step';
 import { NutritionTargetsForm } from './nutrition-targets-dialog';
 import {
   groupEntriesByMeal,
@@ -65,6 +68,20 @@ describe('FoodLogSection', () => {
     expect(html).toContain('Objectifs');
     expect(html).not.toContain('Connecte');
     expect(html).not.toContain('MyFitnessPal');
+  });
+
+  it('offers to copy yesterday on an empty day, only when it can', () => {
+    expect(section({ display: 'empty' })).not.toContain('Copier la veille');
+    expect(section({ display: 'empty', onCopyDay: noop })).toContain('Copier la veille');
+  });
+
+  it('gives each meal its menu once copy and save are wired', () => {
+    const html = section({
+      groups: groupEntriesByMeal([ENTRY]),
+      actions: { ...ACTIONS, onCopyYesterday: noop, onSaveMeal: noop },
+    });
+    expect(html).toContain('aria-label="Plus d’actions : Petit-déjeuner"');
+    expect(section({ groups: groupEntriesByMeal([ENTRY]) })).not.toContain('Plus d’actions');
   });
 
   it('lists each meal with its entries, edit and delete, and an add action', () => {
@@ -364,5 +381,101 @@ describe('NutritionTargetsForm', () => {
     expect(html).toContain('Total : 95 %');
     expect(html).toContain('il faut 100 %');
     expect(html).toMatch(/<button[^>]*type="submit"[^>]*disabled=""/);
+  });
+});
+
+describe('FoodSavedMealsStep', () => {
+  const SAVED = {
+    id: 'm1',
+    name: 'Petit-déj du dimanche',
+    items: [
+      {
+        productId: 'skyr',
+        name: 'Skyr nature',
+        brand: 'Isey',
+        grams: 150,
+        kcal: 93,
+        protein: 16.5,
+        carbs: 6,
+        fat: 0.3,
+        fiber: null,
+        sugar: null,
+      },
+    ],
+    kcal: 93,
+    protein: 16.5,
+    carbs: 6,
+    fat: 0.3,
+    health: null,
+    updatedAt: '2026-10-05T08:00:00.000Z',
+  };
+
+  it('lists each saved meal with its foods and energy, and a delete', () => {
+    const html = renderToStaticMarkup(
+      createElement(FoodSavedMealsStep, {
+        meals: [SAVED],
+        loading: false,
+        error: null,
+        onLog: noop,
+        onDelete: noop,
+      }),
+    );
+    expect(html).toContain('Petit-déj du dimanche');
+    expect(html).toContain('1 aliment · 93 kcal');
+    expect(html).toContain('aria-label="Supprimer Petit-déj du dimanche"');
+  });
+
+  it('says where a saved meal comes from when there is none', () => {
+    const html = renderToStaticMarkup(
+      createElement(FoodSavedMealsStep, {
+        meals: [],
+        loading: false,
+        error: null,
+        onLog: noop,
+        onDelete: noop,
+      }),
+    );
+    expect(html).toContain('Enregistrer ce repas');
+  });
+});
+
+describe('FoodRecipeStep', () => {
+  it('opens an edited recipe on its ingredients and its live label', () => {
+    const html = renderToStaticMarkup(
+      createElement(
+        QueryClientProvider,
+        { client: new QueryClient() },
+        createElement(FoodRecipeStep, {
+          recipe: {
+            ...SKYR,
+            id: 'r1',
+            source: 'CUSTOM',
+            name: 'Bol skyr',
+            recipe: {
+              ingredients: [{ ...SKYR, productId: 'skyr', grams: 200 }],
+              cookedGrams: null,
+              servings: 2,
+              totalGrams: 200,
+            },
+          },
+          pending: false,
+          error: null,
+          onSubmit: noop,
+        }),
+      ),
+    );
+    expect(html).toContain('value="Bol skyr"');
+    expect(html).toContain('aria-label="Grammes de Skyr nature"');
+    expect(html).toContain('62 kcal');
+    expect(html).toContain('1 part · 100 g · 62 kcal');
+    expect(html).toContain('Enregistrer la recette');
+  });
+
+  it('never offers a recipe as its own ingredient', () => {
+    const hits = ingredientHits(
+      { own: [{ ...SKYR, id: 'r1' }], products: [SKYR], offUnavailable: false },
+      'r1',
+    );
+    expect(hits.map((product) => product.id)).toEqual(['skyr']);
   });
 });

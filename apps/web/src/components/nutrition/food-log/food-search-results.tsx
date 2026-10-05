@@ -21,9 +21,21 @@ function SearchResults({
   onPick: (product: FoodProductPayload) => void;
 }) {
   const generic = results.generic ?? [];
-  const empty = results.own.length === 0 && generic.length === 0 && results.products.length === 0;
+  const eaten = results.eaten ?? [];
+  const empty =
+    eaten.length === 0 &&
+    results.own.length === 0 &&
+    generic.length === 0 &&
+    results.products.length === 0;
   return (
     <div className="space-y-4">
+      <FoodProductList
+        footnote={foodSourcesAttribution(eaten.map((item) => item.product)) ?? undefined}
+        products={eaten.map((item) => item.product)}
+        timesEaten={new Map(eaten.map((item) => [item.product.id, item.timesEaten]))}
+        title="Déjà mangés"
+        onPick={onPick}
+      />
       <FoodProductList products={results.own} title="Mes aliments" onPick={onPick} />
       <FoodProductList
         footnote={foodSourcesAttribution(generic) ?? undefined}

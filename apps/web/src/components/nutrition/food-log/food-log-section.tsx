@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, RefreshCw, Utensils } from 'lucide-react';
+import { CopyPlus, Plus, RefreshCw, Utensils } from 'lucide-react';
 import { Button } from '@sharpit/ui/components/ui/button';
 import { InkEmptyState } from '@/components/ui/ink-empty-state';
 import { NutritionImportedMeals } from '@/components/nutrition/blocks/nutrition-meals-section';
@@ -13,6 +13,22 @@ import type {
   FoodLogMealGroup,
 } from '@sharpit/app/lib/nutrition/food-log/food-log-day';
 import type { NutritionMealSummary } from '@sharpit/app/presentation/nutrition-view-model';
+import { FoodHealthBadge } from '@/components/nutrition/food-log/food-health';
+import { foodLogDayHealth } from '@sharpit/app/lib/nutrition/food-log/meal-health-score';
+
+/** The day's score beside « Repas », from every food logged (ADR-070); nothing until it can speak. */
+function DayHealthBadge({ groups }: { groups: FoodLogMealGroup[] }) {
+  const { day } = foodLogDayHealth(groups.flatMap((group) => group.entries));
+  if (!day || day.score === null) {
+    return null;
+  }
+  return (
+    <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+      Note du jour
+      <FoodHealthBadge health={day} />
+    </span>
+  );
+}
 
 function FoodLogSkeleton() {
   return (
@@ -24,17 +40,31 @@ function FoodLogSkeleton() {
   );
 }
 
-function FirstMealInvitation({ onAdd }: { onAdd: () => void }) {
+function FirstMealInvitation({
+  onAdd,
+  onCopyYesterday,
+}: {
+  onAdd: () => void;
+  onCopyYesterday?: () => void;
+}) {
   return (
     <InkEmptyState
-      description="Cherche un aliment, saisis son code-barres ou entre un repas à la main."
+      description="Cherche un aliment, saisis son code-barres, entre un repas à la main ou reprends ta journée de la veille."
       icon={Utensils}
       title="Rien de noté pour cette journée"
       action={
-        <Button size="sm" type="button" variant="highlight" onClick={onAdd}>
-          <Plus aria-hidden />
-          Ajouter un premier repas
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button size="sm" type="button" variant="highlight" onClick={onAdd}>
+            <Plus aria-hidden />
+            Ajouter un premier repas
+          </Button>
+          {onCopyYesterday ? (
+            <Button size="sm" type="button" variant="secondary" onClick={onCopyYesterday}>
+              <CopyPlus aria-hidden />
+              Copier la veille
+            </Button>
+          ) : null}
+        </div>
       }
       compact
     />
@@ -48,6 +78,7 @@ function FoodLogBody({
   actions,
   unavailable,
   onAddFirst,
+  onCopyDay,
 }: FoodLogSectionProps) {
   if (unavailable) {
     return (
@@ -57,7 +88,7 @@ function FoodLogBody({
     );
   }
   if (display === 'empty') {
-    return <FirstMealInvitation onAdd={onAddFirst} />;
+    return <FirstMealInvitation onAdd={onAddFirst} onCopyYesterday={onCopyDay} />;
   }
   if (display === 'imported') {
     return (
@@ -94,6 +125,8 @@ export type FoodLogSectionProps = {
   mfpSync?: { syncing: boolean; onSync: () => void } | null;
   /** The first add of a day — the caller picks the meal the hour suggests. */
   onAddFirst: () => void;
+  /** Logs the whole day before into an empty day (ADR-071). */
+  onCopyDay?: () => void;
 };
 
 /** The day's meals: logged, added to, edited — the log is SharpIt's own (ADR-061). */
@@ -104,7 +137,10 @@ export function FoodLogSection(props: FoodLogSectionProps) {
   return (
     <section className="analysis-panel rounded-analysis-lg space-y-3 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-section-title">Repas</p>
+        <div className="flex items-center gap-2">
+          <p className="text-section-title">Repas</p>
+          {props.display === 'log' ? <DayHealthBadge groups={props.groups} /> : null}
+        </div>
         <div className="flex items-center gap-1">
           {props.mfpSync ? (
             <Button
