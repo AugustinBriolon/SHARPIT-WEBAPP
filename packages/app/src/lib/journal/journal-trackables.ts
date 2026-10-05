@@ -18,6 +18,7 @@ import {
   BedDouble,
   Bone,
   Brain,
+  Car,
   Candy,
   Cat,
   Cigarette,
@@ -106,6 +107,7 @@ export type JournalTrackableKind =
   | 'metric_caffeine'
   | 'metric_mood'
   | 'metric_hydration'
+  | 'metric_driving'
   | 'nutrition_panel'
   | 'diet';
 
@@ -115,6 +117,7 @@ export type JournalBuiltinTrackableId =
   | 'metric_caffeine'
   | 'metric_mood'
   | 'metric_hydration'
+  | 'metric_driving'
   | 'late_meal'
   | 'device_in_bed'
   | 'steps_10k'
@@ -251,6 +254,13 @@ export const JOURNAL_BUILTIN_TRACKABLES: readonly JournalBuiltinTrackable[] = [
     category: 'bien_etre',
     kind: 'metric_hydration',
     icon: Droplets,
+  },
+  {
+    id: 'metric_driving',
+    label: 'Conduite',
+    category: 'style_vie',
+    kind: 'metric_driving',
+    icon: Car,
   },
 
   // Automatique

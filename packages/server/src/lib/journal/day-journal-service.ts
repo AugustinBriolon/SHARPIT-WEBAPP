@@ -16,6 +16,7 @@ export type DayJournalWriteInput = {
   moodLabel?: string | null;
   hydrationMl?: number | null;
   caffeineMg?: number | null;
+  drivingMinutes?: number | null;
 };
 
 function parseFactors(raw: unknown): DayJournalEntry['factors'] {
@@ -40,6 +41,7 @@ export function rowToDayJournalEntry(row: {
   moodLabel: string | null;
   hydrationMl: number | null;
   caffeineMg: number | null;
+  drivingMinutes?: number | null;
   updatedAt: Date;
 }): DayJournalEntry {
   return {
@@ -48,6 +50,7 @@ export function rowToDayJournalEntry(row: {
     moodLabel: row.moodLabel,
     hydrationMl: row.hydrationMl,
     caffeineMg: row.caffeineMg ?? 0,
+    drivingMinutes: row.drivingMinutes ?? null,
     updatedAt: row.updatedAt.toISOString(),
   };
 }
@@ -71,6 +74,7 @@ type ExistingDayJournalRow = {
   moodLabel: string | null;
   hydrationMl: number | null;
   caffeineMg: number | null;
+  drivingMinutes?: number | null;
 } | null;
 
 function resolveOptionalField<T>(
@@ -91,12 +95,14 @@ function mergeDayJournalWrite(
   moodLabel: string | null;
   hydrationMl: number | null;
   caffeineMg: number | null;
+  drivingMinutes: number | null;
 } {
   return {
     factors: input.factors ?? parseFactors(existing?.factors) ?? {},
     moodLabel: resolveOptionalField(input.moodLabel, existing?.moodLabel),
     hydrationMl: resolveOptionalField(input.hydrationMl, existing?.hydrationMl),
     caffeineMg: resolveOptionalField(input.caffeineMg, existing?.caffeineMg),
+    drivingMinutes: resolveOptionalField(input.drivingMinutes, existing?.drivingMinutes),
   };
 }
 
@@ -134,7 +140,10 @@ async function writeDayJournalEntry(
     },
   });
 
-  const { factors, moodLabel, hydrationMl, caffeineMg } = mergeDayJournalWrite(existing, input);
+  const { factors, moodLabel, hydrationMl, caffeineMg, drivingMinutes } = mergeDayJournalWrite(
+    existing,
+    input,
+  );
 
   const row = await prisma.athleteDayJournal.upsert({
     where: {
@@ -147,12 +156,14 @@ async function writeDayJournalEntry(
       moodLabel,
       hydrationMl,
       caffeineMg,
+      drivingMinutes,
     },
     update: {
       factors,
       moodLabel,
       hydrationMl,
       caffeineMg,
+      drivingMinutes,
     },
   });
 

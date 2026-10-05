@@ -63,6 +63,7 @@ export const JOURNAL_METRIC_ICON = {
   caffeine: 'bg-amber-500/15 text-amber-900 dark:bg-amber-400/20 dark:text-amber-100',
   mood: 'bg-primary/15 text-primary',
   hydration: 'bg-sky-500/15 text-sky-900 dark:bg-sky-400/20 dark:text-sky-200',
+  driving: 'bg-muted text-foreground',
 } as const;
 
 export function journalCategoryIcon(category: JournalCategoryTone | undefined): string {

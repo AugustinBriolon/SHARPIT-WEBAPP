@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   cycleFactorState,
   emptyDayJournalEntry,
+  formatDrivingMinutes,
+  parseDayJournalEntry,
   parseDayJournalStore,
   upsertDayJournalEntry,
 } from './day-journal';
@@ -59,5 +61,16 @@ describe('day-journal', () => {
 
   it('defaults empty entry caffeine to 0 mg', () => {
     expect(emptyDayJournalEntry('2026-09-10').caffeineMg).toBe(0);
+  });
+});
+
+describe('driving minutes', () => {
+  it('reads the minutes stored on the day and words them', () => {
+    const entry = parseDayJournalEntry('2026-10-05', { drivingMinutes: 90, factors: {} });
+    expect(entry?.drivingMinutes).toBe(90);
+    expect(formatDrivingMinutes(90)).toBe('1 h 30');
+    expect(formatDrivingMinutes(45)).toBe('45 min');
+    expect(formatDrivingMinutes(120)).toBe('2 h');
+    expect(formatDrivingMinutes(null)).toBe('— min');
   });
 });

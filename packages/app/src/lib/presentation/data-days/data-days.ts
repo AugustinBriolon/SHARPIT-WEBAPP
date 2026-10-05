@@ -45,6 +45,7 @@ export interface DataDaysJournalRow {
   moodLabel: string | null;
   hydrationMl: number | null;
   caffeineMg: number | null;
+  drivingMinutes?: number | null;
 }
 
 export interface DataDaysSources {
@@ -88,10 +89,11 @@ export function dataDaysSourcesFor(domain: DataDaysDomain): {
 
 /**
  * A journal day counts once something was answered: a factor set to yes or no, a mood, a
- * caffeine or hydration value. A row whose factors were all reset to « unset » is empty.
+ * caffeine, hydration or driving value. A row whose factors were all reset to « unset » is empty.
  */
 export function journalDayHasAnswer(row: DataDaysJournalRow): boolean {
-  if (row.moodLabel || (row.hydrationMl ?? 0) > 0 || (row.caffeineMg ?? 0) > 0) {
+  const measured = [row.hydrationMl, row.caffeineMg, row.drivingMinutes];
+  if (row.moodLabel || measured.some((value) => (value ?? 0) > 0)) {
     return true;
   }
   if (!row.factors || typeof row.factors !== 'object') {

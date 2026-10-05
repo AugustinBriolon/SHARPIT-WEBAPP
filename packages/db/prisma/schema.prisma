@@ -1715,6 +1715,8 @@ model AthleteDayJournal {
   moodLabel     String?
   hydrationMl   Int?
   caffeineMg    Int?
+  /// Minutes spent driving that day — sitting still, often tense; the coach reads it.
+  drivingMinutes Int?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 

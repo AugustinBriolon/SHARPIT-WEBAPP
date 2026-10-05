@@ -425,7 +425,10 @@ export function activeDietLabels(prefs: JournalPrefs): string[] {
 
 export function showDayBasics(prefs: JournalPrefs): boolean {
   return (
-    prefs.enabled.metric_caffeine || prefs.enabled.metric_mood || prefs.enabled.metric_hydration
+    prefs.enabled.metric_caffeine ||
+    prefs.enabled.metric_mood ||
+    prefs.enabled.metric_hydration ||
+    prefs.enabled.metric_driving
   );
 }
 

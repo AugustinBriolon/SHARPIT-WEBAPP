@@ -110,6 +110,9 @@ export function dayHasJournalSignal(entry: DayJournalEntry): boolean {
   if (entry.caffeineMg !== null && entry.caffeineMg > 0) {
     return true;
   }
+  if ((entry.drivingMinutes ?? 0) > 0) {
+    return true;
+  }
   return Object.values(entry.factors).some(isRecordedFactor);
 }
 

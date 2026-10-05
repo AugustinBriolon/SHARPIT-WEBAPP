@@ -22,6 +22,8 @@ export type DayJournalEntry = {
   moodLabel: string | null;
   hydrationMl: number | null;
   caffeineMg: number | null;
+  /** Minutes behind the wheel; absent from entries written before it existed. */
+  drivingMinutes?: number | null;
   updatedAt: string;
 };
 
@@ -104,6 +106,7 @@ export function parseDayJournalEntry(dayId: string, raw: unknown): DayJournalEnt
     moodLabel: parseOptionalString(record.moodLabel),
     hydrationMl: parseOptionalNumber(record.hydrationMl),
     caffeineMg: parseOptionalNumber(record.caffeineMg) ?? 0,
+    drivingMinutes: parseOptionalNumber(record.drivingMinutes),
     updatedAt: typeof record.updatedAt === 'string' ? record.updatedAt : new Date().toISOString(),
   };
 }
@@ -191,6 +194,7 @@ export async function persistDayJournalEntryToServer(
         moodLabel: entry.moodLabel,
         hydrationMl: entry.hydrationMl,
         caffeineMg: entry.caffeineMg,
+        drivingMinutes: entry.drivingMinutes ?? null,
       }),
       signal,
     });
@@ -212,6 +216,7 @@ function isDayJournalEntryEmpty(entry: DayJournalEntry): boolean {
     !entry.moodLabel &&
     entry.hydrationMl === null &&
     (entry.caffeineMg === null || entry.caffeineMg === 0) &&
+    !entry.drivingMinutes &&
     Object.keys(entry.factors).length === 0
   );
 }
@@ -221,6 +226,7 @@ function hasDayJournalData(entry: DayJournalEntry): boolean {
     Boolean(entry.moodLabel) ||
     entry.hydrationMl !== null ||
     (entry.caffeineMg !== null && entry.caffeineMg > 0) ||
+    (entry.drivingMinutes ?? 0) > 0 ||
     Object.keys(entry.factors).length > 0
   );
 }
@@ -283,3 +289,17 @@ export const JOURNAL_TOGGLE_FACTOR_IDS: readonly DayContextFactorId[] =
 
 export const JOURNAL_PRIOR_NIGHT_FACTOR_IDS: readonly DayContextFactorId[] =
   JOURNAL_TOGGLE_FACTOR_IDS.filter((id) => isPriorNightFactor(id));
+
+/** « 45 min », « 1 h 30 », « — min » when nothing was said. */
+export function formatDrivingMinutes(minutes: number | null): string {
+  if (minutes === null || minutes <= 0) {
+    return minutes === 0 ? '0 min' : '— min';
+  }
+  if (minutes < 60) {
+    return `${minutes} min`;
+  }
+  const rest = minutes % 60;
+  return rest === 0
+    ? `${minutes / 60} h`
+    : `${Math.floor(minutes / 60)} h ${String(rest).padStart(2, '0')}`;
+}

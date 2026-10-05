@@ -36,6 +36,7 @@ export async function loadDataDays(
             moodLabel: true,
             hydrationMl: true,
             caffeineMg: true,
+            drivingMinutes: true,
           },
         })
       : [],

@@ -39,6 +39,7 @@ const JOURNAL_ROW_SELECT = {
   moodLabel: true,
   hydrationMl: true,
   caffeineMg: true,
+  drivingMinutes: true,
   updatedAt: true,
 } as const;
 
@@ -81,6 +82,7 @@ function toAnalysisDay(
     moodLabel: row.moodLabel,
     hydrationMl: row.hydrationMl,
     caffeineMg: row.caffeineMg,
+    drivingMinutes: row.drivingMinutes,
     updatedAt: row.updatedAt.toISOString(),
   });
   if (!entry || !dayHasJournalSignal(entry)) {

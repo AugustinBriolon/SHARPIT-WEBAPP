@@ -12,6 +12,7 @@ import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 import {
   ChartLine,
+  Car,
   Coffee,
   Droplets,
   Minus,
@@ -33,6 +34,7 @@ import { LinkButton } from '@/components/ui/link-button';
 import { DAY_CONTEXT_FACTORS } from '@sharpit/app/lib/journal/day-context-factors';
 import {
   emptyDayJournalEntry,
+  formatDrivingMinutes,
   loadDayJournalEntry,
   readDayJournalStore,
   type DayJournalEntry,
@@ -444,6 +446,33 @@ function HydrationMetricRow({
   );
 }
 
+/** Minutes behind the wheel, by quarter hours. */
+function DrivingMetricRow({
+  entry,
+  persist,
+}: {
+  entry: DayJournalEntry;
+  persist: (next: DayJournalEntry) => void;
+}) {
+  const minutes = entry.drivingMinutes ?? 0;
+  return (
+    <JournalMetricRow
+      icon={Car}
+      iconClassName={JOURNAL_METRIC_ICON.driving}
+      label="Conduite"
+      value={formatDrivingMinutes(entry.drivingMinutes ?? null)}
+      weightFieldId="metric_driving"
+      action={
+        <MetricStepper
+          decrementDisabled={minutes <= 0}
+          onDecrement={() => persist({ ...entry, drivingMinutes: Math.max(0, minutes - 15) })}
+          onIncrement={() => persist({ ...entry, drivingMinutes: minutes + 15 })}
+        />
+      }
+    />
+  );
+}
+
 function JournalDayMetricsSection({
   entry,
   prefs,
@@ -479,6 +508,7 @@ function JournalDayMetricsSection({
         {prefs.enabled.metric_hydration ? (
           <HydrationMetricRow entry={entry} persist={persist} />
         ) : null}
+        {prefs.enabled.metric_driving ? <DrivingMetricRow entry={entry} persist={persist} /> : null}
       </div>
     </section>
   );

@@ -10,6 +10,7 @@ describe('day-journal-service', () => {
         moodLabel: 'Bon',
         hydrationMl: 1500,
         caffeineMg: 80,
+        drivingMinutes: 45,
         updatedAt: new Date('2026-09-09T10:00:00.000Z'),
       }),
     ).toEqual({
@@ -18,6 +19,7 @@ describe('day-journal-service', () => {
       moodLabel: 'Bon',
       hydrationMl: 1500,
       caffeineMg: 80,
+      drivingMinutes: 45,
       updatedAt: '2026-09-09T10:00:00.000Z',
     });
   });
