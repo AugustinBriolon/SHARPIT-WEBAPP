@@ -6,6 +6,7 @@ import {
   getGoalById,
   getActiveTrainingPlan,
   getPlannedSessions,
+  getTrainingZoneNotes,
 } from '@sharpit/server/lib/queries';
 import {
   getGoogleAccount,
@@ -135,6 +136,7 @@ export async function buildGateContext(params: {
     trainingPlan,
     athleteProfile,
     googleAccount,
+    trainingZones,
   ] = await Promise.all([
     getOrBuildAthleteSnapshot(athleteId, trainingDayId),
     loadDailyTrainingStressEntries(athleteId, { refDate: now }),
@@ -143,6 +145,7 @@ export async function buildGateContext(params: {
     getActiveTrainingPlan(athleteId),
     getAthleteProfile(athleteId),
     getGoogleAccount(athleteId),
+    getTrainingZoneNotes(athleteId, now),
   ]);
 
   // null = no calendar connected (skip the rule); [] = connected with nothing busy.
@@ -153,7 +156,7 @@ export async function buildGateContext(params: {
       ).catch(() => [])
     : null;
 
-  const context = buildGateContextPayload({
+  const payload = buildGateContextPayload({
     trainingDayId,
     snapshot,
     dailyTrainingStress,
@@ -164,6 +167,7 @@ export async function buildGateContext(params: {
     athleteProfile,
     now,
   });
+  const context: GateContext = { ...payload, trainingZones };
 
   return { context, snapshot };
 }

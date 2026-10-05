@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { syncPhysicalConditionObservation } from '@sharpit/server/lib/observation/manual-observation-sync';
+import { syncConditionFromNote } from '@sharpit/server/lib/physical-health/sync-condition';
 import { addPhysicalCheckin, getPhysicalNoteById } from '@sharpit/server/lib/queries';
 import { createCheckinSchema } from '@sharpit/server/lib/validators/physical-note';
 
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     const note = await addPhysicalCheckin(athleteId, id, parsed.data);
     if (note) {
-      await syncPhysicalConditionObservation(note);
+      await Promise.all([syncPhysicalConditionObservation(note), syncConditionFromNote(note)]);
     }
     return NextResponse.json(note, { status: 201 });
   } catch (error) {

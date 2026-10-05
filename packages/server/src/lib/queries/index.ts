@@ -12,7 +12,14 @@ import {
 } from '@sharpit/app/lib/query/activity-include';
 import { physicalNoteInclude, planWeekInclude } from '@sharpit/app/lib/query/activity-include';
 import { linkPlannedSessionActivity } from '@sharpit/server/lib/queries/planned-sessions';
-import { ActivityType, type AthleteSex, FunctionalImpact, Prisma } from '@prisma/client';
+import {
+  ActivityType,
+  type AthleteSex,
+  FunctionalImpact,
+  type PhysicalStatus,
+  Prisma,
+} from '@prisma/client';
+import { RELAPSE_WATCH_DAYS } from '@sharpit/app/lib/physical-health/zone-follow-up';
 import { addDays, endOfDay, startOfDay } from 'date-fns';
 import { prisma } from '@sharpit/db/client';
 import { dedupeNutritionRowsByDay } from '@sharpit/app/lib/nutrition/food-log/nutrition-source';
@@ -438,6 +445,28 @@ export async function getActivePhysicalNotes(athleteId: string) {
   });
 }
 
+/**
+ * The zones generation reads (ADR-068): every open one, and the pains resolved recently
+ * enough to still warrant care against a relapse.
+ */
+export async function getTrainingZoneNotes(athleteId: string, now = new Date()) {
+  const relapseSince = new Date(now.getTime() - RELAPSE_WATCH_DAYS * 86_400_000);
+  return prisma.physicalNote.findMany({
+    where: {
+      athleteId,
+      affectsTraining: true,
+      OR: [{ status: { not: 'RESOLVED' } }, { resolvedAt: { gte: relapseSince } }],
+    },
+    include: physicalNoteInclude,
+    orderBy: { severity: 'desc' },
+  });
+}
+
+/** A status change is a point on the zone's timeline: resolved, under watch, reopened. */
+export async function recordPhysicalStatusChange(noteId: string, status: PhysicalStatus) {
+  return prisma.physicalCheckin.create({ data: { noteId, status } });
+}
+
 export async function createPhysicalNote(
   athleteId: string,
   data: Prisma.PhysicalNoteUncheckedCreateInput,
@@ -553,14 +582,19 @@ export async function addPhysicalCheckin(
       noteId,
       severity: data.severity ?? null,
       comment: data.comment ?? null,
+      functionalImpact: data.functionalImpact ?? null,
       ...(data.date ? { date: data.date } : {}),
     },
   });
 
-  if (isSet(data.severity)) {
+  // The latest reading is the zone's current state — what the training strategy reads.
+  if (isSet(data.severity) || data.functionalImpact) {
     await prisma.physicalNote.update({
       where: { id: noteId },
-      data: { severity: data.severity },
+      data: {
+        ...(isSet(data.severity) ? { severity: data.severity } : {}),
+        ...(data.functionalImpact ? { functionalImpact: data.functionalImpact } : {}),
+      },
     });
   }
 

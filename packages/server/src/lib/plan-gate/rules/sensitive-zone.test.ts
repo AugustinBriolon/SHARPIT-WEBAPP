@@ -146,3 +146,40 @@ describe('sensitiveZoneRule', () => {
     expect(sensitiveZoneRule(baseContext(), strengthProposal([UPPER_LEGS_EXERCISE]))).toEqual([]);
   });
 });
+
+describe('sensitiveZoneRule — declared zones (ADR-068)', () => {
+  const declared = (overrides: Record<string, unknown> = {}) => ({
+    title: 'Tendon du biceps fémoral',
+    bodyPart: 'Genou',
+    side: 'NA',
+    category: 'PAIN',
+    status: 'ACTIVE',
+    severity: 4,
+    affectsTraining: true,
+    ...overrides,
+  });
+  const run = baseProposal({ type: 'RUN' });
+
+  it('reads the declaration over the snapshot', () => {
+    const context = {
+      ...contextWith([condition({ bodyRegion: 'Épaule', label: 'Coiffe' })]),
+      trainingZones: [declared()],
+    };
+    const [finding] = sensitiveZoneRule(context, run);
+    expect(finding?.rationale).toContain('Tendon du biceps fémoral');
+  });
+
+  it('no longer flags a zone under watch or silent at 0/10', () => {
+    for (const zone of [
+      declared({ status: 'MONITORING', severity: 2 }),
+      declared({ severity: 0 }),
+    ]) {
+      expect(sensitiveZoneRule({ ...contextWith([]), trainingZones: [zone] }, run)).toEqual([]);
+    }
+  });
+
+  it('still flags a zone under watch that limits training', () => {
+    const zone = declared({ status: 'MONITORING', severity: 1, functionalImpact: 'LIMITING' });
+    expect(sensitiveZoneRule({ ...contextWith([]), trainingZones: [zone] }, run)).toHaveLength(1);
+  });
+});

@@ -36,21 +36,35 @@ export const sideLabels: Record<BodySide, string> = {
 
 export const sideOrder: BodySide[] = ['NA', 'LEFT', 'RIGHT', 'BILATERAL'];
 
-/** Suggestions rapides de zones du corps. */
+/**
+ * The body parts offered when declaring a zone. Every one is known to the region lexicon
+ * (`catalogGroupsForRegion`), so a zone picked here is always checked against the plan — a
+ * free-text region the lexicon misses escapes that check silently.
+ */
 export const COMMON_BODY_PARTS = [
-  'Genou',
-  'Cheville',
   'Pied',
-  'Mollet',
-  'Cuisse',
-  'Ischio',
-  'Hanche',
-  'Bassin',
-  'Dos',
-  'Lombaires',
-  'Épaule',
-  'Cou',
+  'Cheville',
   "Tendon d'Achille",
+  'Mollet',
+  'Tibia',
+  'Genou',
+  'Quadriceps',
+  'Ischio',
+  'Adducteurs',
+  'Hanche',
+  'Fessier',
+  'Psoas',
+  'Bassin',
+  'Abdominaux',
+  'Lombaires',
+  'Dos',
+  'Trapèzes',
+  'Épaule',
+  'Pectoraux',
+  'Cou',
+  'Bras',
+  'Coude',
+  'Poignet',
 ];
 
 /** Couleur de sévérité 0–10 — via corpsToneFromPhysicalSeverity (health-status). */

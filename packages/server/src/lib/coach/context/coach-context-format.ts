@@ -435,6 +435,7 @@ function formatPhysicalSection(physical: CoachContext['physical']): string[] {
         p.bodyPart ? `zone ${p.bodyPart}${p.side ? ` (${p.side})` : ''}` : null,
         isSet(p.severity) ? `sévérité inférée ${p.severity}/10` : null,
         `statut ${p.status}`,
+        p.strategy ? `conduite ${p.strategy}` : null,
         p.trend ? `tendance ${p.trend}` : null,
         p.functionalCapacity ? `capacité fonctionnelle ${p.functionalCapacity}` : null,
         isSet(p.confidence) ? `confiance ${Math.round(p.confidence * 100)}%` : null,

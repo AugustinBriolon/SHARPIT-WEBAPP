@@ -18,6 +18,8 @@ const baseSchema = z.object({
   severity: optionalSeverity,
   description: optionalString,
   affectsTraining: z.coerce.boolean().optional(),
+  /** What the athlete can still do (ADR-068) — drives the training strategy with severity. */
+  functionalImpact: z.nativeEnum(FunctionalImpact).optional().nullable(),
   startDate: z.coerce.date().optional(),
   resolvedAt: z.coerce.date().optional().nullable(),
 });

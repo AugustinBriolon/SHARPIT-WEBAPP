@@ -6,7 +6,7 @@ import { differenceInCalendarDays, format, startOfDay, subDays } from 'date-fns'
 import { isSet } from '@sharpit/shared/value';
 import { fr } from 'date-fns/locale';
 import {
-  getActivePhysicalNotes,
+  getTrainingZoneNotes,
   getActivitiesForCoach,
   getAthleteProfile,
   getGoals,
@@ -23,6 +23,12 @@ import {
   sideLabels,
   statusLabels,
 } from '@sharpit/app/lib/physical-health/physical';
+import {
+  FUNCTIONAL_IMPACT_LABELS,
+  ZONE_STRATEGY_LABELS,
+  zoneStrategy,
+} from '@sharpit/app/lib/physical-health/zone-follow-up';
+import type { TrainingZone } from '@sharpit/app/lib/physical-health/zone-training-rules';
 import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/snapshot-service';
 import { listTravelContexts } from '@sharpit/server/lib/travel-context/service';
 import { toUtcDateOnly } from '@sharpit/app/lib/travel-context/calendar-date';
@@ -251,13 +257,15 @@ const TREND_LABELS: Record<string, string> = {
 };
 
 export function legacyPhysicalTrend(
-  checkins: Awaited<ReturnType<typeof getActivePhysicalNotes>>[number]['checkins'],
+  checkins: Awaited<ReturnType<typeof getTrainingZoneNotes>>[number]['checkins'],
 ): string | null {
-  if (checkins.length < 2) {
+  // Status changes carry no reading: the trend compares the last two readings only.
+  const readings = checkins.filter((checkin) => isSet(checkin.severity));
+  if (readings.length < 2) {
     return null;
   }
-  const last = checkins[0]?.severity;
-  const prev = checkins[1]?.severity;
+  const last = readings[0]?.severity;
+  const prev = readings[1]?.severity;
   if (!isSet(last) || !isSet(prev)) {
     return null;
   }
@@ -270,50 +278,82 @@ export function legacyPhysicalTrend(
   return 'stable';
 }
 
+type PhysicalNotes = Awaited<ReturnType<typeof getTrainingZoneNotes>>;
+
+function declaredPhysicalEntry(note: PhysicalNotes[number], now: Date) {
+  return {
+    type: note.category as string,
+    category: categoryLabels[note.category],
+    status: statusLabels[note.status],
+    title: note.title,
+    bodyPart: note.bodyPart,
+    side: note.side !== 'NA' ? sideLabels[note.side] : null,
+    severity: note.severity,
+    description: note.description,
+    trend: legacyPhysicalTrend(note.checkins),
+    functionalCapacity: note.functionalImpact
+      ? (FUNCTIONAL_IMPACT_LABELS[note.functionalImpact] ?? null)
+      : null,
+    confidence: null as number | null,
+    strategy: ZONE_STRATEGY_LABELS[zoneStrategy(note, now)] as string | null,
+    source: 'declared' as const,
+  };
+}
+
 /**
  * The physical conditions the coach reads. `category` is the French label for the prompt;
  * `type` keeps the raw kind (PAIN, INJURY…), which `sensitiveZonesFrom` needs to turn a
  * pain or an injury into a zone the plans must spare — reading the label, it found none.
+ *
+ * The athlete's declaration wins (ADR-068): the snapshot's inferred conditions only stand in
+ * when nothing is declared — they lagged behind it, and missed every zone declared after the
+ * Phase 1 migration.
  */
 export function buildPhysicalContext(
   athleteSnapshot: Awaited<ReturnType<typeof getOrBuildAthleteSnapshot>>,
-  physicalNotes: Awaited<ReturnType<typeof getActivePhysicalNotes>>,
+  physicalNotes: PhysicalNotes,
+  now = new Date(),
 ) {
-  const physicalFromSnapshot =
+  const declared = physicalNotes.filter((note) => note.status !== 'RESOLVED');
+  if (declared.length > 0) {
+    return declared.map((note) => declaredPhysicalEntry(note, now));
+  }
+
+  return (
     athleteSnapshot.physicalHealth?.conditions
       .filter((c) => c.affectsTraining && c.status !== 'RESOLVED')
       .map((c) => ({
         type: c.type as string,
         category: CONDITION_TYPE_LABELS[c.type] ?? c.type,
-        status: c.status,
+        status: c.status as string,
         title: c.label,
         bodyPart: c.bodyRegion,
         side: c.side !== 'NA' ? sideLabels[c.side] : null,
         severity: c.severity,
         description: null as string | null,
         trend: TREND_LABELS[c.trend] ?? null,
-        functionalCapacity: c.functionalCapacity,
-        confidence: c.confidence,
+        functionalCapacity: c.functionalCapacity as string | null,
+        confidence: c.confidence as number | null,
+        strategy: null as string | null,
         source: 'inferred' as const,
-      })) ?? [];
+      })) ?? []
+  );
+}
 
-  if (physicalFromSnapshot.length > 0) {
-    return physicalFromSnapshot;
-  }
-
-  return physicalNotes.map((n) => ({
-    type: n.category as string,
-    category: categoryLabels[n.category],
-    status: statusLabels[n.status],
-    title: n.title,
-    bodyPart: n.bodyPart,
-    side: n.side !== 'NA' ? sideLabels[n.side] : null,
-    severity: n.severity,
-    description: n.description,
-    trend: legacyPhysicalTrend(n.checkins),
-    functionalCapacity: null as string | null,
-    confidence: null as number | null,
-    source: 'legacy' as const,
+/** The declared zones as plan and adapt generation reads them (`formatZoneTrainingRules`). */
+export function buildTrainingZones(physicalNotes: PhysicalNotes): TrainingZone[] {
+  return physicalNotes.map((note) => ({
+    title: note.title,
+    bodyPart: note.bodyPart,
+    side: note.side,
+    description: note.description,
+    category: note.category,
+    status: note.status,
+    severity: note.severity,
+    functionalImpact: note.functionalImpact,
+    affectsTraining: note.affectsTraining,
+    resolvedAt: note.resolvedAt,
+    checkins: note.checkins,
   }));
 }
 
@@ -615,7 +655,8 @@ export function assembleCoachContextPayload(
   const activitySections = assembleCoachActivitySections(today, activities, planned, pastPlanned);
   const profileSections = assembleCoachProfileSections(today, profile, healthEntries, goals);
   const environment = buildCoachEnvironment(profile, athleteSnapshot, homeWeather);
-  const physical = buildPhysicalContext(athleteSnapshot, physicalNotes);
+  const physical = buildPhysicalContext(athleteSnapshot, physicalNotes, refDate);
+  const trainingZones = buildTrainingZones(physicalNotes);
   const { travel, constraints } = buildTravelMemory(travelContexts, refDate);
   const { fatigue, adaptation, decision } = buildCoachIntelligence(athleteSnapshot);
 
@@ -627,6 +668,7 @@ export function assembleCoachContextPayload(
     travel,
     constraints,
     physical,
+    trainingZones,
     fatigue,
     adaptation,
     decision,

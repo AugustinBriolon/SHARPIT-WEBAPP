@@ -16,7 +16,7 @@ export async function loadHealthOverviewInputs(
   athleteId: string,
   now = new Date(),
 ): Promise<HealthInputs> {
-  const [daily, composition, profile, zones] = await Promise.all([
+  const [daily, composition, profile] = await Promise.all([
     prisma.dailyHealth.findMany({
       where: { athleteId, date: { gte: new Date(now.getTime() - DAILY_DAYS * DAY_MS) } },
       select: {
@@ -51,11 +51,6 @@ export async function loadHealthOverviewInputs(
         updatedAt: true,
       },
     }),
-    prisma.physicalNote.findMany({
-      where: { athleteId, status: { in: ['ACTIVE', 'MONITORING'] } },
-      select: { title: true, bodyPart: true, status: true, startDate: true },
-      orderBy: { startDate: 'desc' },
-    }),
   ]);
 
   const isPro = hasProAccess(profile?.tier ?? 'FREE');
@@ -71,7 +66,6 @@ export async function loadHealthOverviewInputs(
         profile.vo2maxRunning || profile.vo2maxCycling ? thresholdsMeasuredAt(profile) : null,
       targetWeightKg: profile.targetWeightKg,
     },
-    zones,
     biologicalAge: biologicalAgeFor({ isPro, profile, demographics }, now),
     biologicalAgeAccess: isPro ? 'granted' : 'pro_required',
   };

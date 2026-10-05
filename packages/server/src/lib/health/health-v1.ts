@@ -65,13 +65,6 @@ export type HealthCompositionRow = {
   musclePct: number | null;
 };
 
-export type HealthZoneRow = {
-  title: string;
-  bodyPart: string | null;
-  status: string;
-  startDate: Date;
-};
-
 export type HealthInputs = {
   daily: HealthDailyRow[];
   composition: HealthCompositionRow[];
@@ -82,7 +75,6 @@ export type HealthInputs = {
     vo2maxMeasuredAt: Date | null;
     targetWeightKg: number | null;
   } | null;
-  zones: HealthZoneRow[];
   biologicalAge: BiologicalAge | null;
   biologicalAgeAccess: 'granted' | 'pro_required';
 };
@@ -103,7 +95,7 @@ export type V1HealthMarker = {
 };
 
 export type V1HealthWatch = {
-  key: HealthMarkerKey | 'zone';
+  key: HealthMarkerKey;
   title: string;
   detail: string;
 };
@@ -451,22 +443,11 @@ function weightWatch(points: HealthPoint[], now: Date): V1HealthWatch | null {
   };
 }
 
-function zoneWatch(zones: HealthZoneRow[]): V1HealthWatch[] {
-  return zones
-    .filter((zone) => zone.status === 'ACTIVE' || zone.status === 'MONITORING')
-    .map((zone) => ({
-      key: 'zone' as const,
-      title: zone.bodyPart ? `Zone sensible : ${zone.bodyPart}` : 'Zone sensible',
-      detail: zone.title,
-    }));
-}
-
 function watchList(inputs: HealthInputs, markers: V1HealthMarker[], now: Date): V1HealthWatch[] {
   return [
     restingHrWatch(inputs.daily, now),
     ...markers.map(markerWatch),
     weightWatch(weightPoints(inputs), now),
-    ...zoneWatch(inputs.zones),
   ].filter((entry): entry is V1HealthWatch => entry !== null);
 }
 

@@ -40,7 +40,6 @@ function inputs(overrides: Partial<HealthInputs> = {}): HealthInputs {
       vo2maxMeasuredAt: daysAgo(10),
       targetWeightKg: 70,
     },
-    zones: [],
     biologicalAge: null,
     biologicalAgeAccess: 'pro_required',
     ...overrides,
@@ -100,16 +99,12 @@ describe('projectV1HealthOverview', () => {
     expect(overview.synthesis.highlights[0]).toMatchObject({ key: 'restingHr', tone: 'watch' });
   });
 
-  it('flags a fast weight change and an active sensitive zone', () => {
+  it('flags a fast weight change', () => {
     const composition = [
       { measuredAt: daysAgo(16), weightKg: 74, bodyFatPct: 15, visceralFat: 7, musclePct: 45 },
       { measuredAt: daysAgo(1), weightKg: 72, bodyFatPct: 14.5, visceralFat: 7, musclePct: 45 },
     ];
-    const zones = [
-      { title: 'Tendinite', bodyPart: 'Genou droit', status: 'ACTIVE', startDate: daysAgo(5) },
-    ];
-
-    const overview = projectV1HealthOverview(inputs({ composition, zones }), now);
+    const overview = projectV1HealthOverview(inputs({ composition }), now);
 
     expect(overview.body.map((m) => m.key)).toEqual([
       'weight',
@@ -123,7 +118,6 @@ describe('projectV1HealthOverview', () => {
     expect(overview.body[1].norm?.band).toBe('fitness');
     expect(overview.watch).toEqual([
       expect.objectContaining({ key: 'weight', detail: expect.stringContaining('−2 kg') }),
-      { key: 'zone', title: 'Zone sensible : Genou droit', detail: 'Tendinite' },
     ]);
   });
 

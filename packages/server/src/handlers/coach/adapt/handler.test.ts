@@ -28,7 +28,7 @@ vi.mock('@sharpit/server/lib/coach/stream-structured-generation', () => ({
 }));
 
 vi.mock('@sharpit/server/lib/coach/context/coach-context', () => ({
-  buildCoachContext: vi.fn().mockResolvedValue({}),
+  buildCoachContext: vi.fn().mockResolvedValue({ trainingZones: [] }),
   formatCoachContext: () => 'mock coach context',
 }));
 
@@ -45,6 +45,7 @@ vi.mock('@sharpit/server/lib/queries', () => ({
   getPlannedSessionsForCoach: vi.fn().mockResolvedValue([]),
   getActiveTrainingPlan: vi.fn().mockResolvedValue(null),
   getAthleteProfile: vi.fn().mockResolvedValue(null),
+  getTrainingZoneNotes: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@sharpit/server/lib/training/pmc/pmc-server', () => ({

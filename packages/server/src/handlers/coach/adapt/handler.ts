@@ -34,10 +34,7 @@ import {
 } from '@sharpit/app/lib/planned-session/plan-goal';
 import { intensityLabels } from '@sharpit/app/lib/planned-session/sessions';
 import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
-import {
-  formatSensitiveZoneRules,
-  sensitiveZonesFrom,
-} from '@sharpit/app/lib/physical-health/sensitive-zones';
+import { formatZoneTrainingRules } from '@sharpit/app/lib/physical-health/zone-training-rules';
 import {
   adaptPlanGenerationSchema,
   adaptPlanSchema,
@@ -211,7 +208,7 @@ function buildAdaptPrompt(input: {
   const { focus, today, horizon, ctx, upcomingLines } = input;
   return `${focus ? `Demande de l'athlète : ${focus}\n\n` : ''}Fenêtre d'ajustement : du ${format(today, 'd MMM', { locale: fr })} au ${format(horizon, 'd MMM yyyy', { locale: fr })} (dates ADD au format yyyy-MM-dd dans cette fenêtre).
 
-${formatCoachContext(ctx)}${formatSensitiveZoneRules(sensitiveZonesFrom(ctx.physical))}
+${formatCoachContext(ctx)}${formatZoneTrainingRules(ctx.trainingZones, today)}
 
 ## Séances déjà planifiées à venir (à ajuster)
 ${upcomingLines.length ? upcomingLines.join('\n') : 'Aucune séance planifiée à venir.'}`;

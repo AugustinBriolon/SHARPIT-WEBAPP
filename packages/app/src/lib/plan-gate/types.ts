@@ -9,6 +9,7 @@
  * @see docs/adr/ADR-005-plan-safety-gate-placement.md
  */
 
+import type { ZoneCondition } from '@sharpit/app/lib/physical-health/sensitive-zones';
 import type { ActivityType, GoalHorizon, PlanPhase, SessionIntensity } from '@prisma/client';
 import type { CoachEndurancePrescription } from '@sharpit/app/lib/planned-session/endurance/coach-endurance-prescription';
 import type { CoachStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
@@ -21,6 +22,11 @@ export type GateContext = {
   readonly trainingDayId: string;
   readonly decision: SerializedDecisionState | null;
   readonly physicalHealth: PhysicalHealthData | null;
+  /**
+   * The zones the athlete declared (ADR-068) — what `SENSITIVE_ZONE_LOADED` reads. Absent:
+   * the rule falls back to the snapshot's inferred conditions.
+   */
+  readonly trainingZones?: readonly ZoneCondition[];
   readonly fatigueTrainingCapacity: TrainingCapacity | null;
   /**
    * One entry per training day, carrying the Core's Training Stress, for

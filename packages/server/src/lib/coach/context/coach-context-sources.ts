@@ -5,7 +5,7 @@ import { subDays } from 'date-fns';
 import { isSet } from '@sharpit/shared/value';
 import { createSourceTimer } from '@sharpit/server/lib/coach/context/source-timer';
 import {
-  getActivePhysicalNotes,
+  getTrainingZoneNotes,
   getActivitiesForCoach,
   getAthleteProfile,
   getGoals,
@@ -101,7 +101,7 @@ export async function loadCoachContextSources(input: LoadCoachContextSourcesInpu
       getPlannedSessionsForCoach(athleteId, { from: subDays(today, 14), to: today }),
     ),
     timer.time('profile', getAthleteProfile(athleteId)),
-    timer.time('physicalNotes', getActivePhysicalNotes(athleteId)),
+    timer.time('physicalNotes', getTrainingZoneNotes(athleteId)),
     timer.time('snapshot', getOrBuildAthleteSnapshot(athleteId, trainingDayId)),
     timer.time('travel', listTravelContexts(prisma, athleteId)),
     timer.time('homeWeather', loadHomeWeatherHint(athleteId, trainingDayId)),

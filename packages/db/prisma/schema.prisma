@@ -1038,6 +1038,8 @@ model PhysicalNote {
   severity        Int? // 0-10 (sévérité actuelle)
   description     String?
   affectsTraining Boolean          @default(true) // injecté dans le contexte coach
+  /// What the athlete can still do, as last declared — drives the training strategy (ADR-068).
+  functionalImpact FunctionalImpact?
 
   startDate  DateTime  @default(now())
   resolvedAt DateTime?
@@ -1059,6 +1061,10 @@ model PhysicalCheckin {
   date     DateTime @default(now())
   severity Int? // 0-10 au moment du point de contrôle
   comment  String?
+  /// What the athlete could still do at this point.
+  functionalImpact FunctionalImpact?
+  /// Set when this point records a status change (resolved, reopened…); null for a plain follow-up.
+  status   PhysicalStatus?
 
   createdAt DateTime @default(now())
 

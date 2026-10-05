@@ -10,6 +10,8 @@
  * Pure: no I/O, no React.
  */
 
+import { zoneStrategy } from '@sharpit/app/lib/physical-health/zone-follow-up';
+
 /** Catalog body groups, as they appear in `src/data/exercises-catalog.json`. */
 export type CatalogBodyPart =
   | 'upper legs'
@@ -35,6 +37,7 @@ export type ZoneCondition = {
   category?: string | null;
   affectsTraining?: boolean | null;
   status?: string | null;
+  functionalImpact?: string | null;
 };
 
 export type SensitiveZone = {
@@ -67,8 +70,9 @@ const REGION_GROUPS: ReadonlyArray<{
   { match: ['bassin', 'sacro', 'abdo', 'gainage', 'core', 'oblique'], groups: ['waist'] },
   { match: ['lombaire', 'dos', 'rachis', 'dorsale', 'thoracique', 'trapeze'], groups: ['back'] },
   { match: ['epaule', 'coiffe', 'deltoide', 'acromio'], groups: ['shoulders'] },
-  { match: ['cou', 'nuque', 'cervicale'], groups: ['neck'] },
+  // Before the neck: « coude » contains « cou ».
   { match: ['coude', 'poignet', 'avant-bras', 'main'], groups: ['lower arms'] },
+  { match: ['cou', 'nuque', 'cervicale'], groups: ['neck'] },
   { match: ['bras', 'biceps', 'triceps'], groups: ['upper arms'] },
   { match: ['pectoraux', 'poitrine', 'thorax', 'sternum'], groups: ['chest'] },
 ];
@@ -93,15 +97,27 @@ export function catalogGroupsForRegion(region: string | null | undefined): Catal
   return entry ? [...entry.groups] : [];
 }
 
-function isSymptomatic(condition: ZoneCondition): boolean {
+/**
+ * A pain or an injury the plan must not load: its strategy is `protect` (ADR-068). A zone
+ * under watch, or open but silent, is loaded progressively and no longer flagged.
+ */
+function isProtected(condition: ZoneCondition): boolean {
   const kind = (condition.type ?? condition.category ?? '').toUpperCase();
   if (!SYMPTOMATIC.has(kind)) {
     return false;
   }
-  if (condition.status && condition.status.toUpperCase() === 'RESOLVED') {
-    return false;
-  }
-  return condition.affectsTraining !== false;
+  const strategy = zoneStrategy(
+    {
+      category: kind,
+      status: condition.status ?? 'ACTIVE',
+      severity: condition.severity ?? null,
+      functionalImpact: condition.functionalImpact ?? null,
+      affectsTraining: condition.affectsTraining !== false,
+      resolvedAt: null,
+    },
+    new Date(),
+  );
+  return strategy === 'protect';
 }
 
 function zoneSide(side: string | null | undefined): string | null {
@@ -123,14 +139,14 @@ function toZone(condition: ZoneCondition): SensitiveZone | null {
   };
 }
 
-/** Pains and injuries that still constrain training, with their catalog groups. */
+/** Pains and injuries the plan must spare, with their catalog groups. */
 export function sensitiveZonesFrom(
   conditions: readonly ZoneCondition[] | null | undefined,
 ): SensitiveZone[] {
   if (!conditions) {
     return [];
   }
-  return conditions.filter(isSymptomatic).flatMap((condition) => {
+  return conditions.filter(isProtected).flatMap((condition) => {
     const zone = toZone(condition);
     return zone ? [zone] : [];
   });
@@ -219,8 +235,10 @@ export function unmappedSensitiveZones(zones: readonly SensitiveZone[]): Sensiti
   return zones.filter((zone) => zone.groups.length === 0);
 }
 
-function zoneLine(zone: SensitiveZone): string {
-  const side = zone.side ? ` (${zone.side.toLowerCase()})` : '';
+export function zoneLine(zone: SensitiveZone): string {
+  const side = zone.side
+    ? ` (${SIDE_WORDS[zone.side.toUpperCase()] ?? zone.side.toLowerCase()})`
+    : '';
   const severity = zone.severity !== null ? `, sévérité ${zone.severity}/10` : '';
   return `- ${zone.label} — zone ${zone.region}${side}${severity}`;
 }

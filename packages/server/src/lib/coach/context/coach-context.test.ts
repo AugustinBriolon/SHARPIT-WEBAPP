@@ -301,6 +301,53 @@ describe('physical context', () => {
   });
 });
 
+describe('physical context — the declaration wins (ADR-068)', () => {
+  const posture = {
+    category: 'POSTURE',
+    status: 'ACTIVE',
+    title: 'Épaules enroulées',
+    bodyPart: 'Épaule',
+    side: 'BILATERAL',
+    severity: 5,
+    functionalImpact: null,
+    description: null,
+    affectsTraining: true,
+    resolvedAt: null,
+    checkins: [],
+  };
+  const inferred = {
+    physicalHealth: {
+      conditions: [
+        {
+          type: 'PAIN',
+          label: 'Ancienne douleur',
+          bodyRegion: 'Genou',
+          side: 'NA',
+          status: 'STABLE',
+          affectsTraining: true,
+          severity: 2,
+          trend: 'STABLE',
+          functionalCapacity: 'FULL',
+          confidence: 0.6,
+        },
+      ],
+    },
+  };
+
+  it('reads declared zones before the inferred conditions, with what the plan does', () => {
+    const physical = buildPhysicalContext(inferred as never, [posture] as never);
+    expect(physical).toEqual([
+      expect.objectContaining({ title: 'Épaules enroulées', strategy: 'À corriger' }),
+    ]);
+  });
+
+  it('falls back to the inferred conditions when nothing open is declared', () => {
+    const resolved = { ...posture, status: 'RESOLVED' };
+    const physical = buildPhysicalContext(inferred as never, [resolved] as never);
+    expect(physical.map((entry) => entry.title)).toEqual(['Ancienne douleur']);
+  });
+});
+
 describe('formatCoachContext bricks', () => {
   const leg = (id: string, type: string, brickOrder: number) => ({
     id,

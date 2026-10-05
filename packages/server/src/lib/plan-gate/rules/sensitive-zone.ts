@@ -64,7 +64,7 @@ export const sensitiveZoneRule: PlanGateRule = (
   context: GateContext,
   proposal: GateProposal,
 ): RuleFinding[] => {
-  const zones = sensitiveZonesFrom(context.physicalHealth?.conditions);
+  const zones = sensitiveZonesFrom(context.trainingZones ?? context.physicalHealth?.conditions);
   if (zones.length === 0) {
     return [];
   }

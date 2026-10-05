@@ -10,8 +10,16 @@ import {
   unmappedSensitiveZones,
   type SensitiveZone,
 } from './sensitive-zones';
+import { COMMON_BODY_PARTS } from './physical';
 
 describe('catalogGroupsForRegion', () => {
+  it('knows every body part offered at declaration', () => {
+    const unknown = COMMON_BODY_PARTS.filter((part) => catalogGroupsForRegion(part).length === 0);
+    expect(unknown).toEqual([]);
+    expect(catalogGroupsForRegion('Coude')).toEqual(['lower arms']);
+    expect(catalogGroupsForRegion('Cou')).toEqual(['neck']);
+  });
+
   it('maps the regions the athlete actually writes', () => {
     expect(catalogGroupsForRegion('Ischio')).toEqual(['upper legs']);
     expect(catalogGroupsForRegion('Pied')).toEqual(['lower legs']);
@@ -208,7 +216,7 @@ describe('formatSensitiveZoneRules', () => {
       },
     ]);
 
-    expect(block).toContain('Nerf sciatique — zone Ischio (left), sévérité 1/10');
+    expect(block).toContain('Nerf sciatique — zone Ischio (gauche), sévérité 1/10');
     expect(block).toContain('Renforce AUTOUR');
   });
 });

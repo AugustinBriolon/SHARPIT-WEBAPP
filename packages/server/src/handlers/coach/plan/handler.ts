@@ -49,10 +49,7 @@ import { computeTrainingDayId } from '@sharpit/core/training/training-day';
 import { buildDecisionSnapshotContext } from '@sharpit/server/lib/decision-memory/build-snapshot-context';
 import { createCoachingDecision } from '@sharpit/server/lib/decision-memory/repository';
 import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
-import {
-  formatSensitiveZoneRules,
-  sensitiveZonesFrom,
-} from '@sharpit/app/lib/physical-health/sensitive-zones';
+import { formatZoneTrainingRules } from '@sharpit/app/lib/physical-health/zone-training-rules';
 import {
   formatTravelConstraintPromptRule,
   resolvePlanTargetUnderTravel,
@@ -255,7 +252,7 @@ async function preparePlanGeneration(
     goalBlock,
     macroBlock,
     agendaBlock,
-    sensitiveZonesBlock: formatSensitiveZoneRules(sensitiveZonesFrom(ctx.physical)),
+    sensitiveZonesBlock: formatZoneTrainingRules(ctx.trainingZones, start),
   });
 
   return {

@@ -4,9 +4,11 @@ import {
   syncPhysicalConditionObservation,
 } from '@sharpit/server/lib/observation/manual-observation-sync';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
+import { syncConditionFromNote } from '@sharpit/server/lib/physical-health/sync-condition';
 import {
   deletePhysicalNote,
   getPhysicalNoteById,
+  recordPhysicalStatusChange,
   updatePhysicalNote,
 } from '@sharpit/server/lib/queries';
 import { updatePhysicalNoteSchema } from '@sharpit/server/lib/validators/physical-note';
@@ -48,11 +50,18 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     const data = { ...parsed.data } as Parameters<typeof updatePhysicalNote>[2];
     applyResolvedAtPatch(data, parsed.data, existing);
 
+    const nextStatus = parsed.data.status;
+    if (nextStatus && nextStatus !== existing.status) {
+      await recordPhysicalStatusChange(id, nextStatus);
+    }
     const note = await updatePhysicalNote(athleteId, id, data);
     if (!note) {
       return NextResponse.json({ error: 'Note introuvable' }, { status: 404 });
     }
-    await syncPhysicalConditionObservation(note);
+    await Promise.all([
+      syncPhysicalConditionObservation(note),
+      syncConditionFromNote(note, existing.status),
+    ]);
     return NextResponse.json(note);
   } catch (error) {
     console.error(error);
