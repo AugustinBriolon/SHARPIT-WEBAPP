@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   ciqualDietFacts,
-  isRawCiqualFood,
+  isWholeCiqualFood,
   mapCiqualFood,
   parseCiqualAmount,
+  typicalValuesBySubgroup,
   type CiqualFood,
 } from './ciqual';
 
@@ -68,12 +69,56 @@ describe('mapCiqualFood', () => {
   });
 });
 
-describe('isRawCiqualFood', () => {
-  it('needs both a raw-capable group and the word « cru »', () => {
-    expect(isRawCiqualFood({ name: 'Poulet, viande, crue', subgroup: '0402' })).toBe(true);
-    expect(isRawCiqualFood({ name: 'Riz blanc, cru', subgroup: '0301' })).toBe(false);
-    expect(isRawCiqualFood({ name: 'Crudités, assortiment', subgroup: '0201' })).toBe(false);
-    expect(isRawCiqualFood({ name: 'Banane, pulpe, sèche', subgroup: '0204' })).toBe(false);
+describe('typical values', () => {
+  const egg = (code: number, name: string, sugars: number | null): CiqualFood => ({
+    ...BANANA,
+    code,
+    name,
+    subgroup: '0410',
+    kcal: 147,
+    protein: 13.8,
+    carbs: 0.7,
+    fat: 9.7,
+    sugars,
+    saturatedFat: 2.7,
+    salt: 0.4,
+  });
+
+  it('reads an unmeasured sugar as its family median, says so, and keeps it off the label', () => {
+    const family = [egg(1, 'Oeuf, cru', 0.3), egg(2, 'Oeuf, dur', 0.5), egg(3, 'Oeuf, poché', 0.7)];
+    const typical = typicalValuesBySubgroup(family).get('0410')!;
+    expect(typical.sugars).toBe(0.5);
+
+    const fried = mapCiqualFood(egg(4, 'Oeuf, au plat, sans matière grasse', null), typical);
+    expect(fried.sugarPer100g).toBeNull();
+    expect(fried.health.nova).toBe(1);
+    expect(fried.health.grade).toBe('excellent');
+    expect(fried.health.highlights[0]).toMatchObject({
+      key: 'typical_values',
+      detail: 'Sucres non mesurés par l’Anses : valeur typique de sa famille',
+    });
+  });
+});
+
+describe('isWholeCiqualFood', () => {
+  const whole = (name: string, subgroup: string) => isWholeCiqualFood({ name, subgroup });
+
+  it('reads raw or plainly cooked single foods as whole', () => {
+    expect(whole('Poulet, viande, crue', '0402')).toBe(true);
+    expect(whole('Riz blanc, cru', '0301')).toBe(true);
+    expect(whole('Oeuf, au plat, sans matière grasse', '0410')).toBe(true);
+    expect(whole('Oeuf, poché', '0410')).toBe(true);
+    expect(whole('Saumon, cuit à la vapeur', '0405')).toBe(true);
+    expect(whole('Pâtes sèches standard, cuites, non salées', '0301')).toBe(true);
+  });
+
+  it('keeps out anything fried, salted, canned or outside single-food groups', () => {
+    expect(whole('Oeuf, au plat, frit, salé', '0410')).toBe(false);
+    expect(whole('Oeuf, brouillé, avec matière grasse', '0410')).toBe(false);
+    expect(whole('Pomme de terre, appertisée, égouttée', '0202')).toBe(false);
+    expect(whole('Crudités, assortiment', '0201')).toBe(false);
+    expect(whole('Banane, pulpe, sèche', '0204')).toBe(false);
+    expect(whole('Pizza, cuite', '0104')).toBe(false);
   });
 });
 

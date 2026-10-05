@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { foodHighlights, type HighlightInput } from './food-health-highlights';
+import {
+  foodHighlights,
+  missingNutrientsPhrase,
+  type HighlightInput,
+} from './food-health-highlights';
 
 const neutral: HighlightInput = {
   kcal: 200,
@@ -17,6 +21,16 @@ const neutral: HighlightInput = {
 function keys(input: HighlightInput): string[] {
   return foodHighlights(input).map((item) => item.key);
 }
+
+describe('missingNutrientsPhrase', () => {
+  it('agrees the participle with the nutrients named', () => {
+    expect(missingNutrientsPhrase(['sucres'], 'non mesuré')).toBe('Sucres non mesurés');
+    expect(missingNutrientsPhrase(['sel'], 'non renseigné')).toBe('Sel non renseigné');
+    expect(missingNutrientsPhrase(['sel', 'sucres'], 'non renseigné')).toBe(
+      'Sel, sucres non renseignés',
+    );
+  });
+});
 
 describe('foodHighlights', () => {
   it('says nothing about an unremarkable food', () => {

@@ -72,6 +72,7 @@ const HIGHLIGHT_ICONS: Record<string, LucideIcon> = {
   energy: Flame,
   sports: Footprints,
   label: Info,
+  typical: Info,
 };
 
 function highlightIcon(highlight: FoodHighlight): LucideIcon {

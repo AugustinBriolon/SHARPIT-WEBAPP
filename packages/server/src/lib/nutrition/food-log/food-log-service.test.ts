@@ -406,6 +406,22 @@ describe('food log service', () => {
     ]);
   });
 
+  it('scores a cached Ciqual food from the bundled table, whatever was stored', async () => {
+    const { service } = await setup();
+    const { ciqualFoodByCode } = await import('./ciqual-search');
+    const stored = {
+      id: 'p-egg',
+      source: 'CIQUAL',
+      ciqualCode: 13005,
+      carbsPer100g: 19.7,
+      health: { score: 12, scoreVersion: 2, coverage: 'full' },
+    };
+
+    const served = service.servedProduct(stored as never, { ids: [], labels: [] });
+
+    expect(served.health?.score).toBe(ciqualFoodByCode(13005)?.health.score);
+  });
+
   it("serves a food with the athlete's diets read against it", async () => {
     const { service } = await setup();
     const served = service.servedProduct(SKYR as never, {

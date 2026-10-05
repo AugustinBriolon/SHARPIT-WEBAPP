@@ -87,6 +87,7 @@ export type LabelNutrients = {
   sugars: number | null;
   saturatedFat: number | null;
   salt: number | null;
+  fruitVegetableShare?: number | null;
 };
 
 /**
@@ -111,6 +112,7 @@ export function estimateNutriScorePointsFromLabel(label: LabelNutrients): number
     salt: label.salt === null ? 0 : pointsFor(label.salt, SALT_G),
     protein: label.protein,
     fiber: label.fiber,
+    fruitVegetableShare: label.fruitVegetableShare,
   });
 }
 

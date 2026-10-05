@@ -179,7 +179,14 @@ function nutrientFlagsFromOff(
 
 function healthOf(
   product: OffProduct,
-  food: { kcal: number; protein: number; fiber: number | null; sugars: number | null },
+  food: {
+    kcal: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    fiber: number | null;
+    sugars: number | null;
+  },
   detail: HealthDetail,
 ): FoodHealthAssessment {
   const nutriments = product.nutriments ?? {};
@@ -194,6 +201,8 @@ function healthOf(
     nutrients: {
       kcal: food.kcal,
       protein: food.protein,
+      carbs: food.carbs,
+      fat: food.fat,
       fiber: food.fiber,
       sugars: food.sugars,
       salt: numberOf(nutriments['salt_100g']),
@@ -260,7 +269,11 @@ export function mapOffProduct(
     saturatedFatPer100g,
     servingGrams: servingGrams && servingGrams > 0 ? servingGrams : null,
     servingLabel: product.serving_size?.trim() || null,
-    health: healthOf(product, { kcal, protein, fiber: fiberPer100g, sugars: sugarPer100g }, detail),
+    health: healthOf(
+      product,
+      { kcal, protein, carbs, fat, fiber: fiberPer100g, sugars: sugarPer100g },
+      detail,
+    ),
   };
 }
 

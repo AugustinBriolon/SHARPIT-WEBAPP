@@ -33,9 +33,11 @@ describe('mapOffProduct', () => {
       saturatedFatPer100g: null,
       servingGrams: 15,
       servingLabel: '15 g',
+      // No saturated fat or salt on this label: the Nutri-Score is estimated with them bounded.
       health: expect.objectContaining({
         coverage: 'full',
-        nutriScore: null,
+        nutriScore: 'e',
+        nutriScoreEstimated: true,
         score: expect.any(Number),
       }),
     });

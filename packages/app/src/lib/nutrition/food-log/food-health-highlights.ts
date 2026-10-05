@@ -31,6 +31,16 @@ export type HighlightInput = {
   isSportsNutrition: boolean;
 };
 
+/**
+ * « Sucres, sel non renseignés », « Sel non renseigné »: the nutrients named, capitalised, with
+ * the participle agreeing (plural for several, or for one plural noun such as « sucres »).
+ */
+export function missingNutrientsPhrase(words: string[], participle: string): string {
+  const list = words.join(', ');
+  const plural = words.length > 1 || /s$/.test(words[0] ?? '');
+  return `${list.charAt(0).toUpperCase()}${list.slice(1)} ${participle}${plural ? 's' : ''}`;
+}
+
 /** EU claims: protein share of energy, fibre per 100 g. */
 const PROTEIN_ENERGY_SHARE = { source: 0.12, rich: 0.2 } as const;
 const FIBER_G = { source: 3, rich: 6 } as const;

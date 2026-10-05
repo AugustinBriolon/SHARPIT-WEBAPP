@@ -165,12 +165,6 @@ async function ensureProductHealth(product: FoodProduct): Promise<FoodProduct> {
     // OFF unavailable: still surface a partial score from the stored label.
     return persistPartialHealth(product);
   }
-  if (product.source === 'CIQUAL' && product.ciqualCode !== null) {
-    const food = ciqualFoodByCode(product.ciqualCode);
-    return food
-      ? prisma.foodProduct.update({ where: { id: product.id }, data: productData(food) })
-      : product;
-  }
   return product;
 }
 
@@ -182,12 +176,24 @@ async function persistPartialHealth(product: FoodProduct): Promise<FoodProduct> 
 }
 
 /**
- * The score with the athlete's diets read against it; facts are per food, fit per athlete. An own
- * food is scored from its label on every read (ADR-066): a food created before a field or a
- * formula existed reads the current score, with nothing to migrate.
+ * The current score of a product. Foods whose data lives with Sharpit are scored on every read:
+ * an own food from its label (ADR-066), a Ciqual food from the bundled table (ADR-067) — so one
+ * stored before a field or a formula existed reads the current score, with nothing to migrate.
+ * Open Food Facts products read what their last OFF fetch stored.
  */
+function currentHealth(product: FoodProduct): FoodHealthAssessment | null {
+  if (product.source === 'CUSTOM') {
+    return labelHealth(product);
+  }
+  if (product.source === 'CIQUAL' && product.ciqualCode !== null) {
+    return ciqualFoodByCode(product.ciqualCode)?.health ?? healthOf(product);
+  }
+  return healthOf(product);
+}
+
+/** The score with the athlete's diets read against it; facts are per food, fit per athlete. */
 export function servedHealth(product: FoodProduct, diets: DeclaredDiets): ServedFoodHealth | null {
-  const health = product.source === 'CUSTOM' ? labelHealth(product) : healthOf(product);
+  const health = currentHealth(product);
   if (!health) {
     return null;
   }

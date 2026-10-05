@@ -1,6 +1,11 @@
 import { additiveRisk, type AdditiveInfo, type AdditiveRisk } from './additives-risk';
 import { UNKNOWN_DIET_FACTS, type DietFacts, type DietFit } from './food-diet-fit';
-import { foodHighlights, type FoodHighlight, type NutrientLevel } from './food-health-highlights';
+import {
+  foodHighlights,
+  missingNutrientsPhrase,
+  type FoodHighlight,
+  type NutrientLevel,
+} from './food-health-highlights';
 import {
   estimateNutriScorePoints,
   estimateNutriScorePointsFromLabel,
@@ -59,6 +64,9 @@ export type HealthNutrients = {
   sugars: number | null;
   salt: number | null;
   saturatedFat: number | null;
+  /** Bound a missing sugar or saturated-fat value (ADR-066): sugars ≤ carbs, saturated ≤ fat. */
+  carbs?: number | null;
+  fat?: number | null;
   fruitVegetableShare?: number | null;
 };
 
@@ -77,6 +85,8 @@ export type OffHealthInput = {
   additiveCount: number | null;
   dietFacts: DietFacts;
   detail: HealthDetail;
+  /** Context the source adds ahead of the computed highlights (e.g. Ciqual's typical values). */
+  notes?: FoodHighlight[];
 };
 
 export type CustomHealthInput = {
@@ -176,26 +186,46 @@ function averageLevelPoints(flags: NutrientFlags): number | null {
 
 type Nutrition = { points: number; letter: NutriScoreLetter | null; estimated: boolean };
 
-function estimatedNutrition(nutrients: HealthNutrients): Nutrition | null {
-  const { kcal, protein, sugars, saturatedFat, salt } = nutrients;
-  if (
-    kcal === null ||
-    protein === null ||
-    sugars === null ||
-    saturatedFat === null ||
-    salt === null
-  ) {
+/** Nutri-Score points from the label: complete, or with missing lines bounded (ADR-066). */
+function labelPoints(nutrients: HealthNutrients): number | null {
+  const { kcal, protein, sugars, saturatedFat, salt, fiber, fruitVegetableShare } = nutrients;
+  if (kcal === null || protein === null) {
     return null;
   }
-  const nutriPoints = estimateNutriScorePoints({
+  if (sugars !== null && saturatedFat !== null && salt !== null) {
+    return estimateNutriScorePoints({
+      kcal,
+      protein,
+      sugars,
+      saturatedFat,
+      salt,
+      fiber,
+      fruitVegetableShare,
+    });
+  }
+  const carbs = nutrients.carbs ?? null;
+  const fat = nutrients.fat ?? null;
+  if (carbs === null || fat === null) {
+    return null;
+  }
+  return estimateNutriScorePointsFromLabel({
     kcal,
     protein,
+    carbs,
+    fat,
+    fiber,
     sugars,
     saturatedFat,
     salt,
-    fiber: nutrients.fiber,
-    fruitVegetableShare: nutrients.fruitVegetableShare,
+    fruitVegetableShare,
   });
+}
+
+function estimatedNutrition(nutrients: HealthNutrients): Nutrition | null {
+  const nutriPoints = labelPoints(nutrients);
+  if (nutriPoints === null) {
+    return null;
+  }
   const letter = nutriScoreLetterOf(nutriPoints);
   return { points: letterPoints(letter, nutriPoints), letter, estimated: true };
 }
@@ -257,40 +287,17 @@ const LABEL_LINES = [
   ['salt', 'sel'],
 ] as const;
 
-/** Energy and macros known: an estimate even when sugars, saturated fat or salt are missing. */
-function labelNutrition(input: CustomHealthInput, nutrients: HealthNutrients): Nutrition | null {
-  const { kcal, protein } = nutrients;
-  const carbs = input.carbsPer100g ?? null;
-  const fat = input.fatPer100g ?? null;
-  if (kcal === null || protein === null || carbs === null || fat === null) {
-    return null;
-  }
-  const points = estimateNutriScorePointsFromLabel({
-    kcal,
-    protein,
-    carbs,
-    fat,
-    fiber: nutrients.fiber,
-    sugars: nutrients.sugars,
-    saturatedFat: nutrients.saturatedFat,
-    salt: nutrients.salt,
-  });
-  const letter = nutriScoreLetterOf(points);
-  return { points: letterPoints(letter, points), letter, estimated: true };
-}
-
 /** Says which label lines the estimate went without, so the athlete knows what to fill in. */
 function incompleteLabelNote(nutrients: HealthNutrients): FoodHighlight | null {
   const missing = LABEL_LINES.filter(([key]) => nutrients[key] === null).map(([, word]) => word);
   if (missing.length === 0) {
     return null;
   }
-  const list = missing.join(', ');
   return {
     key: 'label_incomplete',
     tone: 'neutral',
     label: 'Étiquette incomplète',
-    detail: `${list.charAt(0).toUpperCase()}${list.slice(1)} non renseigné${missing.length > 1 ? 's' : ''} : score estimé`,
+    detail: `${missingNutrientsPhrase(missing, 'non renseigné')} : score estimé`,
   };
 }
 
@@ -298,6 +305,8 @@ function customNutrients(input: CustomHealthInput): HealthNutrients {
   return {
     kcal: input.kcalPer100g ?? null,
     protein: input.proteinPer100g ?? null,
+    carbs: input.carbsPer100g ?? null,
+    fat: input.fatPer100g ?? null,
     fiber: input.fiberPer100g ?? null,
     sugars: input.sugarPer100g ?? null,
     salt: input.saltPer100g ?? null,
@@ -316,10 +325,7 @@ function flagsOf(nutrients: HealthNutrients): NutrientFlags {
 function customAssessment(input: CustomHealthInput): FoodHealthAssessment {
   const nutrients = customNutrients(input);
   const nutrientFlags = flagsOf(nutrients);
-  const nutrition =
-    estimatedNutrition(nutrients) ??
-    labelNutrition(input, nutrients) ??
-    nutritionOf(nutrients, nutrientFlags);
+  const nutrition = nutritionOf(nutrients, nutrientFlags);
   const score = nutrition === null ? null : clampScore(nutrition.points);
   const note = score === null ? null : incompleteLabelNote(nutrients);
   return {
@@ -377,13 +383,16 @@ function offAssessment(input: OffHealthInput): FoodHealthAssessment {
     additives: additives.list,
     additivesKnown: additives.known,
     additiveCount: additives.known === 'list' ? additives.list.length : input.additiveCount,
-    highlights: foodHighlights({
-      ...input.nutrients,
-      levels: input.nutrientLevels,
-      nova: input.nova,
-      additives: additives.known === 'list' ? additives.list : null,
-      isSportsNutrition: input.isSportsNutrition,
-    }),
+    highlights: [
+      ...(input.notes ?? []),
+      ...foodHighlights({
+        ...input.nutrients,
+        levels: input.nutrientLevels,
+        nova: input.nova,
+        additives: additives.known === 'list' ? additives.list : null,
+        isSportsNutrition: input.isSportsNutrition,
+      }),
+    ],
     dietFacts: input.dietFacts,
     detail: input.detail,
   };
