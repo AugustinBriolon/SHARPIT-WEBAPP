@@ -80,6 +80,8 @@ export const queryKeys = {
   foodSearchAll: ['food-search'] as const,
   /** The athlete's own foods, to pick, edit or delete. */
   ownFoods: ['food-own'] as const,
+  /** Meals the athlete kept to log again in one tap (ADR-071). */
+  savedMeals: ['food-saved-meals'] as const,
   hikeTrips: ['hike-trips'] as const,
   hikeTrip: (id: string) => ['hike-trip', id] as const,
 };

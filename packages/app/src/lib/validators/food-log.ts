@@ -55,6 +55,44 @@ export const customFoodUpdateSchema = customFoodSchema
   .partial()
   .refine((value) => Object.keys(value).length > 0, { message: 'Rien à modifier.' });
 
+const meal = z.enum(FOOD_MEALS);
+
+/**
+ * Logs again what was eaten another day (ADR-071): one meal into a meal of the target day, or the
+ * whole day, each meal into itself.
+ */
+export const foodLogCopySchema = z
+  .object({
+    fromTrainingDayId: trainingDayId,
+    toTrainingDayId: trainingDayId,
+    fromMeal: meal.optional(),
+    toMeal: meal.optional(),
+  })
+  .refine((value) => value.toMeal === undefined || value.fromMeal !== undefined, {
+    message: 'Une journée entière se copie repas par repas.',
+  });
+
+/** Keeps a logged meal to log it again in one tap. */
+export const savedMealCreateSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  trainingDayId,
+  meal,
+});
+
+/** Logs a saved meal into a meal of a day. */
+export const savedMealLogSchema = z.object({ trainingDayId, meal });
+
+/** An own food made of other foods, weighed raw; the cooked weight and servings are optional. */
+export const recipeSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  ingredients: z
+    .array(z.object({ productId: z.string().min(1), grams }))
+    .min(1)
+    .max(50),
+  cookedGrams: z.coerce.number().positive().max(20000).nullable().optional(),
+  servings: z.coerce.number().int().min(1).max(50).nullable().optional(),
+});
+
 const target = (max: number) => z.coerce.number().min(0).max(max).nullable().optional();
 const percent = z.coerce.number().int().min(0).max(100).optional();
 
@@ -108,3 +146,7 @@ export type FoodLogEntryUpdateInput = z.infer<typeof foodLogEntryUpdateSchema>;
 export type CustomFoodInput = z.infer<typeof customFoodSchema>;
 export type CustomFoodUpdateInput = z.infer<typeof customFoodUpdateSchema>;
 export type NutritionTargetsInput = z.infer<typeof nutritionTargetsSchema>;
+export type FoodLogCopyInput = z.infer<typeof foodLogCopySchema>;
+export type SavedMealCreateInput = z.infer<typeof savedMealCreateSchema>;
+export type SavedMealLogInput = z.infer<typeof savedMealLogSchema>;
+export type RecipeInput = z.infer<typeof recipeSchema>;

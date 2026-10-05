@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 vi.mock('@sharpit/db/client', () => ({
   prisma: {
     foodLogEntry: {
+      groupBy: vi.fn(),
       findMany: vi.fn(),
       findFirst: vi.fn(),
       create: vi.fn(),
@@ -48,6 +49,7 @@ const SKYR = {
     detail: 'full',
     dietFacts: { vegan: 'no', vegetarian: 'yes', gluten: 'absent', milk: 'contains' },
   },
+  verification: null,
   fetchedAt: new Date(),
 };
 
@@ -66,6 +68,8 @@ const MAPPED_SKYR = {
   servingGrams: null,
   servingLabel: null,
   health: SKYR.health,
+  verification: null,
+  quality: { labelComplete: true, soldInFrance: true, scans: null },
 };
 
 const DAY = new Date('2026-10-01T00:00:00.000Z');
@@ -386,11 +390,82 @@ describe('food log service', () => {
     vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([
       { id: 'a', name: 'Porridge banane' },
       { id: 'b', name: 'Banane' },
+      { id: 'c', name: 'Pomme' },
     ] as never);
 
     const found = await service.searchOwnFoods('athlete-1', 'banane');
 
     expect(found.map((product) => product.id)).toEqual(['b', 'a']);
+  });
+
+  it('finds an own food by its brand and in any word order', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([
+      { id: 'mine', name: 'Skyr vanille', brand: 'Maison' },
+    ] as never);
+
+    expect(await service.searchOwnFoods('athlete-1', 'maison skyr')).toHaveLength(1);
+    expect(await service.searchOwnFoods('athlete-1', 'skyr fraise')).toHaveLength(0);
+  });
+
+  it('lists the foods already eaten that match, the most eaten first', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodLogEntry.groupBy).mockResolvedValue([
+      { productId: 'rare', _count: { _all: 2 } },
+      { productId: 'often', _count: { _all: 9 } },
+      { productId: 'apple', _count: { _all: 30 } },
+    ] as never);
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([
+      { id: 'rare', name: 'Skyr', brand: 'Isey' },
+      { id: 'often', name: 'Skyr', brand: 'Siggi' },
+      { id: 'apple', name: 'Pomme', brand: null },
+    ] as never);
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([
+      { productId: 'often', grams: 150 },
+    ] as never);
+
+    const eaten = await service.searchEatenFoods('athlete-1', 'skyr');
+
+    expect(eaten.map((food) => [food.product.id, food.timesEaten, food.lastGrams])).toEqual([
+      ['often', 9, 150],
+      ['rare', 2, 100],
+    ]);
+  });
+
+  it('marks Ciqual foods and producer-given products as verified, never own foods', async () => {
+    const { service } = await setup();
+    const served = (patch: object) =>
+      service.servedProduct({ ...SKYR, verification: null, ...patch } as never, {
+        ids: [],
+        labels: [],
+      });
+
+    expect(served({ verification: 'PRODUCER' })).toMatchObject({
+      verified: true,
+      verifiedBy: 'producer',
+    });
+    expect(served({ source: 'CIQUAL', ciqualCode: 13005 }).verifiedBy).toBe('ciqual');
+    expect(served({}).verified).toBe(false);
+    expect(served({ source: 'CUSTOM', verification: 'PRODUCER' }).verified).toBe(false);
+  });
+
+  it('gives a current cached product the verification a search hit now carries', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([
+      { ...SKYR, verification: null },
+    ] as never);
+    vi.mocked(prisma.foodProduct.update).mockResolvedValue({
+      ...SKYR,
+      verification: 'PRODUCER',
+    } as never);
+
+    await service.cacheSearchResults([{ ...MAPPED_SKYR, verification: 'PRODUCER' }] as never);
+
+    expect(prisma.foodProduct.update).toHaveBeenCalledWith({
+      where: { id: SKYR.id },
+      data: { verification: 'PRODUCER' },
+    });
+    expect(prisma.foodProduct.upsert).not.toHaveBeenCalled();
   });
 
   it('scores an own food from its label on every read, whatever was stored', async () => {

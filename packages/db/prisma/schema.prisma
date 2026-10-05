@@ -393,6 +393,7 @@ model AthleteProfile {
   myFitnessPalAccount         MyFitnessPalAccount?
   foodLogEntries              FoodLogEntry[]
   customFoods                 FoodProduct[]
+  savedMeals                  SavedMeal[]
   // Core / Inference layer (already athlete-scoped, gaining the FK only):
   observations                Observation[]
   featureSets                 FeatureSet[]
@@ -651,6 +652,10 @@ model FoodProduct {
   servingLabel         String?
   /// Sharpit health score snapshot (`FoodHealthAssessment`); null when not yet computed.
   health               Json?
+  /// Open Food Facts only: why the product is trusted beyond the crowd (ADR-069); null when not.
+  verification         FoodVerification?
+  /// An own food made of other foods (ADR-071): `{ ingredients: [{ productId, name, grams }], cookedGrams, servings }`.
+  recipe               Json?
   fetchedAt            DateTime          @default(now())
 
   createdAt DateTime       @default(now())
@@ -663,6 +668,12 @@ model FoodProduct {
 enum NutritionTargetMode {
   GRAMS
   PERCENT
+}
+
+/// Open Food Facts product data given by the manufacturer, or checked by a moderator (ADR-069).
+enum FoodVerification {
+  PRODUCER
+  CHECKED
 }
 
 enum FoodProductSource {
@@ -697,6 +708,22 @@ model FoodLogEntry {
   updatedAt DateTime @updatedAt
 
   @@index([athleteId, date])
+}
+
+/// A meal the athlete keeps to log again in one tap (ADR-071). `items` snapshot each food as
+/// logged — `{ productId, name, brand, grams, kcal, protein, carbs, fat, fiber, sugar }` — so a
+/// food deleted since still logs as it was.
+model SavedMeal {
+  id        String         @id @default(cuid())
+  athleteId String
+  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  name      String
+  items     Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([athleteId])
 }
 
 enum FoodMeal {

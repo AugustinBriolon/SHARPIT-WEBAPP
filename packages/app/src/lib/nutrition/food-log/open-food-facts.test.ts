@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isBarcode, mapOffProduct } from './open-food-facts';
+import { isBarcode, mapOffProduct, offVerificationOf } from './open-food-facts';
 
 describe('mapOffProduct', () => {
   it('maps a full product, French name first and the first brand only', () => {
@@ -40,6 +40,8 @@ describe('mapOffProduct', () => {
         nutriScoreEstimated: true,
         score: expect.any(Number),
       }),
+      verification: null,
+      quality: { labelComplete: false, soldInFrance: false, scans: null },
     });
   });
 
@@ -169,5 +171,14 @@ describe('isBarcode', () => {
     expect(isBarcode('3017620422003')).toBe(true);
     expect(isBarcode('skyr')).toBe(false);
     expect(isBarcode('123456789')).toBe(false);
+  });
+});
+
+describe('offVerificationOf', () => {
+  it('trusts the manufacturer, then a moderator, never the crowd alone', () => {
+    expect(offVerificationOf({ owner: 'org-danone' })).toBe('PRODUCER');
+    expect(offVerificationOf({ data_sources_tags: ['app-yuka', 'producers'] })).toBe('PRODUCER');
+    expect(offVerificationOf({ states_tags: ['en:complete', 'en:checked'] })).toBe('CHECKED');
+    expect(offVerificationOf({ states_tags: ['en:to-be-checked'], owner: '' })).toBeNull();
   });
 });

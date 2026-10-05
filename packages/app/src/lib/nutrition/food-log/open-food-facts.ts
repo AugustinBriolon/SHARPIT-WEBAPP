@@ -38,6 +38,11 @@ export const OFF_FIELDS = [
   'traces_tags',
   'labels_tags',
   'categories_tags',
+  'owner',
+  'data_sources_tags',
+  'states_tags',
+  'countries_tags',
+  'unique_scans_n',
 ] as const;
 
 export type OffNutriments = Partial<Record<string, number | string>>;
@@ -66,6 +71,27 @@ export type OffProduct = {
   traces_tags?: string[];
   labels_tags?: string[];
   categories_tags?: string[];
+  /** `org-…` when the manufacturer manages the product on OFF's producer platform. */
+  owner?: string;
+  data_sources_tags?: string[];
+  states_tags?: string[];
+  countries_tags?: string[];
+  unique_scans_n?: number | string;
+};
+
+/**
+ * Why an Open Food Facts product can be trusted beyond the crowd (ADR-069): `PRODUCER`, its data
+ * came from the manufacturer through OFF's producer platform; `CHECKED`, an OFF moderator checked
+ * it. Mirrors Prisma's `FoodVerification`.
+ */
+export type OffVerification = 'PRODUCER' | 'CHECKED';
+
+/** Search-time signals that order products reading alike; not stored. */
+export type OffSearchQuality = {
+  /** Sugars, saturated fat and salt all on the label. */
+  labelComplete: boolean;
+  soldInFrance: boolean;
+  scans: number | null;
 };
 
 export type MappedFood = FoodPer100g & {
@@ -77,6 +103,8 @@ export type MappedFood = FoodPer100g & {
   saltPer100g: number | null;
   saturatedFatPer100g: number | null;
   health: FoodHealthAssessment;
+  verification: OffVerification | null;
+  quality: OffSearchQuality;
 };
 
 function numberOf(value: unknown): number | null {
@@ -225,6 +253,24 @@ function healthOf(
   });
 }
 
+/** Data from the manufacturer first, then a moderator's check; the crowd alone is null. */
+export function offVerificationOf(product: OffProduct): OffVerification | null {
+  const owner = typeof product.owner === 'string' ? product.owner : '';
+  const sources = tagsOf(product.data_sources_tags) ?? [];
+  if (owner.startsWith('org-') || sources.some((tag) => tag.startsWith('producer'))) {
+    return 'PRODUCER';
+  }
+  return (tagsOf(product.states_tags) ?? []).includes('en:checked') ? 'CHECKED' : null;
+}
+
+function searchQualityOf(product: OffProduct, labelLines: (number | null)[]): OffSearchQuality {
+  return {
+    labelComplete: labelLines.every((value) => value !== null),
+    soldInFrance: (tagsOf(product.countries_tags) ?? []).includes('en:france'),
+    scans: numberOf(product.unique_scans_n),
+  };
+}
+
 /**
  * A product the log can use, or null: no name or no energy and macros means a half-filled OFF
  * entry, and logging it would show a meal as zero. `detail` says whether OFF answered with the
@@ -274,6 +320,8 @@ export function mapOffProduct(
       { kcal, protein, carbs, fat, fiber: fiberPer100g, sugars: sugarPer100g },
       detail,
     ),
+    verification: offVerificationOf(product),
+    quality: searchQualityOf(product, [sugarPer100g, saltPer100g, saturatedFatPer100g]),
   };
 }
 

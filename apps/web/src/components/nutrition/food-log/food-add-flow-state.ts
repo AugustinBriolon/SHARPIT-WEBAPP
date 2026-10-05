@@ -8,11 +8,16 @@ import type { FoodMealKey } from '@sharpit/app/lib/nutrition/food-log/food-log-m
 
 /**
  * The add-food dialog as a state machine: search (or barcode) → portion, with the quick add, the
- * custom food and the athlete's own foods (« Mes aliments », where one is edited) as side steps.
- * Pure, so every transition is tested without rendering.
+ * custom food, the athlete's own foods (« Mes aliments », where one is edited), their saved meals
+ * (« Mes repas ») and the recipe builder as side steps (ADR-071). Pure, so every transition is
+ * tested without rendering.
  */
 
-export type FoodAddStep = 'search' | 'portion' | 'quick' | 'custom' | 'mine' | 'editFood';
+export type FoodAddStep =
+  'search' | 'portion' | 'quick' | 'custom' | 'mine' | 'editFood' | 'meals' | 'recipe';
+
+/** The steps a button opens directly; the portion and the edit carry what they act on. */
+export type FoodAddSideStep = Exclude<FoodAddStep, 'portion' | 'editFood'>;
 
 export type PickedFood = { product: FoodProductPayload; lastGrams: number | null };
 
@@ -22,7 +27,7 @@ export type FoodAddState = {
   meal: FoodMealKey;
   query: string;
   picked: PickedFood | null;
-  /** The own food being edited, on the `editFood` step. */
+  /** The own food (or recipe) being edited, on the `editFood` step. */
   editing: FoodProductPayload | null;
   grams: string;
   error: string | null;
@@ -36,7 +41,7 @@ export type FoodAddAction =
   | { type: 'complete'; product: FoodProductPayload }
   | { type: 'grams'; grams: string }
   | { type: 'meal'; meal: FoodMealKey }
-  | { type: 'step'; step: Exclude<FoodAddStep, 'portion' | 'editFood'> }
+  | { type: 'step'; step: FoodAddSideStep }
   | { type: 'editFood'; product: FoodProductPayload }
   | { type: 'fail'; message: string };
 
@@ -109,7 +114,7 @@ export function foodSearchListing(
   return typed.length >= 2 && results ? 'results' : 'hint';
 }
 
-/** Where « back » leads: an edited food returns to « Mes aliments », every other step to search. */
+/** Where « back » leads: an edited food or recipe returns to « Mes aliments », the rest to search. */
 export function previousFoodAddStep(step: FoodAddStep): 'search' | 'mine' {
   return step === 'editFood' ? 'mine' : 'search';
 }

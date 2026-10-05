@@ -142,6 +142,19 @@ export function foodSourcesAttribution(products: { source: string }[]): string |
   return parts.length > 0 ? parts.join(' · ') : null;
 }
 
+const VERIFIED_LABELS = {
+  ciqual: 'Vérifié · valeurs mesurées par l’Anses (Ciqual)',
+  producer: 'Vérifié · données du fabricant',
+  checked: 'Vérifié · fiche contrôlée par Open Food Facts',
+} as const;
+
+/** Why a food carries « Vérifié » (ADR-069); null when it does not. */
+export function foodVerifiedLabel(
+  verifiedBy: keyof typeof VERIFIED_LABELS | null | undefined,
+): string | null {
+  return verifiedBy ? VERIFIED_LABELS[verifiedBy] : null;
+}
+
 /** A health object worth showing: scored, or at least explained. */
 export function shownHealth<T extends { coverage?: string }>(
   health: T | null | undefined,

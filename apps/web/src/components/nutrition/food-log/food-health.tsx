@@ -88,7 +88,11 @@ function isAmount(detail: string | null): detail is string {
 }
 
 /** Compact score for lists: the number in its grade's tone, a dash when there is none. */
-export function FoodHealthBadge({ health }: { health: ServedFoodHealth | null | undefined }) {
+export function FoodHealthBadge({
+  health,
+}: {
+  health: Pick<ServedFoodHealth, 'score' | 'grade'> | null | undefined;
+}) {
   const score = health?.score ?? null;
   const label =
     score !== null && health?.grade

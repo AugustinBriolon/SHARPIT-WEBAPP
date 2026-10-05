@@ -2,6 +2,7 @@ import { FOOD_MEALS, type FoodMealKey, type FoodPer100g } from './food-log-math'
 import type { NutritionTargetMode } from './nutrition-targets';
 import type { FoodLogEntryCreateInput } from '@sharpit/app/lib/validators/food-log';
 import type { ServedFoodHealth } from './food-health-score';
+import { mealHealth, type FoodLogDayHealth, type MealHealth } from './meal-health-score';
 
 /**
  * The food log as the athlete reads it (ADR-061): the wire shapes of `/api/food-log`, the day
@@ -44,7 +45,61 @@ export type FoodProductPayload = FoodPer100g & {
   saltPer100g?: number | null;
   saturatedFatPer100g?: number | null;
   health?: ServedFoodHealth | null;
+  /** Values measured (Ciqual) or given by the manufacturer / checked on OFF (ADR-069). */
+  verified?: boolean;
+  verifiedBy?: 'ciqual' | 'producer' | 'checked' | null;
+  /** Set on an own food made of other foods (ADR-071). */
+  recipe?: RecipePayload | null;
 };
+
+/** One ingredient of a recipe, with its label so the recipe can be edited and previewed. */
+export type RecipeIngredientPayload = FoodPer100g & {
+  productId: string;
+  name: string;
+  brand?: string | null;
+  grams: number;
+  saltPer100g?: number | null;
+  saturatedFatPer100g?: number | null;
+};
+
+export type RecipePayload = {
+  ingredients: RecipeIngredientPayload[];
+  cookedGrams: number | null;
+  servings: number | null;
+  totalGrams: number;
+};
+
+/** One food of a saved meal, as it was logged (ADR-071). */
+export type SavedMealItemPayload = {
+  productId: string | null;
+  name: string;
+  brand: string | null;
+  grams: number;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number | null;
+  sugar: number | null;
+};
+
+export type SavedMealPayload = {
+  id: string;
+  name: string;
+  items: SavedMealItemPayload[];
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  health: MealHealth | null;
+  updatedAt: string;
+};
+
+/** `GET /api/food-log/meals`, last used first. */
+export type SavedMealsPayload = { meals: SavedMealPayload[] };
+
+/** `POST /api/food-log/copy` and `POST /api/food-log/meals/[id]/log`. */
+export type LoggedEntriesPayload = { entries: FoodLogEntryPayload[] };
 
 /** Grams are always set from the split in `PERCENT` mode; the shares are kept to prefill it. */
 export type NutritionTargetsPayload = {
@@ -75,11 +130,18 @@ export type RecentFoodPayload = { product: FoodProductPayload; lastGrams: number
 export type FoodLogDayPayload = {
   trainingDayId: string;
   entries: FoodLogEntryPayload[];
+  /** Each meal's score and the day's (ADR-070); clients may recompute it from `entries`. */
+  health?: FoodLogDayHealth;
   targets: NutritionTargetsPayload;
   recent: RecentFoodPayload[];
 };
 
+/** A food the athlete logged in the last 90 days, matching the search (ADR-069). */
+export type EatenFoodPayload = RecentFoodPayload & { timesEaten: number };
+
 export type FoodSearchPayload = {
+  /** Listed first; not repeated in the lists below. */
+  eaten?: EatenFoodPayload[];
   own: FoodProductPayload[];
   /** Generic foods from the Ciqual table (ADR-065). */
   generic?: FoodProductPayload[];
@@ -95,6 +157,8 @@ export type FoodLogMealGroup = {
   carbs: number;
   fat: number;
   entries: FoodLogEntryPayload[];
+  /** The meal's score from its foods (ADR-070); null for an empty meal. */
+  health: MealHealth | null;
 };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -112,6 +176,7 @@ function mealGroup(meal: FoodMealKey, entries: FoodLogEntryPayload[]): FoodLogMe
     carbs: round1(total(entries, (entry) => entry.carbs)),
     fat: round1(total(entries, (entry) => entry.fat)),
     entries,
+    health: mealHealth(meal, entries),
   };
 }
 
@@ -223,4 +288,35 @@ export function foodLogDisplay(
     return 'log';
   }
   return importedMealCount > 0 ? 'imported' : 'empty';
+}
+
+/** The training day before `trainingDayId` (`YYYY-MM-DD`), read on the calendar, not the clock. */
+export function previousTrainingDay(trainingDayId: string): string {
+  const date = new Date(`${trainingDayId}T00:00:00.000Z`);
+  date.setUTCDate(date.getUTCDate() - 1);
+  return date.toISOString().slice(0, 10);
+}
+
+/** What a saved meal is called until the athlete names it: its foods, heaviest first. */
+export function savedMealDefaultName(
+  entries: Pick<FoodLogEntryPayload, 'name' | 'kcal'>[],
+): string {
+  const names = [...entries].sort((a, b) => b.kcal - a.kcal).map((entry) => entry.name);
+  const joined = names.slice(0, 3).join(', ');
+  const name = names.length > 3 ? `${joined}…` : joined;
+  return name.length > 80 ? `${name.slice(0, 79)}…` : name;
+}
+
+/** A saved meal's entries as the day shows them until the server answers. */
+export function savedMealPreviewEntries(
+  meal: Pick<SavedMealPayload, 'items'>,
+  target: { trainingDayId: string; meal: FoodMealKey },
+  id: (index: number) => string,
+): FoodLogEntryPayload[] {
+  return meal.items.map((item, index) => ({
+    ...item,
+    id: id(index),
+    date: `${target.trainingDayId}T00:00:00.000Z`,
+    meal: target.meal,
+  }));
 }
