@@ -73,6 +73,10 @@ describe('/api/food-log', () => {
     expect(await response.json()).toEqual({
       trainingDayId: '2026-10-01',
       entries: [],
+      health: {
+        day: null,
+        meals: { BREAKFAST: null, LUNCH: null, DINNER: null, SNACKS: null },
+      },
       targets: { kcal: 2600 },
       recent: [],
     });

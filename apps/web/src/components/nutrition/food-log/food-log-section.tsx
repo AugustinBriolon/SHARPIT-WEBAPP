@@ -13,6 +13,22 @@ import type {
   FoodLogMealGroup,
 } from '@sharpit/app/lib/nutrition/food-log/food-log-day';
 import type { NutritionMealSummary } from '@sharpit/app/presentation/nutrition-view-model';
+import { FoodHealthBadge } from '@/components/nutrition/food-log/food-health';
+import { foodLogDayHealth } from '@sharpit/app/lib/nutrition/food-log/meal-health-score';
+
+/** The day's score beside « Repas », from every food logged (ADR-070); nothing until it can speak. */
+function DayHealthBadge({ groups }: { groups: FoodLogMealGroup[] }) {
+  const { day } = foodLogDayHealth(groups.flatMap((group) => group.entries));
+  if (!day || day.score === null) {
+    return null;
+  }
+  return (
+    <span className="text-muted-foreground flex items-center gap-1.5 text-xs">
+      Note du jour
+      <FoodHealthBadge health={day} />
+    </span>
+  );
+}
 
 function FoodLogSkeleton() {
   return (
@@ -104,7 +120,10 @@ export function FoodLogSection(props: FoodLogSectionProps) {
   return (
     <section className="analysis-panel rounded-analysis-lg space-y-3 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-section-title">Repas</p>
+        <div className="flex items-center gap-2">
+          <p className="text-section-title">Repas</p>
+          {props.display === 'log' ? <DayHealthBadge groups={props.groups} /> : null}
+        </div>
         <div className="flex items-center gap-1">
           {props.mfpSync ? (
             <Button

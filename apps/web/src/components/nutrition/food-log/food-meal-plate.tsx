@@ -5,6 +5,8 @@ import { Button } from '@sharpit/ui/components/ui/button';
 import { isTempId } from '@/client/query/optimistic';
 import { ColoredMacroPills } from '@/components/nutrition/nutrition-macro-display';
 import { FoodEntryRow } from '@/components/nutrition/food-log/food-entry-row';
+import { FoodHealthBadge } from '@/components/nutrition/food-log/food-health';
+import type { MealHealth } from '@sharpit/app/lib/nutrition/food-log/meal-health-score';
 import type {
   FoodLogEntryPayload,
   FoodLogMealGroup,
@@ -17,6 +19,23 @@ export type FoodEntryActions = {
   onDelete: (entry: FoodLogEntryPayload) => void;
 };
 
+/** What the meal's score rests on, in a line: « Protéines au rendez-vous · 32 g dans le repas ». */
+export function MealHealthLine({ health }: { health: MealHealth | null }) {
+  const shown = health?.highlights.slice(0, 2) ?? [];
+  if (shown.length === 0) {
+    return null;
+  }
+  return (
+    <p className="text-muted-foreground text-xs">
+      {shown
+        .map((highlight) =>
+          highlight.detail ? `${highlight.label} · ${highlight.detail}` : highlight.label,
+        )
+        .join(' — ')}
+    </p>
+  );
+}
+
 function MealPlateHeader({ group, onAdd }: { group: FoodLogMealGroup; onAdd: () => void }) {
   const hasEntries = group.entries.length > 0;
   return (
@@ -26,10 +45,14 @@ function MealPlateHeader({ group, onAdd }: { group: FoodLogMealGroup; onAdd: () 
         {hasEntries ? (
           <ColoredMacroPills carbs={group.carbs} fat={group.fat} protein={group.protein} />
         ) : null}
+        <MealHealthLine health={group.health} />
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {hasEntries ? (
           <span className="text-data text-sm font-semibold tabular-nums">{group.kcal} kcal</span>
+        ) : null}
+        {group.health && group.health.score !== null ? (
+          <FoodHealthBadge health={group.health} />
         ) : null}
         <Button
           aria-label={`Ajouter un aliment : ${group.label}`}

@@ -2,6 +2,7 @@ import { FOOD_MEALS, type FoodMealKey, type FoodPer100g } from './food-log-math'
 import type { NutritionTargetMode } from './nutrition-targets';
 import type { FoodLogEntryCreateInput } from '@sharpit/app/lib/validators/food-log';
 import type { ServedFoodHealth } from './food-health-score';
+import { mealHealth, type FoodLogDayHealth, type MealHealth } from './meal-health-score';
 
 /**
  * The food log as the athlete reads it (ADR-061): the wire shapes of `/api/food-log`, the day
@@ -78,6 +79,8 @@ export type RecentFoodPayload = { product: FoodProductPayload; lastGrams: number
 export type FoodLogDayPayload = {
   trainingDayId: string;
   entries: FoodLogEntryPayload[];
+  /** Each meal's score and the day's (ADR-070); clients may recompute it from `entries`. */
+  health?: FoodLogDayHealth;
   targets: NutritionTargetsPayload;
   recent: RecentFoodPayload[];
 };
@@ -103,6 +106,8 @@ export type FoodLogMealGroup = {
   carbs: number;
   fat: number;
   entries: FoodLogEntryPayload[];
+  /** The meal's score from its foods (ADR-070); null for an empty meal. */
+  health: MealHealth | null;
 };
 
 const round1 = (value: number) => Math.round(value * 10) / 10;
@@ -120,6 +125,7 @@ function mealGroup(meal: FoodMealKey, entries: FoodLogEntryPayload[]): FoodLogMe
     carbs: round1(total(entries, (entry) => entry.carbs)),
     fat: round1(total(entries, (entry) => entry.fat)),
     entries,
+    health: mealHealth(meal, entries),
   };
 }
 

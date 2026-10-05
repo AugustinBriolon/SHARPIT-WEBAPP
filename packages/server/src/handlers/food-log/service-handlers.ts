@@ -8,6 +8,7 @@ import {
   nutritionTargetsSchema,
 } from '@sharpit/app/lib/validators/food-log';
 import { isBarcode } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
+import { foodLogDayHealth } from '@sharpit/app/lib/nutrition/food-log/meal-health-score';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import {
   addFoodLogEntry,
@@ -67,7 +68,10 @@ function failure(tag: string, error: unknown) {
   return NextResponse.json({ error: 'Journal alimentaire indisponible' }, { status: 500 });
 }
 
-/** `GET /api/v1/food-log?trainingDayId=` — the day's entries, the targets and recent foods. */
+/**
+ * `GET /api/v1/food-log?trainingDayId=` — the day's entries, the score of each meal and of the day
+ * (ADR-070), the targets and recent foods.
+ */
 export async function getDay(request: NextRequest) {
   const trainingDayId = request.nextUrl.searchParams.get('trainingDayId');
   if (!trainingDayId || !DAY_ID.test(trainingDayId)) {
@@ -85,6 +89,7 @@ export async function getDay(request: NextRequest) {
     return NextResponse.json({
       trainingDayId,
       entries,
+      health: foodLogDayHealth(entries),
       targets,
       recent: recent.map((item) => ({ ...item, product: servedProduct(item.product, declared) })),
     });

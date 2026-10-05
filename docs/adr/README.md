@@ -72,6 +72,7 @@
 | [ADR-067](./ADR-067-generic-foods-read-their-family-and-their-preparation.md)           | Ciqual: family median for unmeasured nutrients, plain cooking reads NOVA 1                                       | Accepted                          |
 | [ADR-068](./ADR-068-a-declared-zone-has-a-strategy-and-a-lifecycle.md)                  | Sensitive zones: strategy per zone (protect, progressive, correct, relapse watch), proposed resolution, relapses | Accepted                          |
 | [ADR-069](./ADR-069-food-search-reads-the-athletes-history-and-trusts-verified-data.md) | Food search: already-eaten foods first, « Vérifié » badge, brand, duplicates, synonyms                           | Accepted                          |
+| [ADR-070](./ADR-070-a-meal-is-scored-by-the-energy-of-its-foods.md)                     | Meal and day score: energy-weighted mean of the food scores, coverage, protein, fibre                            | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

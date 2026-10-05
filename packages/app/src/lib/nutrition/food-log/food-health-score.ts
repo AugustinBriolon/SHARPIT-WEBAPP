@@ -153,7 +153,8 @@ export function levelFromAmount(
   return amount > high ? 'high' : 'moderate';
 }
 
-function gradeOf(score: number): HealthGrade {
+/** The grade a 0–100 score reads as; shared by foods, meals and days. */
+export function gradeOf(score: number): HealthGrade {
   if (score >= 75) {
     return 'excellent';
   }
