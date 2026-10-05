@@ -1,6 +1,7 @@
 # SHARPIT — Physical Health Engine (Phase 1)
 
 > **Status:** Phase 1 (domain model and persistence) shipped. No inference engine — condition state is still declared, never inferred. Athlete surfaces and training guards now exist on top of it, see [ADR-037](../adr/ADR-037-injury-declaration-changes-training-retroactively.md).
+> **Source of truth:** the athlete's declaration (`PhysicalNote` + check-ins). Each zone gets a training strategy (protect, progressive, correct, relapse watch) and a lifecycle (proposed resolution, relapse = new episode); `Condition` is kept in step by `syncConditionFromNote` on every write — see [ADR-068](../adr/ADR-068-a-declared-zone-has-a-strategy-and-a-lifecycle.md).
 > **Code:** `src/core/physical-health/`, `src/lib/physical-health/`
 > **Prisma:** `Condition`, `ConditionEpisode`, `ConditionObservation`, `FunctionalCapacity`, `ConditionKnowledge`
 > **Domain context:** [`docs/domain/DOMAIN.md`](../domain/DOMAIN.md)
