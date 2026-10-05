@@ -64,6 +64,33 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
     status: 'pro',
     href: '/plan/semaine',
   },
+  {
+    id: 'calendar-sync',
+    title: 'Synchro calendrier',
+    description:
+      'Tes séances planifiées s’écrivent toutes seules dans le calendrier de ton iPhone, et suivent chaque changement de ton plan.',
+    status: 'pro',
+  },
+  {
+    id: 'extra-widgets',
+    title: 'Widgets supplémentaires',
+    description:
+      'Sommeil, poids, volume de la semaine, régularité et prochain objectif sur ton écran d’accueil. Séance du jour, verdict et nutrition restent gratuits.',
+    status: 'pro',
+  },
+  {
+    id: 'early-access',
+    title: 'Accès anticipé',
+    description: 'Les nouveautés arrivent chez toi en premier, avant tout le monde.',
+    status: 'pro',
+  },
+  {
+    id: 'support',
+    title: 'Soutenir SharpIt',
+    description:
+      'SharpIt est construit par un athlète, sans publicité ni revente de données. Ton abonnement le fait vivre.',
+    status: 'pro',
+  },
 ];
 
 /** Déjà là, gratuit, pour tout le monde — pas encore une raison de payer. */

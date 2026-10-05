@@ -1,4 +1,15 @@
-import { Activity, Apple, Hourglass, MessagesSquare, NotebookText, Watch } from 'lucide-react';
+import {
+  Activity,
+  Apple,
+  CalendarSync,
+  Heart,
+  Hourglass,
+  LayoutGrid,
+  MessagesSquare,
+  NotebookText,
+  Rocket,
+  Watch,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
   INCLUDED_FOR_EVERYONE as INCLUDED_DATA,
@@ -18,6 +29,10 @@ const ICONS: Record<string, LucideIcon> = {
   'biological-age': Hourglass,
   'watch-push': Watch,
   'extended-coach': MessagesSquare,
+  'calendar-sync': CalendarSync,
+  'extra-widgets': LayoutGrid,
+  'early-access': Rocket,
+  support: Heart,
 };
 
 const withIcon = (perk: ProPerkData): ProPerk => ({ ...perk, icon: ICONS[perk.id] ?? Activity });
