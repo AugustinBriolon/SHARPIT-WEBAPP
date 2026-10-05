@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 // Route modules import `server-only`; loading them here only inspects their exports.
 vi.mock('server-only', () => ({}));
@@ -30,6 +30,15 @@ async function load(routes: RouteLoaders, key: string): Promise<RouteModule> {
 }
 
 describe('/api/v1 native surfaces', () => {
+  // The first route loaded pays the cold transform of the import graph every handler shares
+  // (~20 s alone, past 30 s with the monorepo's suites in parallel). Paid here, it is a setup
+  // cost rather than one route's test timing out.
+  beforeAll(async () => {
+    const [first] = NATIVE_V1_SURFACES;
+    await load(v1Routes, `./${first.path}/route.ts`);
+    await load(legacyRoutes, `${LEGACY}/${first.path}/route.ts`);
+  }, 180_000);
+
   it.each(NATIVE_V1_SURFACES)(
     '/api/v1/$path serves the /api handler',
     async (surface) => {
