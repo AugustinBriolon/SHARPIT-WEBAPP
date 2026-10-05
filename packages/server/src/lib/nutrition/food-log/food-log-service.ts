@@ -261,7 +261,7 @@ export async function listFoodLogDay(
   });
 }
 
-async function productForEntry(athleteId: string, productId: string): Promise<FoodProduct> {
+export async function productForEntry(athleteId: string, productId: string): Promise<FoodProduct> {
   const product = await prisma.foodProduct.findFirst({
     where: { id: productId, OR: [{ source: { in: ['OFF', 'CIQUAL'] } }, { ownerId: athleteId }] },
   });
@@ -289,7 +289,7 @@ function quickEntryFields(quick: NonNullable<FoodLogEntryCreateInput['quick']>) 
  * The entry as the day lists it: with its food's score. A write answers this, so a client that
  * swaps its row for the server's echo keeps the score (it lost it on every portion change).
  */
-async function servedEntry(entry: FoodLogEntry, diets: DeclaredDiets) {
+export async function servedEntry(entry: FoodLogEntry, diets: DeclaredDiets) {
   const product = entry.productId
     ? await prisma.foodProduct.findUnique({ where: { id: entry.productId } })
     : null;
@@ -406,7 +406,7 @@ function needsOffRefresh(product: FoodProduct): boolean {
   return product.source === 'OFF' && (!isCurrent(product) || healthOf(product)?.detail !== 'full');
 }
 
-type CustomLabel = {
+export type CustomLabel = {
   kcalPer100g?: number | null;
   proteinPer100g?: number | null;
   carbsPer100g?: number | null;
@@ -431,7 +431,7 @@ function labelHealth(label: CustomLabel): FoodHealthAssessment {
   });
 }
 
-function customHealth(label: CustomLabel): Prisma.InputJsonValue {
+export function customHealth(label: CustomLabel): Prisma.InputJsonValue {
   return labelHealth(label) as unknown as Prisma.InputJsonValue;
 }
 

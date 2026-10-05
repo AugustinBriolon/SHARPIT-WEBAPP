@@ -71,6 +71,19 @@ export type {
   UpdateCustomFoodVars,
   UpdateFoodLogEntryVars,
 } from '@/hooks/nutrition/use-food-log';
+export {
+  useCopyFoodLog,
+  useDeleteSavedMeal,
+  useLogSavedMeal,
+  useSavedMeals,
+  useSaveMeal,
+  useSaveRecipe,
+} from '@/hooks/nutrition/use-food-log-templates';
+export type {
+  CopyFoodLogVars,
+  LogSavedMealVars,
+  SaveRecipeVars,
+} from '@/hooks/nutrition/use-food-log-templates';
 
 export { useHikeTrip, useHikeTripMutations, useHikeTrips } from '@/hooks/use-hike-trips';
 export type { CreateHikeTripInput, PatchHikeTripInput } from '@/hooks/use-hike-trips';

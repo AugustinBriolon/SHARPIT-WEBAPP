@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, RefreshCw, Utensils } from 'lucide-react';
+import { CopyPlus, Plus, RefreshCw, Utensils } from 'lucide-react';
 import { Button } from '@sharpit/ui/components/ui/button';
 import { InkEmptyState } from '@/components/ui/ink-empty-state';
 import { NutritionImportedMeals } from '@/components/nutrition/blocks/nutrition-meals-section';
@@ -40,17 +40,31 @@ function FoodLogSkeleton() {
   );
 }
 
-function FirstMealInvitation({ onAdd }: { onAdd: () => void }) {
+function FirstMealInvitation({
+  onAdd,
+  onCopyYesterday,
+}: {
+  onAdd: () => void;
+  onCopyYesterday?: () => void;
+}) {
   return (
     <InkEmptyState
-      description="Cherche un aliment, saisis son code-barres ou entre un repas à la main."
+      description="Cherche un aliment, saisis son code-barres, entre un repas à la main ou reprends ta journée d’hier."
       icon={Utensils}
       title="Rien de noté pour cette journée"
       action={
-        <Button size="sm" type="button" variant="highlight" onClick={onAdd}>
-          <Plus aria-hidden />
-          Ajouter un premier repas
-        </Button>
+        <div className="flex flex-wrap justify-center gap-2">
+          <Button size="sm" type="button" variant="highlight" onClick={onAdd}>
+            <Plus aria-hidden />
+            Ajouter un premier repas
+          </Button>
+          {onCopyYesterday ? (
+            <Button size="sm" type="button" variant="secondary" onClick={onCopyYesterday}>
+              <CopyPlus aria-hidden />
+              Copier hier
+            </Button>
+          ) : null}
+        </div>
       }
       compact
     />
@@ -64,6 +78,7 @@ function FoodLogBody({
   actions,
   unavailable,
   onAddFirst,
+  onCopyDay,
 }: FoodLogSectionProps) {
   if (unavailable) {
     return (
@@ -73,7 +88,7 @@ function FoodLogBody({
     );
   }
   if (display === 'empty') {
-    return <FirstMealInvitation onAdd={onAddFirst} />;
+    return <FirstMealInvitation onAdd={onAddFirst} onCopyYesterday={onCopyDay} />;
   }
   if (display === 'imported') {
     return (
@@ -110,6 +125,8 @@ export type FoodLogSectionProps = {
   mfpSync?: { syncing: boolean; onSync: () => void } | null;
   /** The first add of a day — the caller picks the meal the hour suggests. */
   onAddFirst: () => void;
+  /** Logs the whole day before into an empty day (ADR-071). */
+  onCopyDay?: () => void;
 };
 
 /** The day's meals: logged, added to, edited — the log is SharpIt's own (ADR-061). */

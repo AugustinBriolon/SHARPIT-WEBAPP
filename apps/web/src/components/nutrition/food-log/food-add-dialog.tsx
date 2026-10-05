@@ -13,6 +13,8 @@ import { FoodCustomStep } from '@/components/nutrition/food-log/food-custom-step
 import { FoodOwnFoodsStep } from '@/components/nutrition/food-log/food-own-foods-step';
 import { FoodPortionStep } from '@/components/nutrition/food-log/food-portion-step';
 import { FoodQuickStep } from '@/components/nutrition/food-log/food-quick-step';
+import { FoodRecipeStep } from '@/components/nutrition/food-log/food-recipe-step';
+import { FoodSavedMealsStep } from '@/components/nutrition/food-log/food-saved-meals-step';
 import { FoodSearchStep } from '@/components/nutrition/food-log/food-search-step';
 import {
   previousFoodAddStep,
@@ -28,7 +30,44 @@ const STEP_TITLES: Record<FoodAddStep, string> = {
   custom: 'Créer un aliment',
   mine: 'Mes aliments',
   editFood: 'Modifier l’aliment',
+  meals: 'Mes repas',
+  recipe: 'Créer une recette',
 };
+
+function stepTitle(flow: FoodAddFlow): string {
+  const { state } = flow;
+  return state.step === 'editFood' && state.editing?.recipe
+    ? 'Modifier la recette'
+    : STEP_TITLES[state.step];
+}
+
+/** « Mes repas » and the recipe builder, new or edited (ADR-071); null on any other step. */
+function templateStepBody(flow: FoodAddFlow): React.ReactNode {
+  const { state } = flow;
+  if (state.step === 'meals') {
+    return (
+      <FoodSavedMealsStep
+        error={state.error ?? flow.savedMealsError}
+        loading={flow.savedMealsLoading}
+        meals={flow.savedMeals}
+        onDelete={flow.deleteSavedMeal}
+        onLog={flow.logSavedMeal}
+      />
+    );
+  }
+  if (state.step === 'recipe' || (state.step === 'editFood' && state.editing?.recipe)) {
+    return (
+      <FoodRecipeStep
+        key={state.editing?.id ?? 'new'}
+        error={state.error}
+        pending={flow.recipePending}
+        recipe={state.editing}
+        onSubmit={flow.saveRecipe}
+      />
+    );
+  }
+  return null;
+}
 
 function FoodAddStepBody({ flow }: { flow: FoodAddFlow }) {
   const { state } = flow;
@@ -69,6 +108,10 @@ function FoodAddStepBody({ flow }: { flow: FoodAddFlow }) {
       />
     );
   }
+  const template = templateStepBody(flow);
+  if (template) {
+    return template;
+  }
   if (state.step === 'editFood' && state.editing) {
     return (
       <FoodCustomStep
@@ -95,10 +138,12 @@ function FoodAddStepBody({ flow }: { flow: FoodAddFlow }) {
       searchError={flow.searchError}
       onBarcode={flow.lookupBarcode}
       onCustom={() => flow.showStep('custom')}
+      onMeals={() => flow.showStep('meals')}
       onMine={() => flow.showStep('mine')}
       onPick={flow.pickProduct}
       onQuery={flow.setQuery}
       onQuick={() => flow.showStep('quick')}
+      onRecipe={() => flow.showStep('recipe')}
     />
   );
 }
@@ -122,7 +167,7 @@ export function FoodAddDialog({ flow }: { flow: FoodAddFlow }) {
                 <NavArrowLeft className="size-4" aria-hidden />
               </Button>
             )}
-            <DialogTitle className="font-heading text-base">{STEP_TITLES[state.step]}</DialogTitle>
+            <DialogTitle className="font-heading text-base">{stepTitle(flow)}</DialogTitle>
           </div>
           <DialogDescription className="text-xs">{FOOD_MEAL_LABELS[state.meal]}</DialogDescription>
         </DialogHeader>

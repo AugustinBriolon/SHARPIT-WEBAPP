@@ -47,7 +47,7 @@ import {
 
 const DAY_ID = /^\d{4}-\d{2}-\d{2}$/;
 
-async function parseBody<T>(request: NextRequest, schema: ZodType<T>) {
+export async function parseBody<T>(request: NextRequest, schema: ZodType<T>) {
   const parsed = schema.safeParse(await request.json().catch(() => null));
   return parsed.success
     ? { ok: true as const, data: parsed.data }
@@ -60,7 +60,7 @@ async function parseBody<T>(request: NextRequest, schema: ZodType<T>) {
       };
 }
 
-function failure(tag: string, error: unknown) {
+export function failure(tag: string, error: unknown) {
   if (error instanceof FoodLogNotFoundError) {
     return NextResponse.json({ error: error.message }, { status: 404 });
   }

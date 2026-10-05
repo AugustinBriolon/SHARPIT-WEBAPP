@@ -6,6 +6,9 @@ import {
   groupEntriesByMeal,
   mealForHour,
   portionPresets,
+  previousTrainingDay,
+  savedMealDefaultName,
+  savedMealPreviewEntries,
   rescaleEntry,
   type FoodLogEntryPayload,
   type FoodProductPayload,
@@ -139,5 +142,60 @@ describe('foodLogDisplay', () => {
 
   it('invites a first meal on an empty day', () => {
     expect(foodLogDisplay(0, 0)).toBe('empty');
+  });
+});
+
+describe('previousTrainingDay', () => {
+  it('steps back one calendar day, across months and years', () => {
+    expect(previousTrainingDay('2026-10-05')).toBe('2026-10-04');
+    expect(previousTrainingDay('2026-03-01')).toBe('2026-02-28');
+    expect(previousTrainingDay('2026-01-01')).toBe('2025-12-31');
+  });
+});
+
+describe('savedMealDefaultName', () => {
+  it('names the meal by its foods, heaviest first', () => {
+    expect(
+      savedMealDefaultName([
+        { name: 'Banane', kcal: 90 },
+        { name: 'Skyr', kcal: 120 },
+      ]),
+    ).toBe('Skyr, Banane');
+  });
+
+  it('keeps three foods and says there are more', () => {
+    const entries = ['A', 'B', 'C', 'D'].map((name, index) => ({ name, kcal: 100 - index }));
+    expect(savedMealDefaultName(entries)).toBe('A, B, C…');
+  });
+});
+
+describe('savedMealPreviewEntries', () => {
+  it('lays the saved foods into the meal of the day', () => {
+    const [entry] = savedMealPreviewEntries(
+      {
+        items: [
+          {
+            productId: 'skyr',
+            name: 'Skyr',
+            brand: null,
+            grams: 150,
+            kcal: 93,
+            protein: 16,
+            carbs: 6,
+            fat: 0.3,
+            fiber: 0,
+            sugar: 6,
+          },
+        ],
+      },
+      { trainingDayId: '2026-10-05', meal: 'SNACKS' },
+      (index) => `tmp-${index}`,
+    );
+    expect(entry).toMatchObject({
+      id: 'tmp-0',
+      meal: 'SNACKS',
+      date: '2026-10-05T00:00:00.000Z',
+      kcal: 93,
+    });
   });
 });

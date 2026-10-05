@@ -8,8 +8,10 @@ import {
   lastGramsFor,
   needsCompletion,
   type FoodAddAction,
+  type FoodAddSideStep,
   type FoodAddState,
 } from '@/components/nutrition/food-log/food-add-flow-state';
+import { useFoodAddTemplates } from '@/components/nutrition/food-log/use-food-add-templates';
 import {
   buildCustomFood,
   buildCustomFoodUpdate,
@@ -90,12 +92,13 @@ function useFoodAddWrites(
   };
 }
 
+type Confirm = ReturnType<typeof useConfirmDialog>['confirm'];
+
 /** « Mes aliments »: the list, read when the step opens, and the edit and delete behind it. */
-function useOwnFoodWrites(state: FoodAddState, dispatch: Dispatch) {
+function useOwnFoodWrites(state: FoodAddState, dispatch: Dispatch, confirm: Confirm) {
   const own = useOwnFoods(state.open && state.step === 'mine');
   const update = useUpdateCustomFood();
   const remove = useDeleteCustomFood();
-  const { confirm, dialog } = useConfirmDialog();
   const reject = (error: unknown) =>
     dispatch({ type: 'fail', message: errorMessage(error) ?? 'Saisie invalide.' });
 
@@ -104,7 +107,6 @@ function useOwnFoodWrites(state: FoodAddState, dispatch: Dispatch) {
     ownFoodsLoading: own.isPending && state.step === 'mine',
     ownFoodsError: errorMessage(own.error),
     editPending: update.isPending,
-    confirmDialog: dialog,
     editFood: (product: FoodProductPayload) => dispatch({ type: 'editFood', product }),
     saveFood: (form: FormData) => {
       const result = buildCustomFoodUpdate(form);
@@ -152,7 +154,7 @@ function stateSetters(dispatch: Dispatch) {
     setQuery: (query: string) => dispatch({ type: 'query', query }),
     setGrams: (grams: string) => dispatch({ type: 'grams', grams }),
     setMeal: (meal: FoodMealKey) => dispatch({ type: 'meal', meal }),
-    showStep: (step: 'search' | 'quick' | 'custom' | 'mine') => dispatch({ type: 'step', step }),
+    showStep: (step: FoodAddSideStep) => dispatch({ type: 'step', step }),
   };
 }
 
@@ -166,6 +168,7 @@ export function useFoodAddFlow(trainingDayId: string, recent: RecentFoodPayload[
     complete(product);
   };
   const { log, ...writes } = useFoodAddWrites(trainingDayId, dispatch, pickProduct);
+  const { confirm, dialog } = useConfirmDialog();
   const context = { meal: state.meal, trainingDayId };
 
   return {
@@ -173,7 +176,9 @@ export function useFoodAddFlow(trainingDayId: string, recent: RecentFoodPayload[
     recent,
     ...search,
     ...writes,
-    ...useOwnFoodWrites(state, dispatch),
+    ...useOwnFoodWrites(state, dispatch, confirm),
+    ...useFoodAddTemplates({ trainingDayId, state, dispatch, confirm, pick: pickProduct }),
+    confirmDialog: dialog,
     ...stateSetters(dispatch),
     pickProduct,
     completing,
