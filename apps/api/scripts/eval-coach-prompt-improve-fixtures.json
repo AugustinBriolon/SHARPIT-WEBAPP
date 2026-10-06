@@ -1,0 +1,20 @@
+[
+  {
+    "id": "add-day-load-improves-degraded",
+    "baseline": "Quand la confiance est faible ou insuffisante, refuse les prescriptions dures et reste prudent et factuel.\nNe pose jamais de diagnostic médical et ne remplace pas un médecin ou un kiné.\nPONCTUATION (impératif pour tout texte lu par l'athlète) :\n- N'utilise JAMAIS le tiret cadratin.",
+    "mutationId": "add-day-load-vocab",
+    "expectDecision": "keep"
+  },
+  {
+    "id": "add-confidence-improves-thin",
+    "baseline": "Vocabulaire : charge du jour = coût physiologique d’aujourd’hui (séances + stress ambiant). Statut d’entraînement = horizon plus long (PMC CTL/ATL/TSB, fatigue, adaptation). Une journée dure n’est pas un statut de surentraînement.\nNe pose jamais de diagnostic médical et ne remplace pas un médecin ou un kiné.\nPONCTUATION (impératif pour tout texte lu par l'athlète) :\n- N'utilise JAMAIS le tiret cadratin.",
+    "mutationId": "add-confidence-refuse",
+    "expectDecision": "keep"
+  },
+  {
+    "id": "weaken-day-load-rolls-back",
+    "baseline": "Vocabulaire : charge du jour = coût physiologique d’aujourd’hui (séances + stress ambiant). Statut d’entraînement = horizon plus long (PMC CTL/ATL/TSB, fatigue, adaptation). Une journée dure n’est pas un statut de surentraînement.\nQuand la confiance est faible ou insuffisante, refuse les prescriptions dures et reste prudent et factuel.\nNe pose jamais de diagnostic médical et ne remplace pas un médecin ou un kiné.\nPONCTUATION (impératif pour tout texte lu par l'athlète) :\n- N'utilise JAMAIS le tiret cadratin.",
+    "mutationId": "weaken-day-load",
+    "expectDecision": "rollback"
+  }
+]

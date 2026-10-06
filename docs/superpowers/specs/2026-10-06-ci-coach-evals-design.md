@@ -16,6 +16,7 @@ In `.github/workflows/ci.yml`, after `yarn test`:
   run: |
     yarn api eval:coach-memory
     yarn api eval:weekly-brief
+    yarn api eval:coach-prompt-improve
   env:
     YARN_NODE_LINKER: node-modules
 ```

@@ -32,6 +32,7 @@
     "bench:coach-models": "tsx --env-file=.env scripts/bench-coach-models.ts",
     "eval:coach-memory": "tsx scripts/eval-coach-memory.ts",
     "eval:weekly-brief": "tsx scripts/eval-weekly-brief.ts",
+    "eval:coach-prompt-improve": "tsx scripts/eval-coach-prompt-improve.ts",
     "data:ciqual": "tsx scripts/build-ciqual-foods.ts",
     "data:coach-knowledge": "tsx scripts/build-coach-knowledge-index.ts"
   },
