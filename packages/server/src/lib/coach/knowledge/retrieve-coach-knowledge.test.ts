@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { buildCoachKnowledgeQuery } from './build-query';
+import { buildCoachKnowledgeQuery, rewriteCoachKnowledgeQuery } from './build-query';
 import { formatKnowledgeRagBlock } from './format-knowledge-rag-block';
-import { coachKnowledgeIndexSize, retrieveCoachKnowledge } from './retrieve-coach-knowledge';
+import {
+  coachKnowledgeIndexSize,
+  retrieveCoachKnowledge,
+  retrieveCoachKnowledgeWithCorrection,
+} from './retrieve-coach-knowledge';
 
 describe('coach knowledge RAG', () => {
   it('bundles a non-empty scientific index', () => {
@@ -46,5 +50,38 @@ describe('coach knowledge RAG', () => {
       }),
     ).toContain('alléger la semaine');
     expect(buildCoachKnowledgeQuery({ focus: null })).toMatch(/recuperation/i);
+  });
+
+  it('rewrites by dropping focus and always biasing load/recovery', () => {
+    const rewritten = rewriteCoachKnowledgeQuery({
+      focus: 'xyzzy plugh nonsense',
+      verdict: 'RECOVER',
+      limitingFactor: 'FATIGUE',
+      sports: ['RUN'],
+    });
+    expect(rewritten).not.toMatch(/xyzzy/i);
+    expect(rewritten).toMatch(/recuperation/i);
+    expect(rewritten).toContain('RECOVER');
+  });
+
+  it('corrects a nonsense primary query using Twin cues on retry', () => {
+    const primary = 'xyzzy plugh qwerty nonsense focus';
+    expect(retrieveCoachKnowledge(primary)).toBeNull();
+    const cues = {
+      focus: primary,
+      verdict: 'RECOVER',
+      limitingFactor: 'FATIGUE',
+      sports: ['RUN'] as const,
+    };
+    const corrected = retrieveCoachKnowledgeWithCorrection(primary, cues);
+    expect(corrected).not.toBeNull();
+    expect(corrected!.length).toBeGreaterThan(0);
+  });
+
+  it('skips retry when rewrite equals the primary query', () => {
+    const cues = { focus: null, sports: null };
+    const primary = buildCoachKnowledgeQuery(cues);
+    expect(rewriteCoachKnowledgeQuery(cues)).toBe(primary);
+    expect(retrieveCoachKnowledgeWithCorrection(primary, cues, { minScore: 10_000 })).toBeNull();
   });
 });

@@ -52,7 +52,7 @@ import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/
 import { formatZoneTrainingRules } from '@sharpit/app/lib/physical-health/zone-training-rules';
 import { buildCoachKnowledgeQuery } from '@sharpit/server/lib/coach/knowledge/build-query';
 import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/format-knowledge-rag-block';
-import { retrieveCoachKnowledge } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
+import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import {
   formatTravelConstraintPromptRule,
@@ -260,18 +260,20 @@ async function preparePlanGeneration(
     travelResolved,
   });
   const agendaBlock = buildAgendaBlock(busySummary);
+  const knowledgeCues = {
+    focus,
+    sports: ctx.practicedSports,
+    verdict: ctx.decision?.verdict ?? null,
+    limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
+    planPhase: planPhase ?? null,
+  };
   const [memoryBlock, knowledgeBlock] = await Promise.all([
     loadLearningMemoryBlock(athleteId, start),
     Promise.resolve(
       formatKnowledgeRagBlock(
-        retrieveCoachKnowledge(
-          buildCoachKnowledgeQuery({
-            focus,
-            sports: ctx.practicedSports,
-            verdict: ctx.decision?.verdict ?? null,
-            limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
-            planPhase: planPhase ?? null,
-          }),
+        retrieveCoachKnowledgeWithCorrection(
+          buildCoachKnowledgeQuery(knowledgeCues),
+          knowledgeCues,
         ),
       ),
     ),

@@ -1,3 +1,7 @@
+import {
+  rewriteCoachKnowledgeQuery,
+  type CoachKnowledgeQueryCues,
+} from '@sharpit/server/lib/coach/knowledge/build-query';
 import { fold, queryTokens } from '@sharpit/server/lib/coach/knowledge/text-fold';
 import type {
   CoachKnowledgeChunk,
@@ -78,6 +82,26 @@ export function retrieveCoachKnowledge(
     return null;
   }
   return hits;
+}
+
+/**
+ * One corrective retry when the primary query misses: rewrite without free-text focus,
+ * bias load/recovery. Still returns null if the fallback also fails the score floor.
+ */
+export function retrieveCoachKnowledgeWithCorrection(
+  primaryQuery: string,
+  cues: CoachKnowledgeQueryCues,
+  options: { limit?: number; minScore?: number } = {},
+): CoachKnowledgeHit[] | null {
+  const primary = retrieveCoachKnowledge(primaryQuery, options);
+  if (primary) {
+    return primary;
+  }
+  const fallback = rewriteCoachKnowledgeQuery(cues).trim();
+  if (!fallback || fallback === primaryQuery.trim()) {
+    return null;
+  }
+  return retrieveCoachKnowledge(fallback, options);
 }
 
 /** Test helper: size of the bundled index. */

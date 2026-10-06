@@ -25,6 +25,8 @@
 
 ## Sequencing
 
-1. **P0** — Confidence Gate refusal + evidence labels (this initiative).
-2. **P1** — RAG over Sharpit `knowledge/` with refusal when retrieval weak.
-3. **P2** — Semantic athlete memory + offline prompt evals on Decision Memory.
+1. **P0** — Confidence Gate refusal + evidence labels — **done**.
+2. **P1** — RAG over Sharpit `knowledge/` with refusal when retrieval weak — **done**.
+3. **P2** — Athlete learning memory (`buildLearningFeedback` → plan/adapt) + offline eval harness — **done**.
+4. **P3a** — Corrective RAG (one deterministic rewrite retry) — in progress.
+5. **P3b–d** — Chat learning memory · calibrating surfacing · weekly brief quality scout.
