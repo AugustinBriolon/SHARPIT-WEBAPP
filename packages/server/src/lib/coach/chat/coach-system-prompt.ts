@@ -4,6 +4,7 @@ import {
   buildCoachContext,
   formatCoachContext,
 } from '@sharpit/server/lib/coach/context/coach-context';
+import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import type { CoachChatTiming } from '@sharpit/server/lib/coach/chat/coach-chat-timing';
 import type { CoachRequestScope } from '@sharpit/server/lib/coach/chat/coach-request-scope';
@@ -92,18 +93,19 @@ export async function buildCoachSystemPrompt(
   // The agenda ships with the context rather than behind a tool: a scheduling
   // turn otherwise spent a whole extra step fetching it, resending the entire
   // prefix afterwards. One cheap read here replaces that round trip.
-  const [ctx, busySummary, discussBlock] = await Promise.all([
+  const [ctx, busySummary, discussBlock, memoryBlock] = await Promise.all([
     timed('contextMs', buildCoachContext(athleteId)),
     // An external calendar read: only when the question may place a session.
     scope.readsAgenda
       ? timed('agendaMs', buildBusySummary(athleteId, new Date(), AGENDA_PREFETCH_DAYS))
       : null,
     timed('discussMs', loadDiscussBlock()),
+    timed('memoryMs', loadLearningMemoryBlock(athleteId)),
   ]);
   const discussSection = discussBlock ? `\n\n${discussBlock}` : '';
   return {
     practicedSports: ctx.practicedSports,
-    system: `${SYSTEM_PROMPT}\n\n---\n${formatCoachContext(ctx, scope.sections ?? undefined)}${agendaSection(scope, busySummary)}${discussSection}`,
+    system: `${SYSTEM_PROMPT}\n\n---\n${formatCoachContext(ctx, scope.sections ?? undefined)}${memoryBlock}${agendaSection(scope, busySummary)}${discussSection}`,
   };
 }
 

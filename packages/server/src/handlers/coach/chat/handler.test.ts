@@ -55,6 +55,10 @@ vi.mock('@sharpit/server/lib/coach/plan/calendar-availability', () => ({
   buildBusySummary: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('@sharpit/server/lib/coach/memory/load-learning-memory-block', () => ({
+  loadLearningMemoryBlock: vi.fn().mockResolvedValue(''),
+}));
+
 vi.mock('@sharpit/server/lib/coach/chat/tools/coach-tools', () => ({
   createCoachTools: vi.fn(() => ({})),
 }));
