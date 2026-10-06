@@ -25,7 +25,6 @@ type Matcher = {
 const HOME_PARENT = { href: '/', label: 'Résumé' } as const;
 const PLAN_PARENT = { href: '/plan', label: 'Plan' } as const;
 const ACTIVITY_PARENT = { href: '/activite', label: 'Activité' } as const;
-const TRIPS_PARENT = { href: '/activite/sejours', label: 'Séjours' } as const;
 const MOI_PARENT = { href: '/moi', label: 'Moi' } as const;
 
 const MATCHERS: Matcher[] = [
@@ -58,15 +57,6 @@ const MATCHERS: Matcher[] = [
     pattern: /^\/activite\/nouvelle$/,
     resolve: () => ({ label: 'Nouvelle activité', defaultParent: ACTIVITY_PARENT }),
   },
-  // Both trip patterns must stay above the /activite/:id catch-all below.
-  {
-    pattern: /^\/activite\/sejours$/,
-    resolve: () => ({ label: 'Séjours', defaultParent: ACTIVITY_PARENT }),
-  },
-  {
-    pattern: /^\/activite\/sejours\/[^/]+$/,
-    resolve: () => ({ label: 'Séjour', defaultParent: TRIPS_PARENT }),
-  },
   {
     pattern: /^\/activite\/([^/]+)\/edit$/,
     resolve: (m) => ({
@@ -77,7 +67,8 @@ const MATCHERS: Matcher[] = [
   },
   {
     // Detail opened from the Activité hub list — empty-stack fallback is the hub.
-    pattern: /^\/activite\/[^/]+$/,
+    // Exclude removed séjours paths so stale bookmarks do not label as « Séance ».
+    pattern: /^\/activite\/(?!sejours$)[^/]+$/,
     resolve: () => ({ label: 'Séance', defaultParent: ACTIVITY_PARENT }),
   },
 

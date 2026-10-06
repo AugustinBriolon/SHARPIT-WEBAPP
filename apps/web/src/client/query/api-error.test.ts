@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 import { formatApiErrorMessage, parseApiErrorBody } from './api-error';
 
 describe('parseApiErrorBody', () => {
-  it('extracts hike trip conflict fields', () => {
+  it('extracts conflict fields when present', () => {
     expect(
       parseApiErrorBody({
-        error: 'Une activité appartient déjà à un autre séjour',
+        error: 'Cette ressource est déjà liée ailleurs',
         tripId: 'trip-other',
         tripName: 'Alpes',
       }),
     ).toEqual({
-      error: 'Une activité appartient déjà à un autre séjour',
+      error: 'Cette ressource est déjà liée ailleurs',
       detail: undefined,
       tripId: 'trip-other',
       tripName: 'Alpes',
@@ -38,7 +38,7 @@ describe('formatApiErrorMessage', () => {
   it('prefers actionable copy when tripName is present', () => {
     expect(
       formatApiErrorMessage({
-        error: 'Une activité appartient déjà à un autre séjour',
+        error: 'Cette ressource est déjà liée ailleurs',
         tripName: 'Alpes',
       }),
     ).toBe('Une activité est déjà dans « Alpes »');

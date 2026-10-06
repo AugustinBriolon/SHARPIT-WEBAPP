@@ -28,8 +28,6 @@ describe('route-registry', () => {
       expect(resolveRouteLabel('/activite/nouvelle')).toBe('Nouvelle activité');
       expect(resolveRouteLabel('/activite/abc123')).toBe('Séance');
       expect(resolveRouteLabel('/activite/abc123/edit')).toBe('Édition');
-      expect(resolveRouteLabel('/activite/sejours')).toBe('Séjours');
-      expect(resolveRouteLabel('/activite/sejours/trip-1')).toBe('Séjour');
     });
 
     it('matches Journal surfaces', () => {
@@ -60,7 +58,6 @@ describe('route-registry', () => {
     it('does not mark activity detail or entry as transient', () => {
       expect(isTransientRoute('/activite/abc123')).toBe(false);
       expect(isTransientRoute('/activite/nouvelle')).toBe(false);
-      expect(isTransientRoute('/activite/sejours')).toBe(false);
     });
   });
 
@@ -80,14 +77,6 @@ describe('route-registry', () => {
       expect(resolveRouteFallback('/activite/nouvelle')).toEqual(ACTIVITE);
       expect(resolveRouteFallback('/activite/abc123')).toEqual(ACTIVITE);
       expect(resolveRouteFallback('/activite/cmrvpthya01xkmsm80lybbzqd')).toEqual(ACTIVITE);
-      expect(resolveRouteFallback('/activite/sejours')).toEqual(ACTIVITE);
-    });
-
-    it('sends a trip step back to the trips list', () => {
-      expect(resolveRouteFallback('/activite/sejours/trip-1')).toEqual({
-        href: '/activite/sejours',
-        label: 'Séjours',
-      });
     });
 
     it('resolves edit page fallback back to its parent detail', () => {
@@ -138,6 +127,8 @@ describe('route-registry', () => {
         '/training/manual',
         '/training/history',
         '/training/trips',
+        '/activite/sejours',
+        '/activite/sejours/trip-1',
         '/today/effort',
         '/today/adaptation',
         '/settings',

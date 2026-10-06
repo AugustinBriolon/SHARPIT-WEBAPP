@@ -85,7 +85,7 @@ La première semaine est rédigée par le coach, qui a besoin du traitement par 
 | **Résumé** | Le verdict du matin, ta séance du jour, ta récupération, ton sommeil, ta régularité et ta nutrition. |
 | **Plan** | Ta semaine, tes séances clés, tes objectifs et ta trajectoire (effort et adaptation). |
 | **Coach** | Une conversation avec le coach, qui répond depuis ton modèle. |
-| **Activité** | Tes séances relues face au plan, tes records et tes séjours. |
+| **Activité** | Tes séances relues face au plan et tes records. |
 | **Santé** | Un bilan rangé par ce qui compte, et tes zones sensibles. |
 
 ### Les Paramètres

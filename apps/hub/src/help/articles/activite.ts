@@ -3,7 +3,7 @@ import type { HelpCategory } from '../types';
 export const ACTIVITE: HelpCategory = {
   slug: 'activite',
   title: 'Activité',
-  description: 'Tes séances relues face au plan, tes records et tes séjours.',
+  description: 'Tes séances relues face au plan et tes records.',
   icon: 'activity',
   articles: [
     {
@@ -67,25 +67,6 @@ Tes meilleurs temps sur chaque distance de référence.
 En [lecture experte](/aide/premiers-pas/lecture-essentielle-ou-experte), ta courbe de puissance : glisse le doigt pour lire chaque durée.
 
 Touche un record pour ouvrir la séance qui l’a établi.
-`,
-    },
-    {
-      slug: 'sejours',
-      title: 'Les séjours de randonnée',
-      summary:
-        'Plusieurs jours de randonnée réunis sous un nom, avec leurs totaux, les lieux traversés et les étapes dans l’ordre.',
-      body: `
-### Créer un séjour
-
-Ouvre une randonnée, puis **…** › **Lier à d’autres randonnées**. Choisis les étapes à réunir et donne un nom. Une randonnée appartient à un seul séjour.
-
-### Le retrouver
-
-**Séjours** apparaît sous le titre d’Activité dès que ton historique contient une randonnée.
-
-### Le modifier
-
-Renomme-le, retire une étape d’un glissement (jamais la dernière) ou supprime le séjour : ses randonnées restent, simplement détachées.
 `,
     },
   ],

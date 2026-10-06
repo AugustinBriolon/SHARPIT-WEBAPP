@@ -29,18 +29,17 @@ function sampleActivity(partial: Partial<ClientActivity> & { id: string }): Clie
     hikeMetrics: null,
     strengthSets: [],
     plannedSession: null,
-    hikeTripId: null,
+    multisportLegs: null,
     ...partial,
   } as ClientActivity;
 }
 
 describe('activity-detail-cache', () => {
-  it('maps list cache row to header activity without hikeTrip relation', () => {
+  it('maps list cache row to header activity', () => {
     const cached = sampleActivity({ id: 'a1' });
     const header = clientActivityToHeaderActivity(cached);
     expect(header.id).toBe('a1');
     expect(header.title).toBe('Sortie footing');
-    expect(header.hikeTrip).toBeNull();
   });
 
   it('maps list cache row to detail shell for meta/hero', () => {
@@ -50,13 +49,11 @@ describe('activity-detail-cache', () => {
     expect(shell.type).toBe(ActivityType.RUN);
   });
 
-  it('maps full detail row to header activity with hikeTrip', () => {
+  it('maps full detail row to header activity', () => {
     const cached = sampleActivity({ id: 'a3' });
-    const detail = {
-      ...clientActivityToDetailShell(cached),
-      hikeTrip: { id: 'trip1', name: 'GR20' },
-    };
+    const detail = clientActivityToDetailShell(cached);
     const header = activityDetailToHeaderActivity(detail);
-    expect(header.hikeTrip).toEqual({ id: 'trip1', name: 'GR20' });
+    expect(header.id).toBe('a3');
+    expect(header.title).toBe('Sortie footing');
   });
 });

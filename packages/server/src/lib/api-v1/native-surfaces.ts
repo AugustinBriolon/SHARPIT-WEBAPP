@@ -63,8 +63,6 @@ export const NATIVE_V1_SURFACES = [
   { path: 'privacy/consent', methods: ['GET', 'POST'] },
   { path: 'privacy/delete', methods: ['POST'] },
   { path: 'privacy/export', methods: ['GET'] },
-  { path: 'hike-trips', methods: ['GET', 'POST'] },
-  { path: 'hike-trips/[id]', methods: ['GET', 'PATCH', 'DELETE'] },
   { path: 'physical-notes', methods: ['GET', 'POST'] },
   { path: 'physical-notes/[id]', methods: ['PATCH', 'DELETE'] },
   { path: 'physical-notes/[id]/checkins', methods: ['POST'] },

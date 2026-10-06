@@ -2,7 +2,7 @@ import type { ClientActivity } from '@sharpit/app/lib/query/types';
 import type { ActivityDetailHeaderActivity } from '@sharpit/app/lib/activity/detail/types';
 import type { ActivityDetail } from '@sharpit/app/lib/activity/detail/types';
 
-/** Map list-cache row → header props (hikeTrip relation absent in list select). */
+/** Map list-cache row → header props. */
 export function clientActivityToHeaderActivity(
   activity: ClientActivity,
 ): ActivityDetailHeaderActivity {
@@ -19,12 +19,11 @@ export function clientActivityToHeaderActivity(
     rpe: activity.rpe,
     feeling: activity.feeling,
     weather: activity.weather,
-    hikeTrip: null,
     plannedSession: activity.plannedSession,
   };
 }
 
-/** Full detail row → header props (includes hikeTrip + planned analysis). */
+/** Full detail row → header props. */
 export function activityDetailToHeaderActivity(
   activity: ActivityDetail,
 ): ActivityDetailHeaderActivity {
@@ -41,7 +40,6 @@ export function activityDetailToHeaderActivity(
     rpe: activity.rpe,
     feeling: activity.feeling,
     weather: activity.weather,
-    hikeTrip: activity.hikeTrip,
     plannedSession: activity.plannedSession,
   };
 }

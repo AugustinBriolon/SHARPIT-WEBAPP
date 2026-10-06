@@ -23,8 +23,6 @@ export const activityInclude = {
   hikeMetrics: true,
   strengthSets: { orderBy: { order: 'asc' as const } },
   plannedSession: { select: plannedSessionSummarySelect },
-  // Relation only — scalar hikeTripId is returned automatically with include.
-  hikeTrip: { select: { id: true, name: true } },
 };
 
 /** Detail-only relation: GPS streams are intentionally excluded from list reads. */
@@ -59,7 +57,6 @@ export const activityListSelect = {
   hikeMetrics: { select: { distanceM: true, elevationM: true } },
   strengthSets: { select: { exercise: true }, orderBy: { order: 'asc' as const } },
   plannedSession: { select: plannedSessionSummarySelect },
-  hikeTripId: true,
   multisportLegs: true,
 } satisfies Prisma.ActivitySelect;
 

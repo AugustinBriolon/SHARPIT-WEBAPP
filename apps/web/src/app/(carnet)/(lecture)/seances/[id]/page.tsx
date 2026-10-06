@@ -206,10 +206,6 @@ async function SessionReading({ id }: { id: string }) {
         </CarnetSection>
       ) : null}
 
-      {activity.hikeTrip ? (
-        <Quiet>Fait partie du séjour « {activity.hikeTrip.name} ».</Quiet>
-      ) : null}
-
       <InApp>Modifier, lier ou supprimer cette séance</InApp>
     </CarnetPage>
   );

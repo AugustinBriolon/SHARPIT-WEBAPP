@@ -1,5 +1,5 @@
 import { isSet } from '@sharpit/shared/value';
-// Single-session overnight/day window. Multi-session: `buildHikeTripSummary`.
+// Single-session overnight/day window.
 
 const OVERNIGHT_DURATION_SEC = 8 * 3600;
 

@@ -95,6 +95,7 @@ const nextConfig: NextConfig = {
         ['/plan/bilan', '/bilans'],
         ['/plan/:path*', '/saison'],
         ['/activite/nouvelle', '/seances'],
+        ['/activite/sejours', '/seances'],
         ['/activite/sejours/:path*', '/seances'],
         ['/activite/:id', '/seances/:id'],
         ['/activite', '/seances'],

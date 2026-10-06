@@ -13,10 +13,6 @@ import type {
   plannedSessionInclude,
   planWeekInclude,
 } from '@sharpit/app/lib/query/activity-include';
-import type {
-  HikeTripListItem,
-  HikeTripWithActivities,
-} from '@sharpit/app/lib/query/hike-trip-types';
 
 /**
  * Client-side row types: the shapes the API's queries select (`activity-include.ts`), as
@@ -42,5 +38,3 @@ export type ClientTrainingPlan = Prisma.TrainingPlanGetPayload<{
 }>;
 export type ClientPlanWeek = ClientTrainingPlan['weeks'][number];
 export type ClientThresholdSnapshot = AthleteThresholdSnapshot;
-export type ClientHikeTrip = HikeTripWithActivities;
-export type ClientHikeTripListItem = HikeTripListItem;

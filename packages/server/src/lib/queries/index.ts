@@ -43,18 +43,6 @@ export {
   updatePlannedSession,
 } from '@sharpit/server/lib/queries/planned-sessions';
 
-export {
-  createHikeTrip,
-  deleteHikeTrip,
-  getHikeTripById,
-  HikeTripConflictError,
-  HikeTripValidationError,
-  listHikeTrips,
-  updateHikeTrip,
-  type HikeTripListItem,
-  type HikeTripWithActivities,
-} from '@sharpit/server/lib/queries/hike-trips';
-
 export async function getActivities(
   athleteId: string,
   params?: { type?: ActivityType; limit?: number },

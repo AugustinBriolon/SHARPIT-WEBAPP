@@ -33,6 +33,5 @@ export type ActivityDetailHeaderActivity = Pick<
   | 'rpe'
   | 'feeling'
   | 'weather'
-  | 'hikeTrip'
   | 'plannedSession'
 >;
