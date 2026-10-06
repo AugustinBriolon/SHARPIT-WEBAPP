@@ -25,6 +25,12 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         >
           ← Retour à l&apos;app
         </Link>
+        <Link
+          className="text-muted-foreground hover:text-foreground text-data ml-4 inline-flex items-center gap-1.5 text-xs transition-colors"
+          href="/carnet"
+        >
+          Carnet (aperçu) →
+        </Link>
         {children}
       </div>
     </div>
