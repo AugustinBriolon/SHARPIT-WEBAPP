@@ -1,5 +1,4 @@
 import { cacheLife } from 'next/cache';
-import Link from 'next/link';
 import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
 import { addTrainingDays, trainingDayIdForNow } from '@sharpit/core/training/training-day';
@@ -7,6 +6,7 @@ import { CARNET_FRESHNESS, readViewModel } from '@/components/carnet/carnet-read
 import { carnetHref, longDayLabel, resolveDayParam } from '@/components/carnet/carnet-time';
 import {
   CarnetPage,
+  CarnetStepLink,
   CarnetSection,
   Figure,
   Figures,
@@ -34,14 +34,14 @@ function DayPager({ day, today }: { day: string; today: string }) {
   const previous = addTrainingDays(day, -1);
   const next = addTrainingDays(day, 1);
   return (
-    <nav aria-label="Jours" className="text-muted-foreground flex gap-4 text-sm">
-      <Link className="hover:text-foreground" href={`/?jour=${previous}`}>
-        ← Veille
-      </Link>
+    <nav aria-label="Jours" className="-mr-2.5 flex gap-1">
+      <CarnetStepLink direction="back" href={`/?jour=${previous}`}>
+        Veille
+      </CarnetStepLink>
       {day < today ? (
-        <Link className="hover:text-foreground" href={next === today ? '/' : `/?jour=${next}`}>
-          Lendemain →
-        </Link>
+        <CarnetStepLink direction="next" href={next === today ? '/' : `/?jour=${next}`}>
+          Lendemain
+        </CarnetStepLink>
       ) : null}
     </nav>
   );

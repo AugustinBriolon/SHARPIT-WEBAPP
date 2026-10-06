@@ -1,6 +1,5 @@
 import { cacheLife } from 'next/cache';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { CarnetPage, Quiet } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection, readViewer } from '@/components/carnet/carnet-read';
 import { PrivacySettingsPanel } from '@/components/privacy/privacy-settings-panel';
@@ -23,14 +22,10 @@ export default async function CarnetDataRightsPage() {
 
   return (
     <CarnetPage
+      back={{ href: '/compte', label: 'Compte' }}
       kicker="Compte"
       lead={`Tes consentements, l'export de tes données et la suppression du compte. Contact : ${CONTROLLER_EMAIL}.`}
       title="Confidentialité et données"
-      aside={
-        <Link className="text-muted-foreground hover:text-foreground text-sm" href="/compte">
-          ← Compte
-        </Link>
-      }
     >
       <div className="max-w-2xl">
         {viewer?.isDemo ? (

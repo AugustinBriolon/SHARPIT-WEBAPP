@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
+import { CarnetStepLink } from '@/components/carnet/carnet-parts';
 import { requireAdmin } from '@sharpit/app/lib/auth/admin';
 
 /**
@@ -18,12 +18,9 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   return (
     <div className="bg-background text-foreground min-h-full">
       <div className="mx-auto max-w-3xl space-y-4 px-5 py-10">
-        <Link
-          className="text-muted-foreground hover:text-foreground text-data inline-flex items-center gap-1.5 text-xs transition-colors"
-          href="/"
-        >
-          ← Retour au carnet
-        </Link>
+        <CarnetStepLink className="-ml-2.5" direction="back" href="/">
+          Carnet
+        </CarnetStepLink>
         {children}
       </div>
     </div>

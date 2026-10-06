@@ -1,6 +1,5 @@
 import { cacheLife } from 'next/cache';
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { ConnectLink } from '@sharpit/ui/components/settings/integrations/connect-link';
@@ -87,14 +86,10 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
 
   return (
     <CarnetPage
+      back={{ href: '/compte', label: 'Compte' }}
       kicker="Compte"
       lead="Ce que tu relies ici alimente aussi l'app."
       title="Sources de données"
-      aside={
-        <Link className="text-muted-foreground hover:text-foreground text-sm" href="/compte">
-          ← Compte
-        </Link>
-      }
     >
       {outcomes.length > 0 ? (
         <p className="bg-highlight rounded-md px-4 py-3 text-sm" role="status">
