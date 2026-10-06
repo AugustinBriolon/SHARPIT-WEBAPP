@@ -60,7 +60,7 @@ Une proposition n’est jamais modifiée en silence : elle passe, elle est signa
 
 ### Les treize contrôles
 
-1. Compatible avec le verdict du jour
+1. Compatible avec le verdict du jour **et** son [niveau de confiance](/aide/methode/niveau-de-confiance) (confiance faible ou insuffisante : la séance est retirée)
 2. Respecte ton état physique
 3. Ne charge pas une zone à protéger
 4. Charge de la semaine tenable

@@ -91,14 +91,16 @@ La décision n’est pas prise par un modèle de langage : elle sort de règles 
       slug: 'niveau-de-confiance',
       title: 'Le niveau de confiance',
       summary:
-        'Chaque verdict porte une confiance de 0 à 1. Quand les données manquent, SharpIt retient son conseil plutôt que de fabriquer une certitude.',
+        'Chaque verdict porte une confiance de 0 à 1. Quand elle est faible ou insuffisante, SharpIt retire les prescriptions du coach plutôt que de fabriquer une certitude.',
       body: `
 | Confiance | Seuil | Ce que fait SharpIt |
 | --- | --- | --- |
 | Élevée | 0,75 et plus | Conseil complet |
 | Moyenne | 0,60 et plus | Conseil, avec prudence |
-| Faible | Au-dessus de 0 | Conseil signalé comme fragile |
-| Insuffisante | 0 | Pas de conseil |
+| Faible | Au-dessus de 0 et sous 0,60 | Pas de prescription coach : les séances proposées sont retirées par les [garde-fous](/aide/plan/garde-fous) |
+| Insuffisante | 0 (ou décision absente) | Pas de conseil, pas de prescription |
+
+Le verdict et les lectures restent visibles pour que tu comprennes l’état du jour. Ce qui est bloqué, c’est le passage à une séance **écrite par le coach** tant que la confiance n’est pas au moins moyenne.
 
 ### Ce qui fait baisser la confiance
 

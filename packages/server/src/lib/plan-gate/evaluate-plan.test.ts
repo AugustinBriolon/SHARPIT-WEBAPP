@@ -79,7 +79,7 @@ describe('evaluatePlan', () => {
     expect(result.sessions[0]?.requiredAssumptions).toHaveLength(1);
   });
 
-  it('never rejects solely for insufficient/low-confidence decision data across a whole batch', () => {
+  it('rejects the whole batch when decision data is missing or low-confidence', () => {
     const context = baseContext({ decision: null });
     const proposals = [
       baseProposal({ intensity: 'ENDURANCE' }),
@@ -88,8 +88,12 @@ describe('evaluatePlan', () => {
 
     const result = evaluatePlan(context, proposals);
 
-    expect(result.sessions.every((s) => s.status !== 'REJECTED')).toBe(true);
-    expect(result.sessions.every((s) => s.status === 'REQUIRES_CONFIRMATION')).toBe(true);
+    expect(result.sessions.every((s) => s.status === 'REJECTED')).toBe(true);
+    expect(
+      result.sessions.every((s) =>
+        s.findings.some((f) => f.ruleCode === 'DECISION_INSUFFICIENT_DATA'),
+      ),
+    ).toBe(true);
   });
 
   it('produces plan-level findings independent of per-session findings', () => {

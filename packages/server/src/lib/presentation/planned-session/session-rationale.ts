@@ -15,6 +15,7 @@ import { intensityLabels } from '@sharpit/app/lib/planned-session/sessions';
 import { deriveSessionExecutionState } from '@sharpit/server/lib/decision-memory/session-execution';
 import { describeOutcome } from '@sharpit/server/lib/decision-memory/describe-outcome';
 import { describeSnapshotContext } from '@sharpit/server/lib/presentation/coaching/snapshot-context-labels';
+import { labelEvidenceRefs } from '@sharpit/server/lib/presentation/coaching/evidence-ref-labels';
 import type {
   SessionRationaleActionEntry,
   SessionRationaleChosen,
@@ -55,7 +56,11 @@ function buildGate(decision: CoachingDecisionWithHistory): SessionRationaleGate 
   const { gateResult } = decision;
   return {
     status: gateResult.status,
-    findings: gateResult.findings.map((f) => ({ rationale: f.rationale, severity: f.severity })),
+    findings: gateResult.findings.map((f) => ({
+      rationale: f.rationale,
+      severity: f.severity,
+      evidenceLabels: labelEvidenceRefs(f.evidenceRefs),
+    })),
     requiredAssumptions: gateResult.requiredAssumptions,
     saferAlternativeLabel: gateResult.saferAlternative
       ? [

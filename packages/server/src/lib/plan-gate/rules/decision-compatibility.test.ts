@@ -52,18 +52,18 @@ describe('decisionCompatibilityRule', () => {
     expect(decisionCompatibilityRule(context, proposal)).toEqual([]);
   });
 
-  it('requires confirmation, never rejects, when decision is missing (insufficient data is not a decision)', () => {
+  it('rejects when decision is missing (insufficient data is not a decision)', () => {
     const context = baseContext({ decision: null });
     const proposal = baseProposal({ intensity: 'THRESHOLD' });
 
     const findings = decisionCompatibilityRule(context, proposal);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.severity).toBe('REQUIRES_CONFIRMATION');
-    expect(findings.some((f) => f.severity === 'REJECTED')).toBe(false);
+    expect(findings[0]?.ruleCode).toBe('DECISION_INSUFFICIENT_DATA');
+    expect(findings[0]?.severity).toBe('REJECTED');
   });
 
-  it('requires confirmation when confidence tier is INSUFFICIENT', () => {
+  it('rejects when confidence tier is INSUFFICIENT', () => {
     const context = baseContext({
       decision: decisionState({ confidenceTier: 'INSUFFICIENT', overallVerdict: 'TRAIN_HARD' }),
     });
@@ -72,7 +72,31 @@ describe('decisionCompatibilityRule', () => {
     const findings = decisionCompatibilityRule(context, proposal);
 
     expect(findings).toHaveLength(1);
-    expect(findings[0]?.severity).toBe('REQUIRES_CONFIRMATION');
+    expect(findings[0]?.ruleCode).toBe('DECISION_INSUFFICIENT_DATA');
+    expect(findings[0]?.severity).toBe('REJECTED');
+  });
+
+  it('rejects when confidence tier is LOW', () => {
+    const context = baseContext({
+      decision: decisionState({ confidenceTier: 'LOW', overallVerdict: 'TRAIN_HARD' }),
+    });
+    const proposal = baseProposal({ intensity: 'ENDURANCE' });
+
+    const findings = decisionCompatibilityRule(context, proposal);
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0]?.ruleCode).toBe('DECISION_LOW_CONFIDENCE');
+    expect(findings[0]?.severity).toBe('REJECTED');
+    expect(findings[0]?.evidenceRefs).toContain('decision.confidenceTier');
+  });
+
+  it('does not reject an endurance session on MEDIUM confidence under RECOVER', () => {
+    const context = baseContext({
+      decision: decisionState({ confidenceTier: 'MEDIUM', overallVerdict: 'RECOVER' }),
+    });
+    const proposal = baseProposal({ intensity: 'ENDURANCE' });
+
+    expect(decisionCompatibilityRule(context, proposal)).toEqual([]);
   });
 
   it('rejects any non-recovery session when fatigue capacity is REST_ONLY', () => {

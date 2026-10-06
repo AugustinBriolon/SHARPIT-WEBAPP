@@ -31,7 +31,11 @@ export type SessionRationaleInferred = {
 
 export type SessionRationaleGate = {
   readonly status: GateStatus;
-  readonly findings: readonly Pick<RuleFinding, 'rationale' | 'severity'>[];
+  readonly findings: readonly {
+    readonly rationale: string;
+    readonly severity: RuleFinding['severity'];
+    readonly evidenceLabels: readonly string[];
+  }[];
   readonly requiredAssumptions: readonly string[];
   readonly saferAlternativeLabel: string | null;
 };

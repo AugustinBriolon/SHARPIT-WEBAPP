@@ -135,6 +135,33 @@ describe('buildSessionRationaleViewModel', () => {
     );
   });
 
+  it('resolves Gate evidenceRefs into French evidenceLabels without leaking raw paths', () => {
+    const decision = baseDecision({
+      gateResult: {
+        proposal: baseProposal(),
+        status: 'REJECTED',
+        findings: [
+          {
+            ruleCode: 'DECISION_LOW_CONFIDENCE',
+            severity: 'REJECTED',
+            rationale: 'Confiance trop faible.',
+            evidenceRefs: ['decision.confidenceTier', 'decision.confidence'],
+          },
+        ],
+        requiredAssumptions: [],
+        saferAlternative: null,
+      },
+    });
+
+    const vm = buildSessionRationaleViewModel({ session: baseSession(), decision, now: NOW });
+    const finding = vm.suggested?.gate.findings[0];
+    expect(finding?.evidenceLabels).toEqual([
+      'Niveau de confiance de la décision',
+      'Score de confiance',
+    ]);
+    expect(JSON.stringify(vm)).not.toContain('decision.confidenceTier');
+  });
+
   it('surfaces weeklyObjectiveRelation only when the Gate itself found something to say about it', () => {
     const withFinding = buildSessionRationaleViewModel({
       session: baseSession(),

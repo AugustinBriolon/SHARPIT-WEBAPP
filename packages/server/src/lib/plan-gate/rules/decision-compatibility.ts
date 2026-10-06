@@ -12,10 +12,20 @@ const HIGH_INTENSITY = PLAN_GATE_HIGH_INTENSITY;
 function insufficientDecisionFinding(): RuleFinding {
   return {
     ruleCode: 'DECISION_INSUFFICIENT_DATA',
-    severity: 'REQUIRES_CONFIRMATION',
+    severity: 'REJECTED',
     rationale:
-      "L'état physiologique du jour n'est pas encore assez fiable pour valider cette séance automatiquement. Confirme que tu te sens prêt·e avant de la garder.",
+      "L'état physiologique du jour n'est pas assez fiable pour prescrire cette séance. Synchronise tes données ou attends que le Twin soit calibré avant de planifier.",
     evidenceRefs: ['decision.confidenceTier'],
+  };
+}
+
+function lowConfidenceDecisionFinding(): RuleFinding {
+  return {
+    ruleCode: 'DECISION_LOW_CONFIDENCE',
+    severity: 'REJECTED',
+    rationale:
+      "La confiance dans la décision du jour est trop faible pour prescrire cette séance. Privilegie le repos ou une séance déjà validée jusqu'à ce que les signaux soient plus stables.",
+    evidenceRefs: ['decision.confidenceTier', 'decision.confidence'],
   };
 }
 
@@ -89,6 +99,10 @@ export const decisionCompatibilityRule: PlanGateRule = (
 
   if (!decision || decision.confidenceTier === 'INSUFFICIENT') {
     return [insufficientDecisionFinding()];
+  }
+
+  if (decision.confidenceTier === 'LOW') {
+    return [lowConfidenceDecisionFinding()];
   }
 
   const findings: RuleFinding[] = [];
