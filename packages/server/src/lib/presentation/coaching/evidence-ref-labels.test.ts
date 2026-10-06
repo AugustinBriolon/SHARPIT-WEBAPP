@@ -4,14 +4,14 @@ import { labelEvidenceRefs } from './evidence-ref-labels';
 describe('labelEvidenceRefs', () => {
   it('maps known decision refs to French labels', () => {
     expect(labelEvidenceRefs(['decision.confidenceTier', 'decision.overallVerdict'])).toEqual([
-      'Niveau de confiance de la décision',
+      'État en calibration / niveau de confiance',
       'Verdict du jour',
     ]);
   });
 
   it('deduplicates labels', () => {
     expect(labelEvidenceRefs(['decision.confidenceTier', 'decision.confidenceTier'])).toEqual([
-      'Niveau de confiance de la décision',
+      'État en calibration / niveau de confiance',
     ]);
   });
 

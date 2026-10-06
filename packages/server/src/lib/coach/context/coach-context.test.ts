@@ -119,9 +119,20 @@ function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
 }
 
 describe('formatDecisionSection', () => {
-  it('returns nothing when there is no decision or it is INSUFFICIENT_DATA', () => {
+  it('returns nothing when there is no decision', () => {
     expect(formatDecisionSection(null)).toEqual([]);
-    expect(formatDecisionSection(baseDecision({ verdict: 'INSUFFICIENT_DATA' }))).toEqual([]);
+  });
+
+  it('surfaces calibrating-only copy when the verdict is INSUFFICIENT_DATA', () => {
+    const lines = formatDecisionSection(baseDecision({ verdict: 'INSUFFICIENT_DATA' }));
+    const text = lines.join('\n');
+    expect(text).toContain('en calibration');
+    expect(text).not.toContain('Verdict :');
+  });
+
+  it('surfaces calibrating when confidence tier is LOW', () => {
+    const lines = formatDecisionSection(baseDecision({ confidenceTier: 'LOW' }));
+    expect(lines.join('\n')).toContain('en calibration');
   });
 
   it('exposes the verdict and prescribes an action when prescriptiveAdviceAllowed is true', () => {
@@ -130,6 +141,7 @@ describe('formatDecisionSection', () => {
     expect(text).toContain('Verdict :');
     expect(text).toContain('Action prioritaire :');
     expect(text).not.toContain('Hors fenêtre de conseil actionnable');
+    expect(text).not.toContain('en calibration');
   });
 
   it('withholds the verdict and refuses to prescribe when prescriptiveAdviceAllowed is false (F11)', () => {

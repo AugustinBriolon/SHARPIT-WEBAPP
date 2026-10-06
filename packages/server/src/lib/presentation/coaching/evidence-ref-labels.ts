@@ -4,7 +4,7 @@
  */
 
 const EVIDENCE_REF_LABELS: Record<string, string> = {
-  'decision.confidenceTier': 'Niveau de confiance de la décision',
+  'decision.confidenceTier': 'État en calibration / niveau de confiance',
   'decision.confidence': 'Score de confiance',
   'decision.overallVerdict': 'Verdict du jour',
   'decision.limitingFactor': 'Facteur limitant',

@@ -30,4 +30,5 @@
 3. **P2** — Athlete learning memory (`buildLearningFeedback` → plan/adapt) + offline eval harness — **done**.
 4. **P3a** — Corrective RAG (one deterministic rewrite retry) — **done**.
 5. **P3b** — Chat learning memory injection — **done**.
-6. **P3c–d** — Calibrating surfacing · weekly brief quality scout.
+6. **P3c** — Calibrating surfacing in coach decision context — **done**.
+7. **P3d** — Weekly brief quality scout.

@@ -34,6 +34,14 @@ const CONSISTENCY_FR: Record<string, string> = {
   CONFLICTING: 'En conflit',
 };
 
+/** Low / insufficient Decision confidence — cold start or weak Twin history. */
+export function isCalibratingConfidenceTier(tier: string | null | undefined): boolean {
+  return tier === 'LOW' || tier === 'INSUFFICIENT';
+}
+
+export const CALIBRATING_COACH_LINE =
+  'État : en calibration — historique encore court ou données insuffisantes. Évite les prescriptions dures ; privilégie des conseils prudents et factuels.';
+
 /**
  * Renders the canonical Decision Engine block for the Coach prompt.
  *
@@ -85,6 +93,9 @@ function appendDecisionEvidenceLines(
       `⚠ Conseil entraînement non actionnable (confiance ou données insuffisantes) — reste prudent et factuel.`,
     );
   }
+  if (isCalibratingConfidenceTier(d.confidenceTier)) {
+    lines.push(CALIBRATING_COACH_LINE);
+  }
 }
 
 function formatDecisionObservationLines(d: NonNullable<CoachContext['decision']>): string[] {
@@ -104,8 +115,14 @@ function formatDecisionObservationLines(d: NonNullable<CoachContext['decision']>
 }
 
 export function formatDecisionSection(decision: CoachContext['decision']): string[] {
-  if (!decision || decision.verdict === 'INSUFFICIENT_DATA') {
+  if (!decision) {
     return [];
+  }
+  if (decision.verdict === 'INSUFFICIENT_DATA') {
+    return [
+      `\n## Décision SHARPIT du jour (canonique — à expliquer, ne pas contredire)`,
+      CALIBRATING_COACH_LINE,
+    ];
   }
 
   return [
