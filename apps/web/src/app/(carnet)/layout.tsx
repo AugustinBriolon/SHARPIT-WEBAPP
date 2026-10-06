@@ -3,8 +3,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BrandMark } from '@sharpit/ui/components/ui/brand-mark';
 import { CarnetHeading } from '@/components/carnet/carnet-animated';
-import { CarnetAccountLink, CarnetNav } from '@/components/carnet/carnet-nav';
-import { CarnetPageSkeleton } from '@/components/carnet/carnet-parts';
+import {
+  CarnetAccountLink,
+  CarnetAccountLinkFor,
+  CarnetNav,
+  CarnetNavRow,
+} from '@/components/carnet/carnet-nav';
+import { CarnetSkeletonFrame } from '@/components/carnet/carnet-skeleton';
 
 /**
  * The web is the carnet: a place to read, the iPhone app the place to act (ADR-072).
@@ -16,9 +21,6 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-// Every page reads the signed-in athlete through `api.`: nothing to prerender.
-export const instant = false;
-
 export default function CarnetLayout({ children }: { children: ReactNode }) {
   return (
     <div className="bg-background text-foreground min-h-full">
@@ -29,15 +31,20 @@ export default function CarnetLayout({ children }: { children: ReactNode }) {
               <BrandMark className="size-6 transition-transform duration-500 ease-out group-hover:rotate-[60deg] motion-reduce:transition-none" />
               <span className="text-card-title">SharpIt</span>
             </Link>
-            <CarnetAccountLink />
+            <Suspense fallback={<CarnetAccountLinkFor pathname={null} />}>
+              <CarnetAccountLink />
+            </Suspense>
           </div>
-          <CarnetNav />
+          <Suspense fallback={<CarnetNavRow pathname={null} />}>
+            <CarnetNav />
+          </Suspense>
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 pt-10 sm:px-8">
-        {/* Every page reads the athlete at request time: the header paints at once, the
-            page streams in under it. */}
-        <Suspense fallback={<CarnetPageSkeleton />}>
+        {/* The header paints at once; each page's `loading.tsx` holds its place under it.
+            This boundary only serves a session's page loaded cold, whose address (its id)
+            is read at request time: a navigation never reaches it. */}
+        <Suspense fallback={<CarnetSkeletonFrame label="" />}>
           <CarnetHeading>{children}</CarnetHeading>
         </Suspense>
       </main>

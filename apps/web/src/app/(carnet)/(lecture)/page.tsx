@@ -1,9 +1,9 @@
+import { cacheLife } from 'next/cache';
 import Link from 'next/link';
-import { connection } from 'next/server';
 import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
 import { addTrainingDays, trainingDayIdForNow } from '@sharpit/core/training/training-day';
-import { readViewModel } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readViewModel } from '@/components/carnet/carnet-read';
 import { carnetHref, longDayLabel, resolveDayParam } from '@/components/carnet/carnet-time';
 import {
   CarnetPage,
@@ -18,8 +18,8 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 type PageProps = { searchParams: Promise<{ jour?: string | string[] }> };
 
@@ -102,10 +102,18 @@ function TheDay({ vm }: { vm: TodayViewModel }) {
   );
 }
 
+// The address (URL data) is read outside the private cache and handed in as plain values:
+// read inside, it would keep the route's App Shell from ever settling.
 export default async function CarnetTodayPage({ searchParams }: PageProps) {
-  await connection();
+  const { jour } = await searchParams;
+  return <TodayReading jour={jour} />;
+}
+
+async function TodayReading({ jour }: { jour?: string | string[] }) {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const today = trainingDayIdForNow();
-  const day = resolveDayParam((await searchParams).jour, today);
+  const day = resolveDayParam(jour, today);
   const vm = await readViewModel<TodayViewModel>(
     `/api/presentation/today?trainingDayId=${encodeURIComponent(day)}`,
   );

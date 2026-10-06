@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
-import Link from 'next/link';
 import { cn } from '@sharpit/app/lib/utils';
 import { CarnetCount } from './carnet-animated';
+import { CarnetIntentLink } from './carnet-intent-link';
 
 /**
  * The carnet's page grammar: a page is a title and a lead, then ruled sections read top
@@ -140,12 +140,12 @@ export function ReadingRow({ href, children }: { href: string | null; children: 
   }
   return (
     <li>
-      <Link
+      <CarnetIntentLink
         className="group hover:bg-muted/40 -mx-3 block rounded-md px-3 transition-[background-color,transform] duration-150 active:scale-[0.995] motion-reduce:active:scale-100"
         href={href}
       >
         {inner}
-      </Link>
+      </CarnetIntentLink>
     </li>
   );
 }
@@ -167,24 +167,4 @@ export function ReadingList({ children }: { children: ReactNode }) {
 
 export function Unreadable({ what }: { what: string }) {
   return <Quiet>{what} n&apos;a pas pu être lu pour le moment.</Quiet>;
-}
-
-/** What a page shows while it reads: its title's place and three quiet rules. */
-export function CarnetPageSkeleton() {
-  return (
-    <div aria-busy className="animate-pulse space-y-12" role="status">
-      <span className="sr-only">Chargement</span>
-      <div className="space-y-3">
-        <div className="bg-muted h-3 w-40 rounded" />
-        <div className="bg-muted h-9 w-2/3 rounded" />
-        <div className="bg-muted h-4 w-1/2 rounded" />
-      </div>
-      {[0, 1, 2].map((index) => (
-        <div className="border-border/70 space-y-3 border-t pt-6" key={index}>
-          <div className="bg-muted h-3 w-24 rounded" />
-          <div className="bg-muted h-16 w-full rounded" />
-        </div>
-      ))}
-    </div>
-  );
 }

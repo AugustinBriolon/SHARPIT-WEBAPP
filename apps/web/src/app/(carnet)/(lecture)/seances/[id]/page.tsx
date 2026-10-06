@@ -1,5 +1,5 @@
+import { cacheLife } from 'next/cache';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { ClientActivityDetail } from '@sharpit/app/lib/query/types';
@@ -24,12 +24,13 @@ import {
   InApp,
   Quiet,
   Reasons,
+  Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { readSection } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
 import { streamProfile } from '@/components/carnet/carnet-stream';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -94,16 +95,29 @@ function KeyFigures({
   );
 }
 
+// The address (URL data) is read outside the private cache and handed in as plain values:
+// read inside, it would keep the route's App Shell from ever settling.
 export default async function CarnetSessionPage({ params }: PageProps) {
   const { id } = await params;
+  return <SessionReading id={id} />;
+}
+
+async function SessionReading({ id }: { id: string }) {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const path = `/api/v1/activities/${encodeURIComponent(id)}`;
   const [activity, streams] = await Promise.all([
     readSection<ClientActivityDetail>(path, true),
     readSection<ActivityStreamPayload>(`${path}/streams`),
   ]);
 
+  // A private cache cannot answer « not found »: a session that cannot be read says so.
   if (!activity) {
-    notFound();
+    return (
+      <CarnetPage kicker="Les séances" title="Cette séance">
+        <Unreadable what="Cette séance" />
+      </CarnetPage>
+    );
   }
 
   const narrative = isNarrative(activity.narrativeAnalysis) ? activity.narrativeAnalysis : null;

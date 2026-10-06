@@ -1,5 +1,5 @@
+import { cacheLife } from 'next/cache';
 import { addDays } from 'date-fns';
-import { connection } from 'next/server';
 import type { AdaptationViewModel } from '@sharpit/app/presentation/adaptation-view-model';
 import type { EffortViewModel } from '@sharpit/app/presentation/effort-view-model';
 import type { WeeklyCoachingBriefViewModel } from '@sharpit/app/presentation/weekly-coaching-brief-view-model';
@@ -18,7 +18,7 @@ import {
   Reasons,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { readSection, readViewModel } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readSection, readViewModel } from '@/components/carnet/carnet-read';
 import {
   closedAdherence,
   type SeasonSession,
@@ -31,8 +31,8 @@ import {
   weekStartsEndingAt,
 } from '@/components/carnet/carnet-time';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 const WEEKS_BACK = 10;
 
@@ -187,7 +187,8 @@ function Load({ effort }: { effort: EffortViewModel }) {
 }
 
 export default async function CarnetSeasonPage() {
-  await connection();
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const todayId = trainingDayIdForNow();
   const today = dayOf(todayId);
   const mondays = weekStartsEndingAt(addDays(today, 7), WEEKS_BACK + 1);
