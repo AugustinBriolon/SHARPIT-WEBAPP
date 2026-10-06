@@ -49,9 +49,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# serwist (generated from apps/web/src/sw.ts at build)
-apps/web/public/sw.js
-apps/web/public/sw.js.map
 
 # clerk (can include secrets)
 .clerk/

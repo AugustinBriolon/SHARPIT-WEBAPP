@@ -1,57 +1,36 @@
 import { type NextFetchEvent, type NextRequest, NextResponse } from 'next/server';
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { afterAuthPath } from '@sharpit/app/lib/auth/after-auth-redirect';
-import { ENTRY_PATH } from '@sharpit/app/lib/onboarding/entry-path';
 import { describeClerkConfigIssues, diagnoseClerkConfig } from '@sharpit/app/lib/auth/clerk-config';
 import { recoverFromHandshakeFailure } from '@sharpit/app/lib/auth/handshake-recovery';
 import { isDevClerkBypass } from '@sharpit/app/lib/dev/dev-auth';
 
-// Routes accessibles sans session Clerk :
-// - pages de connexion/inscription
-// - l'entrée du mode démo, qui connecte le visiteur au compte démo partagé.
+// Routes open without a Clerk session: the auth pages, the demo entry (which signs the
+// visitor in to the shared demo account) and the icons browsers fetch without a cookie.
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
-  // Public promise funnel (teaser → signup). Outside auth app shell.
-  '/welcome(.*)',
-  '/~offline',
-  // Browsers and iOS fetch the tab icon, the Apple touch icon and the startup image
-  // without a session cookie.
-  '/apple-splash(.*)',
   '/icon(.*)',
   '/apple-icon(.*)',
   '/demo',
 ]);
 
-// Signed-out-only pages: the teaser and the auth entry points themselves.
-const isSignedOutOnlyPage = createRouteMatcher(['/welcome(.*)', '/sign-in', '/sign-up']);
+const isAuthPage = createRouteMatcher(['/sign-in', '/sign-up']);
 
 /**
- * A signed-in athlete never sees the teaser or an empty sign-in: `/welcome` goes to
- * `/start` (their next screen), `/sign-in` and `/sign-up` go where Clerk was sending
- * them (`redirect_url`, e.g. back into the Garmin handoff) — same-origin only — else
- * `/start`. Server-side, so no
- * teaser flash and no client/server ping-pong.
+ * A signed-in athlete never sees an empty sign-in: `/sign-in` and `/sign-up` go where Clerk
+ * was sending them (`redirect_url`) — same-origin only — else `/start`. Server-side, so no
+ * flash and no client/server ping-pong. A stranger anywhere else meets the sign-in page.
  */
 function redirectSignedIn(req: NextRequest): NextResponse | null {
-  if (req.method !== 'GET' || !isSignedOutOnlyPage(req)) {
+  if (req.method !== 'GET' || !isAuthPage(req)) {
     return null;
   }
-  const destination = req.nextUrl.pathname.startsWith('/welcome')
-    ? ENTRY_PATH
-    : afterAuthPath(req.nextUrl.searchParams.get('redirect_url'), req.nextUrl.origin);
+  const destination = afterAuthPath(
+    req.nextUrl.searchParams.get('redirect_url'),
+    req.nextUrl.origin,
+  );
   return NextResponse.redirect(new URL(destination, req.nextUrl.origin));
-}
-
-// Strangers hitting `/` (Today) land on the public teaser instead of the Clerk sign-in
-// wall (and its demo callout). Signed-in athletes — the demo one included — keep Today at `/`.
-function redirectStrangerFromToday(req: NextRequest): NextResponse | null {
-  if (req.nextUrl.pathname === '/' && req.method === 'GET') {
-    const welcome = req.nextUrl.clone();
-    welcome.pathname = '/welcome';
-    return NextResponse.redirect(welcome);
-  }
-  return null;
 }
 
 // Explicit so `auth.protect()` sends strangers to our pages (with `redirect_url` back to
@@ -66,11 +45,6 @@ const clerkProxy = clerkMiddleware(async (auth, req) => {
   const { userId } = await auth();
   if (userId) {
     return redirectSignedIn(req);
-  }
-
-  const early = redirectStrangerFromToday(req);
-  if (early) {
-    return early;
   }
 
   if (!isPublicRoute(req)) {

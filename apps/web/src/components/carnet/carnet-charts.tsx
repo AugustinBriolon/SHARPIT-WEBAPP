@@ -1,5 +1,6 @@
 'use client';
 
+import { useReducedMotion } from 'motion/react';
 import {
   Bar,
   BarChart,
@@ -92,6 +93,8 @@ export function CarnetLineChart({
   zeroLine?: boolean;
   showYAxis?: boolean;
 }) {
+  // The curve draws itself left to right as the app's do, unless motion is reduced.
+  const reduceMotion = useReducedMotion() ?? false;
   return (
     <div className="space-y-2">
       <p aria-hidden className="text-label text-muted-foreground">
@@ -109,7 +112,9 @@ export function CarnetLineChart({
               key={s.key}
               dataKey={s.key}
               dot={false}
-              isAnimationActive={false}
+              animationDuration={700}
+              animationEasing="ease-out"
+              isAnimationActive={!reduceMotion}
               name={s.name}
               stroke={s.stroke}
               strokeDasharray={s.dashed ? '5 3' : undefined}
@@ -139,6 +144,8 @@ export function CarnetBarChart({
   /** A dashed line at the period's average, labelled on the axis side. */
   average?: number | null;
 }) {
+  // The curve draws itself left to right as the app's do, unless motion is reduced.
+  const reduceMotion = useReducedMotion() ?? false;
   return (
     <div className="space-y-2">
       <p aria-hidden className="text-label text-muted-foreground">
@@ -162,7 +169,9 @@ export function CarnetBarChart({
               dataKey={s.key}
               fill={s.stroke}
               fillOpacity={s.dashed ? 0.3 : 1}
-              isAnimationActive={false}
+              animationDuration={700}
+              animationEasing="ease-out"
+              isAnimationActive={!reduceMotion}
               name={s.name}
               radius={[3, 3, 0, 0]}
             />

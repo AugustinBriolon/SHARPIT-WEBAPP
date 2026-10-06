@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { connection } from 'next/server';
+import type { WebViewer } from '@sharpit/app/lib/web/payloads';
 import { serverApiJson } from '@sharpit/ui/server/api-client';
 
 /**
@@ -39,4 +40,12 @@ export type CarnetPro = {
 
 export async function readPro(): Promise<CarnetPro | null> {
   return readSection<CarnetPro>('/api/v1/pro');
+}
+
+/**
+ * Who is reading: `api.` resolves (or provisions) the athlete and says whether the account
+ * still owes consents or onboarding. Null when it cannot be read; the pages then try anyway.
+ */
+export async function readViewer(): Promise<WebViewer | null> {
+  return readSection<WebViewer>('/api/web/viewer');
 }

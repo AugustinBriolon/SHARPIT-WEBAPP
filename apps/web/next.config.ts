@@ -84,14 +84,37 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // Legacy URLs kept as deep links — one line each, no page file (`lib/moi/paths.ts`).
+      // The old web's pages, each to its reading in the carnet (ADR-072). Not permanent: a
+      // browser that cached a 308 would keep it if a page moved again. Order matters, the
+      // specific before the catch-all; Next carries the query over.
       ...[
-        ['/settings/privacy', '/settings/account#confidentialite'],
-        ['/settings/feedback', '/moi'],
-        ['/settings/appearance/expert-mode', '/settings/personalization#densite'],
-        // Old OAuth bounce: callbacks land on the integrations settings directly now.
-        ['/integrations/connected', '/settings/integrations'],
-      ].map(([source, destination]) => ({ source, destination, permanent: true })),
+        ['/carnet', '/'],
+        ['/carnet/:path*', '/:path*'],
+        ['/today', '/'],
+        ['/today/:path*', '/corps'],
+        ['/plan/bilan', '/bilans'],
+        ['/plan/:path*', '/saison'],
+        ['/activite/nouvelle', '/seances'],
+        ['/activite/sejours/:path*', '/seances'],
+        ['/activite/:id', '/seances/:id'],
+        ['/activite', '/seances'],
+        ['/moi/performance', '/records'],
+        ['/moi/objectifs/:path*', '/saison'],
+        ['/moi/corps', '/corps'],
+        ['/moi/:path*', '/compte'],
+        ['/journal/:path*', '/'],
+        ['/coach/:path*', '/'],
+        // `api.`'s OAuth callbacks still answer here; the query carries their outcome.
+        ['/settings/integrations/:path*', '/compte/sources'],
+        ['/integrations/connected', '/compte/sources'],
+        ['/settings/account', '/compte/donnees'],
+        ['/settings/privacy', '/compte/donnees'],
+        ['/settings/:path*', '/compte'],
+        ['/consent', '/'],
+        ['/onboarding/:path*', '/'],
+        ['/welcome/:path*', '/'],
+        ['/~offline', '/'],
+      ].map(([source, destination]) => ({ source, destination, permanent: false })),
       // Apex-only pages live on the hub (ADR-051): legal pages and the native Garmin handoff.
       ...['/privacy', '/terms', '/connect/:path*', '/.well-known/:path*'].map((source) => ({
         source,

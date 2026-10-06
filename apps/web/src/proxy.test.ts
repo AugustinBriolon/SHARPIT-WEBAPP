@@ -46,27 +46,15 @@ describe('proxy', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
-  it('sends strangers from Today to the teaser', async () => {
-    const response = await run('https://sharpit.app/');
-    expect(response.headers.get('location')).toBe('https://sharpit.app/welcome');
+  it('sends strangers on the carnet to sign in', async () => {
+    await run('https://web.sharpit.app/');
+    expect(state.protect).toHaveBeenCalled();
   });
 
-  it('keeps the teaser for strangers', async () => {
-    const response = await run('https://sharpit.app/welcome');
-    expect(response.headers.get('location')).toBeNull();
-    expect(state.protect).not.toHaveBeenCalled();
-  });
-
-  it('keeps a signed-in athlete on Today', async () => {
+  it('keeps a signed-in athlete on the carnet', async () => {
     state.userId = 'user_1';
-    const response = await run('https://sharpit.app/');
+    const response = await run('https://web.sharpit.app/');
     expect(response.headers.get('location')).toBeNull();
-  });
-
-  it('sends a signed-in athlete from the teaser to their next screen', async () => {
-    state.userId = 'user_1';
-    const response = await run('https://sharpit.app/welcome');
-    expect(response.headers.get('location')).toBe('https://sharpit.app/start');
   });
 
   it('sends a signed-in athlete from sign-in to where Clerk was taking them', async () => {
@@ -76,7 +64,7 @@ describe('proxy', () => {
     expect(response.headers.get('location')).toBe('https://sharpit.app/connect/garmin');
   });
 
-  it('sends a signed-in athlete from sign-up to their next screen, never the teaser', async () => {
+  it('sends a signed-in athlete from sign-up to their next screen, never a signed-out page', async () => {
     state.userId = 'user_1';
     const back = encodeURIComponent('https://sharpit.app/welcome');
     const response = await run(`https://sharpit.app/sign-up?redirect_url=${back}`);
@@ -86,18 +74,18 @@ describe('proxy', () => {
   it('serves the app icons to strangers', async () => {
     await run('https://web.sharpit.app/icon');
     await run('https://web.sharpit.app/apple-icon/180');
-    await run('https://web.sharpit.app/apple-splash/iphone-se');
+    await run('https://web.sharpit.app/demo');
     expect(state.protect).not.toHaveBeenCalled();
   });
 
-  it('protects athlete pages and the entry router', async () => {
-    await run('https://web.sharpit.app/settings');
+  it('protects the carnet and the entry router', async () => {
+    await run('https://web.sharpit.app/saison');
     await run('https://web.sharpit.app/start');
     expect(state.protect).toHaveBeenCalledTimes(2);
   });
 
   it('no longer lets the old demo cookie in without a session', async () => {
-    await run('https://sharpit.app/settings', 'sharpit_demo=1');
+    await run('https://sharpit.app/compte', 'sharpit_demo=1');
     expect(state.protect).toHaveBeenCalled();
   });
 
@@ -115,6 +103,6 @@ describe('proxy', () => {
 
   it('still surfaces errors unrelated to a handshake', async () => {
     state.clerkError = new Error('boom');
-    await expect(run('https://sharpit.app/plan')).rejects.toThrow('boom');
+    await expect(run('https://sharpit.app/saison')).rejects.toThrow('boom');
   });
 });

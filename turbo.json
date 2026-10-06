@@ -4,7 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": [".next/**", "!.next/cache/**", "public/sw.js", "public/sw.js.map"]
+      "outputs": [".next/**", "!.next/cache/**"]
     },
     "test": { "cache": false },
     "typecheck": { "cache": false },
