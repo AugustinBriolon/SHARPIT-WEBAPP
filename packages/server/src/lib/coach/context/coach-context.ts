@@ -17,6 +17,7 @@ export {
 } from '@sharpit/server/lib/coach/context/coach-context-assembly';
 export {
   COACH_CONTEXT_SECTIONS,
+  DAY_LOAD_VS_STATUS_COACH_LINE,
   formatCoachActivityLine,
   formatCoachContext,
   formatConstraintsSection,

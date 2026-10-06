@@ -38,6 +38,24 @@ describe('coach system prompt · moving sessions', () => {
   });
 });
 
+describe('coach system prompt · day load vs training status', () => {
+  beforeEach(() => {
+    loadLearningMemoryBlock.mockResolvedValue('');
+  });
+
+  it('keeps day load and training status as distinct coach vocabulary', async () => {
+    const { system } = await buildCoachSystemPrompt(
+      'athlete-1',
+      async () => null,
+      coachRequestScope('general'),
+    );
+
+    expect(system).toContain('charge du jour = coût physiologique');
+    expect(system).toContain('Statut d’entraînement = horizon plus long');
+    expect(system).toContain('n’est pas un statut de surentraînement');
+  });
+});
+
 describe('coach system prompt · learning memory', () => {
   beforeEach(() => {
     loadLearningMemoryBlock.mockReset();

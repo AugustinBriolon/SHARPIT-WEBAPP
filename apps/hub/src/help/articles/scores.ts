@@ -75,6 +75,8 @@ Ouvre-le depuis la **Trajectoire**, en bas de ta semaine dans le Plan.
 - **Ta journée hors entraînement** : pas, stress, Body Battery.
 - **La composition de l’effort** et le détail des cinq dimensions de [fatigue](/aide/scores/fatigue).
 
+La [charge du jour et le statut d’entraînement](/aide/scores/charge-du-jour-et-statut) ne disent pas la même chose : une journée dure n’est pas un surentraînement.
+
 ### En lecture experte
 
 Les courbes de charge et de forme (CTL, ATL, TSB) et huit semaines de charge face à leur moyenne. Voir [charge et forme](/aide/scores/charge-et-forme).
@@ -157,6 +159,31 @@ Elle combine durée et intensité, quel que soit le sport. Elle s’affiche « c
 ### L’ACWR
 
 Le rapport entre ta charge des 7 derniers jours et ta charge habituelle. Une montée trop rapide est signalée dans l’[effort](/aide/scores/effort) et pèse sur les [garde-fous](/aide/plan/garde-fous) du plan.
+
+Ces courbes décrivent ton **statut d’entraînement**, pas le coût d’une seule journée. Voir [charge du jour et statut](/aide/scores/charge-du-jour-et-statut).
+`,
+    },
+    {
+      slug: 'charge-du-jour-et-statut',
+      title: 'Charge du jour et statut d’entraînement',
+      summary:
+        'Deux lectures distinctes : ce que la journée t’a déjà coûté, et où tu en es sur l’horizon forme / fatigue / adaptation. Le coach ne doit pas les confondre.',
+      body: `
+### Charge du jour
+
+C’est le coût physiologique **d’aujourd’hui** : séances réalisées ou prévues, plus le stress hors entraînement (pas, Body Battery, stress perçu). Tu la lis surtout dans l’[effort](/aide/scores/effort) : contrainte du jour, charge du jour, composition de la journée.
+
+Une journée « exigeante » ou « chargée » dit seulement que le jour pèse. Elle ne dit pas si tu es en surmenage sur plusieurs semaines.
+
+### Statut d’entraînement
+
+C’est l’horizon plus long : rapport entre charge récente et charge de fond ([CTL, ATL, TSB](/aide/scores/charge-et-forme)), plus les lectures [fatigue](/aide/scores/fatigue) et [adaptation](/aide/scores/adaptation). La forme (TSB), le risque de plateau ou de surcharge sans gain appartiennent ici.
+
+### Pourquoi la distinction compte
+
+- Une grosse sortie un jour de fraîcheur peut être une **charge du jour** haute avec un **statut** encore sain.
+- Un bloc trop dense peut laisser des journées « normales » tout en dégradant le **statut**.
+- Le coach et les [garde-fous](/aide/plan/garde-fous) s’appuient sur les deux, sans remplacer l’une par l’autre.
 `,
     },
   ],

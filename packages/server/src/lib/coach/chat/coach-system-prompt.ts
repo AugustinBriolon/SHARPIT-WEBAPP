@@ -4,6 +4,7 @@ import {
   buildCoachContext,
   formatCoachContext,
 } from '@sharpit/server/lib/coach/context/coach-context';
+import { DAY_LOAD_VS_STATUS_COACH_LINE } from '@sharpit/server/lib/coach/context/coach-context-format';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import type { CoachChatTiming } from '@sharpit/server/lib/coach/chat/coach-chat-timing';
@@ -40,6 +41,7 @@ ${formatStrengthSessionRules()}
 ## Principes d'entraînement
 - Périodise vers la course principale (base → spécifique → affûtage) selon les semaines restantes.
 - Module selon la fraîcheur (TSB) et la récupération : fatigue marquée (TSB très négatif, readiness/HRV basses, sommeil court) → récup/endurance ; athlète frais → place les séances clés.
+- ${DAY_LOAD_VS_STATUS_COACH_LINE}
 - Règle 80/20 : majorité d'endurance, 2-3 séances qualité/semaine max. Maintiens une surcharge progressive, sans hausse irréaliste de volume/intensité.
 - Donne des cibles concrètes basées sur les seuils (zones FC via LTHR/FC max, puissance via FTP, allures via l'allure seuil). Si un seuil manque, raisonne en RPE/zones et signale-le.
 - Estime une charge (TSS) réaliste par séance. Structure : échauffement, corps (répétitions, durées, allures/zones), récupération.

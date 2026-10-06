@@ -42,6 +42,10 @@ export function isCalibratingConfidenceTier(tier: string | null | undefined): bo
 export const CALIBRATING_COACH_LINE =
   'État : en calibration — historique encore court ou données insuffisantes. Évite les prescriptions dures ; privilégie des conseils prudents et factuels.';
 
+/** Day cost vs longer-horizon PMC / fatigue / adaptation — never conflate the two. */
+export const DAY_LOAD_VS_STATUS_COACH_LINE =
+  'Vocabulaire : charge du jour = coût physiologique d’aujourd’hui (séances + stress ambiant). Statut d’entraînement = horizon plus long (PMC CTL/ATL/TSB, fatigue, adaptation). Une journée dure n’est pas un statut de surentraînement.';
+
 /**
  * Renders the canonical Decision Engine block for the Coach prompt.
  *
@@ -503,6 +507,7 @@ function formatPmcSection(ctx: CoachContext): string[] {
     `\n## État de forme (PMC)\nForme/Fitness CTL ${ctx.fitness.ctl} · Fatigue ATL ${ctx.fitness.atl} · Fraîcheur TSB ${ctx.fitness.tsb}.`,
     `Charge 7j : ${ctx.load.weeklyLoad} · ratio aigu/chronique ${ctx.load.acwr} · fatigue ${ctx.load.fatigue}.`,
     'Interprétation TSB : >5 frais, -10..5 neutre, <-10 fatigué, <-30 surcharge.',
+    DAY_LOAD_VS_STATUS_COACH_LINE,
   ];
 }
 

@@ -218,6 +218,13 @@ describe('formatCoachContext availability', () => {
 });
 
 describe('formatCoachContext relevance contract', () => {
+  it('keeps day load and training status distinct in the PMC block', () => {
+    const text = formatCoachContext(minimalContext());
+    expect(text).toContain('État de forme (PMC)');
+    expect(text).toContain('charge du jour = coût physiologique');
+    expect(text).toContain('n’est pas un statut de surentraînement');
+  });
+
   it('includes practiced sports allowlist for twin-informed proposals', () => {
     const text = formatCoachContext(minimalContext({ practicedSports: ['run'] }));
     expect(text).toContain('## Sports pratiqués');
