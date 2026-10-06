@@ -60,6 +60,15 @@ glance, a session's map and curves at full size.
    (`MotionConfig reducedMotion="user"`, `prefers-reduced-motion` for GSAP and Recharts).
    This widens ADR-028's « CSS first » for the carnet, at the athlete's request: the web
    should feel like the app.
+9. **Navigations are instant (amended 2026-10-06).** Each page is a `'use cache: private'`
+   scope of five minutes (`CARNET_FRESHNESS`): cached in the athlete's browser only, never on
+   the server, and long enough for the route's App Shell to carry it, so `<Link>` prefetches
+   the page and a tab opens on its content. What the address carries (a session's id, the
+   filters of Les séances, `?jour=`) is read outside the cache and handed in; Les séances' tab
+   and each row of a list are prefetched with it resolved (on intent, for the rows). Below the
+   layout the pages share, each segment has a `loading.tsx` skeleton, so a navigation that is
+   not ready yet answers at once. An account that owes a step is never kept. Animations stay
+   short (a page arrives in 0.22 s) so they never read as waiting.
 
 ---
 

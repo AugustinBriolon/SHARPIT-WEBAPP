@@ -1,4 +1,4 @@
-import { connection } from 'next/server';
+import { cacheLife } from 'next/cache';
 import type { WeeklyStats } from '@sharpit/app/lib/coach/weekly-stats';
 import { trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { CarnetMarkdown } from '@/components/carnet/carnet-markdown';
@@ -10,11 +10,11 @@ import {
   InApp,
   Quiet,
 } from '@/components/carnet/carnet-parts';
-import { readPro, readSection } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readPro, readSection } from '@/components/carnet/carnet-read';
 import { dayIdOf, dayOf, weekLabel, weekStartsEndingAt } from '@/components/carnet/carnet-time';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 const WEEKS = 8;
 
@@ -58,7 +58,8 @@ function ReviewFigures({ stats }: { stats: WeeklyStats }) {
 }
 
 export default async function CarnetReviewsPage() {
-  await connection();
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const today = dayOf(trainingDayIdForNow());
   const mondays = weekStartsEndingAt(today, WEEKS).reverse();
 

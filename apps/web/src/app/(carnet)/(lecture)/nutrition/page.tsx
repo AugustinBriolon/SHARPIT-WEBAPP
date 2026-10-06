@@ -1,4 +1,4 @@
-import { connection } from 'next/server';
+import { cacheLife } from 'next/cache';
 import type {
   NutritionDaySummary,
   NutritionViewModel,
@@ -18,11 +18,11 @@ import {
   Reasons,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { readViewModel } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readViewModel } from '@/components/carnet/carnet-read';
 import { longDayLabel } from '@/components/carnet/carnet-time';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 function average(days: NutritionDaySummary[], pick: (d: NutritionDaySummary) => number): number {
   return days.length === 0 ? 0 : days.reduce((sum, d) => sum + pick(d), 0) / days.length;
@@ -95,7 +95,8 @@ function Day({ day }: { day: NutritionDaySummary }) {
 }
 
 export default async function CarnetNutritionPage() {
-  await connection();
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const today = trainingDayIdForNow();
   const vm = await readViewModel<NutritionViewModel>(
     `/api/presentation/nutrition?trainingDayId=${encodeURIComponent(today)}`,

@@ -1,4 +1,4 @@
-import { connection } from 'next/server';
+import { cacheLife } from 'next/cache';
 import type { BodyViewModel } from '@sharpit/app/presentation/body-view-model';
 import type { PhysicalHealthViewModel } from '@sharpit/app/presentation/physical-health-view-model';
 import type { RecoveryViewModel } from '@sharpit/app/presentation/recovery-view-model';
@@ -23,10 +23,10 @@ import {
   Reasons,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { readViewModel } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readViewModel } from '@/components/carnet/carnet-read';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 function hoursOf(minutes: number | null): string {
   if (minutes === null) {
@@ -197,7 +197,8 @@ function Zones({ vm }: { vm: PhysicalHealthViewModel }) {
 }
 
 export default async function CarnetBodyPage() {
-  await connection();
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const day = encodeURIComponent(trainingDayIdForNow());
 
   const [sleep, recovery, body, physical] = await Promise.all([

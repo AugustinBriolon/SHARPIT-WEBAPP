@@ -1,3 +1,4 @@
+import { cacheLife } from 'next/cache';
 import Link from 'next/link';
 import { ActivityType } from '@prisma/client';
 import { activityTypeLabels, formatDistance, formatDuration } from '@sharpit/app/lib/format';
@@ -13,7 +14,7 @@ import {
   ReadingRow,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { readSection } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
 import {
   type SessionListItem,
   sessionDistanceM,
@@ -21,8 +22,8 @@ import {
   sportsByFrequency,
 } from '@/components/carnet/carnet-sessions';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 type PageProps = { searchParams: Promise<{ sport?: string; tout?: string }> };
 
@@ -110,10 +111,16 @@ function SessionRow({ item }: { item: SessionListItem }) {
   );
 }
 
+// The address (URL data) is read outside the private cache and handed in as plain values:
+// read inside, it would keep the route's App Shell from ever settling.
 export default async function CarnetSessionsPage({ searchParams }: PageProps) {
   const params = await searchParams;
-  const all = params.tout === '1';
-  const sport = parseSport(params.sport);
+  return <SessionsReading all={params.tout === '1'} sport={parseSport(params.sport)} />;
+}
+
+async function SessionsReading({ all, sport }: { all: boolean; sport: ActivityType | null }) {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const items = await readSection<SessionListItem[]>(
     all ? '/api/v1/activities' : `/api/v1/activities?sinceDays=${RECENT_DAYS}`,
     true,

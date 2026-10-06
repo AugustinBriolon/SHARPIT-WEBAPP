@@ -1,3 +1,4 @@
+import { cacheLife } from 'next/cache';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type {
@@ -15,10 +16,10 @@ import {
   ReadingRow,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { readSection } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 function shortDate(iso: string): string {
   return format(parseISO(iso), 'd MMM yyyy', { locale: fr });
@@ -64,6 +65,8 @@ function Categories({ categories }: { categories: RecordCategory[] }) {
 }
 
 export default async function CarnetRecordsPage() {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const records = await readSection<RecordsPayload>('/api/v1/records');
 
   if (!records) {

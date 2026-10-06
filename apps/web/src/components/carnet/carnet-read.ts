@@ -1,17 +1,25 @@
 import 'server-only';
 
-import { connection } from 'next/server';
+import { cacheLife } from 'next/cache';
 import type { WebViewer } from '@sharpit/app/lib/web/payloads';
 import { serverApiJson } from '@sharpit/ui/server/api-client';
 
 /**
+ * How long a page read for the athlete stays true enough to show without asking again (the
+ * `minutes` profile: five minutes stale). Every page is a `'use cache: private'` scope with this
+ * life, cached in the athlete's browser only and never on the server: five minutes is the least
+ * that lets the route's App Shell carry the page, so `<Link>` prefetches it and a navigation
+ * shows it at once. A reload always reads afresh.
+ */
+export const CARNET_FRESHNESS = 'minutes';
+
+/**
  * One read for one section of the carnet. A section that cannot be read says so in place;
  * it never takes the page down, since the rest of the page still has something to say.
+ * Called inside a page's private cache only: outside one, the prerender's interrupt on the
+ * session would land in the catch and read as a failed section.
  */
 export async function readSection<T>(path: string, reviveDateFields = false): Promise<T | null> {
-  // Outside try: every read is the signed-in athlete's, so the prerender stops here rather
-  // than inside the catch, which would swallow its interrupt as a failed read.
-  await connection();
   try {
     return await serverApiJson<T>(path, reviveDateFields);
   } catch (error) {
@@ -47,5 +55,14 @@ export async function readPro(): Promise<CarnetPro | null> {
  * still owes consents or onboarding. Null when it cannot be read; the pages then try anyway.
  */
 export async function readViewer(): Promise<WebViewer | null> {
-  return readSection<WebViewer>('/api/web/viewer');
+  'use cache: private';
+  const viewer = await readSection<WebViewer>('/api/web/viewer');
+  // An account that owes a step is read afresh each time: kept five minutes, the « Encore une
+  // étape » it shows would outlive the consents just given in Compte.
+  if (viewer?.consentWallHref || viewer?.needsOnboarding) {
+    cacheLife('seconds');
+  } else {
+    cacheLife(CARNET_FRESHNESS);
+  }
+  return viewer;
 }

@@ -1,3 +1,4 @@
+import { cacheLife } from 'next/cache';
 import type { Metadata } from 'next';
 import { currentUser } from '@clerk/nextjs/server';
 import { format, parseISO } from 'date-fns';
@@ -12,11 +13,11 @@ import {
   RowArrow,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { type CarnetPro, readPro } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, type CarnetPro, readPro } from '@/components/carnet/carnet-read';
 import { CarnetSignOut } from '@/components/carnet/carnet-sign-out';
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 function subscriptionLine(subscription: NonNullable<CarnetPro['subscription']>): string {
   const date = subscription.willRenew ? subscription.renewsAt : subscription.expiresAt;
@@ -34,6 +35,8 @@ function subscriptionLine(subscription: NonNullable<CarnetPro['subscription']>):
 export const metadata: Metadata = { title: 'Compte' };
 
 export default async function CarnetAccountPage() {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
   const [user, pro] = await Promise.all([currentUser(), readPro()]);
   const name = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
   const email = user?.primaryEmailAddress?.emailAddress ?? null;

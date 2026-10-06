@@ -1,3 +1,4 @@
+import { cacheLife } from 'next/cache';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { format } from 'date-fns';
@@ -17,12 +18,12 @@ import {
   ReadingList,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { readSection } from '@/components/carnet/carnet-read';
+import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
 
 export const metadata: Metadata = { title: 'Sources de données' };
 
-// Reads the signed-in athlete on every request (ADR-072).
-export const instant = false;
+// Navigations into the page show it at once: the App Shell carries it (ADR-072).
+export const instant = true;
 
 /** Where `api.`'s OAuth callbacks send the athlete back (through `/settings/integrations`). */
 const RETURN_TO = '/settings/integrations';
@@ -63,17 +64,22 @@ function sinceLine(view: IntegrationProviderView): string {
 /**
  * Linking a source whose OAuth runs in the browser stays on the web (ADR-072). The OAuth
  * callbacks of `api.` still answer `/settings/integrations?…`, which redirects here with its
- * query, so the outcome of the link shows at the top.
+ * query, so the outcome of the link shows at the top. The query (URL data) is read outside
+ * the private cache and handed in as plain values: read inside, it would keep the route's App
+ * Shell from ever settling.
  */
 export default async function CarnetSourcesPage({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
 }) {
-  const [params, hub] = await Promise.all([
-    searchParams,
-    readSection<IntegrationsHubPayload>('/api/web/integrations-hub', true),
-  ]);
+  return <SourcesReading params={await searchParams} />;
+}
+
+async function SourcesReading({ params }: { params: Record<string, string | undefined> }) {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  const hub = await readSection<IntegrationsHubPayload>('/api/web/integrations-hub', true);
   const outcomes = SOURCES.flatMap((source) => {
     const outcome = params[source.key];
     return outcome && OUTCOMES[outcome] ? [`${source.name} ${OUTCOMES[outcome]}`] : [];
@@ -81,14 +87,14 @@ export default async function CarnetSourcesPage({
 
   return (
     <CarnetPage
+      kicker="Compte"
+      lead="Ce que tu relies ici alimente aussi l'app."
+      title="Sources de données"
       aside={
         <Link className="text-muted-foreground hover:text-foreground text-sm" href="/compte">
           ← Compte
         </Link>
       }
-      kicker="Compte"
-      lead="Ce que tu relies ici alimente aussi l'app."
-      title="Sources de données"
     >
       {outcomes.length > 0 ? (
         <p className="bg-highlight rounded-md px-4 py-3 text-sm" role="status">
@@ -104,7 +110,7 @@ export default async function CarnetSourcesPage({
               const canLink =
                 source.connectPath && (!('configured' in view) || view.configured !== false);
               return (
-                <li className="flex items-center justify-between gap-6 py-3" key={source.key}>
+                <li key={source.key} className="flex items-center justify-between gap-6 py-3">
                   <div className="flex min-w-0 items-center gap-3">
                     <IntegrationLogo className="size-8 shrink-0" id={source.id} />
                     <div className="min-w-0">

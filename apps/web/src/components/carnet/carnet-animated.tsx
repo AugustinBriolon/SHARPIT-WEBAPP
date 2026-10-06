@@ -36,7 +36,7 @@ export function CarnetCount({ text }: { text: string }) {
     element.textContent = formatCountable(shape, from);
     const tween = gsap.to(state, {
       value: shape.value,
-      duration: 0.9,
+      duration: 0.6,
       ease: 'power3.out',
       onUpdate: () => {
         element.textContent = formatCountable(shape, state.value);
@@ -107,8 +107,8 @@ export function CarnetPageTransition({
       root,
       still
         ? { opacity: [0, 1] }
-        : { opacity: [0, 1], x: [toward * 28, 0], y: [toward === 0 ? 12 : 0, 0] },
-      { duration: still ? 0.2 : 0.38, ease: [0.22, 1, 0.36, 1] },
+        : { opacity: [0, 1], x: [toward * 16, 0], y: [toward === 0 ? 8 : 0, 0] },
+      { duration: still ? 0.14 : 0.22, ease: [0.22, 1, 0.36, 1] },
     );
     return () => controls.complete();
   }, [pathname, nested]);
@@ -140,7 +140,7 @@ export function CarnetPageTransition({
           gsap.to(batch, {
             autoAlpha: 1,
             y: 0,
-            duration: 0.6,
+            duration: 0.45,
             ease: 'power3.out',
             stagger: { each: 0.06, amount: 0.24 },
             overwrite: true,

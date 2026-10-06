@@ -12,7 +12,14 @@ import { ACCOUNT_PAGE, CARNET_PAGES, isCurrentPage } from './carnet-pages';
  * Motion layout), and on a phone the row scrolls the current page into view.
  */
 export function CarnetNav() {
-  const pathname = usePathname();
+  return <CarnetNavRow pathname={usePathname()} />;
+}
+
+/**
+ * The row for a known path, or with no page marked (`null`): what a session's page shows
+ * before its address is read, since a session's id is only known at request time.
+ */
+export function CarnetNavRow({ pathname }: { pathname: string | null }) {
   const listRef = useRef<HTMLUListElement>(null);
 
   useEffect(() => {
@@ -24,12 +31,15 @@ export function CarnetNav() {
     <nav aria-label="Carnet" className="no-scrollbar -mx-4 overflow-x-auto px-4">
       <ul className="flex min-w-max gap-1" ref={listRef}>
         {CARNET_PAGES.map((page) => {
-          const current = isCurrentPage(pathname, page.href);
+          const current = pathname !== null && isCurrentPage(pathname, page.href);
           return (
             <li key={page.href}>
               <Link
                 aria-current={current ? 'page' : undefined}
                 href={page.href}
+                // Les séances reads its filters from the address, which the App Shell cannot
+                // carry: this one tab is prefetched with them resolved (runtime prefetch).
+                prefetch={page.href === '/seances' ? true : undefined}
                 className={cn(
                   'relative block rounded-md px-3 py-1.5 text-sm transition-[color,transform] duration-150 active:scale-[0.97] motion-reduce:active:scale-100',
                   current
@@ -55,8 +65,11 @@ export function CarnetNav() {
 }
 
 export function CarnetAccountLink() {
-  const pathname = usePathname();
-  const current = isCurrentPage(pathname, ACCOUNT_PAGE.href);
+  return <CarnetAccountLinkFor pathname={usePathname()} />;
+}
+
+export function CarnetAccountLinkFor({ pathname }: { pathname: string | null }) {
+  const current = pathname !== null && isCurrentPage(pathname, ACCOUNT_PAGE.href);
   return (
     <Link
       aria-current={current ? 'page' : undefined}
