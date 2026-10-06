@@ -1,0 +1,115 @@
+[
+  {
+    "id": "complete-brief",
+    "expectScore": 100,
+    "expectFlags": [],
+    "vm": {
+      "weekStartLabel": "lun. 6 oct.",
+      "weekEndLabel": "dim. 12 oct.",
+      "visible": true,
+      "planContext": {
+        "phaseLabel": "Build",
+        "targetLoad": 400,
+        "isDeload": false,
+        "focus": "Seuil"
+      },
+      "goalContext": {
+        "title": "Semi",
+        "targetDateLabel": "1 nov. 2026",
+        "daysToGo": 26,
+        "horizonLabel": "Course"
+      },
+      "load": {
+        "plannedLoad": 380,
+        "toleratedCeiling": 440,
+        "toleratedSource": "PLAN_TARGET"
+      },
+      "keySessions": [
+        {
+          "sessionId": "s1",
+          "dateLabel": "mer. 8",
+          "typeLabel": "Course",
+          "intensityLabel": "Seuil",
+          "purpose": null,
+          "goalTitle": null
+        }
+      ],
+      "recovery": {
+        "protectedDayLabels": ["dimanche"],
+        "note": "1 jour protégé"
+      },
+      "limitingFactor": {
+        "limitingFactorLabel": "Récupération",
+        "confidenceTierLabel": "Élevée",
+        "asOfLabel": "Situation au 6 oct."
+      },
+      "assumptions": [],
+      "dataGaps": [],
+      "whatWouldChange": [],
+      "learningFeedback": [{ "key": "k", "sentence": "Pattern observé." }],
+      "emptyState": null
+    }
+  },
+  {
+    "id": "empty-week",
+    "expectScore": 15,
+    "expectFlagsInclude": ["empty_state", "missing_plan_week"],
+    "vm": {
+      "weekStartLabel": "lun. 6 oct.",
+      "weekEndLabel": "dim. 12 oct.",
+      "visible": true,
+      "planContext": null,
+      "goalContext": null,
+      "load": null,
+      "keySessions": [],
+      "recovery": null,
+      "limitingFactor": null,
+      "assumptions": [],
+      "dataGaps": [],
+      "whatWouldChange": [],
+      "learningFeedback": [],
+      "emptyState": {
+        "title": "Pas de plan structuré pour cette semaine",
+        "description": "Génère un plan.",
+        "action": { "label": "Remplir ma semaine", "href": "/plan/semaine?generate=1" }
+      }
+    }
+  },
+  {
+    "id": "thin-but-planned",
+    "expectScore": 70,
+    "expectFlags": ["missing_goal", "no_key_sessions", "no_learning_feedback"],
+    "vm": {
+      "weekStartLabel": "lun. 6 oct.",
+      "weekEndLabel": "dim. 12 oct.",
+      "visible": true,
+      "planContext": {
+        "phaseLabel": "Base",
+        "targetLoad": 300,
+        "isDeload": false,
+        "focus": null
+      },
+      "goalContext": null,
+      "load": {
+        "plannedLoad": 280,
+        "toleratedCeiling": 330,
+        "toleratedSource": "PLAN_TARGET"
+      },
+      "keySessions": [],
+      "recovery": {
+        "protectedDayLabels": ["lundi"],
+        "note": "1 jour"
+      },
+      "limitingFactor": {
+        "limitingFactorLabel": null,
+        "confidenceTierLabel": "Moyenne",
+        "asOfLabel": "Situation au 6 oct."
+      },
+      "assumptions": [],
+      "dataGaps": [],
+      "whatWouldChange": [],
+      "learningFeedback": [],
+      "emptyState": null
+    }
+  }
+]
