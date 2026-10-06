@@ -10,8 +10,6 @@ import { cn } from '@sharpit/app/lib/utils';
 
 const LABEL = 'fill-muted-foreground font-[family-name:var(--font-data)] text-[10px]';
 const STRONG = 'fill-foreground font-[family-name:var(--font-data)] text-[11px] font-medium';
-/** Lets a line be drawn by animating `strokeDashoffset` from 1 to 0. */
-const DRAWN = { pathLength: 1, strokeDasharray: 1 } as const;
 /** Grows a bar from its own baseline. */
 const FROM_BOTTOM = { transformBox: 'fill-box', transformOrigin: 'bottom' } as const;
 
@@ -67,7 +65,6 @@ function Observe() {
             className={cn('fill-none', r === 0 ? 'stroke-foreground' : 'stroke-foreground/35')}
             d={`M300 ${y} C350 ${y} 350 150 392 150`}
             strokeWidth={r === 0 ? 1.5 : 1}
-            {...DRAWN}
             data-d-draw
           />
         </g>
@@ -126,13 +123,7 @@ function Compare() {
       <text className={LABEL} textAnchor="middle" x={(windowStart + COMPARE_X(last)) / 2} y={36}>
         {window}
       </text>
-      <path
-        className="stroke-foreground fill-none"
-        d={line}
-        strokeWidth={1.5}
-        {...DRAWN}
-        data-d-draw
-      />
+      <path className="stroke-foreground fill-none" d={line} strokeWidth={1.5} data-d-draw />
       {COMPARE_DEVIATIONS.map((d, i) =>
         i === last ? null : (
           <circle key={i} className="fill-foreground" cx={COMPARE_X(i)} cy={COMPARE_Y(d)} r={2} />
@@ -192,7 +183,6 @@ function Arbitrate() {
                 'fill-none',
                 limiting ? 'stroke-signal-caution' : 'stroke-foreground/25',
               )}
-              {...DRAWN}
               data-d-draw
             />
           </g>
@@ -369,8 +359,6 @@ function Repair() {
       <path
         className="stroke-foreground/50 fill-none"
         d={`M${WEEK_X(MISSED) + 20} ${WEEK_BASE - 78} C${WEEK_X(MISSED) + 40} 120 ${WEEK_X(ADDED) - 10} 130 ${WEEK_X(ADDED) + 20} ${WEEK_BASE - 52}`}
-        pathLength={1}
-        strokeDasharray="1"
         data-d-draw
       />
       <g data-d-pop>

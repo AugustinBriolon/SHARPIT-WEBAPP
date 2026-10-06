@@ -1,10 +1,12 @@
 'use client';
 
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import gsap from 'gsap';
+import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(useGSAP, ScrollTrigger, DrawSVGPlugin);
 
 const EASE = 'expo.out';
 const PIN_BREAKPOINT = '(min-width: 768px)';
@@ -29,7 +31,16 @@ function animateHero() {
     .from('[data-hero-line]', { yPercent: 110, duration: 1.2, stagger: 0.12 })
     .from('[data-hero-fade]', { autoAlpha: 0, y: 24, duration: 1, stagger: 0.08 }, 0.35)
     .from('[data-tick]', { scaleY: 0, duration: 0.6, stagger: 0.012, ease: 'power3.out' }, 0.6)
-    .from('[data-marker]', { left: '0%', duration: 1.6, ease: 'power4.inOut' }, 0.9);
+    // From the ruler's start to its place: a transform, never `left`.
+    .from(
+      '[data-marker]',
+      {
+        x: (_, marker: HTMLElement) => -marker.offsetLeft,
+        duration: 1.6,
+        ease: 'power4.inOut',
+      },
+      0.9,
+    );
 
   intro
     .from('[data-phone]', { autoAlpha: 0, y: 80, rotate: 2, duration: 1.4 }, 0.2)
@@ -52,6 +63,33 @@ function animateHero() {
     autoAlpha: 0.2,
     ease: 'none',
     scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true },
+  });
+}
+
+/**
+ * Elements entering a few at a time as they scroll into view. Their starting state is set now,
+ * not when they arrive: set on arrival, an element already on screen would vanish to enter.
+ */
+function enterInBatches(
+  selector: string,
+  offset: { x?: number; y?: number },
+  timing: { duration: number; stagger: number },
+  start = 'top 90%',
+) {
+  gsap.set(selector, { autoAlpha: 0, ...offset });
+  ScrollTrigger.batch(selector, {
+    start,
+    once: true,
+    // A long batch (a reload far down the page) still lands at once: the stagger is capped.
+    onEnter: (batch) =>
+      gsap.to(batch, {
+        autoAlpha: 1,
+        x: 0,
+        y: 0,
+        ease: EASE,
+        duration: timing.duration,
+        stagger: Math.min(timing.stagger, 0.5 / batch.length),
+      }),
   });
 }
 
@@ -107,10 +145,11 @@ function diagramTimeline(step: Element, scrollTrigger: ScrollTrigger.Vars) {
     timeline.from(bars, { scaleY: 0, duration: 0.7, stagger: 0.08 }, 0.1);
   }
   if (lines.length) {
+    // DrawSVG measures each stroke; a hand-rolled dash offset is rounded to whole pixels.
     timeline.fromTo(
       lines,
-      { strokeDashoffset: 1 },
-      { strokeDashoffset: 0, duration: 1.1, stagger: 0.08, ease: 'power2.inOut' },
+      { drawSVG: '0% 0%' },
+      { drawSVG: '0% 100%', duration: 1.1, stagger: 0.08, ease: 'power2.inOut' },
       0.25,
     );
   }
@@ -215,6 +254,7 @@ function animateGuardrails() {
   if (count) {
     const target = Number(count.dataset.count);
     const value = { n: 0 };
+    count.textContent = '0';
     gsap.to(value, {
       n: target,
       duration: 1.6,
@@ -225,12 +265,7 @@ function animateGuardrails() {
       scrollTrigger: { trigger: count, start: ON_ENTER },
     });
   }
-  ScrollTrigger.batch('[data-rule]', {
-    start: 'top 90%',
-    once: true,
-    onEnter: (batch) =>
-      gsap.from(batch, { autoAlpha: 0, y: 12, duration: 0.6, stagger: 0.05, ease: EASE }),
-  });
+  enterInBatches('[data-rule]', { y: 12 }, { duration: 0.6, stagger: 0.05 });
 }
 
 /** The confidence scale fills tier by tier; the learning line draws with the scroll. */
@@ -266,21 +301,11 @@ function animateMemory() {
 }
 
 function animateRefusals() {
-  ScrollTrigger.batch('[data-refusal]', {
-    start: 'top 90%',
-    once: true,
-    onEnter: (batch) =>
-      gsap.from(batch, { autoAlpha: 0, x: -16, duration: 0.7, stagger: 0.08, ease: EASE }),
-  });
+  enterInBatches('[data-refusal]', { x: -16 }, { duration: 0.7, stagger: 0.08 });
 }
 
 function animateReveals() {
-  ScrollTrigger.batch('[data-reveal]', {
-    start: 'top 88%',
-    once: true,
-    onEnter: (batch) =>
-      gsap.from(batch, { autoAlpha: 0, y: 32, duration: 1, stagger: 0.1, ease: EASE }),
-  });
+  enterInBatches('[data-reveal]', { y: 32 }, { duration: 1, stagger: 0.1 }, 'top 88%');
 }
 
 /**
@@ -291,37 +316,47 @@ function animateReveals() {
 export function LandingMotion({ children }: { children: ReactNode }) {
   const scope = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
-    const media = gsap.matchMedia(scope);
-    media.add(
-      {
-        motion: '(prefers-reduced-motion: no-preference)',
-        wide: PIN_BREAKPOINT,
-      },
-      (context) => {
-        const { motion, wide } = context.conditions ?? {};
-        if (!motion) {
-          return;
-        }
-        animateScrollProgress();
-        animateHero();
-        animateManifesto();
-        animateContrasts();
-        if (wide) {
-          animateMethodTrack();
-        } else {
-          animateStackedMethod();
-        }
-        animateMorning();
-        animateGuardrails();
-        animateHonesty();
-        animateMemory();
-        animateRefusals();
-        animateReveals();
-      },
-    );
-    return () => media.revert();
-  }, []);
+  useGSAP(
+    () => {
+      gsap.matchMedia(scope).add(
+        {
+          motion: '(prefers-reduced-motion: no-preference)',
+          wide: PIN_BREAKPOINT,
+        },
+        (context) => {
+          const { motion, wide } = context.conditions ?? {};
+          if (!motion) {
+            return;
+          }
+          // The pin comes before every trigger below it, so each one is measured past its spacer.
+          animateScrollProgress();
+          animateHero();
+          animateManifesto();
+          animateContrasts();
+          if (wide) {
+            animateMethodTrack();
+          } else {
+            animateStackedMethod();
+          }
+          animateMorning();
+          animateGuardrails();
+          animateHonesty();
+          animateMemory();
+          animateRefusals();
+          animateReveals();
+          // The brand faces change line heights once they load: measure the triggers again.
+          document.fonts.ready.then(() => ScrollTrigger.refresh());
+        },
+      );
+      // Every element now stands in its starting state: the content can show (globals.css).
+      scope.current?.setAttribute('data-motion-ready', '');
+    },
+    { scope },
+  );
 
-  return <div ref={scope}>{children}</div>;
+  return (
+    <div ref={scope} data-landing-motion>
+      {children}
+    </div>
+  );
 }

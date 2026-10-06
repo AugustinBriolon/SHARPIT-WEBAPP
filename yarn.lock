@@ -1051,6 +1051,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@gsap/react@npm:^2.1.2":
+  version: 2.1.2
+  resolution: "@gsap/react@npm:2.1.2"
+  peerDependencies:
+    gsap: ^3.12.5
+    react: ">=17"
+  checksum: 10c0/d0285391cfd7cef8125e6ddf81a063121bdb92ddf633d76c6144d8b93e3b7f7d837ec75f1fda8fd33d7efac0ad4c1aad89647e81446e9363012ada7db9f67daf
+  languageName: node
+  linkType: hard
+
 "@hono/node-server@npm:^1.19.9 || ^2.0.5":
   version: 2.1.1
   resolution: "@hono/node-server@npm:2.1.1"
@@ -3087,6 +3097,7 @@ __metadata:
   resolution: "@sharpit/hub@workspace:apps/hub"
   dependencies:
     "@clerk/nextjs": "npm:^7.5.9"
+    "@gsap/react": "npm:^2.1.2"
     "@sharpit/app": "workspace:*"
     "@sharpit/core": "workspace:*"
     "@sharpit/eslint-config": "workspace:*"
