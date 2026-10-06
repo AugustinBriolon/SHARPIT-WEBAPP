@@ -108,6 +108,7 @@ export const NATIVE_V1_ONLY = [
   { path: 'coach/plan/jobs', methods: ['GET', 'POST'] },
   { path: 'coach/plan/jobs/[id]', methods: ['GET'] },
   { path: 'feedback', methods: ['POST'] },
+  { path: 'journal/analyses', methods: ['GET'] },
 ] as const;
 
 /**
