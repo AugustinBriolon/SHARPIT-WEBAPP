@@ -1,5 +1,4 @@
 import { cacheLife } from 'next/cache';
-import Link from 'next/link';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { ClientActivityDetail } from '@sharpit/app/lib/query/types';
@@ -33,6 +32,8 @@ import { streamProfile } from '@/components/carnet/carnet-stream';
 export const instant = true;
 
 type PageProps = { params: Promise<{ id: string }> };
+
+const SESSIONS = { href: '/seances', label: 'Les séances' };
 
 const VERDICT_LABEL: Record<SessionAnalysis['verdict'], string> = {
   AS_PLANNED: 'Conforme au plan',
@@ -114,7 +115,7 @@ async function SessionReading({ id }: { id: string }) {
   // A private cache cannot answer « not found »: a session that cannot be read says so.
   if (!activity) {
     return (
-      <CarnetPage kicker="Les séances" title="Cette séance">
+      <CarnetPage back={SESSIONS} kicker="Les séances" title="Cette séance">
         <Unreadable what="Cette séance" />
       </CarnetPage>
     );
@@ -129,6 +130,7 @@ async function SessionReading({ id }: { id: string }) {
 
   return (
     <CarnetPage
+      back={SESSIONS}
       kicker={`${sport} · ${format(activity.date, 'EEEE d MMMM yyyy', { locale: fr })}`}
       lead={narrative?.headline}
       title={activity.title ?? sport}
@@ -209,10 +211,6 @@ async function SessionReading({ id }: { id: string }) {
       ) : null}
 
       <InApp>Modifier, lier ou supprimer cette séance</InApp>
-
-      <Link className="text-muted-foreground hover:text-foreground text-sm" href="/seances">
-        ← Toutes les séances
-      </Link>
     </CarnetPage>
   );
 }

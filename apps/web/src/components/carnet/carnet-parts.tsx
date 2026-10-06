@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@sharpit/app/lib/utils';
 import { CarnetCount } from './carnet-animated';
 import { CarnetIntentLink } from './carnet-intent-link';
@@ -9,12 +11,15 @@ import { CarnetIntentLink } from './carnet-intent-link';
  */
 
 export function CarnetPage({
+  back,
   kicker,
   title,
   lead,
   aside,
   children,
 }: {
+  /** The page one level up, named: always above the title, where the eye starts. */
+  back?: { href: string; label: string };
   kicker: string;
   title: string;
   lead?: ReactNode;
@@ -25,6 +30,11 @@ export function CarnetPage({
     <article className="space-y-12 pb-24">
       <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div className="max-w-2xl min-w-0">
+          {back ? (
+            <CarnetStepLink className="mb-4 -ml-2.5" direction="back" href={back.href}>
+              {back.label}
+            </CarnetStepLink>
+          ) : null}
           <p className="text-label text-muted-foreground">{kicker}</p>
           <h1 className="text-page-title mt-2 text-3xl first-letter:uppercase sm:text-4xl">
             {title}
@@ -167,4 +177,42 @@ export function ReadingList({ children }: { children: ReactNode }) {
 
 export function Unreadable({ what }: { what: string }) {
   return <Quiet>{what} n&apos;a pas pu être lu pour le moment.</Quiet>;
+}
+
+/**
+ * A step to another page: back up (`back`, the page above) or along (`next`). A quiet pill
+ * whose chevron leans the way it goes under the pointer; the whole pill takes the click.
+ */
+export function CarnetStepLink({
+  href,
+  direction,
+  className,
+  children,
+}: {
+  href: string;
+  direction: 'back' | 'next';
+  className?: string;
+  children: ReactNode;
+}) {
+  const Chevron = direction === 'back' ? ChevronLeft : ChevronRight;
+  return (
+    <Link
+      href={href}
+      className={cn(
+        'group text-muted-foreground hover:text-foreground hover:bg-muted/60 focus-visible:ring-ring inline-flex h-8 w-fit items-center gap-1 rounded-full px-2.5 text-sm transition-colors focus-visible:ring-2 focus-visible:outline-none',
+        direction === 'next' && 'flex-row-reverse',
+        className,
+      )}
+    >
+      <Chevron
+        aria-hidden
+        className={cn(
+          'size-4 transition-transform duration-200 ease-out motion-reduce:transition-none',
+          direction === 'back' ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5',
+        )}
+        strokeWidth={1.75}
+      />
+      {children}
+    </Link>
+  );
 }
