@@ -156,7 +156,7 @@ describe('buildSessionRationaleViewModel', () => {
     const vm = buildSessionRationaleViewModel({ session: baseSession(), decision, now: NOW });
     const finding = vm.suggested?.gate.findings[0];
     expect(finding?.evidenceLabels).toEqual([
-      'Niveau de confiance de la décision',
+      'État en calibration / niveau de confiance',
       'Score de confiance',
     ]);
     expect(JSON.stringify(vm)).not.toContain('decision.confidenceTier');
