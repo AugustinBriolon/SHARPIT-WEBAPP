@@ -53,6 +53,7 @@ import { formatZoneTrainingRules } from '@sharpit/app/lib/physical-health/zone-t
 import { buildCoachKnowledgeQuery } from '@sharpit/server/lib/coach/knowledge/build-query';
 import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/format-knowledge-rag-block';
 import { retrieveCoachKnowledge } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
+import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import {
   formatTravelConstraintPromptRule,
   resolvePlanTargetUnderTravel,
@@ -162,6 +163,7 @@ function buildPlanPrompt(input: {
   start: Date;
   focus: string | undefined;
   contextText: string;
+  memoryBlock: string;
   knowledgeBlock: string;
   goalBlock: string;
   macroBlock: string;
@@ -169,8 +171,17 @@ function buildPlanPrompt(input: {
   /** Names the zones to protect — the static rules block cannot, it is shared by every athlete. */
   sensitiveZonesBlock: string;
 }) {
-  const { days, start, focus, contextText, knowledgeBlock, goalBlock, macroBlock, agendaBlock } =
-    input;
+  const {
+    days,
+    start,
+    focus,
+    contextText,
+    memoryBlock,
+    knowledgeBlock,
+    goalBlock,
+    macroBlock,
+    agendaBlock,
+  } = input;
   return `Génère un plan d'entraînement couvrant ${days} jour(s) à partir du ${format(
     start,
     'EEEE d MMMM yyyy',
@@ -179,7 +190,7 @@ function buildPlanPrompt(input: {
 
 ${focus ? `Demande spécifique de l'athlète : ${focus}\n\n` : ''}Données de l'athlète :
 
-${contextText}${knowledgeBlock}${goalBlock}${macroBlock}${agendaBlock}${input.sensitiveZonesBlock}`;
+${contextText}${memoryBlock}${knowledgeBlock}${goalBlock}${macroBlock}${agendaBlock}${input.sensitiveZonesBlock}`;
 }
 
 async function buildPlanGenerationContext(
@@ -249,22 +260,28 @@ async function preparePlanGeneration(
     travelResolved,
   });
   const agendaBlock = buildAgendaBlock(busySummary);
-  const knowledgeBlock = formatKnowledgeRagBlock(
-    retrieveCoachKnowledge(
-      buildCoachKnowledgeQuery({
-        focus,
-        sports: ctx.practicedSports,
-        verdict: ctx.decision?.verdict ?? null,
-        limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
-        planPhase: planPhase ?? null,
-      }),
+  const [memoryBlock, knowledgeBlock] = await Promise.all([
+    loadLearningMemoryBlock(athleteId, start),
+    Promise.resolve(
+      formatKnowledgeRagBlock(
+        retrieveCoachKnowledge(
+          buildCoachKnowledgeQuery({
+            focus,
+            sports: ctx.practicedSports,
+            verdict: ctx.decision?.verdict ?? null,
+            limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
+            planPhase: planPhase ?? null,
+          }),
+        ),
+      ),
     ),
-  );
+  ]);
   const prompt = buildPlanPrompt({
     days,
     start,
     focus: focus ?? undefined,
     contextText: formatCoachContext(ctx),
+    memoryBlock,
     knowledgeBlock,
     goalBlock,
     macroBlock,

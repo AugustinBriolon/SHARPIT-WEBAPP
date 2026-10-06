@@ -30,6 +30,7 @@
     "smoke:must-private": "tsx scripts/smoke-must-private.ts",
     "smoke:api-host": "tsx scripts/smoke-api-host.ts",
     "bench:coach-models": "tsx --env-file=.env scripts/bench-coach-models.ts",
+    "eval:coach-memory": "tsx scripts/eval-coach-memory.ts",
     "data:ciqual": "tsx scripts/build-ciqual-foods.ts",
     "data:coach-knowledge": "tsx scripts/build-coach-knowledge-index.ts"
   },

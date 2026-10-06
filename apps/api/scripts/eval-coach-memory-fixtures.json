@@ -1,0 +1,396 @@
+[
+  {
+    "id": "empty-history",
+    "outcomes": [],
+    "expectBlockEmpty": true
+  },
+  {
+    "id": "insufficient-only",
+    "outcomes": [
+      {
+        "type": "RUN",
+        "intensity": "THRESHOLD",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 60,
+            "actualDurationSec": 4200,
+            "plannedLoad": 50,
+            "actualLoad": 70,
+            "verdict": "HARDER",
+            "complianceScore": 40
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      }
+    ],
+    "expectBlockEmpty": true
+  },
+  {
+    "id": "run-hard-repeated-harder",
+    "outcomes": [
+      {
+        "type": "RUN",
+        "intensity": "THRESHOLD",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 60,
+            "actualDurationSec": 4200,
+            "plannedLoad": 50,
+            "actualLoad": 70,
+            "verdict": "HARDER",
+            "complianceScore": 40
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "RUN",
+        "intensity": "THRESHOLD",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 60,
+            "actualDurationSec": 4200,
+            "plannedLoad": 50,
+            "actualLoad": 70,
+            "verdict": "HARDER",
+            "complianceScore": 40
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "RUN",
+        "intensity": "THRESHOLD",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 60,
+            "actualDurationSec": 4200,
+            "plannedLoad": 50,
+            "actualLoad": 70,
+            "verdict": "HARDER",
+            "complianceScore": 40
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      }
+    ],
+    "expectBlockEmpty": false,
+    "expectBlockContains": ["## Apprentissages Decision Memory", "plus dures que prévu"]
+  },
+  {
+    "id": "bike-recovered",
+    "outcomes": [
+      {
+        "type": "BIKE",
+        "intensity": "ENDURANCE",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": null,
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": {
+            "daysObserved": 3,
+            "readinessValues": [70, 72, 74],
+            "fatigueIndexValues": [40, 38, 35]
+          },
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "BIKE",
+        "intensity": "ENDURANCE",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": null,
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": {
+            "daysObserved": 3,
+            "readinessValues": [70, 72, 74],
+            "fatigueIndexValues": [40, 38, 35]
+          },
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "BIKE",
+        "intensity": "ENDURANCE",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": null,
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": {
+            "daysObserved": 3,
+            "readinessValues": [70, 72, 74],
+            "fatigueIndexValues": [40, 38, 35]
+          },
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      }
+    ],
+    "expectBlockEmpty": false,
+    "expectBlockContains": ["récupères"]
+  },
+  {
+    "id": "caps-at-three-bullets",
+    "outcomes": [
+      {
+        "type": "RUN",
+        "intensity": "THRESHOLD",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 60,
+            "actualDurationSec": 4200,
+            "plannedLoad": 50,
+            "actualLoad": 70,
+            "verdict": "HARDER",
+            "complianceScore": 40
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "RUN",
+        "intensity": "THRESHOLD",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 60,
+            "actualDurationSec": 4200,
+            "plannedLoad": 50,
+            "actualLoad": 70,
+            "verdict": "HARDER",
+            "complianceScore": 40
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "RUN",
+        "intensity": "THRESHOLD",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 60,
+            "actualDurationSec": 4200,
+            "plannedLoad": 50,
+            "actualLoad": 70,
+            "verdict": "HARDER",
+            "complianceScore": 40
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "BIKE",
+        "intensity": "ENDURANCE",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": null,
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": {
+            "daysObserved": 3,
+            "readinessValues": [70, 72, 74],
+            "fatigueIndexValues": [40, 38, 35]
+          },
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "BIKE",
+        "intensity": "ENDURANCE",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": null,
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": {
+            "daysObserved": 3,
+            "readinessValues": [70, 72, 74],
+            "fatigueIndexValues": [40, 38, 35]
+          },
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "BIKE",
+        "intensity": "ENDURANCE",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": null,
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": {
+            "daysObserved": 3,
+            "readinessValues": [70, 72, 74],
+            "fatigueIndexValues": [40, 38, 35]
+          },
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "SWIM",
+        "intensity": "TEMPO",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 45,
+            "actualDurationSec": 3600,
+            "plannedLoad": 40,
+            "actualLoad": 60,
+            "verdict": "HARDER",
+            "complianceScore": 35
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "SWIM",
+        "intensity": "TEMPO",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 45,
+            "actualDurationSec": 3600,
+            "plannedLoad": 40,
+            "actualLoad": 60,
+            "verdict": "HARDER",
+            "complianceScore": 35
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "SWIM",
+        "intensity": "TEMPO",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 45,
+            "actualDurationSec": 3600,
+            "plannedLoad": 40,
+            "actualLoad": 60,
+            "verdict": "HARDER",
+            "complianceScore": 35
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "STRENGTH",
+        "intensity": "VO2MAX",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 40,
+            "actualDurationSec": 3000,
+            "plannedLoad": 30,
+            "actualLoad": 55,
+            "verdict": "HARDER",
+            "complianceScore": 30
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "STRENGTH",
+        "intensity": "VO2MAX",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 40,
+            "actualDurationSec": 3000,
+            "plannedLoad": 30,
+            "actualLoad": 55,
+            "verdict": "HARDER",
+            "complianceScore": 30
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      },
+      {
+        "type": "STRENGTH",
+        "intensity": "VO2MAX",
+        "outcome": {
+          "outcomeStatus": "EVALUATED",
+          "executionMatch": {
+            "plannedDurationMin": 40,
+            "actualDurationSec": 3000,
+            "plannedLoad": 30,
+            "actualLoad": 55,
+            "verdict": "HARDER",
+            "complianceScore": 30
+          },
+          "subjectiveResponse": null,
+          "shortTermRecoveryResponse": null,
+          "safetySignal": null,
+          "limitations": [],
+          "confidence": 0.5
+        }
+      }
+    ],
+    "expectBlockEmpty": false,
+    "expectMaxBullets": 3
+  }
+]

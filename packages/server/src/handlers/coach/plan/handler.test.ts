@@ -57,6 +57,7 @@ vi.mock('@sharpit/server/lib/athlete-state/snapshot-service', () => ({
 
 vi.mock('@sharpit/server/lib/decision-memory/repository', () => ({
   createCoachingDecision: vi.fn().mockResolvedValue({ id: 'mock-decision-id' }),
+  findRecentEvaluatedOutcomes: vi.fn().mockResolvedValue([]),
 }));
 
 // Mocked wholesale — ai-budget.ts imports @/lib/prisma, which must not run here.
