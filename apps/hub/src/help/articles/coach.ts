@@ -62,6 +62,33 @@ Un voyage enregistré apparaît dans ton Plan, à côté des dates de la semaine
 `,
     },
     {
+      slug: 'limites',
+      title: 'Ce que le coach fera, et ce qu’il ne fera pas',
+      summary:
+        'Le coach lit ton modèle, propose et explique. Il ne diagnostique pas, n’invente pas de science hors corpus, et ne force rien quand la confiance est trop basse.',
+      body: `
+### Ce qu’il fera
+
+- Préparer ou ajuster une semaine selon ton objectif, ton état et tes créneaux.
+- Répondre dans le chat avec le contexte Twin déjà chargé (récupération, charge, plan, contraintes).
+- S’appuyer sur les apprentissages issus des séances déjà évaluées, quand assez de preuves existent.
+- Citer les références internes SharpIt quand elles éclairent une prescription.
+- Te laisser valider ou refuser chaque changement de plan.
+
+### Ce qu’il ne fera pas
+
+- Poser un diagnostic médical, ni remplacer un médecin ou un kiné.
+- Inventer des études ou des chiffres hors de ton Twin et hors du corpus SharpIt.
+- Passer une séance écrite quand le [niveau de confiance](/aide/methode/niveau-de-confiance) est faible ou insuffisant : les [garde-fous](/aide/plan/garde-fous) retirent la prescription plutôt que de feindre une certitude.
+- Contourner un garde-fou (charge, récupération, zone à protéger, conflit d’agenda…).
+- Appliquer un changement de plan sans ta validation.
+
+### En pratique
+
+Si une demande touche à la santé au-delà de l’entraînement, le coach reste factuel et te renvoie vers un professionnel. Pour le plan, ce sont toujours les contrôles fixes qui ont le dernier mot avant l’affichage.
+`,
+    },
+    {
       slug: 'bilan-de-la-semaine',
       title: 'Le bilan de la semaine',
       summary:

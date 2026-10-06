@@ -33,4 +33,5 @@
 6. **P3c** — Calibrating surfacing in coach decision context — **done**.
 7. **P3d** — Weekly brief quality scout (deterministic offline score) — **done**.
 8. **P4c** — CI coach offline evals (`eval:coach-memory`, `eval:weekly-brief`) — **done**.
-9. **P4a–e remaining** — Aide coach fera/ne fera pas · day load vs training status · self-improve offline · Activity Status.
+9. **P4a** — Aide coach fera / ne fera pas (`/aide/coach/limites`) — **done**.
+10. **P4b / P4d / P4e** — Day load vs training status · self-improve offline · Activity Status.
