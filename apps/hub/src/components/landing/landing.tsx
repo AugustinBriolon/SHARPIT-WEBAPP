@@ -17,7 +17,7 @@ import { Trust } from './landing-trust';
 export function Landing() {
   return (
     <LandingMotion>
-      <header className="bg-background/80 fixed inset-x-0 top-0 z-10 backdrop-blur-sm">
+      <header className="bg-background/75 fixed inset-x-0 top-0 z-20 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
           <Brand />
           <a
@@ -34,7 +34,7 @@ export function Landing() {
           data-scroll-progress
         />
       </header>
-      <main className="mx-auto max-w-6xl px-5 sm:px-8">
+      <main>
         <Hero />
         <Story />
         <Method />

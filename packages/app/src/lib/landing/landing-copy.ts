@@ -29,6 +29,34 @@ export const LANDING_HERO = {
   signIn: { label: 'Connexion', href: LANDING_LINKS.signIn },
 } as const;
 
+/** The hero's iPhone, drawn on example figures: the app's Résumé on a morning that eases. */
+export const LANDING_PHONE = {
+  tag: 'Exemple',
+  time: '07:02',
+  date: 'Mardi 6 octobre',
+  chips: ['Entraînement', 'Journal', '12°'],
+  verdictLabel: 'Verdict du jour',
+  verdict: 'Séance facile',
+  reason: 'Garde tes jambes pour la séance clé de jeudi.',
+  confidence: 'Confiance moyenne',
+  sessionLabel: 'Séance du jour',
+  session: 'Footing facile',
+  sessionMeta: '45 min · endurance',
+  proposal: 'Allégée ce matin',
+  weekLabel: 'Cette semaine',
+  week: [
+    { day: 'L', state: 'done' },
+    { day: 'M', state: 'today' },
+    { day: 'M', state: 'planned' },
+    { day: 'J', state: 'key' },
+    { day: 'V', state: 'rest' },
+    { day: 'S', state: 'key' },
+    { day: 'D', state: 'planned' },
+  ],
+  keyLabel: 'Clé',
+  tabs: ['Résumé', 'Plan', 'Coach', 'Activité', 'Santé'],
+} as const;
+
 /** Read word by word as the visitor scrolls. */
 export const LANDING_MANIFESTO = {
   label: 'Le constat',
@@ -103,6 +131,23 @@ export const LANDING_METHOD = {
       note: 'Aucune modification sans ton accord',
     },
   ] satisfies LandingStep[],
+} as const;
+
+/** The words drawn inside the method's diagrams, one entry per step. */
+export const LANDING_DIAGRAMS = {
+  observe: {
+    sources: ['Garmin', 'Apple Santé', 'Withings'],
+    primary: 'principale',
+    model: 'Ton modèle',
+  },
+  compare: { window: '14 jours', band: '±5 % : bruit', outlier: '−9 % : à lire' },
+  arbitrate: {
+    readings: ['RAS', 'Prudence', 'Bonne', 'RAS', 'Pousser'],
+    verdict: 'Séance facile',
+    rule: 'La prudence gagne',
+  },
+  programme: { days: ['L', 'M', 'M', 'J', 'V', 'S', 'D'], key: 'Clé', checks: '13 / 13 contrôles' },
+  repair: { missed: 'Ratée', proposal: 'Proposé, à valider' },
 } as const;
 
 /** The decision engine's domain priority, safest first (DECISION_ENGINE.md). */
@@ -253,6 +298,7 @@ export type LandingQuestion = { question: string; answer: string };
 
 export const LANDING_FAQ = {
   label: 'Questions',
+  title: 'Ce qu’on nous demande',
   items: [
     {
       question: 'Faut-il une montre Garmin ?',
@@ -314,6 +360,11 @@ export function landingCopyStrings(): string[] {
     LANDING_HERO.rulerNote,
     LANDING_HERO.primaryCta.label,
     LANDING_HERO.secondaryCta.label,
+    ...Object.values(LANDING_PHONE).flatMap((value) =>
+      typeof value === 'string'
+        ? [value]
+        : value.map((item) => (typeof item === 'string' ? item : item.day)),
+    ),
     LANDING_MANIFESTO.label,
     LANDING_MANIFESTO.text,
     ...LANDING_CONTRASTS.flatMap((row) => [row.others, row.sharpit]),
@@ -321,6 +372,9 @@ export function landingCopyStrings(): string[] {
     LANDING_METHOD.title,
     ...LANDING_METHOD.steps.flatMap((step) => [step.label, step.title, step.body, step.note]),
     ...LANDING_PRIORITY,
+    ...Object.values(LANDING_DIAGRAMS).flatMap((labels) =>
+      Object.values(labels).flatMap((value) => (typeof value === 'string' ? [value] : value)),
+    ),
     LANDING_MORNING.label,
     LANDING_MORNING.title,
     LANDING_MORNING.body,
@@ -363,6 +417,7 @@ export function landingCopyStrings(): string[] {
     LANDING_SOURCES.upcomingLabel,
     ...LANDING_SOURCES.upcoming,
     LANDING_FAQ.label,
+    LANDING_FAQ.title,
     ...LANDING_FAQ.items.flatMap((item) => [item.question, item.answer]),
     LANDING_CLOSING.title,
     LANDING_CLOSING.body,

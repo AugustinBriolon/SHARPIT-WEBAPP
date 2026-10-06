@@ -1,6 +1,6 @@
 import { LANDING_MORNING, LANDING_PRIORITY } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
-import { DATA, HEADING, SectionHead, pad } from './landing-parts';
+import { Band, DATA, HEADING, SectionHead, pad } from './landing-parts';
 
 const { example } = LANDING_MORNING;
 const LIMITING_INDEX = LANDING_PRIORITY.indexOf(example.limiting);
@@ -103,7 +103,7 @@ function PriorityLadder() {
 
 export function Morning() {
   return (
-    <section aria-label={LANDING_MORNING.label} className="py-24 sm:py-32">
+    <Band inner="py-24 sm:py-32" label={LANDING_MORNING.label}>
       <SectionHead
         body={LANDING_MORNING.body}
         label={LANDING_MORNING.label}
@@ -113,6 +113,6 @@ export function Morning() {
         <VerdictPanel />
         <PriorityLadder />
       </div>
-    </section>
+    </Band>
   );
 }

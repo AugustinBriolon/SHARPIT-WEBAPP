@@ -2,7 +2,8 @@ import { ArrowDown, ArrowUpRight } from 'lucide-react';
 import { buttonVariants } from '@sharpit/ui/components/ui/button';
 import { LANDING_HERO } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
-import { DATA, HEADING, LEAD } from './landing-parts';
+import { CONTAINER, DATA, HEADING, LEAD } from './landing-parts';
+import { Phone } from './landing-phone';
 
 const RULER_TICKS = 49;
 
@@ -49,48 +50,53 @@ function Ruler() {
 
 export function Hero() {
   return (
-    <section className="relative flex min-h-dvh flex-col justify-center pt-24 pb-16" data-hero>
-      <div data-hero-body>
-        <p className="text-label text-muted-foreground" data-hero-fade>
-          {LANDING_HERO.eyebrow}
-        </p>
-        <h1 className={cn(HEADING, 'mt-6 text-[clamp(2.4rem,8vw,6.25rem)] leading-[0.95]')}>
-          {LANDING_HERO.titleLines.map((line) => (
-            <span key={line} className="-mb-[0.14em] block overflow-hidden pb-[0.14em]">
-              <span className="block" data-hero-line>
-                {line}
-              </span>
-            </span>
-          ))}
-        </h1>
-        <p className={cn(LEAD, 'mt-8 max-w-xl')} data-hero-fade>
-          {LANDING_HERO.body}
-        </p>
-        <div className="mt-10 flex flex-wrap gap-3" data-hero-fade>
-          <a
-            className={buttonVariants({ size: 'lg', className: 'px-5' })}
-            href={LANDING_HERO.primaryCta.href}
-          >
-            {LANDING_HERO.primaryCta.label}
-            <ArrowUpRight data-icon="inline-end" />
-          </a>
-          <a
-            href={LANDING_HERO.secondaryCta.href}
-            className={buttonVariants({
-              size: 'lg',
-              variant: 'ghost',
-              className: 'group/cta px-5',
-            })}
-          >
-            {LANDING_HERO.secondaryCta.label}
-            <ArrowDown
-              className="transition-transform duration-300 ease-out group-hover/cta:translate-y-0.5"
-              data-icon="inline-end"
-            />
-          </a>
+    <section className="landing-canvas relative overflow-hidden" data-hero>
+      <div className={cn(CONTAINER, 'flex min-h-dvh flex-col justify-center pt-28 pb-16')}>
+        <div className="grid items-center gap-16 lg:grid-cols-[minmax(0,1fr)_auto] lg:gap-12">
+          <div data-hero-body>
+            <p className="text-label text-muted-foreground" data-hero-fade>
+              {LANDING_HERO.eyebrow}
+            </p>
+            <h1 className={cn(HEADING, 'mt-6 text-[clamp(2.6rem,6.4vw,5.6rem)] leading-[0.93]')}>
+              {LANDING_HERO.titleLines.map((line) => (
+                <span key={line} className="-mb-[0.14em] block overflow-hidden pb-[0.14em]">
+                  <span className="block" data-hero-line>
+                    {line}
+                  </span>
+                </span>
+              ))}
+            </h1>
+            <p className={cn(LEAD, 'mt-8 max-w-xl')} data-hero-fade>
+              {LANDING_HERO.body}
+            </p>
+            <div className="mt-10 flex flex-wrap gap-3" data-hero-fade>
+              <a
+                className={buttonVariants({ size: 'lg', className: 'px-5' })}
+                href={LANDING_HERO.primaryCta.href}
+              >
+                {LANDING_HERO.primaryCta.label}
+                <ArrowUpRight data-icon="inline-end" />
+              </a>
+              <a
+                href={LANDING_HERO.secondaryCta.href}
+                className={buttonVariants({
+                  size: 'lg',
+                  variant: 'ghost',
+                  className: 'group/cta px-5',
+                })}
+              >
+                {LANDING_HERO.secondaryCta.label}
+                <ArrowDown
+                  className="transition-transform duration-300 ease-out group-hover/cta:translate-y-0.5"
+                  data-icon="inline-end"
+                />
+              </a>
+            </div>
+          </div>
+          <Phone />
         </div>
+        <Ruler />
       </div>
-      <Ruler />
     </section>
   );
 }

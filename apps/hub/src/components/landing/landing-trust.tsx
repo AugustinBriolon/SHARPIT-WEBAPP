@@ -4,12 +4,12 @@ import {
   LANDING_MEMORY,
 } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
-import { DATA, HEADING, LEAD, RULE, SectionHead, pad } from './landing-parts';
+import { Band, DATA, HEADING, LEAD, RULE, SectionHead, pad } from './landing-parts';
 
 /** The plan's Gate: the count, then one line per rule. */
 function Guardrails() {
   return (
-    <section aria-label={LANDING_GUARDRAILS.label} className="py-24 sm:py-32">
+    <Band inner="py-24 sm:py-32" label={LANDING_GUARDRAILS.label} tone="night">
       <p className={cn(RULE, 'text-label text-muted-foreground border-t pt-4')} data-reveal>
         {LANDING_GUARDRAILS.label}
       </p>
@@ -17,8 +17,11 @@ function Guardrails() {
         <div>
           <h2 className={cn(HEADING, 'leading-[0.95]')} data-reveal>
             <span
-              className={cn(DATA, 'block text-[clamp(5rem,14vw,10rem)] tracking-[-0.06em]')}
               data-count={LANDING_GUARDRAILS.count}
+              className={cn(
+                DATA,
+                'text-highlight block text-[clamp(6rem,17vw,13rem)] tracking-[-0.06em]',
+              )}
             >
               {LANDING_GUARDRAILS.count}
             </span>
@@ -43,14 +46,14 @@ function Guardrails() {
           ))}
         </ol>
       </div>
-    </section>
+    </Band>
   );
 }
 
 /** The confidence policy as a scale, then what the model learns over time. */
 function Honesty() {
   return (
-    <section aria-label={LANDING_HONESTY.label} className="py-24 sm:py-32">
+    <Band inner="py-24 sm:py-32" label={LANDING_HONESTY.label}>
       <SectionHead
         body={LANDING_HONESTY.body}
         label={LANDING_HONESTY.label}
@@ -104,14 +107,14 @@ function Honesty() {
           {LANDING_HONESTY.rampNote}
         </p>
       </div>
-    </section>
+    </Band>
   );
 }
 
 /** Decision Memory: what was advised, what was chosen, what followed. */
 function Memory() {
   return (
-    <section aria-label={LANDING_MEMORY.label} className="py-24 sm:py-32">
+    <Band inner="py-24 sm:py-32" label={LANDING_MEMORY.label}>
       <div className="grid gap-12 md:grid-cols-2 md:items-end md:gap-16">
         <SectionHead
           body={LANDING_MEMORY.body}
@@ -140,7 +143,7 @@ function Memory() {
           ))}
         </ol>
       </div>
-    </section>
+    </Band>
   );
 }
 

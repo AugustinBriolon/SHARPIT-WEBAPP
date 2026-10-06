@@ -3,3 +3,70 @@
 
 @source '../../../../packages/ui/src';
 @source '../../../../packages/app/src';
+
+/*
+ * The landing's two grounds. `canvas` is the app's own texture (iOS `SharpitCanvasTexture`: a
+ * 20 px micro-dot grid at 4 % and two faint brand halos), `night` the instrument's dark display,
+ * Forest in both themes so a band never turns into a Lime slab.
+ */
+:root {
+  --landing-night: oklch(0.285 0.068 139);
+  --landing-night-foreground: oklch(0.99 0.007 106.5);
+  --landing-night-muted: oklch(0.99 0.007 106.5 / 62%);
+  --landing-night-rule: oklch(0.99 0.007 106.5 / 14%);
+}
+
+.dark {
+  --landing-night: oklch(0.17 0.035 139);
+}
+
+@utility landing-canvas {
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in oklch, var(--color-foreground) 7%, transparent) 1px,
+      transparent 0
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 0% 0%,
+      color-mix(in oklch, var(--color-primary) 7%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 50% 45% at 100% 100%,
+      color-mix(in oklch, var(--color-highlight) 9%, transparent),
+      transparent
+    );
+  background-size:
+    20px 20px,
+    100% 100%,
+    100% 100%;
+  background-color: var(--color-background);
+}
+
+@utility landing-night {
+  background-color: var(--landing-night);
+  color: var(--landing-night-foreground);
+  --color-muted-foreground: var(--landing-night-muted);
+  --color-foreground: var(--landing-night-foreground);
+}
+
+/* The sources ribbon: one slow lap, still under Reduce Motion. */
+@keyframes landing-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@utility landing-marquee {
+  animation: landing-marquee 40s linear infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}

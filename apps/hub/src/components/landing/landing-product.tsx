@@ -10,12 +10,12 @@ import {
   LANDING_SOURCES,
 } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
-import { DATA, HEADING, RULE, SectionHead, pad } from './landing-parts';
+import { Band, Brand, CONTAINER, DATA, HEADING, RULE, SectionHead, pad } from './landing-parts';
 
 /** The iPhone app's five tabs, then what sits around them. */
 function AppSurfaces() {
   return (
-    <section aria-label={LANDING_APP.label} className="py-24 sm:py-32">
+    <Band inner="py-24 sm:py-32" label={LANDING_APP.label} tone="canvas">
       <SectionHead label={LANDING_APP.label} title={LANDING_APP.title} />
       <ul className={cn(RULE, 'mt-14 border-t')}>
         {LANDING_APP.surfaces.map((surface, i) => (
@@ -51,70 +51,81 @@ function AppSurfaces() {
           </li>
         ))}
       </ul>
-    </section>
+    </Band>
   );
 }
 
-/** What the product refuses to become, on the ink band. */
+/** What the product refuses to become, on the night band. */
 function Refusals() {
   return (
-    <section aria-label={LANDING_REFUSALS.label} className="py-16 sm:py-24">
-      <div className="surface-ink px-6 py-14 sm:px-12 sm:py-20" data-reveal>
-        <h2 className={cn(HEADING, 'text-[clamp(1.75rem,4vw,3rem)] leading-[1.05]')}>
-          {LANDING_REFUSALS.label}
-        </h2>
-        <ul className="mt-10 grid gap-x-10 sm:grid-cols-2">
-          {LANDING_REFUSALS.items.map((item) => (
-            <li
-              key={item}
-              className="flex items-baseline gap-4 border-b border-current/15 py-4 text-lg"
-              data-refusal
-            >
-              <span className={cn(DATA, 'text-sm opacity-60')} aria-hidden>
-                ×
-              </span>
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-function Sources() {
-  return (
-    <section aria-label={LANDING_SOURCES.title} className="py-16 sm:py-24">
-      <p className={cn(RULE, 'text-label text-muted-foreground border-t pt-4')} data-reveal>
-        {LANDING_SOURCES.title}
-      </p>
-      <ul className="mt-10 flex flex-wrap gap-x-10 gap-y-4">
-        {LANDING_SOURCES.connected.map((name) => (
+    <Band inner="py-24 sm:py-32" label={LANDING_REFUSALS.label} tone="night">
+      <h2
+        className={cn(HEADING, 'max-w-3xl text-[clamp(2.25rem,5.5vw,4.25rem)] leading-[0.98]')}
+        data-reveal
+      >
+        {LANDING_REFUSALS.label}
+      </h2>
+      <ul className="mt-14 grid gap-x-12 sm:grid-cols-2">
+        {LANDING_REFUSALS.items.map((item) => (
           <li
-            key={name}
-            className={cn(HEADING, 'text-[clamp(1.75rem,4.5vw,3.25rem)] leading-none')}
-            data-reveal
+            key={item}
+            className={cn(RULE, 'flex items-baseline gap-5 border-b py-5 text-xl')}
+            data-refusal
           >
-            {name}
+            <span className={cn(DATA, 'text-highlight text-base')} aria-hidden>
+              ×
+            </span>
+            {item}
           </li>
         ))}
       </ul>
-      <dl
-        className="text-muted-foreground mt-8 flex flex-wrap gap-x-10 gap-y-2 text-lg"
-        data-reveal
-      >
-        <div className="flex items-baseline gap-3">
-          <dt className={cn(DATA, 'text-xs uppercase')}>{LANDING_SOURCES.importLabel}</dt>
-          <dd>{LANDING_SOURCES.imported.join(' · ')}</dd>
-        </div>
-        <div className="flex items-baseline gap-3">
-          <dt className={cn(DATA, 'text-xs uppercase')}>{LANDING_SOURCES.upcomingLabel}</dt>
-          <dd>{LANDING_SOURCES.upcoming.join(' · ')}</dd>
-        </div>
-      </dl>
-      <p className={cn(HEADING, 'mt-12 text-2xl sm:text-3xl')} data-reveal>
-        {LANDING_SOURCES.subtitle}
-      </p>
+    </Band>
+  );
+}
+
+/** The connected sources run past as a ribbon; the second copy only closes the loop. */
+function Sources() {
+  const ribbon = [...LANDING_SOURCES.connected, ...LANDING_SOURCES.connected];
+  return (
+    <section aria-label={LANDING_SOURCES.title} className="overflow-hidden py-24 sm:py-32">
+      <div className={CONTAINER}>
+        <p className={cn(RULE, 'text-label text-muted-foreground border-t pt-4')} data-reveal>
+          {LANDING_SOURCES.title}
+        </p>
+      </div>
+      <div className="landing-marquee mt-12 flex w-max" data-reveal>
+        {[0, 1].map((copy) => (
+          <ul key={copy} aria-hidden={copy === 1 ? true : undefined} className="flex shrink-0">
+            {ribbon.map((name, i) => (
+              <li
+                key={`${name}-${i}`}
+                className={cn(
+                  HEADING,
+                  'flex items-center gap-[4vw] pr-[4vw] text-[clamp(2.5rem,7vw,6rem)] leading-none',
+                )}
+              >
+                {name}
+                <span className="bg-highlight size-3 rounded-full" aria-hidden />
+              </li>
+            ))}
+          </ul>
+        ))}
+      </div>
+      <div className={cn(CONTAINER, 'mt-12 flex flex-wrap items-end justify-between gap-8')}>
+        <dl className="text-muted-foreground flex flex-wrap gap-x-10 gap-y-2 text-lg" data-reveal>
+          <div className="flex items-baseline gap-3">
+            <dt className={cn(DATA, 'text-xs uppercase')}>{LANDING_SOURCES.importLabel}</dt>
+            <dd>{LANDING_SOURCES.imported.join(' · ')}</dd>
+          </div>
+          <div className="flex items-baseline gap-3">
+            <dt className={cn(DATA, 'text-xs uppercase')}>{LANDING_SOURCES.upcomingLabel}</dt>
+            <dd>{LANDING_SOURCES.upcoming.join(' · ')}</dd>
+          </div>
+        </dl>
+        <p className={cn(HEADING, 'text-2xl sm:text-3xl')} data-reveal>
+          {LANDING_SOURCES.subtitle}
+        </p>
+      </div>
     </section>
   );
 }
@@ -122,67 +133,85 @@ function Sources() {
 /** Native disclosure: works without script, the plus turns into a cross when open. */
 function Faq() {
   return (
-    <section aria-label={LANDING_FAQ.label} className="py-24 sm:py-32">
-      <p className={cn(RULE, 'text-label text-muted-foreground border-t pt-4')} data-reveal>
-        {LANDING_FAQ.label}
-      </p>
-      <div className="mt-8">
+    <Band
+      inner="grid gap-10 py-24 sm:py-32 md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] md:gap-16"
+      label={LANDING_FAQ.label}
+    >
+      <div>
+        <p className={cn(RULE, 'text-label text-muted-foreground border-t pt-4')} data-reveal>
+          {LANDING_FAQ.label}
+        </p>
+        <h2 className={cn(HEADING, 'mt-8 text-[clamp(2rem,4vw,3rem)] leading-[1]')} data-reveal>
+          {LANDING_FAQ.title}
+        </h2>
+      </div>
+      <div className={cn(RULE, 'border-t')}>
         {LANDING_FAQ.items.map((item) => (
           <details key={item.question} className={cn(RULE, 'group border-b')} data-reveal>
             <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-6 [&::-webkit-details-marker]:hidden">
-              <span className={cn(HEADING, 'text-xl sm:text-2xl')}>{item.question}</span>
-              <Plus
-                className="text-muted-foreground size-5 shrink-0 transition-transform duration-300 ease-out group-open:rotate-45"
-                aria-hidden
-              />
+              <span
+                className={cn(
+                  HEADING,
+                  'text-xl transition-transform duration-300 ease-out group-hover:translate-x-1 sm:text-2xl',
+                )}
+              >
+                {item.question}
+              </span>
+              <span className="border-foreground/20 group-open:bg-foreground group-open:text-background grid size-9 shrink-0 place-items-center rounded-full border transition-colors duration-300">
+                <Plus
+                  className="size-4 transition-transform duration-300 ease-out group-open:rotate-45"
+                  aria-hidden
+                />
+              </span>
             </summary>
-            <p className="text-muted-foreground max-w-2xl pb-6 text-base leading-relaxed text-pretty">
+            <p className="text-muted-foreground max-w-2xl pb-7 text-base leading-relaxed text-pretty">
               {item.answer}
             </p>
           </details>
         ))}
       </div>
-    </section>
+    </Band>
   );
 }
 
+/** The last word and the way in, then the footer, on one night band. */
 function Closing() {
   return (
-    <section className="py-16 sm:py-24">
-      <div className="surface-ink px-6 py-20 sm:px-12 sm:py-28" data-reveal>
-        <h2 className={cn(HEADING, 'max-w-3xl text-[clamp(2rem,5.5vw,4rem)] leading-[1]')}>
+    <section aria-label={LANDING_CLOSING.cta.label} className="landing-night">
+      <div className={cn(CONTAINER, 'pt-28 pb-10 sm:pt-40')}>
+        <h2
+          className={cn(HEADING, 'max-w-5xl text-[clamp(2.6rem,7vw,6.5rem)] leading-[0.95]')}
+          data-reveal
+        >
           {LANDING_CLOSING.title}
         </h2>
-        <p className="mt-6 text-lg opacity-75">{LANDING_CLOSING.body}</p>
-        <a
-          className={buttonVariants({ size: 'lg', variant: 'highlight', className: 'mt-10 px-5' })}
-          href={LANDING_CLOSING.cta.href}
+        <div className="mt-12 flex flex-wrap items-center gap-6" data-reveal>
+          <a
+            className={buttonVariants({ size: 'lg', variant: 'highlight', className: 'px-5' })}
+            href={LANDING_CLOSING.cta.href}
+          >
+            {LANDING_CLOSING.cta.label}
+            <ArrowUpRight data-icon="inline-end" />
+          </a>
+          <p className="text-muted-foreground text-lg">{LANDING_CLOSING.body}</p>
+        </div>
+        <footer
+          className={cn(
+            RULE,
+            'text-muted-foreground mt-28 flex flex-wrap items-center justify-between gap-4 border-t pt-8 text-sm',
+          )}
         >
-          {LANDING_CLOSING.cta.label}
-          <ArrowUpRight data-icon="inline-end" />
-        </a>
+          <Brand />
+          <nav className="flex gap-5">
+            {LANDING_FOOTER_LINKS.map((link) => (
+              <Link key={link.href} className="underline-offset-4 hover:underline" href={link.href}>
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </footer>
       </div>
     </section>
-  );
-}
-
-function Footer() {
-  return (
-    <footer
-      className={cn(
-        RULE,
-        'text-muted-foreground flex flex-wrap items-center justify-between gap-4 border-t py-8 text-sm',
-      )}
-    >
-      <span className={DATA}>SharpIt</span>
-      <nav className="flex gap-5">
-        {LANDING_FOOTER_LINKS.map((link) => (
-          <Link key={link.href} className="underline-offset-4 hover:underline" href={link.href}>
-            {link.label}
-          </Link>
-        ))}
-      </nav>
-    </footer>
   );
 }
 
@@ -190,11 +219,10 @@ export function Product() {
   return (
     <>
       <AppSurfaces />
-      <Refusals />
       <Sources />
+      <Refusals />
       <Faq />
       <Closing />
-      <Footer />
     </>
   );
 }

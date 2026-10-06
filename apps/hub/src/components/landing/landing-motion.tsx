@@ -31,6 +31,22 @@ function animateHero() {
     .from('[data-tick]', { scaleY: 0, duration: 0.6, stagger: 0.012, ease: 'power3.out' }, 0.6)
     .from('[data-marker]', { left: '0%', duration: 1.6, ease: 'power4.inOut' }, 0.9);
 
+  intro
+    .from('[data-phone]', { autoAlpha: 0, y: 80, rotate: 2, duration: 1.4 }, 0.2)
+    .from('[data-phone-item]', { autoAlpha: 0, y: 16, duration: 0.8, stagger: 0.1 }, 0.8)
+    .from('[data-phone-tick]', { scaleY: 0, duration: 0.4, stagger: 0.02, ease: 'power3.out' }, 1.2)
+    .from(
+      '[data-phone-badge]',
+      { autoAlpha: 0, scale: 0.6, duration: 0.6, ease: 'back.out(2)' },
+      1.8,
+    );
+
+  gsap.to('[data-phone]', {
+    yPercent: -10,
+    ease: 'none',
+    scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true },
+  });
+
   gsap.to('[data-hero-body]', {
     yPercent: -12,
     autoAlpha: 0.2,
@@ -72,22 +88,71 @@ function animateContrasts() {
   });
 }
 
-/** Desktop: the method's steps share one pinned stage and hand over as the visitor scrolls. */
-function animatePinnedChain() {
+/** Plays one method schematic: ticks and bars rise, lines draw, the outcome lands last. */
+function diagramTimeline(step: Element, scrollTrigger: ScrollTrigger.Vars) {
+  const parts = (selector: string) => Array.from(step.querySelectorAll(selector));
+  const timeline = gsap.timeline({ defaults: { ease: EASE }, scrollTrigger });
+  const fade = parts('[data-d-fade]');
+  const ticks = parts('[data-d-tick]');
+  const bars = parts('[data-d-bar]');
+  const lines = parts('[data-d-draw]');
+  const pops = parts('[data-d-pop]');
+  if (fade.length) {
+    timeline.from(fade, { autoAlpha: 0, duration: 0.6 }, 0);
+  }
+  if (ticks.length) {
+    timeline.from(ticks, { scaleY: 0, duration: 0.4, stagger: 0.008 }, 0);
+  }
+  if (bars.length) {
+    timeline.from(bars, { scaleY: 0, duration: 0.7, stagger: 0.08 }, 0.1);
+  }
+  if (lines.length) {
+    timeline.fromTo(
+      lines,
+      { strokeDashoffset: 1 },
+      { strokeDashoffset: 0, duration: 1.1, stagger: 0.08, ease: 'power2.inOut' },
+      0.25,
+    );
+  }
+  if (pops.length) {
+    timeline.from(
+      pops,
+      {
+        autoAlpha: 0,
+        scale: 0.85,
+        transformOrigin: '50% 50%',
+        duration: 0.6,
+        stagger: 0.12,
+        ease: 'back.out(2)',
+      },
+      0.9,
+    );
+  }
+  return timeline;
+}
+
+/** Desktop: the section pins and the method's steps travel sideways under the scroll. */
+function animateMethodTrack() {
+  const track = document.querySelector<HTMLElement>('[data-chain-track]');
+  if (!track) {
+    return;
+  }
   const steps = gsap.utils.toArray<HTMLElement>('[data-chain-step]');
   const labels = gsap.utils.toArray<HTMLElement>('[data-chain-label]');
   const counter = document.querySelector<HTMLElement>('[data-chain-counter]');
+  const distance = () => Math.max(0, track.scrollWidth - window.innerWidth);
   let shown = 0;
-  gsap.set(steps.slice(1), { autoAlpha: 0, y: 60 });
-  const stage = gsap.timeline({
+  const travel = gsap.timeline({
+    defaults: { ease: 'none' },
     scrollTrigger: {
       trigger: '[data-chain]',
       start: 'top top',
-      end: `+=${steps.length * 90}%`,
+      end: () => `+=${distance()}`,
       pin: true,
       scrub: 0.6,
+      invalidateOnRefresh: true,
       onUpdate: (self) => {
-        const current = Math.min(steps.length - 1, Math.floor(self.progress * steps.length));
+        const current = Math.round(self.progress * (steps.length - 1));
         if (current === shown) {
           return;
         }
@@ -99,21 +164,21 @@ function animatePinnedChain() {
       },
     },
   });
-  stage.fromTo(
-    '[data-chain-progress]',
-    { scaleX: 0 },
-    { scaleX: 1, ease: 'none', duration: steps.length },
-    0,
+  travel
+    .to(track, { x: () => -distance(), duration: 1 }, 0)
+    .fromTo('[data-chain-progress]', { scaleX: 0 }, { scaleX: 1, duration: 1 }, 0);
+  steps.forEach((step, i) =>
+    diagramTimeline(
+      step,
+      i === 0
+        ? { trigger: '[data-chain]', start: 'top 60%' }
+        : { trigger: step, containerAnimation: travel, start: 'left 70%' },
+    ),
   );
-  steps.slice(1).forEach((step, i) => {
-    stage
-      .to(steps[i], { autoAlpha: 0, y: -60, duration: 0.4 }, i + 0.6)
-      .to(step, { autoAlpha: 1, y: 0, duration: 0.4 }, i + 0.8);
-  });
 }
 
-/** Mobile: no pin, each step rises into place. */
-function animateStackedChain() {
+/** Mobile: no pin, each step rises into place and plays its schematic. */
+function animateStackedMethod() {
   gsap.set('[data-chain-progress]', { scaleX: 1 });
   gsap.utils.toArray<HTMLElement>('[data-chain-step]').forEach((step) => {
     gsap.from(step, {
@@ -123,6 +188,7 @@ function animateStackedChain() {
       ease: EASE,
       scrollTrigger: { trigger: step, start: 'top 85%' },
     });
+    diagramTimeline(step, { trigger: step, start: 'top 70%' });
   });
 }
 
@@ -242,9 +308,9 @@ export function LandingMotion({ children }: { children: ReactNode }) {
         animateManifesto();
         animateContrasts();
         if (wide) {
-          animatePinnedChain();
+          animateMethodTrack();
         } else {
-          animateStackedChain();
+          animateStackedMethod();
         }
         animateMorning();
         animateGuardrails();

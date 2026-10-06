@@ -6,6 +6,7 @@ export const HEADING = 'font-[family-name:var(--font-heading)] font-semibold tra
 export const DATA = 'font-[family-name:var(--font-data)] tabular-nums';
 export const LEAD = 'text-muted-foreground text-lg leading-relaxed text-pretty';
 export const RULE = 'border-foreground/15';
+export const CONTAINER = 'mx-auto w-full max-w-6xl px-5 sm:px-8';
 
 export function Brand() {
   return (
@@ -15,6 +16,37 @@ export function Brand() {
       </span>
       <span className={cn(HEADING, 'text-base tracking-tight')}>SharpIt</span>
     </span>
+  );
+}
+
+type BandTone = 'plain' | 'canvas' | 'night';
+
+const BAND_TONE: Record<BandTone, string> = {
+  plain: 'bg-background',
+  canvas: 'landing-canvas',
+  night: 'landing-night',
+};
+
+/** A full-width section on one of the landing's grounds, its content in the reading column. */
+export function Band({
+  tone = 'plain',
+  label,
+  className,
+  inner,
+  children,
+  ...rest
+}: {
+  tone?: BandTone;
+  label: string;
+  className?: string;
+  /** Classes for the column inside the band. */
+  inner?: string;
+  children: ReactNode;
+} & Omit<React.ComponentProps<'section'>, 'aria-label' | 'className' | 'children'>) {
+  return (
+    <section aria-label={label} className={cn(BAND_TONE[tone], className)} {...rest}>
+      <div className={cn(CONTAINER, inner)}>{children}</div>
+    </section>
   );
 }
 
@@ -36,7 +68,7 @@ export function SectionHead({
         {label}
       </p>
       <h2
-        className={cn(HEADING, 'mt-8 max-w-3xl text-[clamp(2rem,5vw,3.75rem)] leading-[1]')}
+        className={cn(HEADING, 'mt-8 max-w-3xl text-[clamp(2.25rem,5.5vw,4.25rem)] leading-[0.98]')}
         data-reveal
       >
         {title}
