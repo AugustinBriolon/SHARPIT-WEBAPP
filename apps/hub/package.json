@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.9",
+    "@gsap/react": "^2.1.2",
     "@sharpit/app": "workspace:*",
     "@sharpit/core": "workspace:*",
     "@sharpit/shared": "workspace:*",

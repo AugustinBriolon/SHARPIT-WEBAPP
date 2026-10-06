@@ -1,10 +1,12 @@
 'use client';
 
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useRef, type ReactNode } from 'react';
 import gsap from 'gsap';
+import { DrawSVGPlugin } from 'gsap/DrawSVGPlugin';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
 
-gsap.registerPlugin(ScrollTrigger);
+gsap.registerPlugin(useGSAP, ScrollTrigger, DrawSVGPlugin);
 
 const EASE = 'expo.out';
 const PIN_BREAKPOINT = '(min-width: 768px)';
@@ -29,7 +31,16 @@ function animateHero() {
     .from('[data-hero-line]', { yPercent: 110, duration: 1.2, stagger: 0.12 })
     .from('[data-hero-fade]', { autoAlpha: 0, y: 24, duration: 1, stagger: 0.08 }, 0.35)
     .from('[data-tick]', { scaleY: 0, duration: 0.6, stagger: 0.012, ease: 'power3.out' }, 0.6)
-    .from('[data-marker]', { left: '0%', duration: 1.6, ease: 'power4.inOut' }, 0.9);
+    // From the ruler's start to its place: a transform, never `left`.
+    .from(
+      '[data-marker]',
+      {
+        x: (_, marker: HTMLElement) => -marker.offsetLeft,
+        duration: 1.6,
+        ease: 'power4.inOut',
+      },
+      0.9,
+    );
 
   intro
     .from('[data-phone]', { autoAlpha: 0, y: 80, rotate: 2, duration: 1.4 }, 0.2)
@@ -134,10 +145,11 @@ function diagramTimeline(step: Element, scrollTrigger: ScrollTrigger.Vars) {
     timeline.from(bars, { scaleY: 0, duration: 0.7, stagger: 0.08 }, 0.1);
   }
   if (lines.length) {
+    // DrawSVG measures each stroke; a hand-rolled dash offset is rounded to whole pixels.
     timeline.fromTo(
       lines,
-      { strokeDashoffset: 1 },
-      { strokeDashoffset: 0, duration: 1.1, stagger: 0.08, ease: 'power2.inOut' },
+      { drawSVG: '0% 0%' },
+      { drawSVG: '0% 100%', duration: 1.1, stagger: 0.08, ease: 'power2.inOut' },
       0.25,
     );
   }
@@ -304,39 +316,43 @@ function animateReveals() {
 export function LandingMotion({ children }: { children: ReactNode }) {
   const scope = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
-    const media = gsap.matchMedia(scope);
-    media.add(
-      {
-        motion: '(prefers-reduced-motion: no-preference)',
-        wide: PIN_BREAKPOINT,
-      },
-      (context) => {
-        const { motion, wide } = context.conditions ?? {};
-        if (!motion) {
-          return;
-        }
-        animateScrollProgress();
-        animateHero();
-        animateManifesto();
-        animateContrasts();
-        if (wide) {
-          animateMethodTrack();
-        } else {
-          animateStackedMethod();
-        }
-        animateMorning();
-        animateGuardrails();
-        animateHonesty();
-        animateMemory();
-        animateRefusals();
-        animateReveals();
-      },
-    );
-    // Every element now stands in its starting state: the content can show (globals.css).
-    scope.current?.setAttribute('data-motion-ready', '');
-    return () => media.revert();
-  }, []);
+  useGSAP(
+    () => {
+      gsap.matchMedia(scope).add(
+        {
+          motion: '(prefers-reduced-motion: no-preference)',
+          wide: PIN_BREAKPOINT,
+        },
+        (context) => {
+          const { motion, wide } = context.conditions ?? {};
+          if (!motion) {
+            return;
+          }
+          // The pin comes before every trigger below it, so each one is measured past its spacer.
+          animateScrollProgress();
+          animateHero();
+          animateManifesto();
+          animateContrasts();
+          if (wide) {
+            animateMethodTrack();
+          } else {
+            animateStackedMethod();
+          }
+          animateMorning();
+          animateGuardrails();
+          animateHonesty();
+          animateMemory();
+          animateRefusals();
+          animateReveals();
+          // The brand faces change line heights once they load: measure the triggers again.
+          document.fonts.ready.then(() => ScrollTrigger.refresh());
+        },
+      );
+      // Every element now stands in its starting state: the content can show (globals.css).
+      scope.current?.setAttribute('data-motion-ready', '');
+    },
+    { scope },
+  );
 
   return (
     <div ref={scope} data-landing-motion>
