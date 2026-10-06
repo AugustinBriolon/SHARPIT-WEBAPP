@@ -53,4 +53,60 @@ describe('activitiesMatch', () => {
       ),
     ).toBe(true);
   });
+
+  it('matches via alt duration when Garmin moving diverges from Apple elapsed', () => {
+    expect(
+      activitiesMatch(
+        {
+          type: ActivityType.RUN,
+          date: base,
+          duration: 2_400,
+          altDurations: [2_700],
+        },
+        {
+          type: ActivityType.RUN,
+          date: new Date(base.getTime() + 30_000),
+          duration: 2_700,
+        },
+      ),
+    ).toBe(true);
+  });
+
+  it('matches via distance when durations diverge beyond tolerance', () => {
+    expect(
+      activitiesMatch(
+        {
+          type: ActivityType.RUN,
+          date: base,
+          duration: 2_400,
+          distanceM: 8_000,
+        },
+        {
+          type: ActivityType.RUN,
+          date: new Date(base.getTime() + 45_000),
+          duration: 2_820,
+          distanceM: 8_020,
+        },
+      ),
+    ).toBe(true);
+  });
+
+  it('rejects when durations and distances both diverge', () => {
+    expect(
+      activitiesMatch(
+        {
+          type: ActivityType.RUN,
+          date: base,
+          duration: 2_400,
+          distanceM: 8_000,
+        },
+        {
+          type: ActivityType.RUN,
+          date: base,
+          duration: 2_820,
+          distanceM: 10_500,
+        },
+      ),
+    ).toBe(false);
+  });
 });

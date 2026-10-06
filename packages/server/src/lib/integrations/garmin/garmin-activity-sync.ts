@@ -7,8 +7,8 @@ import {
   buildGarminActivityData,
   fetchGarminActivityEvaluation,
   fetchGarminExerciseSets,
+  garminDedupDurations,
   garminEnrichmentUpdate,
-  garminSessionDurationSec,
   mapGarminType,
   resolveGarminStrengthSets,
   type ParsedStrengthSet,
@@ -349,7 +349,7 @@ async function processOneGarminActivity(
     return { ...EMPTY_OUTCOME, skipped: 1 };
   }
 
-  const duration = garminSessionDurationSec(activity, type);
+  const { duration, altDurations } = garminDedupDurations(activity, type);
   const evaluation = await fetchGarminActivityEvaluation(client, activity.activityId);
   const strengthSets =
     type === ActivityType.STRENGTH
@@ -380,6 +380,8 @@ async function processOneGarminActivity(
     type,
     date: new Date(activity.startTimeLocal),
     duration,
+    altDurations,
+    distanceM: activity.distance > 0 ? activity.distance : null,
     garminId,
   });
 

@@ -335,7 +335,17 @@ async function processStravaCandidate(
 ): Promise<StravaProcessOutcome> {
   const date = new Date(strava.start_date);
   const duration = strava.moving_time || strava.elapsed_time || null;
-  const match = await findMatchingActivity(athleteId, { type, date, duration, stravaId });
+  const altDurations = [strava.moving_time, strava.elapsed_time].filter(
+    (value): value is number => typeof value === 'number' && value > 0 && value !== duration,
+  );
+  const match = await findMatchingActivity(athleteId, {
+    type,
+    date,
+    duration,
+    altDurations,
+    distanceM: strava.distance > 0 ? strava.distance : null,
+    stravaId,
+  });
 
   if (match) {
     return mergeStravaIntoMatch({ athleteId, match, strava, type, stravaId });

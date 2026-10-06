@@ -28,6 +28,10 @@ describe('importAppleHealthWorkouts · a session Garmin already brought', () => 
         source: 'garmin',
         rpe: null,
         feeling: null,
+        runMetrics: null,
+        bikeMetrics: { distanceM: 32_100 },
+        swimMetrics: null,
+        hikeMetrics: null,
       },
     ]);
     const bike = appleHealthWorkoutSchema.parse({
@@ -39,6 +43,41 @@ describe('importAppleHealthWorkouts · a session Garmin already brought', () => 
     });
 
     const result = await importAppleHealthWorkouts('athlete-1', [bike]);
+
+    expect(result).toEqual({ imported: 0, skipped: 1, activityIds: [] });
+    expect(db.activity.create).not.toHaveBeenCalled();
+  });
+
+  it('skips when Apple elapsed diverges from Garmin moving but distance matches', async () => {
+    db.googleAccount.findUnique.mockResolvedValue({ timeZone: 'Europe/Paris' });
+    db.activity.create.mockClear();
+    db.activity.findMany.mockResolvedValue([
+      {
+        id: 'garmin-run',
+        type: 'RUN',
+        date: new Date('2026-10-06T18:00:00.000Z'),
+        duration: 2_400,
+        garminId: '99',
+        stravaId: null,
+        source: 'garmin',
+        rpe: null,
+        feeling: null,
+        runMetrics: { distanceM: 8_000 },
+        bikeMetrics: null,
+        swimMetrics: null,
+        hikeMetrics: null,
+      },
+    ]);
+    const run = appleHealthWorkoutSchema.parse({
+      id: 'HK-2',
+      type: 'RUN',
+      title: 'Course',
+      start: '2026-10-06T16:00:30Z',
+      durationSec: 2_820,
+      distanceM: 8_015,
+    });
+
+    const result = await importAppleHealthWorkouts('athlete-1', [run]);
 
     expect(result).toEqual({ imported: 0, skipped: 1, activityIds: [] });
     expect(db.activity.create).not.toHaveBeenCalled();

@@ -15,7 +15,8 @@ const DEFAULT_ATHLETE_TIME_ZONE = 'Europe/Paris';
  * without Garmin or Strava train with SharpIt on an Apple Watch alone.
  *
  * Taken while Apple Health is enabled for activities (ADR-054). A workout already held
- * (same sport, start and duration — the Garmin/Strava fingerprint, on the wall-clock start) is skipped, which also makes
+ * (same sport, start and duration — or the same distance when durations diverge, the
+ * Garmin/Strava fingerprint, on the wall-clock start) is skipped, which also makes
  * a workout sent twice harmless. The stored row goes to the Core as any activity without a
  * provider id does (`storedActivityToSession`), so its load is the Core's.
  */
@@ -188,6 +189,7 @@ async function importOne(
     type: workout.type,
     date: data.date as Date,
     duration: workout.durationSec,
+    distanceM: workout.distanceM ?? null,
   });
   if (match) {
     return null;

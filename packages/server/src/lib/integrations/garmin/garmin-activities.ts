@@ -409,6 +409,23 @@ export function garminSessionDurationSec(activity: IActivity, type: ActivityType
   return garminDurationSec(activity.movingDuration, activity.duration, activity.elapsedDuration);
 }
 
+/**
+ * Durées à tenter pour la dédup (moving + elapsed). Apple Santé envoie souvent
+ * la durée totale alors que SharpIt stocke le temps en mouvement Garmin.
+ */
+export function garminDedupDurations(
+  activity: IActivity,
+  type: ActivityType,
+): { duration: number | null; altDurations: number[] } {
+  const duration = garminSessionDurationSec(activity, type);
+  const alts = [
+    garminDurationSec(activity.movingDuration),
+    garminDurationSec(activity.duration),
+    garminDurationSec(activity.elapsedDuration),
+  ].filter((value): value is number => value !== null && value !== duration);
+  return { duration, altDurations: [...new Set(alts)] };
+}
+
 /** Durée Garmin : secondes ou millisecondes selon le champ / endpoint. */
 export function garminDurationSec(...values: Array<number | null | undefined>): number | null {
   for (const v of values) {

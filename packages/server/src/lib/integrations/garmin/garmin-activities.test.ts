@@ -3,10 +3,26 @@ import { ActivityType } from '@prisma/client';
 import type { IActivity } from '@flow-js/garmin-connect/dist/garmin/types/activity';
 import {
   buildGarminActivityData,
+  garminDedupDurations,
   garminEnrichmentUpdate,
   garminTrainingStressScore,
   mapGarminType,
 } from '@sharpit/server/lib/integrations/garmin/garmin-activities';
+
+describe('garminDedupDurations', () => {
+  it('keeps moving as primary and exposes elapsed as alternate for runs', () => {
+    const activity = {
+      movingDuration: 2_400,
+      duration: 2_500,
+      elapsedDuration: 2_820,
+    } as unknown as IActivity;
+
+    expect(garminDedupDurations(activity, ActivityType.RUN)).toEqual({
+      duration: 2_400,
+      altDurations: [2_500, 2_820],
+    });
+  });
+});
 
 describe('garminTrainingStressScore', () => {
   const activity = (fields: Partial<IActivity>) => fields as IActivity;
