@@ -70,3 +70,21 @@
     scroll-behavior: smooth;
   }
 }
+
+/*
+ * Until `LandingMotion` has put every element in its starting state, the page's content waits
+ * unseen: painted by the server, it would show, vanish and enter again. Only where a script
+ * will run and motion is wanted; if the script never arrives, the content shows after 3 s.
+ */
+@keyframes landing-unveil {
+  to {
+    visibility: visible;
+  }
+}
+
+@media (scripting: enabled) and (prefers-reduced-motion: no-preference) {
+  [data-landing-motion]:not([data-motion-ready]) main {
+    visibility: hidden;
+    animation: landing-unveil 0s 3s forwards;
+  }
+}
