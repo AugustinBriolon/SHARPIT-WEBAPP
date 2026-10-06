@@ -23,6 +23,9 @@ import {
   buildCoachContext,
   formatCoachContext,
 } from '@sharpit/server/lib/coach/context/coach-context';
+import { buildCoachKnowledgeQuery } from '@sharpit/server/lib/coach/knowledge/build-query';
+import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/format-knowledge-rag-block';
+import { retrieveCoachKnowledge } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
 import {
   getActiveTrainingPlan,
   getGoals,
@@ -204,11 +207,12 @@ function buildAdaptPrompt(input: {
   horizon: Date;
   ctx: Awaited<ReturnType<typeof buildCoachContext>>;
   upcomingLines: string[];
+  knowledgeBlock: string;
 }) {
-  const { focus, today, horizon, ctx, upcomingLines } = input;
+  const { focus, today, horizon, ctx, upcomingLines, knowledgeBlock } = input;
   return `${focus ? `Demande de l'athlète : ${focus}\n\n` : ''}Fenêtre d'ajustement : du ${format(today, 'd MMM', { locale: fr })} au ${format(horizon, 'd MMM yyyy', { locale: fr })} (dates ADD au format yyyy-MM-dd dans cette fenêtre).
 
-${formatCoachContext(ctx)}${formatZoneTrainingRules(ctx.trainingZones, today)}
+${formatCoachContext(ctx)}${knowledgeBlock}${formatZoneTrainingRules(ctx.trainingZones, today)}
 
 ## Séances déjà planifiées à venir (à ajuster)
 ${upcomingLines.length ? upcomingLines.join('\n') : 'Aucune séance planifiée à venir.'}`;
@@ -409,12 +413,23 @@ export async function POST(req: Request) {
       return emptyAdaptResponse(access.budgetWarning);
     }
 
+    const knowledgeBlock = formatKnowledgeRagBlock(
+      retrieveCoachKnowledge(
+        buildCoachKnowledgeQuery({
+          focus,
+          sports: ctx.practicedSports,
+          verdict: ctx.decision?.verdict ?? null,
+          limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
+        }),
+      ),
+    );
     const prompt = buildAdaptPrompt({
       focus,
       today,
       horizon,
       ctx,
       upcomingLines: buildUpcomingLines(upcoming),
+      knowledgeBlock,
     });
 
     const stream = createAdaptProgressStream({

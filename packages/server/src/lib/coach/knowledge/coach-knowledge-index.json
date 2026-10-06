@@ -1,0 +1,974 @@
+[
+  {
+    "id": "confidence-scoring--intro",
+    "title": "Confidence Scoring",
+    "source": "knowledge/confidence-scoring.md",
+    "text": "Confidence Scoring. How SHARPIT quantifies certainty in its outputs. Framework for degrading gracefully when data is incomplete, stale, or low quality. ---"
+  },
+  {
+    "id": "confidence-scoring--why-confidence-scoring-matters",
+    "title": "Confidence Scoring — Why Confidence Scoring Matters",
+    "source": "knowledge/confidence-scoring.md#why-confidence-scoring-matters",
+    "text": "Why Confidence Scoring Matters. SHARPIT's outputs are only as good as the data feeding them. The same output text (\"Bien récupéré : séance intense possible\") can be: Highly reliable: 30 days of excellent HRV, readiness 85, sleep 8h average, ACWR 1.1 Speculative: 3 days of data, no HRV, readiness not measured, inferred from TSB alone Without confidence metadata, the athlete cannot distinguish these cases. Confident-sounding language from weak data is misleading and potentially dangerous. ---"
+  },
+  {
+    "id": "confidence-scoring--confidence-dimensions",
+    "title": "Confidence Scoring — Confidence Dimensions",
+    "source": "knowledge/confidence-scoring.md#confidence-dimensions",
+    "text": "Confidence Dimensions. Each recommendation or metric output in SHARPIT carries implicit confidence from four independent sources: Data Completeness. What fraction of required inputs is present? Level Completeness Description Full 100% All required signals present Partial 50-99% Some signals missing; primary signal present Minimal 25-49% Major gaps; outputs should be clearly qualified Insufficient <25% Cannot support meaningful recommendation Data Recency. How fresh is the data? Level Age Description Current ≤24 hours Today's data or yesterday's Recent 1-3 days Still representative Aging 3-7 days Decreasing relevance Stale 7 days Should not drive recommendations Model Validity. How well-validated is the underlying model for this athlete? Level Validity Examples High Level 1-2 evidence, validated in athletes ACWR injury risk framework Moderate Level 3-5, practitioner consensus TSB threshol…"
+  },
+  {
+    "id": "confidence-scoring--composite-confidence-score",
+    "title": "Confidence Scoring — Composite Confidence Score",
+    "source": "knowledge/confidence-scoring.md#composite-confidence-score",
+    "text": "Composite Confidence Score. SHARPIT computes a composite confidence level from the four dimensions: Overall confidence = min(completeness, recency) × modelweight × fitweight Where modelweight and fitweight are the model validity and individual fit levels mapped to 1.0 (high), 0.75 (moderate), 0.5 (low). In practice, the minimum of completeness and recency gates the output. Even a perfectly valid model cannot produce confident output from stale data. Confidence levels: High (0.75–1.0): specific recommendation with normal language Moderate (0.5–0.74): recommendation with qualifying language (\"Based on recent data...\") Low (0.25–0.49): general guidance only (\"Insufficient data for precise recommendation\") Insufficient (<0.25): display data gap, no recommendation ---"
+  },
+  {
+    "id": "confidence-scoring--minimum-data-requirements-operational-reference",
+    "title": "Confidence Scoring — Minimum Data Requirements (Operational Reference)",
+    "source": "knowledge/confidence-scoring.md#minimum-data-requirements-operational-reference",
+    "text": "Minimum Data Requirements (Operational Reference). Training Load / PMC. Output Minimum history Confidence degradation CTL 1 day (but unreliable) Low for <21 days ATL 7 days Low for <7 days TSB 7 days Low for <7 days ACWR 28 days Disabled for <14 days; low for 14-28 days Implementation note: new users with <28 days history should see ACWR labeled as \"estimation\" until the minimum window is met. Currently this is not implemented — ACWR fires from whatever data is available. Recovery Signals. Signal Minimum history Rationale Garmin readiness (daily) 1 day (but calibration requires 3 weeks) Fires immediately; reliability improves HRV trend alert 10 days 3-day window vs 4-10 day window requires 10 days minimum RHR trend alert 17 days 3-day vs 4-17 day window requires 17 days minimum Sleep Analysis. Analysis Minimum history Notes Duration alerts 7 nights 7-day average window Stage analysis 1 n…"
+  },
+  {
+    "id": "confidence-scoring--confidence-communication-in-the-ui",
+    "title": "Confidence Scoring — Confidence Communication in the UI",
+    "source": "knowledge/confidence-scoring.md#confidence-communication-in-the-ui",
+    "text": "Confidence Communication in the UI. High confidence. Normal recommendation language. No qualifier needed. \"Bien récupéré : séance intense possible.\" Moderate confidence. Add qualifier that signals partial data. \"Basé sur les données disponibles : séance modérée recommandée.\" Low confidence. State the data limitation. Provide general guidance only. \"Données insuffisantes pour une recommandation précise. Maintiens ton rythme habituel.\" Insufficient confidence. Show data gap prominently. Do not produce a recommendation. \"Synchronise tes données Garmin pour obtenir une analyse de récupération.\" ---"
+  },
+  {
+    "id": "confidence-scoring--cold-start-problem",
+    "title": "Confidence Scoring — Cold Start Problem",
+    "source": "knowledge/confidence-scoring.md#cold-start-problem",
+    "text": "Cold Start Problem. New users arrive with no history. SHARPIT must function on day 1 while being honest about early data limitations. Day 1–7 behavior. Show any available data without interpretation No trend-based alerts (HRV, RHR) — insufficient baseline No ACWR analysis — insufficient load history Sleep analysis: only single-night metrics (stages, score, duration) PMC starts at CTL=0 — visually display as \"building baseline\" AI coach behavior: acknowledge new user status; don't make strong claims Day 8–28 behavior. ATL/TSB become meaningful Single-session sleep analysis reliable ACWR available but low confidence Garmin readiness available (Garmin's own calibration separate from SHARPIT's) Trend alerts still disabled Day 29+ behavior. Full analysis pipeline active ACWR at full confidence after day 42 HRV and RHR trend alerts enabled Sleep regularity analysis (30-night MAD) available All…"
+  },
+  {
+    "id": "confidence-scoring--data-quality-flags",
+    "title": "Confidence Scoring — Data Quality Flags",
+    "source": "knowledge/confidence-scoring.md#data-quality-flags",
+    "text": "Data Quality Flags. Beyond completeness and recency, SHARPIT should flag known data quality issues: Flag Condition Effect on recommendations HRVCALIBRATING <21 days of HRV data Suppress Garmin HRV status reliance; use trend when possible ACWRLOWHISTORY <28 days of load data Suppress ACWR alert or add low-confidence qualifier STALESYNC Last sync 48h ago Suppress readiness-based recommendations; show sync prompt SCALECALIBRATING <7 body comp measurements Suppress body comp trend analysis TRAININGPLANINACTIVE No active plan Suppress periodization phase context COLDSTART <7 days total Full cold start mode; general guidance only Implementation status: most of these flags are not currently implemented. They represent a future improvement roadmap. ---"
+  },
+  {
+    "id": "confidence-scoring--the-overconfidence-risk",
+    "title": "Confidence Scoring — The Overconfidence Risk",
+    "source": "knowledge/confidence-scoring.md#the-overconfidence-risk",
+    "text": "The Overconfidence Risk. The greatest risk in SHARPIT's design is overconfidence — producing specific, confident-sounding outputs from weak data. The system's credibility depends on its accuracy. An athlete who follows a SHARPIT recommendation that was based on stale data and gets injured will distrust the system permanently. Design principle from product-constitution.md: when in doubt, say less. A qualified recommendation that acknowledges uncertainty is better than a specific recommendation that is wrong. The test: before any recommendation is displayed, ask \"what is the data foundation for this output?\" If the foundation is thin, the language must reflect that. ---"
+  },
+  {
+    "id": "confidence-scoring--plan-gate-enforcement-operational",
+    "title": "Confidence Scoring — Plan Gate enforcement (operational)",
+    "source": "knowledge/confidence-scoring.md#plan-gate-enforcement-operational",
+    "text": "Plan Gate enforcement (operational). Language alone is not enough. Coach plan/adapt proposals pass through the Plan Safety & Coherence Gate (packages/server/src/lib/plan-gate/). Confidence tiers on the day's DecisionState are enforced there: confidenceTier Gate behaviour Athlete effect INSUFFICIENT or missing decision Finding DECISIONINSUFFICIENTDATA, severity REJECTED Proposal removed before UI; Decision Memory still records the attempt LOW Finding DECISIONLOWCONFIDENCE, severity REJECTED Same MEDIUM / HIGH Intensity and fatigue compatibility rules only Normal Gate path This matches Core shouldGateAdvice (confidence below the Medium band, or insufficient data) and closes the prior gap where INSUFFICIENT was only REQUIRESCONFIRMATION and still reached the athlete. Gate findings carry symbolic evidenceRefs (e.g. decision.confidenceTier). Session Rationale resolves them to French evidence …"
+  },
+  {
+    "id": "data-quality--intro",
+    "title": "Data Quality",
+    "source": "knowledge/data-quality.md",
+    "text": "Data Quality. How SHARPIT handles imperfect, missing, and contradictory data. The rules that govern data ingestion, storage, and use. ---"
+  },
+  {
+    "id": "data-quality--data-quality-philosophy",
+    "title": "Data Quality — Data Quality Philosophy",
+    "source": "knowledge/data-quality.md#data-quality-philosophy",
+    "text": "Data Quality Philosophy. SHARPIT's recommendations are only as good as the data they're built on. The system must: Ingest what is available Mark what is uncertain or missing Degrade recommendations when data quality is insufficient Never fabricate values to fill gaps The failure mode to avoid: silently proceeding with bad data and producing confident-seeming outputs. This is worse than showing a gap because it creates trust in a recommendation that isn't supported. ---"
+  },
+  {
+    "id": "data-quality--data-sources-and-their-quality-profiles",
+    "title": "Data Quality — Data Sources and Their Quality Profiles",
+    "source": "knowledge/data-quality.md#data-sources-and-their-quality-profiles",
+    "text": "Data Sources and Their Quality Profiles. Garmin Activity Data. Reliability: high for structured data (duration, distance, HR). Medium for derived data (TSS, VO2max). Common quality issues: Indoor activities: no GPS; distance from accelerometer/cadence sensor — less accurate Open-water swimming: GPS tracking is imprecise Activity type misclassification: Garmin may auto-detect \"Cycling\" when the user did a spin class on a stationary bike Duplicate activities: auto-sync + manual import can create duplicates Partial syncs: if the watch runs out of battery mid-session, data is truncated SHARPIT handling: Store raw imported values; don't modify Activity deduplication by start time + device ID Truncated activities: use available data; no extrapolation Misclassified types: user can override; training plan assignment depends on type Garmin Health Metrics (daily). Reliability: medium. Garmin's alg…"
+  },
+  {
+    "id": "data-quality--missing-data-handling-rules",
+    "title": "Data Quality — Missing Data Handling Rules",
+    "source": "knowledge/data-quality.md#missing-data-handling-rules",
+    "text": "Missing Data Handling Rules. Rule 1: Null vs. Zero. null means \"no data.\" 0 means \"zero value.\" These are never interchangeable. Violations to prevent: hrv = 0 when the watch wasn't worn → should be hrv = null load = 0 for rest day → 0 is correct (rest day has zero load) sleepScore = 0 when no sleep recorded → should be null A 0 in a moving average calculation produces incorrect results. A null should be excluded from the window. Implementation requirement: all time-series calculations (HRV trend, RHR trend, sleep average) must skip null values rather than treating them as zero. Rule 2: Minimum Window Enforcement. When a calculation requires N days of data, it must not fire if fewer than N non-null values exist within the window. Current violations: ACWR can compute with very few data points (mathematically, not minimum-enforced) HRV trend fires without checking window completeness Requi…"
+  },
+  {
+    "id": "data-quality--data-integrity-rules",
+    "title": "Data Quality — Data Integrity Rules",
+    "source": "knowledge/data-quality.md#data-integrity-rules",
+    "text": "Data Integrity Rules. Load Unit Constraint. Rule: all Activity.load and PlannedSession.load values must be TSS equivalents. No other unit. Rationale: PMC and ACWR computations treat all load values as TSS. Mixed units (e.g., RPE×10 for strength sessions, TSS for cycling) corrupt the models. Enforcement: this is a domain constraint, not a database constraint. Zod validators on the API layer must validate that load values are within plausible TSS ranges. Suspiciously high values ( 500 for a single session) should trigger validation error, not silent acceptance. Timestamp Integrity. Rule: all timestamps stored in UTC. Display conversion to athlete's local timezone happens at render time, never at storage time. Rationale: sleep analysis depends on local time (bedtime and wake time are local-time concepts). Storing local time would require knowing the timezone at storage time and would break …"
+  },
+  {
+    "id": "data-quality--data-validation",
+    "title": "Data Quality — Data Validation",
+    "source": "knowledge/data-quality.md#data-validation",
+    "text": "Data Validation. At Import (Garmin Sync). Validate: Required fields present (activity ID, start time, duration) Duration 0 HR values within physiological range (30-250 bpm) Power values within physiological range (0-3000W for cycling) GPS coordinates within valid range (if present) TSS value within plausible range (0-500 per session) Reject (log and skip, don't crash): Activities with implausible values Activities older than a defined import window Duplicate activity IDs At API Layer (User Input). All user-facing API endpoints use Zod validators in src/lib/validators/. Rules: Numeric fields: bounded ranges matching physiological plausibility String fields: max length enforced Dates: must be valid ISO 8601; must not be in future (for completed activities) Enum fields: use Prisma/Zod enum types, not raw strings At Computation Time. Before running any analysis function: Check minimum data r…"
+  },
+  {
+    "id": "data-quality--the-single-user-assumption",
+    "title": "Data Quality — The Single-User Assumption",
+    "source": "knowledge/data-quality.md#the-single-user-assumption",
+    "text": "The Single-User Assumption. SHARPIT's entire data model assumes one athlete. The AthleteProfile is a singleton (id=\"default\"). All data is implicitly scoped to this athlete. Data quality implication: there is no isolation between \"my data\" and \"another user's data\" because there is only one user. The auth layer (Clerk email allowlist) enforces this at access control. Data quality issues around multi-user contamination do not apply. ---"
+  },
+  {
+    "id": "data-quality--known-data-quality-gaps",
+    "title": "Data Quality — Known Data Quality Gaps",
+    "source": "knowledge/data-quality.md#known-data-quality-gaps",
+    "text": "Known Data Quality Gaps. Gap Impact Priority ACWR fires with insufficient history High Can produce misleading injury risk alerts Null vs. zero not consistently enforced in trend analysis High Can distort HRV and RHR baselines No gap detection for stale data Medium Stale recommendations without warning Duplicate activity detection is incomplete Medium Inflated load metrics Body battery reset artifacts not detected Low Occasional misleading body battery drops Strength session TSS plausibility check absent Low Extremely high duration would produce absurd TSS Local timezone for sleep analysis not fully verified Medium Bedtime regularity could be computed in UTC"
+  },
+  {
+    "id": "garmin--intro",
+    "title": "Garmin",
+    "source": "knowledge/garmin.md",
+    "text": "Garmin. SHARPIT's primary data source. Every metric Garmin provides, what it means, how SHARPIT uses it, and where the algorithm is opaque. ---"
+  },
+  {
+    "id": "garmin--sharpit-s-dependency-on-garmin",
+    "title": "Garmin — SHARPIT's Dependency on Garmin",
+    "source": "knowledge/garmin.md#sharpit-s-dependency-on-garmin",
+    "text": "SHARPIT's Dependency on Garmin. SHARPIT is deeply coupled to Garmin Connect as its primary data ingestion source. This is a deliberate architectural decision (see ADR-003 in decisions/) based on: Richest physiological data in consumer wearables Consistent API across device generations HRV during sleep (correct methodology) Activity data with power/HR/GPS Consequence: when Garmin changes its API, changes an algorithm, or deprecates a metric, SHARPIT is affected. This coupling is a known risk. Mitigation: SHARPIT stores raw imported values, not computed values, wherever possible. If Garmin changes how readiness is computed, SHARPIT's stored values reflect the algorithm version active at import time. ---"
+  },
+  {
+    "id": "garmin--garmin-metrics-complete-reference",
+    "title": "Garmin — Garmin Metrics: Complete Reference",
+    "source": "knowledge/garmin.md#garmin-metrics-complete-reference",
+    "text": "Garmin Metrics: Complete Reference. Activity Metrics. Metric Description SHARPIT use Confidence duration Session duration in seconds TSS fallback calculation High distance GPS distance in meters Pace computation High avgHr Average heart rate hrTSS computation Medium maxHr Maximum heart rate Zone analysis High trainingEffect Aerobic + anaerobic effect (1-5) Not currently used Low trainingLoad Garmin's TRIMP-based load Used when available (priority 1) Medium calories Total caloric expenditure Supplementary Low avgPower (cycling) Average power in watts Cycling TSS if no NP Medium normalizedPower Garmin-computed NP Cycling TSS primary input High tss (from bike) Garmin-computed cycling TSS Direct use if available High vo2maxCalc Garmin VO2max estimate Not primary SHARPIT input Low Daily Health Metrics. Metric Description SHARPIT use Confidence restingHr Resting HR from morning measurement RHR…"
+  },
+  {
+    "id": "garmin--garmin-algorithms-what-is-known",
+    "title": "Garmin — Garmin Algorithms: What Is Known",
+    "source": "knowledge/garmin.md#garmin-algorithms-what-is-known",
+    "text": "Garmin Algorithms: What Is Known. Training Readiness Score. What Garmin says it uses: overnight HRV, sleep quality and duration, training load (recent), body battery recovery rate. What is published: Garmin marketing documentation, not peer-reviewed methodology. The exact weighting of components is not disclosed. SHARPIT's thresholds (75/50): empirically derived by the developer. No validation against performance outcomes or other readiness metrics. Algorithm stability: Garmin updates readiness computation via firmware/Connect updates. Historical scores before a major algorithm update are not comparable to post-update scores. HRV Status. Garmin classifies HRV status as: BALANCED, UNBALANCED (trending high or low), POOR, LOW. Implementation: Garmin uses the user's baseline HRV (established after 2-3 weeks of consistent measurement) to classify current HRV relative to personal norms. SHARP…"
+  },
+  {
+    "id": "garmin--data-import-architecture",
+    "title": "Garmin — Data Import Architecture",
+    "source": "knowledge/garmin.md#data-import-architecture",
+    "text": "Data Import Architecture. SHARPIT imports Garmin data via the Garmin Health API. Key architectural facts: Data arrives in Garmin's native format and is stored with minimal transformation Timestamps are converted to UTC and stored as DateTime in Prisma Activity streams (second-by-second power/HR/cadence data) are stored separately from activity summaries The import pathway uses GarminRawActivity → processing → Activity + associated metrics Data freshness: Garmin pushes data to connected apps within minutes of workout completion. Sleep data is available after the watch syncs (usually morning). Health metrics are pushed daily. ---"
+  },
+  {
+    "id": "garmin--garmin-calibration-requirements",
+    "title": "Garmin — Garmin Calibration Requirements",
+    "source": "knowledge/garmin.md#garmin-calibration-requirements",
+    "text": "Garmin Calibration Requirements. Several Garmin metrics require a calibration period before they produce reliable values: Metric Calibration period SHARPIT implication HRV baseline 2-3 weeks consistent measurement New users: HRV status is unreliable Training readiness 3+ weeks New users: readiness score unreliable VO2max estimate 2-4 weeks running outdoors Accuracy improves with runs Body battery 1 week Builds its model of the user's patterns SHARPIT's handling of new users: alerts that depend on trend analysis automatically require a minimum history window. A new user with 5 days of data will not trigger an HRV trend alert (the window is 10 days minimum). However, readiness-based alerts fire from day 1 because they use Garmin's own calibration. The cold start problem is not fully solved. New users should be informed that data quality improves after 3-4 weeks of consistent wear. ---"
+  },
+  {
+    "id": "garmin--device-recommendations",
+    "title": "Garmin — Device Recommendations",
+    "source": "knowledge/garmin.md#device-recommendations",
+    "text": "Device Recommendations. SHARPIT works with any Garmin device that supports the metrics it uses. Minimum requirements: Required: HRV during sleep measurement (requires optical HR sensor during sleep) Recommended: power meter for cycling (dramatically improves cycling TSS accuracy) Optional: running power (e.g., Running Dynamics Pod or Garmin HRM-Pro) Device generations with full support: Forerunner 945, 955, 965 (and current generation) Fenix 6 and newer Epix Gen 2 and newer Venu series (limited training data but sleep/HRV present) Devices with partial support: Older Forerunner (735XT, 935): HRV support variable; simpler sleep staging Vivoactive series: limited training analytics SHARPIT does not gate features by device. It uses available data and degrades gracefully when metrics are absent. ---"
+  },
+  {
+    "id": "garmin--garmin-api-limitations-and-known-issues",
+    "title": "Garmin — Garmin API Limitations and Known Issues",
+    "source": "knowledge/garmin.md#garmin-api-limitations-and-known-issues",
+    "text": "Garmin API Limitations and Known Issues. Training load definition change: Garmin changed the definition of \"training load\" between device generations. Older devices used TRIMP; newer devices use a Firstbeat-computed load. These values are not directly comparable. SHARPIT stores whatever Garmin reports. HRV data gaps: if the watch is not worn during sleep, HRV data is absent. SHARPIT marks these as missing data points, not zero. Zeros would corrupt trend analysis. Duplicate activities: Garmin occasionally creates duplicate activity records. SHARPIT's import logic should deduplicate by timestamp + device ID, but edge cases may create duplicates in the database. Timezone handling: Garmin timestamps are in UTC. Sleep times especially must be converted to the athlete's local timezone for meaningful analysis (7am sleep-wake is different in different timezones). SHARPIT uses the athlete's confi…"
+  },
+  {
+    "id": "glossary--intro",
+    "title": "SHARPIT Glossary",
+    "source": "knowledge/glossary.md",
+    "text": "SHARPIT Glossary. Every term used in SHARPIT — in the UI, in the code, in the AI coach, in recommendations — must be defined here. When a term appears in a recommendation, its meaning must match this glossary exactly. If the code and this glossary disagree, the code must be fixed. ---"
+  },
+  {
+    "id": "glossary--a",
+    "title": "SHARPIT Glossary — A",
+    "source": "knowledge/glossary.md#a",
+    "text": "A. Acute Training Load (ATL). The exponentially weighted moving average of daily Training Stress Score over a 7-day time constant (τ=7). Represents recent training stress — what the body is currently fatigued from. Also called \"fatigue\" in the PMC model. Computed by computePmcSeries() in analytics.ts. Acute:Chronic Workload Ratio (ACWR). The ratio of 7-day total training load to the average weekly load over the preceding 42 days. A measure of how much the current training week differs from the athlete's established baseline. Computed by computeTrainingLoad() in training-load.ts. ACWR <0.8: under-training ACWR 0.8–1.3: sweet spot (optimal progressive stimulus) ACWR 1.3–1.5: elevated risk zone ACWR 1.5: high injury risk zone Adaptation. The physiological process by which the body responds to training stress by becoming stronger, faster, or more efficient. The fundamental goal of all traini…"
+  },
+  {
+    "id": "glossary--b",
+    "title": "SHARPIT Glossary — B",
+    "source": "knowledge/glossary.md#b",
+    "text": "B. Block (Training Block). A period of training with a consistent physiological focus — typically 3–5 weeks. Corresponds to one PlanPhase in SHARPIT's periodization model. Not to be confused with a mesocycle (which may contain multiple blocks). Body Battery. A Garmin-proprietary metric (0–100) representing estimated energy reserves. Computed by Garmin's algorithm from HRV, stress, activity, and sleep. SHARPIT treats this as an opaque sensor output, not a validated scientific measure. High body battery (≥70) correlates with good recovery; low (<40) with fatigue. Brick Session. A training session combining exactly two consecutive sports without rest between them, typically cycling followed by running. Stored in SHARPIT as linked PlannedSession records sharing a brickGroupId. The transition is physiologically significant (metabolic and neuromuscular crossover). If one leg is removed, the re…"
+  },
+  {
+    "id": "glossary--c",
+    "title": "SHARPIT Glossary — C",
+    "source": "knowledge/glossary.md#c",
+    "text": "C. Chronic Training Load (CTL). The exponentially weighted moving average of daily Training Stress Score over a 42-day time constant (τ=42). Represents long-term fitness — the body's established aerobic capacity and load-bearing capacity. Also called \"fitness\" in the PMC model. CTL is slow-changing and represents the athlete's baseline capability. Computed by computePmcSeries() in analytics.ts. Calibration (training profile). A period during which Sharpit has not yet accumulated enough consistent history to treat load or recovery outputs as fully reliable (for example short PMC history, missing thresholds, or sparse sleep/HRV). While calibrating, the system prefers honest gaps and soft guidance over hard prescriptions. Related: cold start in confidence-scoring.md, Plan Gate DECISIONINSUFFICIENTDATA / DECISIONLOWCONFIDENCE. Confidence. In SHARPIT, the degree of certainty attached to a rec…"
+  },
+  {
+    "id": "glossary--d",
+    "title": "SHARPIT Glossary — D",
+    "source": "knowledge/glossary.md#d",
+    "text": "D. Daily Briefing. An AI-generated summary of the athlete's current state and recommended actions for the day. Synthesizes recovery signals, planned sessions, and recent training load into a cohesive narrative. Generated by daily-briefing.ts. Stored in the DailyBriefing database model. Daily load vs training status. Two related but distinct athlete readings: daily load is how much physiological cost the day already carries (sessions plus ambient stress); training status is the longer-horizon relationship between recent and chronic training load (PMC / ATL·CTL·TSB and related Fatigue / Adaptation outputs). Coach language must not conflate “hard day” with “overtraining status.” See training-load.md and research/competitive-concepts.md. Data Quality. A classification of how trustworthy a data point is. SHARPIT distinguishes: measured (directly from sensor), estimated (computed from a model)…"
+  },
+  {
+    "id": "glossary--e",
+    "title": "SHARPIT Glossary — E",
+    "source": "knowledge/glossary.md#e",
+    "text": "E. Efficiency Factor (EF). The ratio of power output (or pace) to heart rate. For cycling: watts / BPM. For running: speed (m/s) / BPM. Used to assess aerobic fitness and track cardiac drift within and across sessions. Higher EF indicates better aerobic economy. ---"
+  },
+  {
+    "id": "glossary--f",
+    "title": "SHARPIT Glossary — F",
+    "source": "knowledge/glossary.md#f",
+    "text": "F. Fatigue. In the PMC model: ATL (Acute Training Load) — the exponentially weighted recent training stress. Distinct from subjective fatigue (how the athlete feels). Also used colloquially to describe accumulated tiredness; SHARPIT distinguishes these by context. Feeling. The athlete's subjective post-session assessment, stored as a string in Activity.feeling. Free-text or structured categories (Garmin-derived values). Treated as primary data — equal in validity to sensor data for decision-making. Fitness. In the PMC model: CTL (Chronic Training Load). Represents the athlete's long-term aerobic adaptation and load-bearing capacity. Distinct from VO2max, FTP, or any single performance measure. Form. Training Stress Balance (TSB) = CTL - ATL. Represents the balance between accumulated fitness and current fatigue. High form means fit and fresh. TSB +15: fresh/tapered. TSB -10 to +5: optima…"
+  },
+  {
+    "id": "glossary--g",
+    "title": "SHARPIT Glossary — G",
+    "source": "knowledge/glossary.md#g",
+    "text": "G. Goal. An athlete-defined target. SHARPIT distinguishes two goal kinds: RACE: a specific competitive event with a date and optionally a target performance METRIC: a measurable performance target (distance, pace, power) Goals also have priority: A (season priority), B (intermediate), C (test/training race). ---"
+  },
+  {
+    "id": "glossary--h",
+    "title": "SHARPIT Glossary — H",
+    "source": "knowledge/glossary.md#h",
+    "text": "H. Heart Rate Variability (HRV). The variation in time between consecutive heartbeats. High HRV generally indicates good parasympathetic tone, recovery, and readiness. Low HRV or declining trends indicate accumulated stress, fatigue, illness, or overtraining. SHARPIT reads HRV from Garmin's overnight measurement (DailyHealth.hrv, DailyHealth.hrvStatus). HRV Status. Garmin's classification of the athlete's HRV relative to their personal baseline: BALANCED (normal, good), UNBALANCEDLOW (below baseline, flagged), UNBALANCEDHIGH (above baseline, can indicate deload recovery). The Garmin algorithm is proprietary; SHARPIT treats status as an opaque classification. Hybrid Athlete. An athlete who trains across endurance and strength disciplines concurrently. SHARPIT models strength training load using TSS approximations (0.7 TSS/minute) which are known to be physiologically incomplete. See hybri…"
+  },
+  {
+    "id": "glossary--i",
+    "title": "SHARPIT Glossary — I",
+    "source": "knowledge/glossary.md#i",
+    "text": "I. Intensity Factor (IF). The ratio of Normalized Power (or HR-based equivalent) to FTP (or LTHR). IF <0.75 = easy/endurance. IF 0.75–0.85 = tempo. IF 0.85–0.95 = threshold. IF 1.0 = above threshold/VO2max. ---"
+  },
+  {
+    "id": "glossary--l",
+    "title": "SHARPIT Glossary — L",
+    "source": "knowledge/glossary.md#l",
+    "text": "L. Load. The Training Stress Score (TSS) or TSS-equivalent for a given session or day. SHARPIT normalizes all sports to a common TSS unit for PMC and ACWR computation. For cycling: computed from power. For running/other: estimated from heart rate or duration × sport factor. Stored in Activity.load and PlannedSession.load. Units: TSS points. LTHR (Lactate Threshold Heart Rate). The heart rate corresponding to the lactate threshold — the intensity above which lactate accumulates faster than it is cleared. Used as the reference point for HR zone calculation. Stored in AthleteProfile.lthr. If LTHR is unavailable, zone calculation degrades to estimated % of max HR. ---"
+  },
+  {
+    "id": "glossary--m",
+    "title": "SHARPIT Glossary — M",
+    "source": "knowledge/glossary.md#m",
+    "text": "M. Mesocycle. A training period of 3–6 weeks with a consistent goal (base fitness, building intensity, peaking). In SHARPIT's schema, corresponds to one or more consecutive PlanWeek records within a single PlanPhase. Microcycle. A single training week. The fundamental planning unit in SHARPIT's periodization system. Each PlanWeek represents one microcycle. Monotony. A measure of training variability. High monotony = low day-to-day variation in load = higher accumulated fatigue for the same total load. SHARPIT does not currently implement a monotony metric explicitly but ACWR trends reflect it indirectly. ---"
+  },
+  {
+    "id": "glossary--n",
+    "title": "SHARPIT Glossary — N",
+    "source": "knowledge/glossary.md#n",
+    "text": "N. Normalized Power (NP). A weighted average of power output that better reflects the physiological cost of variable-intensity efforts than simple average power. Computed as: (mean of 30-second rolling averages raised to the 4th power)^(1/4). Implemented in computeNormalizedPower() in activity-analysis.ts. Higher NP vs average power indicates more variability (and higher metabolic cost). ---"
+  },
+  {
+    "id": "glossary--p",
+    "title": "SHARPIT Glossary — P",
+    "source": "knowledge/glossary.md#p",
+    "text": "P. Performance Management Chart (PMC). The combination of CTL, ATL, and TSB plotted over time. The central training management visualization in SHARPIT. Implemented in computePmcSeries() in analytics.ts. Periodization. The structured organization of training across time into phases with different emphases, designed to produce peak performance at a target date. SHARPIT implements linear periodization: BASE → BUILD → PEAK → TAPER → RACE. Implemented in periodization.ts. Phase. A named period within a training plan with a specific physiological focus and load multiplier: BASE (0.85×): aerobic foundation, high volume, low intensity BUILD (1.0×): progressive overload, threshold work introduced PEAK (1.08×): maximum load, race-specific intensity TAPER (0.55×): load reduction while maintaining intensity, supercompensation RACE (0.25×): active recovery and competition Physical Note. SHARPIT's in…"
+  },
+  {
+    "id": "glossary--r",
+    "title": "SHARPIT Glossary — R",
+    "source": "knowledge/glossary.md#r",
+    "text": "R. Race. In SHARPIT terminology: a scheduled competitive event that drives periodization. Stored as a Goal with kind=RACE. Functions as both a performance target and as the anchor date for training plan generation. Readiness. The athlete's estimated capacity to absorb and benefit from training on a given day. In SHARPIT, derived primarily from Garmin Training Readiness Score (0–100). Thresholds: ≥75 = good, ≥50 = moderate, <50 = low. See recovery.ts:buildReadinessView(). Recovery. The physiological process by which the body repairs exercise-induced damage, restores glycogen, and consolidates adaptations. SHARPIT monitors recovery through: Garmin readiness score, HRV, resting heart rate, sleep quality, and TSB. Recovery Score — see Readiness. Recommendation. A SHARPIT output suggesting a specific action (train hard, rest, reduce volume). Recommendations have a tone (good/moderate/low), a …"
+  },
+  {
+    "id": "glossary--s",
+    "title": "SHARPIT Glossary — S",
+    "source": "knowledge/glossary.md#s",
+    "text": "S. Session. Used interchangeably with Activity when referring to a completed training session. A PlannedSession is a future/intended session; an Activity is a completed one. Sleep Score. Garmin's composite score (0–100) for a night's sleep quality. The Garmin algorithm weights sleep stages, HRV, restlessness, and timing. SHARPIT treats it as an opaque instrument output. Thresholds in SHARPIT: ≥80 = good, ≥60 = moderate, <60 = low. See sleep.ts. Specificity. The principle that physiological adaptation is specific to the stress applied. Running fitness does not fully transfer to cycling. SHARPIT's load calculations treat different sports as comparable in TSS but not in specificity — sport-specific performance metrics (FTP, run threshold pace) are tracked separately. Strain. The accumulated training stress over a period. High strain without adequate recovery leads to overtraining. SHARPIT m…"
+  },
+  {
+    "id": "glossary--t",
+    "title": "SHARPIT Glossary — T",
+    "source": "knowledge/glossary.md#t",
+    "text": "T. Training Plan. A SHARPIT TrainingPlan database record containing a sequence of PlanWeek records organized into phases, from startDate to raceDate. Generated by generateMacroPlan() in periodization.ts. Training Readiness — see Readiness. Training Stress Balance (TSB). CTL - ATL. The mathematical difference between fitness and fatigue. SHARPIT interprets: TSB +15: fresh/tapered, optimal for racing or testing TSB -10 to +5: optimal training zone (fit and slightly fatigued) TSB -10 to -30: accumulated fatigue (high training block) TSB <-30: significant overload (risk of overtraining) Implemented in buildFormView() in recovery.ts. Training Stress Score (TSS). A standardized measure of the physiological cost of a training session. Normalized to: 1 hour at threshold intensity = 100 TSS. For cycling, computed from power (NP, IF, FTP). For running/other, estimated from HR or duration × sport f…"
+  },
+  {
+    "id": "glossary--v",
+    "title": "SHARPIT Glossary — V",
+    "source": "knowledge/glossary.md#v",
+    "text": "V. Variability Index (VI). Normalized Power / Average Power for a cycling session. VI close to 1.00 indicates a steady-state effort (time trial). VI 1.05 indicates a variable effort (hills, racing). Used to assess pacing strategy and metabolic cost. Computed in activity-analysis.ts. VO2max. Maximal oxygen uptake — the maximum rate at which the body can consume oxygen during exercise. The highest-level predictor of endurance potential. Stored in AthleteProfile.vo2maxRunning and AthleteProfile.vo2maxCycling. Currently imported from Garmin; not independently computed by SHARPIT. Verdict. SHARPIT's consolidated daily training recommendation synthesizing all available signals. Generated by buildTrainingVerdict() in dashboard.ts. The single most important output the athlete sees each day. ---"
+  },
+  {
+    "id": "glossary--w",
+    "title": "SHARPIT Glossary — W",
+    "source": "knowledge/glossary.md#w",
+    "text": "W. Weekly Review. An AI-generated weekly summary analyzing the training week, comparing planned vs completed sessions, noting trends, and recommending focus for the following week. Generated by weekly-review.ts. Stored in the WeeklyReview database model. Workout. See Session / Activity. In SHARPIT, the preferred term for a structured training session is Session. --- This glossary is the authoritative definition source. Any new term introduced in the UI, AI coach output, or recommendation system must be added here before deployment."
+  },
+  {
+    "id": "hybrid-athlete--intro",
+    "title": "Hybrid Athlete",
+    "source": "knowledge/hybrid-athlete.md",
+    "text": "Hybrid Athlete. How SHARPIT handles athletes who pursue significant strength AND endurance capacity simultaneously. ---"
+  },
+  {
+    "id": "hybrid-athlete--definition",
+    "title": "Hybrid Athlete — Definition",
+    "source": "knowledge/hybrid-athlete.md#definition",
+    "text": "Definition. A hybrid athlete, for SHARPIT's purposes, is an athlete who trains for both high endurance capacity (sustained aerobic output) and meaningful strength/power metrics. This is distinct from: An endurance athlete who does maintenance strength work (SHARPIT handles adequately) A strength athlete who does some cardio (not SHARPIT's target user) A CrossFit athlete (SHARPIT partially handles) A triathlete (see triathlon.md) Examples in SHARPIT's target user base: Cyclist/runner who also trains powerlifting or weightlifting Runner with serious strength block programming Rower (requires both high aerobic capacity and peak force production) Obstacle course racing athletes (OCR) ---"
+  },
+  {
+    "id": "hybrid-athlete--why-hybrid-athletes-break-standard-models",
+    "title": "Hybrid Athlete — Why Hybrid Athletes Break Standard Models",
+    "source": "knowledge/hybrid-athlete.md#why-hybrid-athletes-break-standard-models",
+    "text": "Why Hybrid Athletes Break Standard Models. PMC was designed for athletes with a single dominant energy system. The assumptions that break for hybrid athletes: TSS is not cross-modal. 100 TSS from cycling and 100 TSS from deadlifts do not represent equivalent systemic stress. They stress different systems, have different recovery profiles, and produce different adaptations. CTL means different things. A CTL of 80 from cycling means something precise about aerobic fitness. A CTL of 80 mixed with heavy strength sessions means... approximately that the athlete is training moderately. The precision is lost. Recovery windows differ. Endurance sessions (Z1/Z2) recover in 12-24h. Hard strength sessions at 85% 1RM recover in 48-72h. Mixing them into a single ATL with τ=7 days produces a misleading picture of readiness. Concurrent training interference. The AMPK/mTOR interference effect (see stren…"
+  },
+  {
+    "id": "hybrid-athlete--how-sharpit-currently-handles-hybrid-athletes",
+    "title": "Hybrid Athlete — How SHARPIT Currently Handles Hybrid Athletes",
+    "source": "knowledge/hybrid-athlete.md#how-sharpit-currently-handles-hybrid-athletes",
+    "text": "How SHARPIT Currently Handles Hybrid Athletes. What works: Strength sessions get a TSS estimate (duration × 0.7 TSS/min) that contributes to ATL Total load (all sessions combined) is tracked in PMC Recovery signals (HRV, readiness) capture systemic fatigue regardless of source Sleep quality tracking is equally valuable for hybrid athletes What doesn't work: No separate strength CTL/ATL tracking No injury risk differentiation by training modality No concurrent training interference modeling TSS estimates for strength sessions are low confidence (see training-load.md) Training plan generator cannot produce integrated endurance + strength periodization ---"
+  },
+  {
+    "id": "hybrid-athlete--periodization-for-hybrid-athletes",
+    "title": "Hybrid Athlete — Periodization for Hybrid Athletes",
+    "source": "knowledge/hybrid-athlete.md#periodization-for-hybrid-athletes",
+    "text": "Periodization for Hybrid Athletes. The goal is compatible periodization: endurance and strength phases should reinforce each other or at minimum not conflict. Concurrent Training Research. Evidence level: Level 2-3 (Wilson et al. 2012 meta-analysis on concurrent training; Hickson 1980 original interference study) Key findings: Concurrent training does not significantly impair endurance adaptations Endurance training does impair hypertrophy and maximal strength gains when volumes are high The magnitude of interference depends on: endurance volume, session ordering, recovery between sessions Low-to-moderate endurance volume (≤3 sessions/week, <4h total) allows substantial strength progress Practical implication for SHARPIT's AI coach: when a hybrid athlete reports strength goals, the coach should suggest keeping endurance volume moderate during dedicated strength focus periods. Phased Hybr…"
+  },
+  {
+    "id": "hybrid-athlete--nutrition-for-hybrid-athletes",
+    "title": "Hybrid Athlete — Nutrition for Hybrid Athletes",
+    "source": "knowledge/hybrid-athlete.md#nutrition-for-hybrid-athletes",
+    "text": "Nutrition for Hybrid Athletes. Hybrid athletes have higher nutritional requirements than pure endurance athletes: Nutrient Pure endurance Hybrid athlete Protein 1.6-2.0 g/kg/day 1.8-2.4 g/kg/day Carbohydrates High periodized Moderate-high (muscle glycogen + recovery) Calories Proportional to volume Higher — supports both aerobic and anabolic demands The higher protein requirement reflects the muscle protein synthesis demand from resistance training. Hybrid athletes who maintain endurance athlete protein intakes while training seriously for strength will experience suboptimal muscle development and/or recovery. SHARPIT does not track nutrition (see nutrition.md), but the AI coach should raise protein adequacy as a factor when hybrid athletes report poor strength recovery. ---"
+  },
+  {
+    "id": "hybrid-athlete--monitoring-hybrid-athletes-in-sharpit",
+    "title": "Hybrid Athlete — Monitoring Hybrid Athletes in SHARPIT",
+    "source": "knowledge/hybrid-athlete.md#monitoring-hybrid-athletes-in-sharpit",
+    "text": "Monitoring Hybrid Athletes in SHARPIT. The most reliable recovery signals for hybrid athletes are the hardware-agnostic ones: Most reliable: HRV trend (captures total systemic stress from all sources) Resting HR trend (same) Garmin readiness score (integrates all stress sources) Sleep quality and duration (recovery capacity for all systems) Less reliable: TSB (underweights strength-induced fatigue due to TSS estimation problems) ACWR (calibrated to endurance athletes; poorly validated for hybrid loads) Recommendation: for hybrid athletes, prioritize HRV and readiness signals over PMC/ACWR signals. Flag when readiness is low and TSB appears positive — this pattern is especially common in hybrid athletes with unrepresented strength fatigue. ---"
+  },
+  {
+    "id": "hybrid-athlete--known-limitations-for-hybrid-athletes",
+    "title": "Hybrid Athlete — Known Limitations for Hybrid Athletes",
+    "source": "knowledge/hybrid-athlete.md#known-limitations-for-hybrid-athletes",
+    "text": "Known Limitations for Hybrid Athletes. Limitation Impact Priority No separate strength load tracking High Strength fatigue invisible in PMC No concurrent training interference modeling Medium Schedule quality cannot be assessed No integrated periodization planner High Cannot generate hybrid-compatible plans Strength TSS underestimates heavy sessions Medium ATL underestimated after heavy strength weeks No strength progression tracking Medium 1RM, volume load, RPE not tracked"
+  },
+  {
+    "id": "injury-prevention--intro",
+    "title": "Injury Prevention",
+    "source": "knowledge/injury-prevention.md",
+    "text": "Injury Prevention. How SHARPIT identifies injury risk, what signals it uses, where the evidence is strong, and where it is weak. ---"
+  },
+  {
+    "id": "injury-prevention--sharpit-s-role-in-injury-prevention",
+    "title": "Injury Prevention — SHARPIT's Role in Injury Prevention",
+    "source": "knowledge/injury-prevention.md#sharpit-s-role-in-injury-prevention",
+    "text": "SHARPIT's Role in Injury Prevention. SHARPIT does not prevent injuries. It identifies patterns associated with elevated injury risk and generates alerts so the athlete can make an informed decision. This distinction matters: SHARPIT cannot know whether an athlete has poor running mechanics SHARPIT cannot see tissue tolerance or structural vulnerability SHARPIT can see training load trajectories and flag when they enter high-risk zones The ethical constraint: SHARPIT must not produce false confidence. An athlete in the \"optimal\" ACWR zone can still get injured. An athlete in the \"danger\" zone often doesn't. The signals are population-level risks, not individual predictions. ---"
+  },
+  {
+    "id": "injury-prevention--primary-injury-risk-signal-acwr",
+    "title": "Injury Prevention — Primary Injury Risk Signal: ACWR",
+    "source": "knowledge/injury-prevention.md#primary-injury-risk-signal-acwr",
+    "text": "Primary Injury Risk Signal: ACWR. See training-load.md for full ACWR documentation. Summary for injury prevention context: The Acute:Chronic Workload Ratio is the most validated load-based injury risk proxy available to SHARPIT. Its original development (Gabbett 2016, Carey et al. 2017) was specifically motivated by injury prevention in team sports. ACWR thresholds and injury risk: 0.8–1.3: low risk (\"sweet spot\") 1.3–1.5: elevated risk 1.5: high risk (×2-4 injury incidence in source studies) <0.8: under-training (deconditioning risk, not overuse) Critical caveat for endurance athletes: ACWR's predictive validity for endurance sport injuries is extrapolated from team sport data. Endurance sport injuries are predominantly overuse (repetitive stress), whereas team sport injuries include more acute (collision, cut) events. The threshold values may not transfer directly. SHARPIT's conservati…"
+  },
+  {
+    "id": "injury-prevention--deload-as-injury-prevention",
+    "title": "Injury Prevention — Deload as Injury Prevention",
+    "source": "knowledge/injury-prevention.md#deload-as-injury-prevention",
+    "text": "Deload as Injury Prevention. One of the most evidence-supported injury prevention strategies is planned recovery weeks. SHARPIT's periodization model includes deloads. Evidence: Friel (2009), Seiler (multiple publications) — consistent recommendation: every 3-4 weeks of progressive loading, reduce load by 30-50% for 5-7 days. SHARPIT's implementation: Default deload trigger: every 4th week OR when TSB drops below -30 Default deload load: 72% of target week load Known scientific debt: these specific values (4 weeks, 72%) are not cited to a peer-reviewed source. They are practitioner consensus (Friel 2009). The actual optimal deload frequency and depth varies by athlete age, training history, and accumulated load. See scientific-methodology.md. The deload-ACWR artifact: after a deload week, the chronic load average drops. The following week's training (even if returning to normal) will gen…"
+  },
+  {
+    "id": "injury-prevention--sleep-and-injury-risk",
+    "title": "Injury Prevention — Sleep and Injury Risk",
+    "source": "knowledge/injury-prevention.md#sleep-and-injury-risk",
+    "text": "Sleep and Injury Risk. Sleep deprivation independently increases injury risk. Evidence: Milewski et al. (2014) — adolescent athletes sleeping <8 hours had 1.7× higher injury rate. Fullagar et al. (2015) — sleep deprivation reduces reaction time, balance, and tissue repair capacity. Mechanisms: Reduced tissue repair (impaired GH secretion without deep sleep) Impaired proprioception and coordination (injury biomechanics) Elevated cortisol (catabolic effect on connective tissue) SHARPIT's implementation: when both sleep debt and high ACWR are present simultaneously, injury risk should be considered additive. SHARPIT does not currently compute a combined risk score, but the AI coach should flag both signals together. ---"
+  },
+  {
+    "id": "injury-prevention--overuse-injuries-common-patterns",
+    "title": "Injury Prevention — Overuse Injuries: Common Patterns",
+    "source": "knowledge/injury-prevention.md#overuse-injuries-common-patterns",
+    "text": "Overuse Injuries: Common Patterns. Understanding overuse injury mechanisms allows SHARPIT to provide better contextual alerts. Running-Specific Overuse Injuries. Injury Primary risk factor SHARPIT-visible signal Tibial stress fracture Run volume spike, low bone density ACWR elevation, load spike IT Band Syndrome Sudden mileage increase, weak hip abductors ACWR elevation Plantar fasciitis High weekly mileage, calf tightness Cumulative load Patellofemoral pain Rapid load increase, strength deficit ACWR elevation Achilles tendinopathy Speed work increase, tight calves Load type shift Common thread: most running overuse injuries are precipitated by rapid load increases — exactly what ACWR detects. Cycling-Specific Overuse Injuries. Cycling injuries are less frequently from training load spikes and more frequently from bike fit issues, which SHARPIT cannot observe. When a cyclist reports cycl…"
+  },
+  {
+    "id": "injury-prevention--injury-logging-and-severity",
+    "title": "Injury Prevention — Injury Logging and Severity",
+    "source": "knowledge/injury-prevention.md#injury-logging-and-severity",
+    "text": "Injury Logging and Severity. SHARPIT allows athletes to log physical notes/injuries. The severity scale is used to gate training recommendations: Severity thresholds (from recovery.md): Severity ≥6 → training verdict overrides all other signals: mandatory rest This threshold is applied in buildTrainingVerdict() before any other consideration Rationale for severity ≥6 threshold: a pain level of 6/10 or higher during training indicates tissue damage that will worsen with continued load. Training through 5/10 pain is contraindicated in sports medicine practice. The threshold was set empirically; no specific peer-reviewed source. What SHARPIT cannot assess from injury logs: Type of injury (structural vs. soft tissue vs. nerve) Whether rest or movement is indicated Treatment protocol SHARPIT's conservative stance: when severity is high, recommend professional evaluation. Never generate a \"tra…"
+  },
+  {
+    "id": "injury-prevention--monitoring-injury-recovery",
+    "title": "Injury Prevention — Monitoring Injury Recovery",
+    "source": "knowledge/injury-prevention.md#monitoring-injury-recovery",
+    "text": "Monitoring Injury Recovery. When an athlete is returning from injury, standard ACWR and TSB analysis is misleading: Cold start problem during return-to-sport: Chronic load (the denominator in ACWR) was low during injury Any meaningful return-to-training load will generate an elevated ACWR The \"elevated ACWR\" is partly real risk (deconditioned tissue) and partly artifact (low baseline) SHARPIT's partial handling: the system will fire ACWR alerts during return-to-sport. These alerts are physiologically appropriate — deconditioned athletes are at elevated injury risk with sudden load increases. However, the threshold that would normally be acceptable during a normal training block (ACWR 1.5) may be too permissive for post-injury return. Recommendation to AI coach: when injury history is present, apply more conservative ACWR interpretation during the first 4-6 weeks of return. ACWR 1.2 durin…"
+  },
+  {
+    "id": "injury-prevention--running-economy-as-injury-prevention-metric",
+    "title": "Injury Prevention — Running Economy as Injury Prevention Metric",
+    "source": "knowledge/injury-prevention.md#running-economy-as-injury-prevention-metric",
+    "text": "Running Economy as Injury Prevention Metric. Running economy (oxygen cost at a given pace) deteriorates with fatigue and improves with training. Poor running economy = degraded biomechanics = increased injury risk per kilometer. SHARPIT's indirect economy tracking: pace-to-HR ratio (or pace-to-power ratio for athletes with running power meters) at a given effort level can proxy for running economy. Consistent deterioration in this ratio indicates fatigue, detraining, or both. This analysis is not currently implemented in SHARPIT but is possible from the data SHARPIT already collects. ---"
+  },
+  {
+    "id": "injury-prevention--known-gaps-in-injury-prevention-model",
+    "title": "Injury Prevention — Known Gaps in Injury Prevention Model",
+    "source": "knowledge/injury-prevention.md#known-gaps-in-injury-prevention-model",
+    "text": "Known Gaps in Injury Prevention Model. Gap Impact Notes ACWR validated in team sports, extrapolated to endurance High Flag limitation in alerts No biomechanical analysis High Cannot predict injury from movement patterns No sport-specific ACWR High Running injury risk underestimated for triathletes Deload-ACWR false positive not handled Medium Alert should note \"following deload, spike is expected\" No combined risk scoring (load + sleep) Medium Future improvement Return-to-sport protocol not ACWR-adjusted Medium Applies normal thresholds to deconditioned state Injury type and treatment: zero capability High Professional referral must be default"
+  },
+  {
+    "id": "metrics--intro",
+    "title": "Metrics",
+    "source": "knowledge/metrics.md",
+    "text": "Metrics. Every metric SHARPIT computes, displays, or uses in decision-making. Authoritative reference for naming, units, computation, and interpretation. ---"
+  },
+  {
+    "id": "metrics--canonical-metric-definitions",
+    "title": "Metrics — Canonical Metric Definitions",
+    "source": "knowledge/metrics.md#canonical-metric-definitions",
+    "text": "Canonical Metric Definitions. This is the single source of truth for metric definitions. When the UI displays a metric, when an AI agent references a metric, or when a developer implements a computation, this document takes precedence. ---"
+  },
+  {
+    "id": "metrics--load-metrics",
+    "title": "Metrics — Load Metrics",
+    "source": "knowledge/metrics.md#load-metrics",
+    "text": "Load Metrics. TSS — Training Stress Score. Property Value Unit unitless (index) Range 0–300+ (no hard cap) Reference 100 = one hour at exactly FTP/LTHR Implementation computeSessionLoad() in training-load.ts Evidence Coggan & Allen (2006) — Level 5 Computation priority: (1) Garmin activity load, (2) power-based cycling TSS, (3) HR-based TSS, (4) duration × sport factor Reference values: <50: easy recovery session 50-150: moderate training day 150-300: hard training day 300: extreme day (long race, double session) Interpretation warning: these ranges vary significantly by athlete. A 100 TSS day for a CTL=50 athlete is very different from a 100 TSS day for a CTL=120 athlete. --- CTL — Chronic Training Load (Fitness). Property Value Unit TSS/day Decay constant τ = 42 days Initialization 0 for new users Implementation computePmcSeries() in analytics.ts Evidence Coggan (2003) — Level 5 Formul…"
+  },
+  {
+    "id": "metrics--fitness-parameters",
+    "title": "Metrics — Fitness Parameters",
+    "source": "knowledge/metrics.md#fitness-parameters",
+    "text": "Fitness Parameters. FTP — Functional Threshold Power. Property Value Unit Watts Definition Highest sustainable power for ~1 hour Source Athlete profile (manual or estimated) Evidence Coggan & Allen (2006) — Level 5 Estimation factors (from effort duration): 60 min: × 0.97 30 min: × 0.95 20 min: × 0.95 10 min: × 0.90 --- LTHR — Lactate Threshold Heart Rate. Property Value Unit bpm Definition HR at LT2 / FTP equivalent Source Athlete profile (manual entry or estimated) Evidence Friel (2009) — Level 5 --- VO2max (Garmin estimate). Property Value Unit mL/kg/min Source Garmin proprietary algorithm Evidence Level 6 (proprietary) SHARPIT displays this value but does not use it in primary computations. Accuracy ±10-15%. ---"
+  },
+  {
+    "id": "metrics--recovery-metrics",
+    "title": "Metrics — Recovery Metrics",
+    "source": "knowledge/metrics.md#recovery-metrics",
+    "text": "Recovery Metrics. Garmin Training Readiness. Property Value Unit 0–100 Source Garmin proprietary Evidence Level 6 Thresholds: ≥75 good, ≥50 moderate, <50 low. Empirical, no peer-reviewed source. --- HRV Value. Property Value Unit milliseconds (ms) Measurement During sleep (overnight) Source Garmin optical PPG Evidence Level 3-4 (methodology); Level 6 (Garmin implementation) Individual baseline required for interpretation. Do not compare across athletes. --- Body Battery. Property Value Unit 0–100 Source Garmin proprietary Evidence Level 6 Thresholds: ≥70 good, ≥40 moderate, <40 low. Empirical SHARPIT product choices. ---"
+  },
+  {
+    "id": "metrics--sleep-metrics",
+    "title": "Metrics — Sleep Metrics",
+    "source": "knowledge/metrics.md#sleep-metrics",
+    "text": "Sleep Metrics. Sleep Duration. Property Value Unit minutes Target 480 minutes (configurable via sleepTargetMinutes) Implementation analyzeSleep() in sleep.ts Alert thresholds (7-day average): <390 min (6h30): warning <360 min (6h): danger --- Deep Sleep %. Property Value Computation sleepDeepMin / totalSleepMin × 100 Target 13-23% Implementation analyzeSleep() in sleep.ts Tones: ≥13% good, ≥9% moderate, <9% low --- REM Sleep %. Property Value Computation sleepRemMin / totalSleepMin × 100 Target 20-25% Implementation analyzeSleep() in sleep.ts Tones: ≥20% good, ≥15% moderate, <15% low --- Sleep Score (Garmin). Property Value Unit 0–100 Source Garmin proprietary Evidence Level 6 Tones: ≥80 good, ≥60 moderate, <60 low. Empirical; no external validation. --- Bedtime Regularity (MAD). Property Value Unit minutes Computation Median Absolute Deviation of bedtime over 30 nights Alert threshold 6…"
+  },
+  {
+    "id": "metrics--performance-metrics",
+    "title": "Metrics — Performance Metrics",
+    "source": "knowledge/metrics.md#performance-metrics",
+    "text": "Performance Metrics. Race Time Prediction (Riegel). Property Value Formula T2 = T1 × (D2 / D1)^1.06 Exponent 1.06 (Riegel 1977, Level 5) Implementation predictRaceTime() Known limitations: exponent assumes homogeneous pace; varies for elite (1.05) vs. recreational (1.07-1.08) athletes; does not account for terrain. ---"
+  },
+  {
+    "id": "metrics--metric-naming-conventions",
+    "title": "Metrics — Metric Naming Conventions",
+    "source": "knowledge/metrics.md#metric-naming-conventions",
+    "text": "Metric Naming Conventions. In Code. Layer Convention Example Database (Prisma) camelCase sleepDeepMin, restingHr Domain functions camelCase computePmcSeries() UI display Localized string \"Sommeil profond\" API JSON camelCase { \"sleepScore\": 75 } Prohibited Naming Patterns. Never use \"score\" for a value that is a ratio (use \"ratio\" or \"index\") Never use \"fitness\" as a variable name without the CTL qualifier — \"fitness\" is ambiguous Never use \"load\" without qualificying: TSS, ATL, CTL, ACWR are all \"load\" in different senses Use full metric names in function signatures: computeAcwr() not computeRatio() ---"
+  },
+  {
+    "id": "metrics--metric-availability-by-data-source",
+    "title": "Metrics — Metric Availability by Data Source",
+    "source": "knowledge/metrics.md#metric-availability-by-data-source",
+    "text": "Metric Availability by Data Source. Metric Garmin Manual entry Computed TSS ✓ (activity load) Possible ✓ (fallback) CTL/ATL/TSB — — ✓ ACWR — — ✓ FTP Via activity analysis ✓ ✓ (estimated) HRV ✓ — — Sleep duration/stages ✓ — — Readiness ✓ — — Body composition ✓ (scale) — —"
+  },
+  {
+    "id": "nutrition--intro",
+    "title": "Nutrition",
+    "source": "knowledge/nutrition.md",
+    "text": "Nutrition. What SHARPIT knows and doesn't know about nutrition. Where nutrition fits in the performance model, and why SHARPIT's current nutrition coverage is limited by design. ---"
+  },
+  {
+    "id": "nutrition--sharpit-s-current-nutrition-coverage",
+    "title": "Nutrition — SHARPIT's Current Nutrition Coverage",
+    "source": "knowledge/nutrition.md#sharpit-s-current-nutrition-coverage",
+    "text": "SHARPIT's Current Nutrition Coverage. SHARPIT does not track nutrition. This is an explicit product decision, not an oversight. Why no nutrition tracking: Accurate nutrition tracking requires food logging, which is a dedicated product domain (MyFitnessPal, Cronometer) with massive UX investment Athlete compliance with food logging is poor — data that exists for <50% of days degrades recovery analysis more than it helps Nutrition data without lab validation (body composition trends, performance markers) has low signal SHARPIT's founding constraint: depth in fewer domains beats breadth in many What SHARPIT can infer indirectly: Poor glycogen repletion → TSB and recovery metrics will show slower-than-expected recovery Dehydration → elevated resting HR, HRV suppression (both tracked) Poor overnight nutrition timing → Garmin sleep score and stress during sleep SHARPIT flags these patterns wit…"
+  },
+  {
+    "id": "nutrition--the-nutrition-performance-link",
+    "title": "Nutrition — The Nutrition-Performance Link",
+    "source": "knowledge/nutrition.md#the-nutrition-performance-link",
+    "text": "The Nutrition-Performance Link. Why Nutrition Matters to Training Load. Training load (TSS, CTL, ATL) measures exercise stress, not the body's ability to adapt to it. Adaptation requires: Protein: muscle protein synthesis requires adequate leucine (~2.5g/meal) and total daily protein (~1.6-2.2 g/kg — Phillips & Van Loon 2011) Carbohydrates: glycogen is the primary fuel for sessions 90 min. Glycogen depletion limits both endurance and subsequent recovery Fats: required for fat-soluble vitamins (D, K2, A, E) essential for bone health and hormone production The relevant implication for SHARPIT: when an athlete's recovery metrics are poor despite reasonable training load, and sleep is adequate, insufficient nutrition is a probable contributing factor. The AI coach should raise this hypothesis. Peri-Exercise Nutrition. Pre-exercise (2-4h before): Primary goal: top up muscle glycogen ~1-2 g/kg…"
+  },
+  {
+    "id": "nutrition--carbohydrate-periodization",
+    "title": "Nutrition — Carbohydrate Periodization",
+    "source": "knowledge/nutrition.md#carbohydrate-periodization",
+    "text": "Carbohydrate Periodization. Carbohydrate periodization is the practice of deliberately reducing carbohydrate availability on certain training days to enhance metabolic adaptations. The theory: training with low glycogen availability (train low) upregulates fat oxidation enzymes. Racing with high glycogen (race high) uses the full metabolic capacity. Evidence level: Level 2-3. Improved in lab studies; practical implementation is complex. Hawley & Burke (2010), Bartlett et al. (2015). SHARPIT's position: carbohydrate periodization is an advanced strategy for well-trained athletes with specific performance goals. SHARPIT does not recommend it as a default. If a user specifically asks, the AI coach can discuss it as a practice-informed strategy. Risk: athletes who accidentally train low (poor planning, life constraints) are not periodizing — they are underfueling. SHARPIT should distinguish …"
+  },
+  {
+    "id": "nutrition--hydration",
+    "title": "Nutrition — Hydration",
+    "source": "knowledge/nutrition.md#hydration",
+    "text": "Hydration. Dehydration of ≥2% body weight impairs aerobic performance measurably (Sawka et al. 2007 — ACSM position stand). Physiological mechanisms: Blood volume decreases → cardiac output decreases Core temperature rises faster RPE increases at the same intensity HR increases at the same intensity (the primary signal SHARPIT can detect) SHARPIT's indirectly observable hydration signals: Elevated RHR during what should be easy training HR-based TSS systematically overestimates load (cardiac drift from dehydration elevates HR) Garmin body battery depletes faster than expected SHARPIT cannot distinguish dehydration from overtraining based on HR elevation alone. When the AI coach observes elevated HR without corresponding training load increases, dehydration is one of several factors to flag. ---"
+  },
+  {
+    "id": "nutrition--supplements-sharpit-s-position",
+    "title": "Nutrition — Supplements: SHARPIT's Position",
+    "source": "knowledge/nutrition.md#supplements-sharpit-s-position",
+    "text": "Supplements: SHARPIT's Position. SHARPIT does not track supplements. The AI coach can discuss evidence-based supplements when asked, constrained by the evidence hierarchy in scientific-methodology.md. Evidence-based supplements for endurance athletes (Level 1-2 evidence): Supplement Evidence Use case Caffeine Level 1 Performance enhancement, 3-6 mg/kg, 60 min pre-race Nitrate (beetroot) Level 1 Endurance performance, ~500mg nitrate, 2-3h pre Creatine Level 1-2 Strength athletes; limited benefit for pure endurance Vitamin D Level 2 Deficiency is common ( 50% athletes at latitude 35°N); supplementation required when deficient Beta-alanine Level 2 High-intensity events 1-10 min; limited relevance for most endurance athletes Position on other supplements: SHARPIT does not endorse supplements beyond this list without Level 1-2 evidence. Many popular sports supplements (BCAA, glutamine, HMB) h…"
+  },
+  {
+    "id": "nutrition--body-composition",
+    "title": "Nutrition — Body Composition",
+    "source": "knowledge/nutrition.md#body-composition",
+    "text": "Body Composition. SHARPIT tracks body composition data from Garmin scales (Renpho integration added as of de61827). Body composition affects performance in multiple ways: Weight: critical for climbing performance (W/kg) and running economy Muscle mass: determines peak power output and strength Body fat %: high body fat is a performance limiter in weight-sensitive sports; very low body fat is associated with RED-S risk Lean mass tracking during training blocks: loss of lean mass during a build phase suggests insufficient protein or total calories Body composition targets: SHARPIT does not prescribe body composition targets. Body composition goals must come from the athlete. SHARPIT tracks trends and flags concerning patterns (rapid weight loss, lean mass loss). Risk of body composition pressure: SHARPIT must never generate recommendations that pressure athletes toward lower body weight. T…"
+  },
+  {
+    "id": "nutrition--limitations",
+    "title": "Nutrition — Limitations",
+    "source": "knowledge/nutrition.md#limitations",
+    "text": "Limitations. No nutritional data: all nutritional recommendations are hypothesis-level, not data-driven. No food logging integration: this would require significant product investment. Indirect inference only: nutrition signals are confounded by sleep, stress, overtraining, and illness. Lab values unavailable: ferritin, transferrin, B12, Vitamin D, testosterone, cortisol — all relevant, none available."
+  },
+  {
+    "id": "physiology--intro",
+    "title": "Physiology",
+    "source": "knowledge/physiology.md",
+    "text": "Physiology. The physiological foundations underlying every training recommendation in SHARPIT. Not a textbook — a reference for why SHARPIT's models behave as they do. ---"
+  },
+  {
+    "id": "physiology--energy-systems",
+    "title": "Physiology — Energy Systems",
+    "source": "knowledge/physiology.md#energy-systems",
+    "text": "Energy Systems. Understanding energy systems is prerequisite to understanding why TSS, PMC, and polarized training exist. Three Systems. System Fuel Duration Relevance to SHARPIT ATP-PCr (phosphagen) Creatine phosphate 0–10 sec Sprint finishes; not tracked Glycolytic (anaerobic) Glycogen → lactate 10 sec – ~2 min High-intensity intervals; drives ATL spike Oxidative (aerobic) Fat + glycogen 2 min Base of all endurance training; drives CTL Practical implication for SHARPIT: long aerobic sessions (Z1/Z2) build CTL with low ATL accumulation per unit time. Short high-intensity sessions spike ATL disproportionately relative to TSS because HR-based TSS systematically underestimates glycolytic stress. The Lactate Threshold. Two thresholds separate physiological intensity zones: LT1 (First Lactate Threshold): the intensity at which blood lactate begins to rise above baseline (~2 mmol/L). Training…"
+  },
+  {
+    "id": "physiology--vo2max",
+    "title": "Physiology — VO2max",
+    "source": "knowledge/physiology.md#vo2max",
+    "text": "VO2max. VO2max is the maximum rate of oxygen consumption during exhaustive exercise. It is the ceiling of aerobic performance. Why SHARPIT doesn't directly track VO2max: Direct measurement requires lab gas analysis Garmin estimates VO2max from speed/HR ratio — accuracy ±10-15% (Garmin documentation; no peer-reviewed validation) VO2max changes slowly (weeks-months); daily variation is noise CTL is a better proxy for trained endurance athletes because it reflects actual training capacity Where VO2max appears in SHARPIT: indirectly, through FTP. FTP ≈ 75% VO2max power for well-trained cyclists (Coggan 2006). Athletes with higher VO2max can sustain higher FTP relative to body weight. ---"
+  },
+  {
+    "id": "physiology--cardiac-adaptations-to-endurance-training",
+    "title": "Physiology — Cardiac Adaptations to Endurance Training",
+    "source": "knowledge/physiology.md#cardiac-adaptations-to-endurance-training",
+    "text": "Cardiac Adaptations to Endurance Training. These adaptations explain why trained athletes have different HRV and RHR baselines than recreational athletes. Adaptation Trained state Implication for SHARPIT Increased stroke volume Higher SV at rest Lower RHR (bradycardia) Cardiac hypertrophy (eccentric) Larger LV volume Higher HRV baseline Vagal dominance Increased parasympathetic tone HRV values non-comparable to untrained norms Reduced blood viscosity Better O2 delivery Better aerobic capacity Practical implication: HRV interpretation must use individual baseline, not population norms. A well-trained athlete with resting HRV of 25 ms may have excellent recovery — that is their normal. See recovery.md. ---"
+  },
+  {
+    "id": "physiology--muscle-fiber-types",
+    "title": "Physiology — Muscle Fiber Types",
+    "source": "knowledge/physiology.md#muscle-fiber-types",
+    "text": "Muscle Fiber Types. Fiber type Characteristics Training relevance Type I (slow-twitch) High oxidative capacity, fatigue-resistant Aerobic base; CTL accumulation Type IIa (fast oxidative) High force and endurance; trainable Threshold and VO2max work Type IIx (fast glycolytic) Maximum force, rapid fatigue Sprints; negligible endurance contribution Endurance training shifts Type IIx toward Type IIa expression. This transition takes weeks-months and is irreversible in the short term. It explains why sudden detraining (injury, illness) produces rapid performance loss beyond what CTL decay alone would predict. ---"
+  },
+  {
+    "id": "physiology--hormonal-responses-to-training",
+    "title": "Physiology — Hormonal Responses to Training",
+    "source": "knowledge/physiology.md#hormonal-responses-to-training",
+    "text": "Hormonal Responses to Training. These mechanisms explain why sleep and overtraining signals matter. Anabolic Hormones. Testosterone: peaks 15-30 min post-exercise. Signals muscle protein synthesis. Chronically suppressed in overtraining syndrome. Monitoring testosterone requires lab testing — SHARPIT cannot track this directly. Growth Hormone (GH): secreted almost exclusively during deep sleep (N3/SWS). This is the primary physiological link between sleep quality and recovery. An athlete who skimps on deep sleep is suppressing their primary anabolic signal. See sleep.md. IGF-1 (Insulin-like Growth Factor 1): mediates GH action in muscle. Stimulated by resistance training. Relevant for hybrid athletes — strength training increases IGF-1 beyond what endurance training alone produces. Catabolic Hormones. Cortisol: rises with training stress, psychological stress, and poor sleep. Catabolic —…"
+  },
+  {
+    "id": "physiology--supercompensation",
+    "title": "Physiology — Supercompensation",
+    "source": "knowledge/physiology.md#supercompensation",
+    "text": "Supercompensation. The theoretical model underlying periodization: Training stress → Fatigue → Recovery → Supercompensation → Return to baseline (if no stimulus) SHARPIT's PMC model is a mathematical implementation of this principle: ATL = acute fatigue accumulation CTL rise = supercompensation integrated over time TSB = net supercompensation state Key timing for SHARPIT: Full recovery from a hard session: 24-72 hours depending on intensity and volume Supercompensation peak: 3-7 days after a training stimulus Detraining begins: 7-14 days without stimulus This timing justifies the ATL τ=7 days constant — it represents the typical decay of acute fatigue. ---"
+  },
+  {
+    "id": "physiology--overtraining-syndrome-ots",
+    "title": "Physiology — Overtraining Syndrome (OTS)",
+    "source": "knowledge/physiology.md#overtraining-syndrome-ots",
+    "text": "Overtraining Syndrome (OTS). Overtraining syndrome is distinct from normal fatigue. It is a clinical condition characterized by performance decrement not reversed by short-term rest. OTS diagnostic criteria (Meeusen et al. 2013 — ECSS/ACSM joint consensus): Performance decline persisting 2 weeks despite rest No organic disease explaining the decline Associated symptoms: mood disturbance, sleep disruption, decreased motivation, hormonal changes SHARPIT's position: SHARPIT cannot diagnose OTS. Its role is early warning. When SHARPIT fires sustained ACWR alerts + low readiness + poor sleep, it is flagging a trajectory toward OTS, not the syndrome itself. The correct response is 3-5 days of reduced load and monitoring — not diagnosis. The line between overreaching (2-week recovery) and overtraining ( 4-week recovery) is important clinically. SHARPIT treats both the same: mandatory load reduc…"
+  },
+  {
+    "id": "physiology--detraining",
+    "title": "Physiology — Detraining",
+    "source": "knowledge/physiology.md#detraining",
+    "text": "Detraining. Detraining is the partial or complete reversal of training adaptations. Adaptation Rate of loss without training VO2max 4-14% in first 4 weeks Muscle oxidative enzymes Rapid: 50% in 3 weeks Lactate threshold (absolute) Follows VO2max decay Muscle glycogen stores Weeks Capillary density Months Cardiac mass Months Implication for PMC: CTL decay at τ=42 underestimates actual fitness loss in the first 1-2 weeks of complete detraining. The model assumes continuous partial training input. A complete stop (illness, injury) produces faster performance loss than PMC predicts. SHARPIT does not currently model detraining differently from normal ATL decay. When an athlete is forced to stop completely, their actual fitness will fall faster than CTL suggests. ---"
+  },
+  {
+    "id": "physiology--thermoregulation",
+    "title": "Physiology — Thermoregulation",
+    "source": "knowledge/physiology.md#thermoregulation",
+    "text": "Thermoregulation. Core temperature management is a significant performance limiter in endurance events. Relevant to SHARPIT for: Sleep quality: core temperature must drop ~1-1.5°C to initiate sleep. High room temperature, hot baths before bed, and evening intense exercise all delay this drop. See sleep.md. Training in heat: increases cardiovascular strain relative to pace/power. HR-based TSS will overestimate aerobic load; power-based TSS remains accurate. SHARPIT currently has no heat adjustment for load calculation. This is a known limitation. ---"
+  },
+  {
+    "id": "physiology--individual-physiological-variation",
+    "title": "Physiology — Individual Physiological Variation",
+    "source": "knowledge/physiology.md#individual-physiological-variation",
+    "text": "Individual Physiological Variation. A recurring theme in SHARPIT's design: population averages often don't apply to specific athletes. Parameter Population average Individual variation Deep sleep % 13-23% Older athletes: often <13% REM % 20-25% Heavy training: REM suppression HRV (resting) Wide range Training age, age, genetics FTP as % VO2max power ~75% 65-85% depending on fast-twitch proportion CTL at peak performance 100-150 for elite 50-70 for recreational SHARPIT's approach: use population averages as defaults. Flag deviations. Never declare an athlete \"abnormal\" — flag the deviation for attention."
+  },
+  {
+    "id": "recovery--intro",
+    "title": "Recovery",
+    "source": "knowledge/recovery.md",
+    "text": "Recovery. How SHARPIT assesses recovery, why specific signals were chosen, and the limitations of each. ---"
+  },
+  {
+    "id": "recovery--recovery-in-sharpit-s-model",
+    "title": "Recovery — Recovery in SHARPIT's Model",
+    "source": "knowledge/recovery.md#recovery-in-sharpit-s-model",
+    "text": "Recovery in SHARPIT's Model. Recovery is not a binary state. SHARPIT models recovery as a multi-signal continuum assessed from four independent sources: Garmin Training Readiness Score — vendor composite score HRV (Heart Rate Variability) — autonomic nervous system status Resting Heart Rate — cardiovascular baseline TSB (Training Stress Balance) — load-based recovery proxy No single signal is authoritative. The value of SHARPIT's recovery assessment comes from combining signals that measure different physiological processes. When they agree, confidence is high. When they disagree, SHARPIT must flag the conflict and defer to the athlete's subjective assessment. ---"
+  },
+  {
+    "id": "recovery--signal-1-garmin-training-readiness-score",
+    "title": "Recovery — Signal 1: Garmin Training Readiness Score",
+    "source": "knowledge/recovery.md#signal-1-garmin-training-readiness-score",
+    "text": "Signal 1: Garmin Training Readiness Score. Implementation: buildReadinessView() in recovery.ts Evidence level: Level 6 (proprietary, not peer-reviewed) What Garmin reports. Garmin computes a 0–100 score combining: overnight HRV, sleep quality and duration, training load (recent), and potentially body battery recovery. The exact algorithm is not published. SHARPIT's thresholds. Score Classification Source ≥ 75 Good Empirical (no peer-reviewed source) ≥ 50 Moderate Empirical (no peer-reviewed source) < 50 Low Empirical (no peer-reviewed source) These thresholds were set empirically by the developer. They have no published scientific basis. They should be treated as reasonable starting points, not precise cutoffs. Why SHARPIT uses this signal. Despite its opacity, the Garmin readiness score integrates multiple physiological signals that SHARPIT would otherwise need to compute separately. Fo…"
+  },
+  {
+    "id": "recovery--signal-2-hrv-heart-rate-variability",
+    "title": "Recovery — Signal 2: HRV (Heart Rate Variability)",
+    "source": "knowledge/recovery.md#signal-2-hrv-heart-rate-variability",
+    "text": "Signal 2: HRV (Heart Rate Variability). Implementation: buildHrvStatusView() in recovery.ts Evidence level: Level 3-4 (validated in trained athletes; Garmin's specific implementation is Level 6) What HRV measures. HRV reflects the variation in time between heartbeats, driven by autonomic nervous system activity. High parasympathetic tone (rest and digest) produces high HRV. High sympathetic tone (fight or flight — exercise, stress, illness) suppresses HRV. In trained athletes, overnight HRV is a sensitive marker of recovery status. SHARPIT's implementation. SHARPIT reads DailyHealth.hrv (raw ms value) and DailyHealth.hrvStatus (Garmin classification). Two alert pathways: Pathway 1 — Garmin status: UNBALANCEDLOW, LOW, POOR → warning alert fires immediately Pathway 2 — Trend analysis (in alerts.ts): If avg(last 3 days HRV) < avg(days 4-10 HRV) × 0.85 → warning: \"HRV en baisse marquée\" A 15…"
+  },
+  {
+    "id": "recovery--signal-3-resting-heart-rate-rhr",
+    "title": "Recovery — Signal 3: Resting Heart Rate (RHR)",
+    "source": "knowledge/recovery.md#signal-3-resting-heart-rate-rhr",
+    "text": "Signal 3: Resting Heart Rate (RHR). Implementation: alert in computeAlerts() in alerts.ts Evidence level: Level 3 (observational evidence in trained athletes) What RHR measures. An elevated resting heart rate above personal baseline indicates increased sympathetic tone. This can reflect incomplete recovery, overtraining, illness, dehydration, or psychological stress. It is a less sensitive marker than HRV but is more robustly measured (heart rate is simpler to measure accurately than HRV). SHARPIT's threshold. If avg(last 3 days RHR) = avg(days 4-17 RHR) + 5 bpm → warning alert A 5 bpm elevation above a 2-week baseline is used by Friel (2009) and Noakes (1991) as a clinical rule of thumb for overtraining detection. Limitation: the 5 bpm threshold is a practitioner heuristic (Level 5 evidence). It lacks the precision of HRV for recovery assessment but is robust to measurement error. ---"
+  },
+  {
+    "id": "recovery--signal-4-training-stress-balance-tsb",
+    "title": "Recovery — Signal 4: Training Stress Balance (TSB)",
+    "source": "knowledge/recovery.md#signal-4-training-stress-balance-tsb",
+    "text": "Signal 4: Training Stress Balance (TSB). Implementation: buildFormView() in recovery.ts Evidence level: Level 2-5 (underlying PMC model is Level 2-3; TSB thresholds are Level 5) What TSB measures. TSB = CTL - ATL. The mathematical difference between the athlete's accumulated fitness (CTL) and their current fatigue burden (ATL). It represents how \"fresh\" the athlete is relative to their fitness level. TSB is a load-derived recovery signal — it measures training-induced fatigue, not physiological recovery state. A high TSB does not mean the athlete is recovered from illness or psychological stress. It means their training load balance favors freshness. Thresholds. See training-load.md. Brief summary: TSB +15: fresh/tapered TSB -10 to +5: optimal training state TSB -10 to -30: high training load TSB < -30: overload risk When TSB and readiness disagree. This is a diagnostically significant s…"
+  },
+  {
+    "id": "recovery--body-battery",
+    "title": "Recovery — Body Battery",
+    "source": "knowledge/recovery.md#body-battery",
+    "text": "Body Battery. Implementation: bodyBatteryTone() in recovery.ts Evidence level: Level 6 (Garmin proprietary) Body Battery (0–100) represents Garmin's estimate of available energy reserves. It charges during sleep/rest and depletes during activity. SHARPIT uses it as a supplementary indicator. Thresholds: ≥ 70: good ≥ 40: moderate < 40: low These thresholds are empirical. Body Battery is best used for intra-day decision making (should I train now or wait?), not as a primary recovery metric. ---"
+  },
+  {
+    "id": "recovery--multi-signal-aggregation",
+    "title": "Recovery — Multi-Signal Aggregation",
+    "source": "knowledge/recovery.md#multi-signal-aggregation",
+    "text": "Multi-Signal Aggregation. SHARPIT's buildTrainingVerdict() combines signals into a single daily recommendation. The aggregation logic follows this priority: Active injury alert (severity ≥6) → verdict overrides everything else. Rest is mandatory regardless of PMC/readiness state. ACWR ≥ 1.5 → load management takes priority over readiness state Low readiness (multiple days) → conservative recommendation TSB context → modulates recommendation within the above constraints The rationale: safety overrides performance. An athlete with good TSB and high ACWR should not receive a \"push hard\" recommendation. The system's job is to protect long-term health first. ---"
+  },
+  {
+    "id": "recovery--recovery-recommendations",
+    "title": "Recovery — Recovery Recommendations",
+    "source": "knowledge/recovery.md#recovery-recommendations",
+    "text": "Recovery Recommendations. SHARPIT generates one of three primary recovery recommendations: Tone Recommendation Conditions good \"Bien récupéré : séance intense possible\" Readiness ≥75, no ACWR alert, TSB -20 moderate \"Privilégie Z2 ou technique\" Readiness 50-75, or elevated ACWR low \"Repos actif ou journée off recommandée\" Readiness <50, or ACWR ≥1.5, or active danger alert ---"
+  },
+  {
+    "id": "recovery--known-gaps-in-sharpit-s-recovery-model",
+    "title": "Recovery — Known Gaps in SHARPIT's Recovery Model",
+    "source": "knowledge/recovery.md#known-gaps-in-sharpit-s-recovery-model",
+    "text": "Known Gaps in SHARPIT's Recovery Model. No independent HRV algorithm. SHARPIT depends entirely on Garmin for HRV analysis. A transparent, independently computed HRV score (using methods from Plews et al. 2013 or Buchheit 2014) would make recovery assessment scientifically verifiable. No psychological recovery tracking. Motivation, mood, and perceived wellbeing are validated recovery markers (Morgan's POMS, Foster et al. RPE). SHARPIT currently tracks only physiological signals. No recovery trajectory modeling. SHARPIT assesses recovery state at a point in time but does not model recovery trajectory (will the athlete be recovered in 48 hours?). This would enable better planning for multi-day training blocks. No nutrition/hydration signals. Dehydration and glycogen depletion are significant recovery limiters. SHARPIT cannot observe these directly."
+  },
+  {
+    "id": "scientific-methodology--intro",
+    "title": "Scientific Methodology",
+    "source": "knowledge/scientific-methodology.md",
+    "text": "Scientific Methodology. How SHARPIT evaluates, applies, and evolves scientific knowledge. Every domain document in this knowledge base follows the standards defined here. ---"
+  },
+  {
+    "id": "scientific-methodology--why-sharpit-needs-an-explicit-methodology",
+    "title": "Scientific Methodology — Why SHARPIT Needs an Explicit Methodology",
+    "source": "knowledge/scientific-methodology.md#why-sharpit-needs-an-explicit-methodology",
+    "text": "Why SHARPIT Needs an Explicit Methodology. Sports science produces a continuous stream of new studies, many of which contradict earlier work. Thresholds that were considered gold standard five years ago are now debated. Models that are widely used in practice have limited peer-reviewed validation. Without an explicit methodology for evaluating evidence, SHARPIT would either: Apply outdated models indefinitely (no mechanism to update) Chase every new study and break scientific consistency Apply rigorous academic standards that exclude useful practical tools SHARPIT's methodology is designed to avoid all three failure modes. ---"
+  },
+  {
+    "id": "scientific-methodology--evidence-hierarchy",
+    "title": "Scientific Methodology — Evidence Hierarchy",
+    "source": "knowledge/scientific-methodology.md#evidence-hierarchy",
+    "text": "Evidence Hierarchy. SHARPIT evaluates evidence using a modified hierarchy adapted for applied sports science: Level 1 — Systematic reviews and meta-analyses. Population-level synthesis across multiple studies. Highest confidence in direction and magnitude of effect. Example: Malone et al. (2017) meta-analysis on ACWR and injury risk. Level 2 — Randomized controlled trials (RCTs) with adequate power. Controlled experimental evidence. Strong for mechanism; weaker for generalizability to trained endurance athletes (most RCTs use sedentary or recreationally active participants). Level 3 — Prospective observational studies in trained athletes. Evidence from athletes performing real training over real seasons. Ecologically valid but confounded. Example: Plews et al. (2013) on HRV in elite endurance athletes. Level 4 — Retrospective analysis and case series. Historical data analysis. Useful for…"
+  },
+  {
+    "id": "scientific-methodology--how-sharpit-assesses-a-new-model-or-threshold",
+    "title": "Scientific Methodology — How SHARPIT Assesses a New Model or Threshold",
+    "source": "knowledge/scientific-methodology.md#how-sharpit-assesses-a-new-model-or-threshold",
+    "text": "How SHARPIT Assesses a New Model or Threshold. When evaluating whether to implement or modify a scientific model, SHARPIT asks five questions: What is the evidence level?. Document the highest available evidence level for the model. Note whether evidence is from the target population (trained endurance/triathlon athletes) or extrapolated from a different population. What is the practical utility?. A model is worth implementing if it produces actionable guidance. A statistically significant finding with no practical implications for training decisions is not worth the implementation complexity. What are the known failure modes?. Every model has boundary conditions where it fails. SHARPIT documents them. Example: ACWR performs poorly after planned deload weeks (produces false positives). This limitation must be communicated when the model fires. Does it conflict with existing SHARPIT model…"
+  },
+  {
+    "id": "scientific-methodology--how-sharpit-handles-conflicting-studies",
+    "title": "Scientific Methodology — How SHARPIT Handles Conflicting Studies",
+    "source": "knowledge/scientific-methodology.md#how-sharpit-handles-conflicting-studies",
+    "text": "How SHARPIT Handles Conflicting Studies. Sports science has many areas of genuine scientific controversy: ACWR: initial studies showed strong injury prediction; later studies showed weak or inconsistent results Polarized training: strong evidence in elite athletes; mixed in recreational athletes HRV-guided training: promising but inconsistent across populations SHARPIT's approach to conflicting evidence: Document the conflict explicitly in the relevant domain file. Default to the consensus position where one exists (even if contested). Do not take contrarian scientific positions without an ADR. Apply conservative interpretation when evidence goes in both directions. If ACWR's predictive validity is contested, SHARPIT still flags high ACWR values — because the cost of ignoring a real risk signal is higher than the cost of a false positive. Do not present contested thresholds as precise or…"
+  },
+  {
+    "id": "scientific-methodology--how-uncertainty-is-handled",
+    "title": "Scientific Methodology — How Uncertainty is Handled",
+    "source": "knowledge/scientific-methodology.md#how-uncertainty-is-handled",
+    "text": "How Uncertainty is Handled. Every SHARPIT recommendation has an implicit confidence level based on: Data completeness: Is all required input data present? Data recency: Is the data fresh enough to be meaningful? Model validity: How well-validated is the underlying model? Individual fit: Does the model's population match this athlete? When confidence is low, SHARPIT must: Flag the missing data explicitly Reduce the specificity of the recommendation (\"consider rest\" instead of \"rest today\") Not produce a confident-sounding recommendation from weak data See confidence-scoring.md for the implementation framework. ---"
+  },
+  {
+    "id": "scientific-methodology--how-models-are-replaced-over-time",
+    "title": "Scientific Methodology — How Models Are Replaced Over Time",
+    "source": "knowledge/scientific-methodology.md#how-models-are-replaced-over-time",
+    "text": "How Models Are Replaced Over Time. SHARPIT must be able to update its models without requiring a full system rewrite. Protocol for model replacement: Propose the new model in an ADR (in docs/adr/). Document what it replaces, why, and the transition strategy. Run both models in parallel during a validation period if the new model produces different outputs. Audit downstream effects: changing a model may change alerts, recommendations, and AI coach behavior. These must be reviewed before deployment. Update the domain document, the ADR, and the architecture-links.md file. Add a migration note to the relevant entry under docs/models/ (and knowledge/ when the corpus changes). Principle: backward compatibility in the UI is preferred. Athletes who have become familiar with a metric's meaning should not find its behavior changed without explanation. ---"
+  },
+  {
+    "id": "scientific-methodology--scientific-debt",
+    "title": "Scientific Methodology — Scientific Debt",
+    "source": "knowledge/scientific-methodology.md#scientific-debt",
+    "text": "Scientific Debt. Scientific debt is the accumulation of models, thresholds, and interpretations that have not been validated or documented to the standard required by this methodology. It is tracked in future-research.md. Current known scientific debt: Item Debt type Risk Garmin readiness thresholds (75/50) Empirically set, no source Incorrect classification of recovery state Periodization load factors (0.85, 1.08) No cited source Suboptimal training plan load distribution Deload trigger (every 4 weeks, 72%) No cited source Deloads at wrong time or wrong magnitude LOADFACTOR per sport (TSS/min) Approximated Incorrect load comparison across sports Sleep score thresholds (80/60) Garmin-derived, not validated Incorrect interpretation of sleep quality Body battery thresholds (70/40) Empirical Incorrect classification of readiness ---"
+  },
+  {
+    "id": "scientific-methodology--language-standards-for-scientific-claims",
+    "title": "Scientific Methodology — Language Standards for Scientific Claims",
+    "source": "knowledge/scientific-methodology.md#language-standards-for-scientific-claims",
+    "text": "Language Standards for Scientific Claims. When writing recommendations, UI text, or AI coach responses, SHARPIT distinguishes between: Confidence Language to use High evidence (Level 1-2) \"Research shows...\", \"Evidence consistently indicates...\" Moderate evidence (Level 3-4) \"Studies suggest...\", \"Evidence indicates...\" Low evidence / practitioner consensus (Level 5) \"Best practice suggests...\", \"Coaches typically recommend...\" Proprietary / unknown \"Garmin reports...\", \"Based on your wearable data...\" Model estimate \"SHARPIT estimates...\", \"Based on your training data...\" Never present a Level 5 or Level 6 finding using Level 1-2 language. ---"
+  },
+  {
+    "id": "scientific-methodology--reference-standards",
+    "title": "Scientific Methodology — Reference Standards",
+    "source": "knowledge/scientific-methodology.md#reference-standards",
+    "text": "Reference Standards. When citing a source in SHARPIT's knowledge base: Required format: Author(s) (Year). \"Title.\" Journal/Book, Volume(Issue), pages. For implemented algorithms: The source citation goes in the code as a comment, in the domain document, and in references/[topic].md. For threshold values: The citation must accompany every use of the threshold (code comment, domain doc, glossary entry). For proprietary algorithms: Note that the algorithm is proprietary, note the vendor and product version if known, and state that the underlying methodology is unavailable. --- This methodology applies to all scientific content in the SHARPIT knowledge base. Updates to this document require an ADR."
+  },
+  {
+    "id": "sleep--intro",
+    "title": "Sleep",
+    "source": "knowledge/sleep.md",
+    "text": "Sleep. Sleep is the highest-leverage recovery intervention available to an athlete. SHARPIT treats sleep analysis as a primary feature, not a supplementary one. ---"
+  },
+  {
+    "id": "sleep--sharpit-s-position-on-sleep",
+    "title": "Sleep — SHARPIT's Position on Sleep",
+    "source": "knowledge/sleep.md#sharpit-s-position-on-sleep",
+    "text": "SHARPIT's Position on Sleep. Sleep is not optional for athletic performance. It is the primary mechanism of physical recovery, hormonal regulation, glycogen resynthesis, and motor skill consolidation. A training program optimized on paper will underperform if sleep is inadequate. SHARPIT's sleep analysis exists to close the loop between training recommendations and the physiological recovery that makes those recommendations effective. The practical implication: when sleep signals are negative, SHARPIT's training recommendations shift conservative — regardless of what PMC/ACWR suggest. An athlete who is training well but sleeping poorly is on a degrading trajectory. ---"
+  },
+  {
+    "id": "sleep--sleep-architecture",
+    "title": "Sleep — Sleep Architecture",
+    "source": "knowledge/sleep.md#sleep-architecture",
+    "text": "Sleep Architecture. SHARPIT tracks four sleep stages as reported by Garmin: Stage Label SHARPIT variable Physiological function Deep (N3/SWS) Profond sleepDeepMin Physical recovery, GH release, muscle repair, glycogen synthesis REM Paradoxal (REM) sleepRemMin Memory consolidation, motor learning, emotional regulation Light (N1/N2) Léger sleepLightMin Transitional; necessary staging between deep and REM Awake Éveillé sleepAwakeMin Minimal; too much indicates poor sleep quality or environment problems Target percentages. Stage SHARPIT target Source Deep 13–23% of total sleep time Walker (2017), AASM guidelines, Garmin's own documentation REM 20–25% of total sleep time Walker (2017), multiple sleep science texts Light Remainder No specific target Awake < ~5% (≤45 min) Operational threshold from literature Important caveat: these percentages are population averages. Individual variation is s…"
+  },
+  {
+    "id": "sleep--sleep-duration",
+    "title": "Sleep — Sleep Duration",
+    "source": "knowledge/sleep.md#sleep-duration",
+    "text": "Sleep Duration. Target: 480 minutes (8 hours) Implementation: TARGETDURATIONMIN = 480 in sleep.ts This is a configurable value via AthleteProfile.sleepTargetMinutes. The default of 8 hours represents the consensus recommendation from sleep science literature (Walker 2017, AASM position statement 2015) and sports medicine (Mah et al. 2011 sleep extension study in athletes). Why 8 hours and not 7 or 9: 7 hours is the minimum associated with health maintenance (AASM 2015) 8 hours is the target associated with athletic performance optimization (Mah et al. 2011) 9 hours may indicate pathological sleepiness if consistent; not a target Sleep debt alert thresholds: Average <390 min (6h30) over 7 days: warning alert Average <360 min (6h00) over 7 days: danger alert The 390-minute threshold corresponds to the level below which cognitive performance decrement becomes measurable (Van Dongen et al. 2…"
+  },
+  {
+    "id": "sleep--sleep-score",
+    "title": "Sleep — Sleep Score",
+    "source": "knowledge/sleep.md#sleep-score",
+    "text": "Sleep Score. Garmin reports a 0–100 sleep score. SHARPIT's interpretation thresholds: Score Tone Implementation in SHARPIT ≥ 80 good scoreTone() in sleep.ts ≥ 60 moderate < 60 low These thresholds are empirical. Garmin calibrates its sleep score to its own algorithm. The 80/60 split was chosen because it produces reasonable separations in practice, but there is no published validation that 80 means \"good sleep\" by any external criterion. ---"
+  },
+  {
+    "id": "sleep--deep-sleep",
+    "title": "Sleep — Deep Sleep",
+    "source": "knowledge/sleep.md#deep-sleep",
+    "text": "Deep Sleep. Deep sleep (slow-wave sleep, N3) is the physiologically most important stage for athletic recovery: Growth hormone is secreted almost exclusively during deep sleep Glycogen resynthesis occurs primarily during deep sleep Musculoskeletal repair is concentrated in this stage Immunological restoration is deep-sleep dependent SHARPIT's deep sleep evaluation: Deep % Tone Threshold ≥ 13% good Lower bound of normal range (Walker 2017) ≥ 9% moderate Concerning but not critical < 9% low Significantly below normal Factors that reduce deep sleep. SHARPIT's sleep insights address these: Alcohol: fragments deep sleep in the second half of the night Late heavy meals: activate thermogenic and digestive processes incompatible with deep sleep Evening intense exercise: elevates core temperature and sympathetic tone, delaying sleep onset and compressing deep sleep High room temperature: deep sle…"
+  },
+  {
+    "id": "sleep--rem-sleep",
+    "title": "Sleep — REM Sleep",
+    "source": "knowledge/sleep.md#rem-sleep",
+    "text": "REM Sleep. REM sleep is critical for motor learning and memory consolidation: Motor skill acquisition (technique, movement patterns) consolidates during REM Emotional regulation and psychological recovery Concentrated in the latter third of the night — cutting sleep short disproportionately reduces REM SHARPIT's REM evaluation: REM % Tone Threshold ≥ 20% good Normal range (Walker 2017) ≥ 15% moderate Mildly reduced < 15% low Significantly reduced REM insight: athletes who consistently cut sleep short (waking before completing a full 8-hour cycle) are disproportionately depriving themselves of REM. The insight message in SHARPIT explicitly communicates this: \"Le REM est concentré en fin de nuit : dors suffisamment longtemps.\" ---"
+  },
+  {
+    "id": "sleep--sleep-regularity",
+    "title": "Sleep — Sleep Regularity",
+    "source": "knowledge/sleep.md#sleep-regularity",
+    "text": "Sleep Regularity. Implementation: Median Absolute Deviation (MAD) of bedtime over 30 nights SHARPIT uses MAD (not standard deviation) because it is robust to outlier nights (travel, special events). MAD represents the typical variation of bedtime around the athlete's median bedtime. Why regularity matters: Circadian rhythm stability is one of the strongest predictors of sleep quality, separate from sleep duration. Walker (2017) describes the circadian anchoring of sleep stages: going to bed at the same time each night optimizes the alignment of sleep stages with circadian timing. Alert threshold: MAD 60 minutes → insight fires: \"Horaires irréguliers\" The 60-minute threshold is a SHARPIT product choice, not a validated clinical cutoff. It represents \"more than one hour of typical variation in bedtime\" — intuitively significant but not precisely derived from literature. ---"
+  },
+  {
+    "id": "sleep--bedtime-recommendation",
+    "title": "Sleep — Bedtime Recommendation",
+    "source": "knowledge/sleep.md#bedtime-recommendation",
+    "text": "Bedtime Recommendation. SHARPIT computes a recommended bedtime from the athlete's median wake time and sleep target: recommendedBedtime = medianWakeTime - targetSleepDuration - 20 minutes (sleep onset buffer) The 20-minute sleep onset buffer is based on typical sleep onset latency for healthy adults (Ohayon et al. 2004). Athletes with poor sleep efficiency may need a larger buffer. This computation uses median wake time over 30 nights — a robust estimate of the athlete's habitual wake schedule. Recommended bedtime adapts if the athlete's wake schedule shifts. ---"
+  },
+  {
+    "id": "sleep--analysis-windows",
+    "title": "Sleep — Analysis Windows",
+    "source": "knowledge/sleep.md#analysis-windows",
+    "text": "Analysis Windows. Purpose Window Rationale Recent state (7 nights) RECENTWINDOWNIGHTS = 7 Current recovery status, responsive to this week Habits and regularty (30 nights) HABITWINDOWNIGHTS = 30 Stable estimate of typical patterns, robust to outlier weeks Recent state uses a shorter window to be responsive to current training demands. Habit analysis uses a longer window to avoid flagging a single bad week as a chronic pattern. ---"
+  },
+  {
+    "id": "sleep--sleep-insights-priority",
+    "title": "Sleep — Sleep Insights Priority",
+    "source": "knowledge/sleep.md#sleep-insights-priority",
+    "text": "Sleep Insights Priority. analyzeSleep() generates up to 4 insights. Priority order: Duration (critical — below target generates the most actionable recommendation) Bedtime vs goal (personalized target conflict) Deep sleep deficit (specific stage feedback) REM deficit (specific stage feedback) Regularity (habit feedback) Bedtime vs recommended (calculated based on wake time) Nocturnal stress (Garmin stress during sleep) Summary positive (\"Sommeil de qualité\") — only if no other insight fires This priority order ensures that the highest-leverage improvement (duration) is communicated first. ---"
+  },
+  {
+    "id": "sleep--nocturnal-stress",
+    "title": "Sleep — Nocturnal Stress",
+    "source": "knowledge/sleep.md#nocturnal-stress",
+    "text": "Nocturnal Stress. Garmin measures stress continuously, including during sleep. SHARPIT alerts when average nocturnal stress 30. Interpretation: elevated nocturnal stress indicates sympathetic activation during sleep, which competes with parasympathetic recovery processes (HRV, deep sleep facilitation). Causes include psychological stress, incomplete recovery from intense exercise, illness, caffeine, and alcohol. Alert threshold rationale: 30 represents \"moderate\" stress on Garmin's 0–100 scale. The threshold was set empirically based on the observation that sustained nocturnal stress 30 tends to coincide with other negative recovery signals. ---"
+  },
+  {
+    "id": "sleep--limitations-of-sharpit-s-sleep-analysis",
+    "title": "Sleep — Limitations of SHARPIT's Sleep Analysis",
+    "source": "knowledge/sleep.md#limitations-of-sharpit-s-sleep-analysis",
+    "text": "Limitations of SHARPIT's Sleep Analysis. Garmin accuracy on sleep staging: consumer wearable sleep staging has been validated against polysomnography (PSG) in some studies with mixed results. Accuracy for stage percentages is typically ±5-10 percentage points vs PSG. Absolute values should be interpreted with this uncertainty in mind. Aggregation from daily to trend obscures night-to-night variation. SHARPIT reports 7-day averages, which can mask a pattern of alternating good/bad nights (which may indicate sleep apnea or another disorder). No behavioral pathway. SHARPIT identifies sleep problems but cannot track whether the athlete followed the recommended changes. Insight effectiveness is not measured. No integration with training timing. SHARPIT does not currently adjust recommendations based on whether morning vs evening training sessions affect sleep timing. This is a meaningful omis…"
+  },
+  {
+    "id": "strength-training--intro",
+    "title": "Strength Training",
+    "source": "knowledge/strength-training.md",
+    "text": "Strength Training. How SHARPIT models strength training load, integrates it with endurance metrics, and why the current approach is a known compromise. ---"
+  },
+  {
+    "id": "strength-training--sharpit-s-core-challenge-with-strength-training",
+    "title": "Strength Training — SHARPIT's Core Challenge with Strength Training",
+    "source": "knowledge/strength-training.md#sharpit-s-core-challenge-with-strength-training",
+    "text": "SHARPIT's Core Challenge with Strength Training. Strength training does not fit naturally into the PMC model. The PMC was designed for aerobic endurance sport, where load can be normalized to a cardiovascular cost (TSS). Strength training is fundamentally different: Primary stress is neuromuscular, not cardiovascular. A heavy squat session leaves HR barely elevated but produces profound muscular fatigue lasting 48-72 hours. Adaptations are different. Endurance training builds aerobic capacity. Strength training builds force production capacity, tendon/bone density, neuromuscular efficiency. TSS cannot represent it accurately. There is no power meter for the barbell. SHARPIT's honest position: strength training is included in load calculations using a duration × factor approximation. This is a pragmatic fallback that produces directionally correct outputs (heavy lifting days increase ATL)…"
+  },
+  {
+    "id": "strength-training--strength-load-estimation",
+    "title": "Strength Training — Strength Load Estimation",
+    "source": "knowledge/strength-training.md#strength-load-estimation",
+    "text": "Strength Load Estimation. Implementation: LOADFACTOR.STRENGTH = 0.7 TSS/min in src/lib/training/activity-load.ts This factor was estimated based on typical metabolic cost of moderate-intensity strength training relative to moderate-intensity running. It has no published source and carries low confidence (see training-load.md). Known problems: A 45-minute Z2 run produces ~45 TSS; a 45-minute heavy deadlift session produces ~31.5 TSS by the formula — but the actual systemic recovery burden may be equivalent or higher The formula treats all strength training identically: Olympic lifts ≠ isolated machine exercises ≠ CrossFit metcons No RPE-based adjustment Future improvement: RPE-adjusted load for strength sessions. A user-entered RPE (1-10) could be used to scale the estimated TSS: TSS = durationmin × 0.7 × (RPE/7). This would make heavy sessions produce ~1.0 and light sessions produce ~0.4…"
+  },
+  {
+    "id": "strength-training--strength-training-in-periodization",
+    "title": "Strength Training — Strength Training in Periodization",
+    "source": "knowledge/strength-training.md#strength-training-in-periodization",
+    "text": "Strength Training in Periodization. Why Endurance Athletes Should Lift. Evidence level: Level 2-3 (Aagaard & Andersen 2010, Rønnestad & Mujika 2014, Beattie et al. 2017) Strength training benefits for endurance athletes: Improved running economy — better neuromuscular efficiency reduces oxygen cost at a given pace Reduced injury risk — tendon and bone density adaptations that aerobic training does not produce Improved peak power — benefits climbs, sprints, and race finishes Slows aging-related muscle loss — critical for masters athletes The evidence is particularly strong for running economy improvements from heavy strength training ( 80% 1RM). Concurrent training (combining endurance + strength) is compatible with endurance adaptations when periodized correctly. Periodization Integration. SHARPIT's current approach: strength training adds to the global TSS pool. The periodization planne…"
+  },
+  {
+    "id": "strength-training--the-concurrent-training-problem",
+    "title": "Strength Training — The Concurrent Training Problem",
+    "source": "knowledge/strength-training.md#the-concurrent-training-problem",
+    "text": "The Concurrent Training Problem. Concurrent training (endurance + strength in the same day or adjacent days) can produce interference effects: AMPK-mTOR interference: endurance training activates AMPK (energy sensing pathway). Strength training activates mTOR (growth/hypertrophy pathway). These pathways partially antagonize each other when activated simultaneously. Practical implication: endurance-dominant athletes doing strength training should: Separate strength and hard endurance sessions by ≥6-8 hours, or train on separate days Prioritize the primary sport in session ordering (endurance first) Accept some reduction in peak hypertrophy (not the goal for endurance athletes) SHARPIT's recommendation: the AI coach should flag when a user's schedule places heavy strength work within 6 hours of a hard endurance session. ---"
+  },
+  {
+    "id": "strength-training--strength-specific-metrics-sharpit-tracks",
+    "title": "Strength Training — Strength-Specific Metrics SHARPIT Tracks",
+    "source": "knowledge/strength-training.md#strength-specific-metrics-sharpit-tracks",
+    "text": "Strength-Specific Metrics SHARPIT Tracks. SHARPIT currently receives strength workout data from Garmin with: Duration Workout name (if logged) Heart rate data (limited utility) Not available: Exercise selection Load (weight × reps × sets) RPE Muscle groups targeted Progressive overload tracking Without these, SHARPIT cannot meaningfully analyze strength training quality or provide periodization guidance for strength. The current capability is: \"you did strength training today, here is the estimated TSS contribution.\" ---"
+  },
+  {
+    "id": "strength-training--injury-prevention-role",
+    "title": "Strength Training — Injury Prevention Role",
+    "source": "knowledge/strength-training.md#injury-prevention-role",
+    "text": "Injury Prevention Role. Strength training's primary role in SHARPIT's injury prevention model is structural. See injury-prevention.md for the full model. Key evidence: Tendon injury risk: heavy slow resistance training (HSR) is effective rehabilitation and prevention for tendinopathy (Beyer et al. 2015 — Level 2) Bone stress injury prevention: progressive resistance training increases bone mineral density; relevant for runners with stress fracture history Muscle imbalance correction: unilateral strength work addresses contralateral imbalances that biomechanical analysis identifies SHARPIT's current gap: no injury prevention specific strength prescriptions. The training plan generator does not currently include targeted strength work based on injury history or biomechanical profile. ---"
+  },
+  {
+    "id": "strength-training--hybrid-athletes",
+    "title": "Strength Training — Hybrid Athletes",
+    "source": "knowledge/strength-training.md#hybrid-athletes",
+    "text": "Hybrid Athletes. Hybrid athletes pursue both high endurance capacity and high strength simultaneously. SHARPIT's target user population likely includes some hybrid athletes (triathletes who also lift, cyclists with gym routines). Full hybrid athlete modeling is documented in hybrid-athlete.md. Key implications for strength tracking: Hybrid athletes need higher protein intake (1.8-2.4 g/kg vs 1.6-2.0 g/kg for pure endurance) Their CTL/ATL mixed with strength sessions is especially inaccurate Their periodization must consider both strength and endurance peaking ---"
+  },
+  {
+    "id": "strength-training--known-limitations-summary",
+    "title": "Strength Training — Known Limitations Summary",
+    "source": "knowledge/strength-training.md#known-limitations-summary",
+    "text": "Known Limitations Summary. Limitation Severity Mitigation TSS underestimates neuromuscular stress High Flag: strength session TSS is approximate No exercise-specific data High Cannot be resolved without custom data model No progressive overload tracking Medium Future feature: strength-specific metrics module No concurrent training interference warning Medium Future AI coach behavior No strength periodization in planner Medium Future periodization enhancement Single LOADFACTOR for all strength types Low Acceptable given other limitations"
+  },
+  {
+    "id": "training-load--intro",
+    "title": "Training Load",
+    "source": "knowledge/training-load.md",
+    "text": "Training Load. Every load model in SHARPIT — what it measures, why it was chosen, how it is computed, and where it fails. ---"
+  },
+  {
+    "id": "training-load--the-load-problem",
+    "title": "Training Load — The Load Problem",
+    "source": "knowledge/training-load.md#the-load-problem",
+    "text": "The Load Problem. Training load is the foundational input of every SHARPIT recommendation. If load is wrong, everything downstream is wrong. Load has two inseparable problems: The measurement problem: how do you measure the physiological cost of a training session as a single number? Power meters provide the most accurate input for cycling; heart rate provides a reasonable proxy for other sports; duration × intensity is a gross approximation. The normalization problem: how do you compare the load of a 1-hour run to a 3-hour bike ride? SHARPIT normalizes all sports to TSS equivalents, which is a pragmatic choice that introduces known inaccuracies. ---"
+  },
+  {
+    "id": "training-load--model-1-performance-management-chart-pmc",
+    "title": "Training Load — Model 1: Performance Management Chart (PMC)",
+    "source": "knowledge/training-load.md#model-1-performance-management-chart-pmc",
+    "text": "Model 1: Performance Management Chart (PMC). Primary use: long-term fitness tracking, form/freshness for race planning Implementation: runPmc() / stepPmc() in src/lib/training/pmc.ts, driven over the athlete's history by computeAthletePmc() in src/lib/training/pmc-history.ts Evidence level: Level 2-3 (validated in endurance sports) What it computes. Three values, each for every day in the athlete's history: CTL(t) = CTL(t-1) + (TSS(t) - CTL(t-1)) / τctl ATL(t) = ATL(t-1) + (TSS(t) - ATL(t-1)) / τatl TSB(t) = CTL(t) - ATL(t) CTL (Chronic Training Load): 42-day EWMA. \"Fitness.\" ATL (Acute Training Load): 7-day EWMA. \"Fatigue.\" TSB (Training Stress Balance): CTL - ATL. \"Form/Freshness.\" Time constants. Constant Value Justification τctl 42 days Coggan (2003), TrainingPeaks standard τatl 7 days Coggan (2003), TrainingPeaks standard These are population-derived constants. Individual optimizati…"
+  },
+  {
+    "id": "training-load--model-2-acute-chronic-workload-ratio-acwr",
+    "title": "Training Load — Model 2: Acute:Chronic Workload Ratio (ACWR)",
+    "source": "knowledge/training-load.md#model-2-acute-chronic-workload-ratio-acwr",
+    "text": "Model 2: Acute:Chronic Workload Ratio (ACWR). Primary use: injury risk screening Implementation: computeTrainingLoad() in src/lib/training/training-load.ts Evidence level: Level 1-3 (meta-analyses exist; extrapolation to endurance sports uncertain) What it computes. ACWR = Σ(load last 7 days) / (Σ(load last 42 days) / 6) The denominator is the average weekly load over the preceding 6 weeks, not the total. This was a critical bug in the original implementation (dividing by 6 without a clear physiological rationale) that was identified and corrected. See docs/archive/SCIENCE.md and docs/models/TRAININGSTRESSMODEL.md for the correction history. Thresholds. ACWR range Classification Source < 0.8 Under-training Gabbett (2016), Carey et al. (2017) 0.8 – 1.3 Sweet spot (optimal) Gabbett (2016), multiple meta-analyses 1.3 – 1.5 Elevated risk Gabbett (2016), Blanch & Gabbett (2016) 1.5 High risk …"
+  },
+  {
+    "id": "training-load--model-3-training-stress-score-tss",
+    "title": "Training Load — Model 3: Training Stress Score (TSS)",
+    "source": "knowledge/training-load.md#model-3-training-stress-score-tss",
+    "text": "Model 3: Training Stress Score (TSS). Primary use: session load quantification Implementation: activity-analysis.ts, analytics.ts Evidence level: Level 2-5 (cycling: well validated; running: less validated; strength: estimated) Cycling TSS (power-based) — High confidence. TSS = (durationsec × NP × IF) / (FTP × 3600) × 100 where: NP = Normalized Power (30s rolling average ^ 4, averaged, ^ 0.25) IF = Intensity Factor = NP / FTP FTP = Functional Threshold Power (W) One hour at exactly FTP = 100 TSS. This is the reference. Power-based TSS is the most accurate load measure SHARPIT can compute. Source: Coggan & Allen (2006). Running TSS (HR-based) — Medium confidence. When heart rate data is available: TSS = (durationsec / 3600) × IF² × 100 where IF = avgHR / LTHR This is a simplified hrTSS. The Friel hrTSS formula is more commonly cited; SHARPIT's implementation is equivalent for steady-state…"
+  },
+  {
+    "id": "training-load--model-4-normalized-power-np",
+    "title": "Training Load — Model 4: Normalized Power (NP)",
+    "source": "knowledge/training-load.md#model-4-normalized-power-np",
+    "text": "Model 4: Normalized Power (NP). Primary use: representing the physiological cost of variable-power efforts Implementation: computeNormalizedPower() in activity-analysis.ts Evidence level: Level 5 (Coggan practitioner consensus, widely adopted) Computation. Compute 30-second rolling average of power Raise each value to the 4th power Take the mean of all 4th-power values Take the 4th root The 4th power exponent reflects the non-linear relationship between power and metabolic stress (oxygen consumption and glycolytic activation both increase disproportionately above threshold). The 30-second window smooths GPS and power meter noise. Why the 4th power: empirically derived by Coggan to produce NP values that best correlate with lactate, RPE, and perceived difficulty across different effort profiles. Not derived from first principles. ---"
+  },
+  {
+    "id": "training-load--load-estimation-priority",
+    "title": "Training Load — Load Estimation Priority",
+    "source": "knowledge/training-load.md#load-estimation-priority",
+    "text": "Load Estimation Priority. When SHARPIT computes session load, it uses the first available method in order: Explicitly recorded Activity.load (from Garmin or user entry) Cycling: computed from BikeMetrics.tss (from power meter) Running/cycling: computed from HR × LTHR (hrTSS) Fallback: durationmin × LOADFACTOR[sport] The method used is not currently surfaced to the athlete. Future improvement: tag each load value with its computation method and confidence level. ---"
+  },
+  {
+    "id": "training-load--the-load-unit-constraint",
+    "title": "Training Load — The Load Unit Constraint",
+    "source": "knowledge/training-load.md#the-load-unit-constraint",
+    "text": "The Load Unit Constraint. All load values stored in Activity.load and PlannedSession.load must be TSS equivalents. This is an architectural constraint, not a suggestion. Violating it (e.g., storing RPE×10 as \"load\") breaks PMC and ACWR across the board. Any new data ingestion path (new wearable, manual entry, new sport type) must normalize to TSS before writing to the database. ---"
+  },
+  {
+    "id": "training-load--future-improvements",
+    "title": "Training Load — Future Improvements",
+    "source": "knowledge/training-load.md#future-improvements",
+    "text": "Future Improvements. Ranked by scientific value: Individual τ calibration: allow per-athlete τctl and τatl based on observed CTL recovery rate. Significant scientific improvement; requires substantial history. EWMA-based ACWR: replace rolling average ACWR with EWMA ACWR (Malone 2017). More stable, less susceptible to deload artifacts. Sport-segregated PMC: separate CTL/ATL tracking per sport. Prevents cross-sport TSS pollution. Critical for triathlon athletes. See future-research.md. Critical Power model: replace FTP with CP/W' for cycling load computation. More physiologically accurate, but requires dedicated test protocol. VO2max normalization: estimate VO2max-equivalent TSS to enable true cross-sport comparison. Cold-start CTL initialization: when an athlete starts SHARPIT with prior training history, estimate initial CTL from their recent performance records rather than starting at 0…"
+  },
+  {
+    "id": "triathlon--intro",
+    "title": "Triathlon",
+    "source": "knowledge/triathlon.md",
+    "text": "Triathlon. How SHARPIT handles multi-sport athletes, where the single-PMC model works, and where it fails. ---"
+  },
+  {
+    "id": "triathlon--the-multi-sport-problem",
+    "title": "Triathlon — The Multi-Sport Problem",
+    "source": "knowledge/triathlon.md#the-multi-sport-problem",
+    "text": "The Multi-Sport Problem. Triathlon is the use case that most severely stresses SHARPIT's load model. A triathlete trains in three sports with fundamentally different injury profiles, different muscle recruitment patterns, and different energy system demands. SHARPIT's PMC combines all three into one CTL/ATL/TSB — a compression that produces useful directional information but obscures sport-specific stress. The core problem: A triathlete with CTL=100 from 70% swim / 20% bike / 10% run has radically different capacity than one with CTL=100 from 10% swim / 80% bike / 10% run TSB of +5 after a heavy run block means something different than TSB of +5 after a heavy swim block Injury risk is sport-specific: running produces 60-70% of triathlon injuries; swimming and cycling produce far fewer See ADR-002 in decisions/ for the architectural decision on single vs. multi-PMC. ---"
+  },
+  {
+    "id": "triathlon--triathlon-distances-and-training-demands",
+    "title": "Triathlon — Triathlon Distances and Training Demands",
+    "source": "knowledge/triathlon.md#triathlon-distances-and-training-demands",
+    "text": "Triathlon Distances and Training Demands. Distance Swim Bike Run Peak CTL Training volume Sprint 0.75 km 20 km 5 km 40-60 6-10 h/week Olympic 1.5 km 40 km 10 km 60-80 8-12 h/week 70.3 (Half) 1.9 km 90 km 21.1 km 80-110 10-15 h/week Full (140.6) 3.8 km 180 km 42.2 km 110-150 15-22 h/week These CTL ranges are practitioner estimates (Friel 2009, 2012). Individual variation is substantial. Implication for SHARPIT: athletes training for different distances have vastly different TSS targets. The default training plan targets must be customizable per distance. A sprint triathlete peaking at CTL=50 is normal; the same athlete aiming for CTL=120 may be overreaching. ---"
+  },
+  {
+    "id": "triathlon--brick-sessions",
+    "title": "Triathlon — Brick Sessions",
+    "source": "knowledge/triathlon.md#brick-sessions",
+    "text": "Brick Sessions. A brick session combines two sports back-to-back, simulating race transitions. The canonical format is bike-to-run. Physiological purpose: Neuromuscular adaptation: the shift from cycling (glute/quad dominant) to running (glute/hamstring dominant) causes the infamous \"brick legs\" Transition practice: T1 (swim-to-bike) and T2 (bike-to-run) take time; practicing them saves minutes in races Metabolic conditioning: running with pre-fatigued glycolytic systems SHARPIT's brick analysis: Implemented in brickAnalysis() (query key: brickAnalysis(groupId)) Analyzes bike-to-run pairs within a defined proximity window Can compute normalized run pace relative to standalone pace to quantify brick-specific fatigue TSS calculation for brick sessions: the bike TSS and run TSS are computed separately and summed. This is correct — they represent separate physiological stressors. ---"
+  },
+  {
+    "id": "triathlon--sport-specific-injury-risk",
+    "title": "Triathlon — Sport-Specific Injury Risk",
+    "source": "knowledge/triathlon.md#sport-specific-injury-risk",
+    "text": "Sport-Specific Injury Risk. Sport Primary injuries Mechanism Running Stress fractures, IT band, plantar fasciitis, patellofemoral Repetitive high-impact loading; overuse Cycling Knee pain (patellofemoral, IT band), low back, saddle sores Repetitive non-impact loading; bike fit Swimming Shoulder impingement, rotator cuff, neck Overhead loading; volume accumulation Why this matters for SHARPIT: ACWR for a triathlete should ideally be computed per sport, not globally. A triathlete who doubles their run volume while maintaining swim/bike volume has a run-specific ACWR spike that the global ACWR underestimates. This is the most significant limitation of the current model for triathletes. Running injury risk is substantially underrepresented in the global ACWR calculation for athletes who train more heavily in other sports. ---"
+  },
+  {
+    "id": "triathlon--swim-training-and-tss",
+    "title": "Triathlon — Swim Training and TSS",
+    "source": "knowledge/triathlon.md#swim-training-and-tss",
+    "text": "Swim Training and TSS. Swimming is the most problematic sport for TSS estimation in SHARPIT. Why swimming TSS is especially unreliable: Swimming power meters don't exist for most athletes HR in water is suppressed by ~10-15 bpm due to the mammalian dive reflex and horizontal body position — HR-based TSS systematically underestimates swimming effort Water temperature, pool vs. open water, and drafting dramatically affect HR SHARPIT's swim LOADFACTOR (1.1 TSS/min) is a rough estimate with no robust empirical basis Practical implication: a triathlete's CTL built on swim volume will be particularly inaccurate. This is accepted as a known limitation. The ATL spike from a hard swim session will be underrepresented. ---"
+  },
+  {
+    "id": "triathlon--transition-training",
+    "title": "Triathlon — Transition Training",
+    "source": "knowledge/triathlon.md#transition-training",
+    "text": "Transition Training. Transition (T1, T2) is often neglected in training plans. It has measurable time cost: 1-3 minutes at sprint/Olympic distances, 3-8 minutes at 70.3/140.6. For competitive age-groupers, transition time can determine podium placement. SHARPIT's current capability: SHARPIT has no transition-specific analysis. T1/T2 practice sessions, if logged, appear as short-duration activities with minimal TSS. Future opportunity: if the user logs brick sessions with transition segments, SHARPIT could track T1/T2 times over a season and identify improvement or regression. ---"
+  },
+  {
+    "id": "triathlon--race-planning-for-triathlon",
+    "title": "Triathlon — Race Planning for Triathlon",
+    "source": "knowledge/triathlon.md#race-planning-for-triathlon",
+    "text": "Race Planning for Triathlon. SHARPIT's training plan generator applies the standard periodization model (BASE/BUILD/PEAK/TAPER/RACE phases). For triathletes, specific considerations: Taper length by distance: Sprint: 7-10 days Olympic: 10-14 days 70.3: 14-21 days Full: 21-28 days SHARPIT's default TAPER phase factor is 0.55. This is appropriate for Olympic distance. For a full Ironman, 28 days at 55% load requires careful phasing — a blanket factor is insufficient. The taper should be progressive: higher load in week 4 pre-race, lower in week 3, very low in race week. Multi-sport taper hierarchy: Cut run volume first (highest injury risk, slowest recovery) Reduce bike volume next Maintain swim frequency (preserves feel for water with minimal fatigue) This hierarchy is not currently implemented in SHARPIT's taper logic. ---"
+  },
+  {
+    "id": "triathlon--pacing-models-for-triathlon",
+    "title": "Triathlon — Pacing Models for Triathlon",
+    "source": "knowledge/triathlon.md#pacing-models-for-triathlon",
+    "text": "Pacing Models for Triathlon. SHARPIT's race time predictor uses the Riegel model for run component prediction. Cycling pacing uses FTP-derived IF targets. For triathlon racing, the correct framing is effort distribution, not maximal pace: Swim: 75-80% FTP heart rate (sustainable, non-glycolytic start) Bike: 70-75% of FTP for Olympic; 65-70% for 70.3/Full (to preserve run legs) Run: RPE-based — \"comfortable fast\" early, increasing effort The optimal bike IF for 70.3 is approximately 0.78-0.82 (Allen & Coggan 2010). For Full: 0.68-0.72. These targets are for well-trained athletes; beginners should target the lower end. SHARPIT currently does not provide sport-specific pacing targets for triathlon race day. This is a gap. ---"
+  },
+  {
+    "id": "triathlon--known-gaps-for-triathlon-athletes",
+    "title": "Triathlon — Known Gaps for Triathlon Athletes",
+    "source": "knowledge/triathlon.md#known-gaps-for-triathlon-athletes",
+    "text": "Known Gaps for Triathlon Athletes. Gap Priority Notes Sport-segregated ACWR High Critical for injury risk accuracy Sport-segregated PMC High Significant for Full distance athletes Swim TSS accuracy High Cannot be fixed without better data sources Taper length customization by distance Medium Default 0.55 works for Olympic; insufficient for Full Multi-sport taper hierarchy Medium Run before bike before swim T1/T2 tracking Low Nice-to-have, low performance impact Sport-specific pacing targets Medium Race day guidance"
+  },
+  {
+    "id": "wearables--intro",
+    "title": "Wearables",
+    "source": "knowledge/wearables.md",
+    "text": "Wearables. SHARPIT's relationship with consumer wearable technology: what it trusts, what it doesn't, and why. ---"
+  },
+  {
+    "id": "wearables--sharpit-s-wearable-philosophy",
+    "title": "Wearables — SHARPIT's Wearable Philosophy",
+    "source": "knowledge/wearables.md#sharpit-s-wearable-philosophy",
+    "text": "SHARPIT's Wearable Philosophy. SHARPIT is built on Garmin data. This is a deliberate technical choice, not an endorsement. Garmin devices provide the richest data accessible via consumer API, with the most consistent physiological coverage (HRV, sleep staging, training readiness, body battery). The alternative — building device-agnostic abstraction layers — dilutes SHARPIT's capability to the lowest common denominator. The honest position on wearable data: Consumer wearables measure proxies, not ground truth Accuracy varies by metric, device, and wearing conditions The same metric from two different Garmin devices may not be identical Accuracy claims in marketing are not the same as peer-reviewed validation Every wearable metric in SHARPIT carries an implicit \"Garmin reports...\" qualifier. See scientific-methodology.md for language standards. ---"
+  },
+  {
+    "id": "wearables--garmin-specific-documentation",
+    "title": "Wearables — Garmin-Specific Documentation",
+    "source": "knowledge/wearables.md#garmin-specific-documentation",
+    "text": "Garmin-Specific Documentation. For complete Garmin API coverage, metric definitions, and accuracy limitations, see garmin.md. This document covers the general wearable science applicable to any manufacturer. ---"
+  },
+  {
+    "id": "wearables--optical-heart-rate-accuracy",
+    "title": "Wearables — Optical Heart Rate Accuracy",
+    "source": "knowledge/wearables.md#optical-heart-rate-accuracy",
+    "text": "Optical Heart Rate Accuracy. All consumer wearables use photoplethysmography (PPG) — green light reflected by blood pulsing through capillaries at the wrist. Accuracy for resting HR: high. Error typically ±1-2 bpm. Reliable for RHR monitoring. Accuracy for exercise HR: Steady-state, moderate intensity: good (±3-5 bpm) High-intensity intervals: poor (lag 15-30 seconds, undershoot at effort start, overshoot at recovery) Cycling: generally worse than running (wrist movement vibration interference) Impact sports (running on rough terrain, skiing): variable quality Implications for SHARPIT: RHR tracking: reliable HR-based TSS for steady intervals: acceptable HR-based TSS for VO2max work: underestimates load (HR lags behind effort) HR-based TSS for easy long runs: can overestimate (cardiac drift without proportional effort increase) The fix for cycling: power meters replace HR for TSS computat…"
+  },
+  {
+    "id": "wearables--sleep-staging-accuracy",
+    "title": "Wearables — Sleep Staging Accuracy",
+    "source": "knowledge/wearables.md#sleep-staging-accuracy",
+    "text": "Sleep Staging Accuracy. Consumer wearable sleep staging uses accelerometry (movement) + optical HR + sometimes HRV pattern recognition. This is not polysomnography (PSG — gold standard EEG-based staging). Validation studies (summary): Roomkham et al. (2018) systematic review: wearable sleep staging shows moderate accuracy overall, better for wake detection than for N3/REM discrimination. Epoch-by-epoch accuracy vs PSG: ~70-80%. Stage proportion accuracy (what % of sleep was REM): ±5-10 percentage points typically. What this means for SHARPIT: Deep sleep % of 15% could be 10-20% in reality REM % of 22% could be 17-27% in reality The directional signal (low vs. normal deep sleep) is more reliable than the absolute value Trends over time are more reliable than single-night values SHARPIT uses these signals for alert thresholds calibrated to this uncertainty. The deep sleep threshold of 9% (…"
+  },
+  {
+    "id": "wearables--hrv-measurement-accuracy",
+    "title": "Wearables — HRV Measurement Accuracy",
+    "source": "knowledge/wearables.md#hrv-measurement-accuracy",
+    "text": "HRV Measurement Accuracy. HRV measured during sleep by a wrist-worn optical sensor is methodologically sound if the R-R interval detection is accurate. Comparison to chest strap (ECG-accurate) HRV: Wrist-based HRV (RMSSD specifically) shows good correlation with ECG-based HRV at rest and during sleep (Jarchi et al. 2017) Correlation degrades during exercise (optical HR lags) Garmin measures HRV during sleep specifically — this is the right methodology The caveat: Garmin reports a proprietary HRV \"status\" (BALANCED, UNBALANCED, etc.) computed by their algorithm, not raw RMSSD values. SHARPIT consumes this classification, which means: The underlying computation is opaque Different devices may classify differently The algorithm improves over time (firmware updates change classifications without user notice) SHARPIT's HRV approach: uses both the Garmin status classification (direct alert) an…"
+  },
+  {
+    "id": "wearables--body-composition-from-smart-scales",
+    "title": "Wearables — Body Composition from Smart Scales",
+    "source": "knowledge/wearables.md#body-composition-from-smart-scales",
+    "text": "Body Composition from Smart Scales. SHARPIT integrates body composition from Garmin/Renpho scales (bioelectrical impedance analysis, BIA). BIA accuracy for body composition: BIA methodology: sends a small electrical current through the body. Fat tissue conducts differently than muscle/water. Fat mass is estimated from resistance. Accuracy: ±3-5% body fat vs DXA (gold standard dual-energy X-ray absorptiometry). Dependent on hydration state — dehydration can artificially inflate body fat reading. What SHARPIT can reliably track from BIA: Weight trends (very reliable) Lean mass trends (directional, not precise) Body fat % trends (useful for detecting meaningful changes over weeks/months) What BIA cannot reliably report: Accurate absolute body fat % Small changes (<1-2%) within days SHARPIT's position: track trends, not absolute values. Alert on concerning patterns (rapid lean mass loss, sig…"
+  },
+  {
+    "id": "wearables--gps-accuracy",
+    "title": "Wearables — GPS Accuracy",
+    "source": "knowledge/wearables.md#gps-accuracy",
+    "text": "GPS Accuracy. GPS-derived metrics (pace, distance, elevation) affect SHARPIT through: Running TSS (pace data) Training zone analysis Race performance comparison GPS accuracy: Distance: ±1-2% on most modern devices Pace: ±2-5 sec/km instantaneous; more accurate averaged over 100m+ Elevation: barometric altimeter is accurate (±1-2m); GPS-only elevation is poor (±10-30m) Indoor: GPS unavailable; uses accelerometer-based cadence estimation (less accurate) SHARPIT implication: lap pace and race pacing data are accurate enough for trend analysis. Instantaneous pace targets (e.g., \"maintain 4:30/km\") are less reliable in the moment but good for post-session analysis. ---"
+  },
+  {
+    "id": "wearables--device-specific-notes",
+    "title": "Wearables — Device-Specific Notes",
+    "source": "knowledge/wearables.md#device-specific-notes",
+    "text": "Device-Specific Notes. Garmin. Primary supported device. See garmin.md for comprehensive coverage. Polar. Not directly integrated in current SHARPIT implementation. Polar produces HRV data via their H10 chest strap that is widely used in sports science research (often cited as reference-quality wrist + chest comparison). If Polar integration is added, their RR data quality is generally excellent. Apple Watch. Not integrated. Apple HealthKit could serve as a data bridge. Limitations: no running power, limited training load analysis, proprietary sleep staging, no published HRV validation against PSG. Apple Watch generates large volume of health data; signal quality is variable. WHOOP. Not integrated. WHOOP's recovery score and strain model has been studied (Flatt & Esco 2016 on HRV methodology; validation of WHOOP-specific scoring is mixed). WHOOP does not use GPS and cannot compute TSS-eq…"
+  },
+  {
+    "id": "wearables--the-wearable-accuracy-stack",
+    "title": "Wearables — The Wearable Accuracy Stack",
+    "source": "knowledge/wearables.md#the-wearable-accuracy-stack",
+    "text": "The Wearable Accuracy Stack. From most to least reliable, for SHARPIT's use cases: Signal Reliability Why Cycling power (power meter) Very high Direct mechanical measurement GPS distance/pace High Well-validated satellite positioning Resting HR (optical) High Good accuracy at rest Step count / cadence High Simple accelerometry Sleep duration High Wake/sleep transitions reliably detected Exercise HR (optical, steady) Medium Acceptable for steady-state HRV (during sleep) Medium Good correlation with ECG at rest Sleep stage proportions Medium-low ±5-10% vs PSG Body composition (BIA) Low-medium ±3-5% vs DXA; hydration-sensitive Exercise HR (optical, intervals) Low Significant lag VO2max estimate Low Proprietary; no published validation Training readiness score Low Proprietary; empirically calibrated SHARPIT's design principle: build models on the most reliable signals. Use low-reliability si…"
+  }
+]

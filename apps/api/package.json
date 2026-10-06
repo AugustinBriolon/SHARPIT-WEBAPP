@@ -30,7 +30,8 @@
     "smoke:must-private": "tsx scripts/smoke-must-private.ts",
     "smoke:api-host": "tsx scripts/smoke-api-host.ts",
     "bench:coach-models": "tsx --env-file=.env scripts/bench-coach-models.ts",
-    "data:ciqual": "tsx scripts/build-ciqual-foods.ts"
+    "data:ciqual": "tsx scripts/build-ciqual-foods.ts",
+    "data:coach-knowledge": "tsx scripts/build-coach-knowledge-index.ts"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.5.9",
