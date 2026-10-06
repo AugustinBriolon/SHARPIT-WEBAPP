@@ -1,0 +1,16 @@
+---
+source: bevel-help
+url: https://help.bevel.health/en/articles/10431297
+id: 10431297
+title: 'Do You Need to Sleep with a Device to Use Bevel?'
+category: 'Bevel Basics'
+category_id: 2153345
+scraped_at: 2026-10-06
+---
+
+# Do You Need to Sleep with a Device to Use Bevel?
+
+**Category:** Bevel Basics  
+**Source:** https://help.bevel.health/en/articles/10431297
+
+You can use Bevel without wearing a device during sleep, but wearing a compatible wearable overnight is the best way to get accurate scores and insights. Without overnight data like resting heart rate (RHR) and heart rate variability (HRV), Bevel can’t generate key metrics such as Sleep Score, Recovery Score, Target Strain, or accurate Cardio Load. These scores rely on consistent physiological data collected during sleep. You can continue using Bevel’s other features, including Strength Builder, Biology, Journal, and manual logging, though insights may be limited. Manual entries or Apple Watch’s “All Day” setting can help, though scores may change throughout the day as Apple Health updates data (for example, resting heart rate). How Insights Work Without a Device You can still get valuable Insights in Bevel even without wearing a device during Sleep. Log Sleep Manually: Go to Apple Health Search for Sleep. Tap the + (plus) button in the top-right corner. Manually add your Sleep data. Log Naps Open Bevel. Tap Sleep Ring. Scroll down to Timeline. Tap the + (plus) button. Enter your start and end times Tap Save. Note: Bevel will automatically merge any Sleep entries that fall within 15 minutes of your Primary Sleep. Make sure to double-check the times to ensure your Sleep data is accurate. Delete Sleep Data in Apple Health: Open the Health app. Tap the search icon in the bottom-right corner, then search for and select Sleep. Tap Sleep. Scroll down and tap Show All Data. Tap Edit in the top right. Select the Sleep entry you want to delete. Tap Delete. Tap the checkmark in the top right corner to confirm. Log Data in Apple Health Certain metrics can be manually logged in Apple Health and will automatically sync to Bevel. This includes metrics such as Resting Heart Rate (RHR), Heart Rate Variability (HRV), Respiratory Rate (RR), and Oxygen Saturation (SpO₂). Steps to Log Data: Open the Apple Health app. Use the Search bar to find the metric you want to log (e.g., RHR, HRV, RR, SpO₂). Tap the + (plus) button in the top-right corner. Enter your value and date/time. Tap Add to save your entry. Once logged, Bevel will automatically pull this data from Apple Health during its next sync. Insights From Logged Data: Bevel uses your manually logged Sleep along with other tracked metrics, like Activity and Nutrition, to generate Insights. Limitations Without Device Data: Some Trends, Sleep Stage details, and personalized recommendations may be less detailed when a wearable device isn’t used. How Insights Improve With a Device Wearable devices can automatically track: Sleep duration and quality REM and Deep Sleep Stages Key health indicators, including Respiratory Rate, Resting Heart Rate, Heart Rate Variability, Oxygen Saturation (SpO₂), Temperature, and Sleep metrics. This automatic tracking gives more precise Trends, Recovery Scores, and personalized recommendations.

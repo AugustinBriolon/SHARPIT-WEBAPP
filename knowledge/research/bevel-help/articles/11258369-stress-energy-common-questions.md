@@ -1,0 +1,16 @@
+---
+source: bevel-help
+url: https://help.bevel.health/en/articles/11258369
+id: 11258369
+title: 'Stress & Energy Common Questions'
+category: 'Stress and Energy'
+category_id: 466689
+scraped_at: 2026-10-06
+---
+
+# Stress & Energy Common Questions
+
+**Category:** Stress and Energy  
+**Source:** https://help.bevel.health/en/articles/11258369
+
+We’ve compiled answers to the most frequently asked questions about Stress and Energy. How does the Stress Score work? Your Stress Score is a value from 1 to 100 that reflects your body’s physiological stress throughout the day. Low score → Calm, relaxed, and resilient High score → Elevated stress, your body may need recovery What goes into your Stress Score? Heart Rate & Heart Rate Variability (HRV): Imbalances between HR and HRV can indicate stress on your body Movement Patterns: Helps distinguish between physical activity and true stress Time of Day: Stress is mapped across your day, including sleep, workouts, and daily routines It’s important to note that Stress reflects physical (physiological) stress, not emotional or mental stress directly. Tracking your Stress over time can help you: Identify habits that increase stress Recognize what helps you stay calm Avoid chronic overexertion How does the Energy Bank work? Your Energy Bank represents your available energy throughout the day, combining multiple factors into a single score. It is influenced by: Recovery: A strong Recovery Score gives you a higher starting point for the day Stress: High stress drains energy more quickly, while low stress helps preserve it Rest: Calm periods, naps, and light activity can help restore energy Non-linear scaling: It becomes harder to fully recharge or fully drain your Energy Bank at the extremes Carryover between days: Your ending energy today becomes your starting point tomorrow Tracking your Energy Bank helps you: Understand what drains your energy Plan your day more effectively Spot long-term patterns in fatigue and recovery Why do I see high Stress during activities like housework? Activities like housework can raise your heart rate slightly, which may register as stress. Stress in Bevel is based on physiological signals: Heart Rate HRV Movement Currently, wearable devices cannot reliably distinguish between physical effort and mental stress, so some everyday activities may appear as elevated stress. Why does my Energy Bank start low even though I slept well? There are a few common reasons for this: Elevated heart rate or stress during sleep: Even if you slept well, higher-than-normal stress levels overnight can reduce how much your Energy Bank recharges Calibration period: Stress and Energy Bank require about 30 days of data to fully adapt to your personal baseline What helps recharge my Energy Bank? Your Energy Bank can recharge during the day when your body is in a relaxed state. Activities that help include: Naps Meditation or mindfulness Low-intensity or restful activity Lying down or relaxing In general, when your Stress Score is low, your Energy Bank will gradually recharge. What is the difference between Non-Activity Stress and Active Stress? Non-Activity Stress: A measure of how your body handles stress during typical day-to-day activities. Active Stress: Tracks your stress score specifically during physical activities.

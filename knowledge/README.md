@@ -53,6 +53,7 @@
 - [future-research.md](./future-research.md)
 - [research/paper-template.md](./research/paper-template.md)
 - [glossary.md](./glossary.md)
+- [research/README.md](./research/README.md) — competitive corpora, concept map, agent patterns
 
 ### Code mapping
 

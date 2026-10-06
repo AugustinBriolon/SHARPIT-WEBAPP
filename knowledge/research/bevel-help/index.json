@@ -1,0 +1,1234 @@
+{
+  "total": 137,
+  "priority_count": 95,
+  "articles": [
+    {
+      "id": 2125761,
+      "title": "Report a Bug",
+      "category": "Contact and Support",
+      "url": "https://help.bevel.health/en/articles/2125761",
+      "file": "2125761-report-a-bug.md",
+      "chars": 2050,
+      "priority": false
+    },
+    {
+      "id": 2126337,
+      "title": "Request a Feature",
+      "category": "Contact and Support",
+      "url": "https://help.bevel.health/en/articles/2126337",
+      "file": "2126337-request-a-feature.md",
+      "chars": 219,
+      "priority": false
+    },
+    {
+      "id": 2126401,
+      "title": "Join our Community",
+      "category": "Contact and Support",
+      "url": "https://help.bevel.health/en/articles/2126401",
+      "file": "2126401-join-our-community.md",
+      "chars": 260,
+      "priority": false
+    },
+    {
+      "id": 10400449,
+      "title": "How To Connect Devices",
+      "category": "Data Sources",
+      "url": "https://help.bevel.health/en/articles/10400449",
+      "file": "10400449-how-to-connect-devices.md",
+      "chars": 2812,
+      "priority": false
+    },
+    {
+      "id": 10416897,
+      "title": "How to Manage Data Sources",
+      "category": "Data Sources",
+      "url": "https://help.bevel.health/en/articles/10416897",
+      "file": "10416897-how-to-manage-data-sources.md",
+      "chars": 1620,
+      "priority": false
+    },
+    {
+      "id": 10416961,
+      "title": "How to Set Up Ideal Data Sources",
+      "category": "Data Sources",
+      "url": "https://help.bevel.health/en/articles/10416961",
+      "file": "10416961-how-to-set-up-ideal-data-sources.md",
+      "chars": 3583,
+      "priority": false
+    },
+    {
+      "id": 10417025,
+      "title": "How to Connect a CGM",
+      "category": "Data Sources",
+      "url": "https://help.bevel.health/en/articles/10417025",
+      "file": "10417025-how-to-connect-a-cgm.md",
+      "chars": 1117,
+      "priority": false
+    },
+    {
+      "id": 10417089,
+      "title": "How to Edit the Home Tab",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10417089",
+      "file": "10417089-how-to-edit-the-home-tab.md",
+      "chars": 2575,
+      "priority": false
+    },
+    {
+      "id": 10417153,
+      "title": "How to Manage Tab Visibility",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10417153",
+      "file": "10417153-how-to-manage-tab-visibility.md",
+      "chars": 472,
+      "priority": false
+    },
+    {
+      "id": 10417217,
+      "title": "How to Set Goals",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10417217",
+      "file": "10417217-how-to-set-goals.md",
+      "chars": 3213,
+      "priority": false
+    },
+    {
+      "id": 10430593,
+      "title": "How to Understand Trend Charts",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/10430593",
+      "file": "10430593-how-to-understand-trend-charts.md",
+      "chars": 2394,
+      "priority": true
+    },
+    {
+      "id": 10430849,
+      "title": "How to Change Notification Settings",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10430849",
+      "file": "10430849-how-to-change-notification-settings.md",
+      "chars": 1587,
+      "priority": false
+    },
+    {
+      "id": 10430913,
+      "title": "How to Change Units of Measurement",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10430913",
+      "file": "10430913-how-to-change-units-of-measurement.md",
+      "chars": 1051,
+      "priority": false
+    },
+    {
+      "id": 10430977,
+      "title": "How to Change Heart Rate Zones",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10430977",
+      "file": "10430977-how-to-change-heart-rate-zones.md",
+      "chars": 3170,
+      "priority": false
+    },
+    {
+      "id": 10431169,
+      "title": "How to Change the Data Loading Window",
+      "category": "Data Sources",
+      "url": "https://help.bevel.health/en/articles/10431169",
+      "file": "10431169-how-to-change-the-data-loading-window.md",
+      "chars": 1198,
+      "priority": false
+    },
+    {
+      "id": 10431233,
+      "title": "How to Change Calculations",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10431233",
+      "file": "10431233-how-to-change-calculations.md",
+      "chars": 6404,
+      "priority": false
+    },
+    {
+      "id": 10431297,
+      "title": "Do You Need to Sleep with a Device to Use Bevel?",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/10431297",
+      "file": "10431297-do-you-need-to-sleep-with-a-device-to-use-bevel.md",
+      "chars": 2905,
+      "priority": true
+    },
+    {
+      "id": 10431361,
+      "title": "How to Change Activity Status",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10431361",
+      "file": "10431361-how-to-change-activity-status.md",
+      "chars": 2115,
+      "priority": false
+    },
+    {
+      "id": 10431425,
+      "title": "How to Change the Language",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10431425",
+      "file": "10431425-how-to-change-the-language.md",
+      "chars": 1013,
+      "priority": false
+    },
+    {
+      "id": 10431489,
+      "title": "How to Manage Bevel Widgets on iOS",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10431489",
+      "file": "10431489-how-to-manage-bevel-widgets-on-ios.md",
+      "chars": 3310,
+      "priority": false
+    },
+    {
+      "id": 10436609,
+      "title": "How to Manage Bevel Watch Complications",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10436609",
+      "file": "10436609-how-to-manage-bevel-watch-complications.md",
+      "chars": 2247,
+      "priority": false
+    },
+    {
+      "id": 10436673,
+      "title": "How to View Daily Data by Month",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/10436673",
+      "file": "10436673-how-to-view-daily-data-by-month.md",
+      "chars": 859,
+      "priority": true
+    },
+    {
+      "id": 10436737,
+      "title": "How to View Daily Data",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/10436737",
+      "file": "10436737-how-to-view-daily-data.md",
+      "chars": 1992,
+      "priority": true
+    },
+    {
+      "id": 10437057,
+      "title": "How to View Insights",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/10437057",
+      "file": "10437057-how-to-view-insights.md",
+      "chars": 1048,
+      "priority": true
+    },
+    {
+      "id": 10576641,
+      "title": "How to Edit the Action Button",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/10576641",
+      "file": "10576641-how-to-edit-the-action-button.md",
+      "chars": 1018,
+      "priority": false
+    },
+    {
+      "id": 10577409,
+      "title": "Understanding Cardio Load vs. Strain",
+      "category": "Strain",
+      "url": "https://help.bevel.health/en/articles/10577409",
+      "file": "10577409-understanding-cardio-load-vs-strain.md",
+      "chars": 3344,
+      "priority": true
+    },
+    {
+      "id": 10577601,
+      "title": "Understanding Cardio Strain vs. Muscular Strain",
+      "category": "Strain",
+      "url": "https://help.bevel.health/en/articles/10577601",
+      "file": "10577601-understanding-cardio-strain-vs-muscular-strain.md",
+      "chars": 1526,
+      "priority": true
+    },
+    {
+      "id": 10580481,
+      "title": "Understanding Recovery and Your Cycle",
+      "category": "Recovery",
+      "url": "https://help.bevel.health/en/articles/10580481",
+      "file": "10580481-understanding-recovery-and-your-cycle.md",
+      "chars": 824,
+      "priority": true
+    },
+    {
+      "id": 10580993,
+      "title": "Understanding Exercise Stress",
+      "category": "Stress and Energy",
+      "url": "https://help.bevel.health/en/articles/10580993",
+      "file": "10580993-understanding-exercise-stress.md",
+      "chars": 1152,
+      "priority": true
+    },
+    {
+      "id": 10581377,
+      "title": "Understanding Energy Bank (Dotted Line)",
+      "category": "Stress and Energy",
+      "url": "https://help.bevel.health/en/articles/10581377",
+      "file": "10581377-understanding-energy-bank-dotted-line.md",
+      "chars": 375,
+      "priority": true
+    },
+    {
+      "id": 10581441,
+      "title": "Understanding Energy Bank (Calendar View)",
+      "category": "Stress and Energy",
+      "url": "https://help.bevel.health/en/articles/10581441",
+      "file": "10581441-understanding-energy-bank-calendar-view.md",
+      "chars": 794,
+      "priority": true
+    },
+    {
+      "id": 10582721,
+      "title": "How to Log Flow in Cycle",
+      "category": "Cycle",
+      "url": "https://help.bevel.health/en/articles/10582721",
+      "file": "10582721-how-to-log-flow-in-cycle.md",
+      "chars": 530,
+      "priority": true
+    },
+    {
+      "id": 10582849,
+      "title": "How to Log Symptoms in Cycle",
+      "category": "Cycle",
+      "url": "https://help.bevel.health/en/articles/10582849",
+      "file": "10582849-how-to-log-symptoms-in-cycle.md",
+      "chars": 1484,
+      "priority": true
+    },
+    {
+      "id": 10582913,
+      "title": "How to Add Contraception in Cycle",
+      "category": "Cycle",
+      "url": "https://help.bevel.health/en/articles/10582913",
+      "file": "10582913-how-to-add-contraception-in-cycle.md",
+      "chars": 356,
+      "priority": true
+    },
+    {
+      "id": 10795905,
+      "title": "How to Use the Sleep Shortcut",
+      "category": "Sleep",
+      "url": "https://help.bevel.health/en/articles/10795905",
+      "file": "10795905-how-to-use-the-sleep-shortcut.md",
+      "chars": 1137,
+      "priority": true
+    },
+    {
+      "id": 10795969,
+      "title": "How to Set Alarms and Alarm Types",
+      "category": "Sleep",
+      "url": "https://help.bevel.health/en/articles/10795969",
+      "file": "10795969-how-to-set-alarms-and-alarm-types.md",
+      "chars": 1423,
+      "priority": true
+    },
+    {
+      "id": 10796033,
+      "title": "How to View Tonight\u2019s Sleep Need",
+      "category": "Sleep",
+      "url": "https://help.bevel.health/en/articles/10796033",
+      "file": "10796033-how-to-view-tonight-s-sleep-need.md",
+      "chars": 421,
+      "priority": true
+    },
+    {
+      "id": 10796097,
+      "title": "How to Use Time to Fall Asleep",
+      "category": "Sleep",
+      "url": "https://help.bevel.health/en/articles/10796097",
+      "file": "10796097-how-to-use-time-to-fall-asleep.md",
+      "chars": 1176,
+      "priority": true
+    },
+    {
+      "id": 10796161,
+      "title": "Sleep Troubleshooting",
+      "category": "Sleep",
+      "url": "https://help.bevel.health/en/articles/10796161",
+      "file": "10796161-sleep-troubleshooting.md",
+      "chars": 4222,
+      "priority": true
+    },
+    {
+      "id": 11192641,
+      "title": "How to Use Referrals",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/11192641",
+      "file": "11192641-how-to-use-referrals.md",
+      "chars": 2470,
+      "priority": true
+    },
+    {
+      "id": 11192833,
+      "title": "How to Use Social Sharing",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/11192833",
+      "file": "11192833-how-to-use-social-sharing.md",
+      "chars": 3051,
+      "priority": true
+    },
+    {
+      "id": 11194113,
+      "title": "Features Available by App Version",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/11194113",
+      "file": "11194113-features-available-by-app-version.md",
+      "chars": 7017,
+      "priority": true
+    },
+    {
+      "id": 11213505,
+      "title": "How to Customize Strength Builder Settings",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11213505",
+      "file": "11213505-how-to-customize-strength-builder-settings.md",
+      "chars": 2538,
+      "priority": true
+    },
+    {
+      "id": 11225537,
+      "title": "How to Log Activity",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/11225537",
+      "file": "11225537-how-to-log-activity.md",
+      "chars": 2515,
+      "priority": true
+    },
+    {
+      "id": 11242561,
+      "title": "How to Create a Routine",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11242561",
+      "file": "11242561-how-to-create-a-routine.md",
+      "chars": 4164,
+      "priority": true
+    },
+    {
+      "id": 11242817,
+      "title": "How to Start a Workout",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11242817",
+      "file": "11242817-how-to-start-a-workout.md",
+      "chars": 1983,
+      "priority": true
+    },
+    {
+      "id": 11243073,
+      "title": "How to Duplicate a Workout Routine",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11243073",
+      "file": "11243073-how-to-duplicate-a-workout-routine.md",
+      "chars": 434,
+      "priority": true
+    },
+    {
+      "id": 11243201,
+      "title": "How to Edit a Routine Before a Workout",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11243201",
+      "file": "11243201-how-to-edit-a-routine-before-a-workout.md",
+      "chars": 1867,
+      "priority": true
+    },
+    {
+      "id": 11243265,
+      "title": "How to Use a Routine During a Workout",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11243265",
+      "file": "11243265-how-to-use-a-routine-during-a-workout.md",
+      "chars": 3315,
+      "priority": true
+    },
+    {
+      "id": 11243649,
+      "title": "How to Edit the Fitness Tab",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/11243649",
+      "file": "11243649-how-to-edit-the-fitness-tab.md",
+      "chars": 1611,
+      "priority": true
+    },
+    {
+      "id": 11243905,
+      "title": "How to Use the Plate Calculator",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11243905",
+      "file": "11243905-how-to-use-the-plate-calculator.md",
+      "chars": 1396,
+      "priority": true
+    },
+    {
+      "id": 11244161,
+      "title": "How to Change Set Types",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11244161",
+      "file": "11244161-how-to-change-set-types.md",
+      "chars": 512,
+      "priority": true
+    },
+    {
+      "id": 11244225,
+      "title": "How to Auto-Populate Weights in Routines",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11244225",
+      "file": "11244225-how-to-auto-populate-weights-in-routines.md",
+      "chars": 896,
+      "priority": true
+    },
+    {
+      "id": 11244353,
+      "title": "How to Use Rest Timer Audible Notifications",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11244353",
+      "file": "11244353-how-to-use-rest-timer-audible-notifications.md",
+      "chars": 552,
+      "priority": true
+    },
+    {
+      "id": 11247681,
+      "title": "How to Customize Nutrition Settings",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11247681",
+      "file": "11247681-how-to-customize-nutrition-settings.md",
+      "chars": 2432,
+      "priority": true
+    },
+    {
+      "id": 11247745,
+      "title": "How to Log Food",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11247745",
+      "file": "11247745-how-to-log-food.md",
+      "chars": 4988,
+      "priority": true
+    },
+    {
+      "id": 11247809,
+      "error": "HTTP Error 500: "
+    },
+    {
+      "id": 11247873,
+      "title": "How to Use Camera Control",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11247873",
+      "file": "11247873-how-to-use-camera-control.md",
+      "chars": 531,
+      "priority": true
+    },
+    {
+      "id": 11247937,
+      "title": "How to Report a Nutrition Issue",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11247937",
+      "file": "11247937-how-to-report-a-nutrition-issue.md",
+      "chars": 910,
+      "priority": true
+    },
+    {
+      "id": 11248001,
+      "title": "How to Track Nutrition Goals in Bevel",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11248001",
+      "file": "11248001-how-to-track-nutrition-goals-in-bevel.md",
+      "chars": 3562,
+      "priority": true
+    },
+    {
+      "id": 11248065,
+      "title": "Understanding Nutrition Score and Food Quality Contributors",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11248065",
+      "file": "11248065-understanding-nutrition-score-and-food-quality-contributors.md",
+      "chars": 4451,
+      "priority": true
+    },
+    {
+      "id": 11248129,
+      "title": "How to View Daily Macros and Nutrition Facts",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11248129",
+      "file": "11248129-how-to-view-daily-macros-and-nutrition-facts.md",
+      "chars": 1316,
+      "priority": true
+    },
+    {
+      "id": 11248193,
+      "title": "Understanding Glucose Impact",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11248193",
+      "file": "11248193-understanding-glucose-impact.md",
+      "chars": 2174,
+      "priority": true
+    },
+    {
+      "id": 11248257,
+      "title": "Troubleshooting Nutrition",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11248257",
+      "file": "11248257-troubleshooting-nutrition.md",
+      "chars": 3996,
+      "priority": true
+    },
+    {
+      "id": 11250497,
+      "title": "How to Create Recipes",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11250497",
+      "file": "11250497-how-to-create-recipes.md",
+      "chars": 859,
+      "priority": true
+    },
+    {
+      "id": 11250561,
+      "title": "How to Create a Custom Food",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11250561",
+      "file": "11250561-how-to-create-a-custom-food.md",
+      "chars": 562,
+      "priority": true
+    },
+    {
+      "id": 11251073,
+      "title": "Key Bevel Terms",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/11251073",
+      "file": "11251073-key-bevel-terms.md",
+      "chars": 8875,
+      "priority": true
+    },
+    {
+      "id": 11257601,
+      "title": "Common Questions",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/11257601",
+      "file": "11257601-common-questions.md",
+      "chars": 7775,
+      "priority": true
+    },
+    {
+      "id": 11257729,
+      "title": "Troubleshooting",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/11257729",
+      "file": "11257729-troubleshooting.md",
+      "chars": 5213,
+      "priority": true
+    },
+    {
+      "id": 11257857,
+      "title": "Strain Common Questions",
+      "category": "Strain",
+      "url": "https://help.bevel.health/en/articles/11257857",
+      "file": "11257857-strain-common-questions.md",
+      "chars": 3073,
+      "priority": true
+    },
+    {
+      "id": 11257921,
+      "title": "Strain Troubleshooting",
+      "category": "Strain",
+      "url": "https://help.bevel.health/en/articles/11257921",
+      "file": "11257921-strain-troubleshooting.md",
+      "chars": 1837,
+      "priority": true
+    },
+    {
+      "id": 11258177,
+      "title": "Recovery Common Questions",
+      "category": "Recovery",
+      "url": "https://help.bevel.health/en/articles/11258177",
+      "file": "11258177-recovery-common-questions.md",
+      "chars": 1637,
+      "priority": true
+    },
+    {
+      "id": 11258241,
+      "title": "Recovery Troubleshooting",
+      "category": "Recovery",
+      "url": "https://help.bevel.health/en/articles/11258241",
+      "file": "11258241-recovery-troubleshooting.md",
+      "chars": 2846,
+      "priority": true
+    },
+    {
+      "id": 11258369,
+      "title": "Stress & Energy Common Questions",
+      "category": "Stress and Energy",
+      "url": "https://help.bevel.health/en/articles/11258369",
+      "file": "11258369-stress-energy-common-questions.md",
+      "chars": 2975,
+      "priority": true
+    },
+    {
+      "id": 11258433,
+      "title": "Stress & Energy Troubleshooting",
+      "category": "Stress and Energy",
+      "url": "https://help.bevel.health/en/articles/11258433",
+      "file": "11258433-stress-energy-troubleshooting.md",
+      "chars": 916,
+      "priority": true
+    },
+    {
+      "id": 11258497,
+      "title": "Cycle Common Questions",
+      "category": "Cycle",
+      "url": "https://help.bevel.health/en/articles/11258497",
+      "file": "11258497-cycle-common-questions.md",
+      "chars": 8855,
+      "priority": true
+    },
+    {
+      "id": 11258625,
+      "title": "Sleep Common Questions",
+      "category": "Sleep",
+      "url": "https://help.bevel.health/en/articles/11258625",
+      "file": "11258625-sleep-common-questions.md",
+      "chars": 3509,
+      "priority": true
+    },
+    {
+      "id": 11258753,
+      "title": "Strength Builder Common Questions",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/11258753",
+      "file": "11258753-strength-builder-common-questions.md",
+      "chars": 6407,
+      "priority": true
+    },
+    {
+      "id": 11258881,
+      "title": "Understanding Fitness Charts",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/11258881",
+      "file": "11258881-understanding-fitness-charts.md",
+      "chars": 8550,
+      "priority": true
+    },
+    {
+      "id": 11259073,
+      "title": "Nutrition Common Questions",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11259073",
+      "file": "11259073-nutrition-common-questions.md",
+      "chars": 5591,
+      "priority": true
+    },
+    {
+      "id": 11259457,
+      "title": "Cycle Troubleshooting",
+      "category": "Cycle",
+      "url": "https://help.bevel.health/en/articles/11259457",
+      "file": "11259457-cycle-troubleshooting.md",
+      "chars": 1068,
+      "priority": true
+    },
+    {
+      "id": 11583937,
+      "title": "Bevel Membership & Pricing",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/11583937",
+      "file": "11583937-bevel-membership-pricing.md",
+      "chars": 8668,
+      "priority": true
+    },
+    {
+      "id": 11586305,
+      "title": "Biology Common Questions",
+      "category": "Biology",
+      "url": "https://help.bevel.health/en/articles/11586305",
+      "file": "11586305-biology-common-questions.md",
+      "chars": 4846,
+      "priority": true
+    },
+    {
+      "id": 11586369,
+      "title": "Understanding Biological Age and Confidence",
+      "category": "Biology",
+      "url": "https://help.bevel.health/en/articles/11586369",
+      "file": "11586369-understanding-biological-age-and-confidence.md",
+      "chars": 2303,
+      "priority": true
+    },
+    {
+      "id": 11586433,
+      "title": "Understanding Biomarkers",
+      "category": "Biology",
+      "url": "https://help.bevel.health/en/articles/11586433",
+      "file": "11586433-understanding-biomarkers.md",
+      "chars": 1961,
+      "priority": true
+    },
+    {
+      "id": 11586497,
+      "title": "How to Track Smoking Impact",
+      "category": "Biology",
+      "url": "https://help.bevel.health/en/articles/11586497",
+      "file": "11586497-how-to-track-smoking-impact.md",
+      "chars": 1234,
+      "priority": true
+    },
+    {
+      "id": 11586561,
+      "title": "How to View Biomarkers",
+      "category": "Biology",
+      "url": "https://help.bevel.health/en/articles/11586561",
+      "file": "11586561-how-to-view-biomarkers.md",
+      "chars": 1298,
+      "priority": true
+    },
+    {
+      "id": 11586753,
+      "title": "Bevel Intelligence Common Questions",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/11586753",
+      "file": "11586753-bevel-intelligence-common-questions.md",
+      "chars": 8856,
+      "priority": true
+    },
+    {
+      "id": 11586817,
+      "title": "Bevel Intelligence Capabilities",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/11586817",
+      "file": "11586817-bevel-intelligence-capabilities.md",
+      "chars": 5195,
+      "priority": true
+    },
+    {
+      "id": 11586881,
+      "title": "Understanding Health Records vs. Files",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/11586881",
+      "file": "11586881-understanding-health-records-vs-files.md",
+      "chars": 2749,
+      "priority": true
+    },
+    {
+      "id": 11586945,
+      "title": "How to Set Bevel Intelligence Personality",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/11586945",
+      "file": "11586945-how-to-set-bevel-intelligence-personality.md",
+      "chars": 1764,
+      "priority": true
+    },
+    {
+      "id": 11587009,
+      "title": "How to Guide Bevel Intelligence",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/11587009",
+      "file": "11587009-how-to-guide-bevel-intelligence.md",
+      "chars": 667,
+      "priority": true
+    },
+    {
+      "id": 11587073,
+      "title": "How to Pin, Rename, and Delete Chats",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/11587073",
+      "file": "11587073-how-to-pin-rename-and-delete-chats.md",
+      "chars": 338,
+      "priority": true
+    },
+    {
+      "id": 11587137,
+      "title": "Bevel Intelligence Troubleshooting",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/11587137",
+      "file": "11587137-bevel-intelligence-troubleshooting.md",
+      "chars": 1643,
+      "priority": true
+    },
+    {
+      "id": 11587201,
+      "title": "Why Upload Health Records?",
+      "category": "Health Records",
+      "url": "https://help.bevel.health/en/articles/11587201",
+      "file": "11587201-why-upload-health-records.md",
+      "chars": 2112,
+      "priority": false
+    },
+    {
+      "id": 11587265,
+      "title": "How to Upload Health Records",
+      "category": "Health Records",
+      "url": "https://help.bevel.health/en/articles/11587265",
+      "file": "11587265-how-to-upload-health-records.md",
+      "chars": 1851,
+      "priority": false
+    },
+    {
+      "id": 11587329,
+      "title": "How to View and Edit Health Records",
+      "category": "Health Records",
+      "url": "https://help.bevel.health/en/articles/11587329",
+      "file": "11587329-how-to-view-and-edit-health-records.md",
+      "chars": 1462,
+      "priority": false
+    },
+    {
+      "id": 11673665,
+      "title": "How to Understand Biology Trend Charts",
+      "category": "Biology",
+      "url": "https://help.bevel.health/en/articles/11673665",
+      "file": "11673665-how-to-understand-biology-trend-charts.md",
+      "chars": 4321,
+      "priority": true
+    },
+    {
+      "id": 11673729,
+      "title": "Nutrition Database Coverage",
+      "category": "Nutrition",
+      "url": "https://help.bevel.health/en/articles/11673729",
+      "file": "11673729-nutrition-database-coverage.md",
+      "chars": 1764,
+      "priority": true
+    },
+    {
+      "id": 11679809,
+      "title": "App Customization Common Questions",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/11679809",
+      "file": "11679809-app-customization-common-questions.md",
+      "chars": 474,
+      "priority": false
+    },
+    {
+      "id": 11679873,
+      "title": "App Customization Troubleshooting",
+      "category": "App Customization",
+      "url": "https://help.bevel.health/en/articles/11679873",
+      "file": "11679873-app-customization-troubleshooting.md",
+      "chars": 2710,
+      "priority": false
+    },
+    {
+      "id": 11680065,
+      "title": "Data Sources Troubleshooting",
+      "category": "Data Sources",
+      "url": "https://help.bevel.health/en/articles/11680065",
+      "file": "11680065-data-sources-troubleshooting.md",
+      "chars": 7759,
+      "priority": false
+    },
+    {
+      "id": 11680257,
+      "title": "Fitness Common Questions",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/11680257",
+      "file": "11680257-fitness-common-questions.md",
+      "chars": 7978,
+      "priority": true
+    },
+    {
+      "id": 11680321,
+      "title": "Fitness Troubleshooting",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/11680321",
+      "file": "11680321-fitness-troubleshooting.md",
+      "chars": 2375,
+      "priority": true
+    },
+    {
+      "id": 11968449,
+      "title": "Journal Common Questions",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/11968449",
+      "file": "11968449-journal-common-questions.md",
+      "chars": 6363,
+      "priority": false
+    },
+    {
+      "id": 12118145,
+      "title": "How to Change Bevel Intelligence Settings",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/12118145",
+      "file": "12118145-how-to-change-bevel-intelligence-settings.md",
+      "chars": 1271,
+      "priority": true
+    },
+    {
+      "id": 12308801,
+      "title": "How to Create and Manage Check-ins",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/12308801",
+      "file": "12308801-how-to-create-and-manage-check-ins.md",
+      "chars": 1116,
+      "priority": true
+    },
+    {
+      "id": 12309121,
+      "title": "How to Log Alcohol from Biology",
+      "category": "Biology",
+      "url": "https://help.bevel.health/en/articles/12309121",
+      "file": "12309121-how-to-log-alcohol-from-biology.md",
+      "chars": 1034,
+      "priority": true
+    },
+    {
+      "id": 12675393,
+      "title": "How to Redeem a Promotion Code",
+      "category": "Bevel Basics",
+      "url": "https://help.bevel.health/en/articles/12675393",
+      "file": "12675393-how-to-redeem-a-promotion-code.md",
+      "chars": 1507,
+      "priority": true
+    },
+    {
+      "id": 12741505,
+      "title": "How to Purchase Additional Bevel Intelligence Credits",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/12741505",
+      "file": "12741505-how-to-purchase-additional-bevel-intelligence-credits.md",
+      "chars": 1978,
+      "priority": true
+    },
+    {
+      "id": 12969857,
+      "title": "How to Use Ghost Mode",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/12969857",
+      "file": "12969857-how-to-use-ghost-mode.md",
+      "chars": 1528,
+      "priority": true
+    },
+    {
+      "id": 12969921,
+      "title": "How to Set Up and Use Calendar Integrations",
+      "category": "Bevel Intelligence",
+      "url": "https://help.bevel.health/en/articles/12969921",
+      "file": "12969921-how-to-set-up-and-use-calendar-integrations.md",
+      "chars": 1960,
+      "priority": true
+    },
+    {
+      "id": 13004417,
+      "title": "Data Sources Common Questions",
+      "category": "Data Sources",
+      "url": "https://help.bevel.health/en/articles/13004417",
+      "file": "13004417-data-sources-common-questions.md",
+      "chars": 1615,
+      "priority": false
+    },
+    {
+      "id": 13308929,
+      "title": "Health Records Common Questions",
+      "category": "Health Records",
+      "url": "https://help.bevel.health/en/articles/13308929",
+      "file": "13308929-health-records-common-questions.md",
+      "chars": 2253,
+      "priority": false
+    },
+    {
+      "id": 13318977,
+      "title": "How to Use Journal",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13318977",
+      "file": "13318977-how-to-use-journal.md",
+      "chars": 3290,
+      "priority": false
+    },
+    {
+      "id": 13319041,
+      "title": "How to Use Journal Insights",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13319041",
+      "file": "13319041-how-to-use-journal-insights.md",
+      "chars": 940,
+      "priority": false
+    },
+    {
+      "id": 13319105,
+      "title": "How to Customize Journal",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13319105",
+      "file": "13319105-how-to-customize-journal.md",
+      "chars": 1975,
+      "priority": false
+    },
+    {
+      "id": 13319169,
+      "title": "How to Pin Journal Tags",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13319169",
+      "file": "13319169-how-to-pin-journal-tags.md",
+      "chars": 790,
+      "priority": false
+    },
+    {
+      "id": 13319425,
+      "title": "How to Set Default Journal Entries",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13319425",
+      "file": "13319425-how-to-set-default-journal-entries.md",
+      "chars": 431,
+      "priority": false
+    },
+    {
+      "id": 13319617,
+      "title": "How to Log Alcohol",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13319617",
+      "file": "13319617-how-to-log-alcohol.md",
+      "chars": 1948,
+      "priority": false
+    },
+    {
+      "id": 13414209,
+      "title": "How to Log Caffeine",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13414209",
+      "file": "13414209-how-to-log-caffeine.md",
+      "chars": 2204,
+      "priority": false
+    },
+    {
+      "id": 13414273,
+      "title": "How to Log Daily Mood",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13414273",
+      "file": "13414273-how-to-log-daily-mood.md",
+      "chars": 1839,
+      "priority": false
+    },
+    {
+      "id": 13414337,
+      "title": "How to Log Hydration",
+      "category": "Journal",
+      "url": "https://help.bevel.health/en/articles/13414337",
+      "file": "13414337-how-to-log-hydration.md",
+      "chars": 2013,
+      "priority": false
+    },
+    {
+      "id": 13491457,
+      "title": "How to Connect an External Heart Rate Sensor",
+      "category": "Strength Builder",
+      "url": "https://help.bevel.health/en/articles/13491457",
+      "file": "13491457-how-to-connect-an-external-heart-rate-sensor.md",
+      "chars": 1523,
+      "priority": true
+    },
+    {
+      "id": 14124737,
+      "title": "Understanding Strain Performance",
+      "category": "Strain",
+      "url": "https://help.bevel.health/en/articles/14124737",
+      "file": "14124737-understanding-strain-performance.md",
+      "chars": 2446,
+      "priority": true
+    },
+    {
+      "id": 14206081,
+      "title": "How to Use the Fitness Tab",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14206081",
+      "file": "14206081-how-to-use-the-fitness-tab.md",
+      "chars": 2738,
+      "priority": true
+    },
+    {
+      "id": 14206145,
+      "title": "Understanding Cardio Activity Details",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14206145",
+      "file": "14206145-understanding-cardio-activity-details.md",
+      "chars": 6010,
+      "priority": true
+    },
+    {
+      "id": 14206273,
+      "title": "Understanding Strength Activity Details",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14206273",
+      "file": "14206273-understanding-strength-activity-details.md",
+      "chars": 5624,
+      "priority": true
+    },
+    {
+      "id": 14206465,
+      "title": "How to Manage Routines",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14206465",
+      "file": "14206465-how-to-manage-routines.md",
+      "chars": 2361,
+      "priority": true
+    },
+    {
+      "id": 14206529,
+      "title": "How to Create and Manage Planned Activities",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14206529",
+      "file": "14206529-how-to-create-and-manage-planned-activities.md",
+      "chars": 4501,
+      "priority": true
+    },
+    {
+      "id": 14206721,
+      "title": "Understanding Training Load",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14206721",
+      "file": "14206721-understanding-training-load.md",
+      "chars": 3958,
+      "priority": true
+    },
+    {
+      "id": 14206785,
+      "title": "How to Use the Cardio Section",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14206785",
+      "file": "14206785-how-to-use-the-cardio-section.md",
+      "chars": 4131,
+      "priority": true
+    },
+    {
+      "id": 14206849,
+      "title": "How to Use the Strength Section",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14206849",
+      "file": "14206849-how-to-use-the-strength-section.md",
+      "chars": 7979,
+      "priority": true
+    },
+    {
+      "id": 14207169,
+      "title": "How to Build a Training Plan",
+      "category": "Fitness",
+      "url": "https://help.bevel.health/en/articles/14207169",
+      "file": "14207169-how-to-build-a-training-plan.md",
+      "chars": 1937,
+      "priority": true
+    },
+    {
+      "id": 14207489,
+      "title": "Timeline Common Questions",
+      "category": "Timeline",
+      "url": "https://help.bevel.health/en/articles/14207489",
+      "file": "14207489-timeline-common-questions.md",
+      "chars": 1106,
+      "priority": false
+    },
+    {
+      "id": 14207553,
+      "title": "How to Customize Timeline Pins",
+      "category": "Timeline",
+      "url": "https://help.bevel.health/en/articles/14207553",
+      "file": "14207553-how-to-customize-timeline-pins.md",
+      "chars": 1425,
+      "priority": false
+    },
+    {
+      "id": 14207617,
+      "title": "How to Use Timeline",
+      "category": "Timeline",
+      "url": "https://help.bevel.health/en/articles/14207617",
+      "file": "14207617-how-to-use-timeline.md",
+      "chars": 3451,
+      "priority": false
+    }
+  ]
+}

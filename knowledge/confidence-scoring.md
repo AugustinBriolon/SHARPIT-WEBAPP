@@ -208,3 +208,21 @@ The greatest risk in SHARPIT's design is overconfidence — producing specific, 
 **Design principle from `product-constitution.md`:** when in doubt, say less. A qualified recommendation that acknowledges uncertainty is better than a specific recommendation that is wrong.
 
 **The test:** before any recommendation is displayed, ask "what is the data foundation for this output?" If the foundation is thin, the language must reflect that.
+
+---
+
+## Plan Gate enforcement (operational)
+
+Language alone is not enough. Coach plan/adapt proposals pass through the Plan Safety & Coherence Gate (`packages/server/src/lib/plan-gate/`). Confidence tiers on the day's DecisionState are enforced there:
+
+| `confidenceTier`                   | Gate behaviour                                              | Athlete effect                                                        |
+| ---------------------------------- | ----------------------------------------------------------- | --------------------------------------------------------------------- |
+| `INSUFFICIENT` or missing decision | Finding `DECISION_INSUFFICIENT_DATA`, severity **REJECTED** | Proposal removed before UI; Decision Memory still records the attempt |
+| `LOW`                              | Finding `DECISION_LOW_CONFIDENCE`, severity **REJECTED**    | Same                                                                  |
+| `MEDIUM` / `HIGH`                  | Intensity and fatigue compatibility rules only              | Normal Gate path                                                      |
+
+This matches Core `shouldGateAdvice` (confidence below the Medium band, or insufficient data) and closes the prior gap where `INSUFFICIENT` was only `REQUIRES_CONFIRMATION` and still reached the athlete.
+
+Gate findings carry symbolic `evidenceRefs` (e.g. `decision.confidenceTier`). Session Rationale resolves them to French evidence labels for explainability — without exposing raw rule codes.
+
+See also: [`research/competitive-concepts.md`](./research/competitive-concepts.md) (competitor confidence patterns), ADR-005 / ADR-006 / ADR-007.
