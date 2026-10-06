@@ -3,9 +3,8 @@ import Link from 'next/link';
 import { requireAdmin } from '@sharpit/app/lib/auth/admin';
 
 /**
- * Deliberately outside the `(app)` route group: no athlete shell, no
- * onboarding gate, no bottom nav — this is operator tooling, not part of the
- * athlete experience. Session auth still comes from the global middleware;
+ * Deliberately outside the `(carnet)` route group: no athlete header or nav —
+ * this is operator tooling, not part of the athlete experience. Session auth still comes from the global middleware;
  * this layout adds the admin-only check on top of it.
  */
 
@@ -23,13 +22,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
           className="text-muted-foreground hover:text-foreground text-data inline-flex items-center gap-1.5 text-xs transition-colors"
           href="/"
         >
-          ← Retour à l&apos;app
-        </Link>
-        <Link
-          className="text-muted-foreground hover:text-foreground text-data ml-4 inline-flex items-center gap-1.5 text-xs transition-colors"
-          href="/carnet"
-        >
-          Carnet (aperçu) →
+          ← Retour au carnet
         </Link>
         {children}
       </div>

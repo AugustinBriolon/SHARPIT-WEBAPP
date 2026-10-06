@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { cn } from '@sharpit/app/lib/utils';
+import { CarnetCount } from './carnet-animated';
 
 /**
  * The carnet's page grammar: a page is a title and a lead, then ruled sections read top
@@ -51,7 +52,7 @@ export function CarnetSection({
   className?: string;
 }) {
   return (
-    <section className={cn('border-border/70 border-t pt-6', className)}>
+    <section className={cn('border-border/70 border-t pt-6', className)} data-reveal>
       <div className="grid gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-10">
         <div>
           <p className="text-label text-muted-foreground">{label}</p>
@@ -81,7 +82,11 @@ export function Figure({
       <dt className="text-label text-muted-foreground">{label}</dt>
       <dd className="mt-1.5">
         <span className={cn('text-instrument text-2xl font-medium tabular-nums', tone)}>
-          {value}
+          {typeof value === 'string' || typeof value === 'number' ? (
+            <CarnetCount text={String(value)} />
+          ) : (
+            value
+          )}
         </span>
         {unit ? <span className="text-muted-foreground text-data ml-1 text-xs">{unit}</span> : null}
         {hint ? <p className="text-muted-foreground mt-1 text-xs leading-snug">{hint}</p> : null}
@@ -124,7 +129,10 @@ export function InApp({ children }: { children: ReactNode }) {
   );
 }
 
-/** A line of a list that opens a page of the carnet, or reads in place when it has none. */
+/**
+ * A line of a list that opens a page of the carnet, or reads in place when it has none.
+ * Under the pointer it lights, its arrow (`RowArrow`) leans toward where it goes.
+ */
 export function ReadingRow({ href, children }: { href: string | null; children: ReactNode }) {
   const inner = <div className="flex items-baseline justify-between gap-6 py-3">{children}</div>;
   if (!href) {
@@ -132,10 +140,24 @@ export function ReadingRow({ href, children }: { href: string | null; children: 
   }
   return (
     <li>
-      <Link className="hover:bg-muted/40 -mx-3 block rounded-md px-3 transition-colors" href={href}>
+      <Link
+        className="group hover:bg-muted/40 -mx-3 block rounded-md px-3 transition-[background-color,transform] duration-150 active:scale-[0.995] motion-reduce:active:scale-100"
+        href={href}
+      >
         {inner}
       </Link>
     </li>
+  );
+}
+
+export function RowArrow() {
+  return (
+    <span
+      aria-hidden
+      className="text-muted-foreground inline-block transition-transform duration-200 ease-out group-hover:translate-x-1 motion-reduce:transition-none"
+    >
+      →
+    </span>
   );
 }
 

@@ -1,29 +1,19 @@
-import { Suspense } from 'react';
 import type { Metadata, Viewport } from 'next';
 import { AppClerkProvider } from '@sharpit/ui/providers/clerk-provider';
 import { ThemeProvider } from '@sharpit/ui/providers/theme-provider';
-import { SwRegister } from '@/components/pwa/sw-register';
-import { UpdateAvailableToast } from '@/components/pwa/update-available-toast';
-import { SnapshotOfflineSync } from '@/components/pwa/snapshot-offline-sync';
 import { Toaster } from '@/components/ui/toast';
-import { QueryProvider } from '@/providers/query-provider';
-import { AppModalProvider } from '@/providers/app-modal-provider';
-import { DeviceLocationProvider } from '@/components/today/dashboard/device-location-provider';
 import { THEME_DARK_COLOR, THEME_LIGHT_COLOR } from '@sharpit/app/lib/theme/theme';
 import { RootLayoutHead } from '@/app/root-layout-head';
+import { CarnetMotion } from '@/components/carnet/carnet-motion';
+import { RetireServiceWorker } from '@/components/carnet/retire-service-worker';
 import { cn } from '@sharpit/app/lib/utils';
 import { FONT_VARIABLES } from '@sharpit/ui/fonts';
 import './globals.css';
 
 export const metadata: Metadata = {
   title: 'SharpIt',
-  description: 'Intelligence sportive — entraînement, récupération, décision.',
+  description: 'Ton carnet d’entraînement : ta saison, tes séances et ton corps, à relire.',
   applicationName: 'SharpIt',
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'SharpIt',
-  },
   formatDetection: {
     telephone: false,
   },
@@ -70,23 +60,11 @@ export default function RootLayout({
         </head>
         <body className="bg-background text-foreground min-h-full font-sans">
           <ThemeProvider>
-            <QueryProvider>
-              <DeviceLocationProvider>
-                <AppModalProvider>
-                  {children}
-                  {/* Keyed on the current training day, so it must stay out of the
-                      prerendered shell. It renders nothing, so the boundary costs
-                      no UI — there is deliberately no fallback. */}
-                  <Suspense>
-                    <SnapshotOfflineSync />
-                  </Suspense>
-                </AppModalProvider>
-              </DeviceLocationProvider>
-            </QueryProvider>
+            <CarnetMotion>{children}</CarnetMotion>
           </ThemeProvider>
           <Toaster />
-          <UpdateAvailableToast />
-          <SwRegister />
+          {/* Retires the service worker of the old installable web app (ADR-072). */}
+          <RetireServiceWorker />
         </body>
       </html>
     </AppClerkProvider>

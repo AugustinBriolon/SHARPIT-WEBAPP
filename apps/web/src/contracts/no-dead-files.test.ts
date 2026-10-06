@@ -4,12 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * The web stays lean: every source file is reachable from a Next.js entry point (a page,
- * layout, route, metadata file, the proxy, the instrumentation hooks or the service worker). A file only its own test
+ * layout, route, metadata file, the proxy or the instrumentation hooks). A file only its own test
  * imports is dead code — delete both.
  */
 const SRC = 'src';
 const ENTRY =
-  /^src\/(?:app\/(?:.*\/)?(?:page|layout|route|loading|error|not-found|template|default|global-error|icon|apple-icon|manifest|root-layout-head)\.tsx?|proxy\.ts|instrumentation(?:-client)?\.ts|sw\.ts)$/;
+  /^src\/(?:app\/(?:.*\/)?(?:page|layout|route|loading|error|not-found|template|default|global-error|icon|apple-icon|manifest|root-layout-head)\.tsx?|proxy\.ts|instrumentation(?:-client)?\.ts)$/;
 const TEST = /\.test\.tsx?$|__tests__/;
 const IMPORT =
   /(?:import|export)\s[^'"]*?from\s+['"]([^'"]+)['"]|import\(\s*['"]([^'"]+)['"]\s*\)|import\s+['"]([^'"]+)['"]/g;

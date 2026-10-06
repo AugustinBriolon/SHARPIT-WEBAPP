@@ -6,7 +6,7 @@ import type { AccessTier } from '@prisma/client';
 import { Button } from '@sharpit/ui/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/components/ui/toast';
-import { patchAthleteTier } from '@/client/query/fetchers';
+import { patchAthleteTier } from '@/client/query/fetchers/admin';
 
 const TIER_LABEL: Record<AccessTier, string> = {
   FREE: 'Gratuit',

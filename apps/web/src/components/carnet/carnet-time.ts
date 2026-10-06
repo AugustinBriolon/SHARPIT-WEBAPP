@@ -76,19 +76,19 @@ export function carnetHref(href: string | null | undefined): string | null {
   const [path = ''] = href.split(/[?#]/);
   const activity = /^\/activite\/([^/]+)$/.exec(path);
   if (activity && activity[1] !== 'nouvelle' && activity[1] !== 'sejours') {
-    return `/carnet/seances/${activity[1]}`;
+    return `/seances/${activity[1]}`;
   }
   return READING_PAGES[path] ?? null;
 }
 
 const READING_PAGES: Record<string, string> = {
-  '/today/sleep': '/carnet/corps',
-  '/today/recovery': '/carnet/corps',
-  '/moi/corps': '/carnet/corps',
-  '/plan/charge': '/carnet/saison',
-  '/plan/adaptation': '/carnet/saison',
-  '/plan/bilan': '/carnet/bilans',
-  '/moi/performance': '/carnet/records',
-  '/moi/objectifs': '/carnet/saison',
-  '/nutrition': '/carnet/nutrition',
+  '/today/sleep': '/corps',
+  '/today/recovery': '/corps',
+  '/moi/corps': '/corps',
+  '/plan/charge': '/saison',
+  '/plan/adaptation': '/saison',
+  '/plan/bilan': '/bilans',
+  '/moi/performance': '/records',
+  '/moi/objectifs': '/saison',
+  '/nutrition': '/nutrition',
 };

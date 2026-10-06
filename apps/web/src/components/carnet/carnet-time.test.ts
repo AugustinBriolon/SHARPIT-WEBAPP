@@ -49,11 +49,11 @@ describe('countdownLabel', () => {
 
 describe('carnetHref', () => {
   it('sends a recorded session to its page in the carnet', () => {
-    expect(carnetHref('/activite/abc123')).toBe('/carnet/seances/abc123');
+    expect(carnetHref('/activite/abc123')).toBe('/seances/abc123');
   });
 
   it('maps a reading page and drops anything that acts', () => {
-    expect(carnetHref('/plan/charge?date=2026-10-05')).toBe('/carnet/saison');
+    expect(carnetHref('/plan/charge?date=2026-10-05')).toBe('/saison');
     expect(carnetHref('/activite/nouvelle')).toBeNull();
     expect(carnetHref('/settings/integrations')).toBeNull();
     expect(carnetHref(null)).toBeNull();
