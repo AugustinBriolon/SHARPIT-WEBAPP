@@ -18,6 +18,8 @@ describe('apex routing', () => {
       '/connect/garmin/callback',
       '/privacy',
       '/terms',
+      '/aide',
+      '/aide/sources/garmin',
       '/sign-in',
       '/api/billing/apple/notifications',
       '/api/v1/today',
