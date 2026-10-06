@@ -4,7 +4,7 @@ import { Landing } from '@/components/landing/landing';
 export const metadata: Metadata = {
   title: 'SharpIt · Coach d’endurance',
   description:
-    'Décider le matin, avancer le reste du jour. SharpIt lit ton entraînement et te donne une décision claire chaque matin.',
+    'Un plan qui se répare, une décision chaque matin. SharpIt construit ta semaine vers ta course, la relit chaque matin et l’ajuste avec toi, raisons à l’appui.',
   alternates: { canonical: 'https://sharpit.app' },
   robots: { index: true, follow: true },
 };
