@@ -32,3 +32,5 @@
 5. **P3b** — Chat learning memory injection — **done**.
 6. **P3c** — Calibrating surfacing in coach decision context — **done**.
 7. **P3d** — Weekly brief quality scout (deterministic offline score) — **done**.
+8. **P4c** — CI coach offline evals (`eval:coach-memory`, `eval:weekly-brief`) — **done**.
+9. **P4a–e remaining** — Aide coach fera/ne fera pas · day load vs training status · self-improve offline · Activity Status.

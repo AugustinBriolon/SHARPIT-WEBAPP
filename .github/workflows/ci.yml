@@ -78,3 +78,10 @@ jobs:
         run: yarn test
         env:
           YARN_NODE_LINKER: node-modules
+
+      - name: Coach offline evals
+        run: |
+          yarn api eval:coach-memory
+          yarn api eval:weekly-brief
+        env:
+          YARN_NODE_LINKER: node-modules
