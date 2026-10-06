@@ -59,8 +59,8 @@ function animateHero() {
   });
 
   gsap.to('[data-hero-body]', {
+    // The text drifts with the scroll but keeps its full strength: no fade tied to it.
     yPercent: -12,
-    autoAlpha: 0.2,
     ease: 'none',
     scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true },
   });
