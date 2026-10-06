@@ -17,6 +17,7 @@ export const LANDING_LINKS = {
   method: '#methode',
   privacy: '/privacy',
   terms: '/terms',
+  help: '/aide',
 } as const;
 
 export const LANDING_HERO = {
@@ -345,6 +346,7 @@ export const LANDING_CLOSING = {
 } as const;
 
 export const LANDING_FOOTER_LINKS = [
+  { label: 'Aide', href: LANDING_LINKS.help },
   { label: 'Confidentialité', href: LANDING_LINKS.privacy },
   { label: 'Conditions', href: LANDING_LINKS.terms },
   { label: 'Connexion', href: LANDING_LINKS.signIn },

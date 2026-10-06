@@ -4,7 +4,7 @@ import type { NextConfig } from 'next';
 /**
  * sharpit.app, the apex (ADR-048 phase 4, ADR-051): the Apple app-site association, the native
  * Garmin handoff (`/connect/*`, immutable for iOS), the legal pages and the sign-in that redeems
- * a handoff ticket, and the public landing at `/`. Every other path belongs to the web app on
+ * a handoff ticket, the public landing at `/` and the help centre at `/aide`. Every other path belongs to the web app on
  * `web.sharpit.app`.
  */
 const WEB_ORIGIN = 'https://web.sharpit.app';
@@ -18,7 +18,7 @@ const APPLE_NOTIFICATIONS_PATH = '/api/billing/apple/notifications';
 
 /** Paths the hub serves or forwards itself; everything else goes to the web, path and query kept. */
 const HUB_PATHS =
-  '\\.well-known|connect|privacy|terms|sign-in|api/|_next|__clerk|favicon\\.ico|icon|apple-icon';
+  '\\.well-known|aide|connect|privacy|terms|sign-in|api/|_next|__clerk|favicon\\.ico|icon|apple-icon';
 
 const csp = [
   "default-src 'self'",
