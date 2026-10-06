@@ -45,6 +45,7 @@ const CORE: readonly CoachContextSection[] = [
   'health',
   'goals',
   'physical',
+  'activityStatus',
 ];
 
 const READ_ONLY_TOOLS: readonly CoachToolName[] = ['listPlannedSessions', 'getScenarioProjection'];

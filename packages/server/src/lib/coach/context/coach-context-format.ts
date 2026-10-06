@@ -502,6 +502,22 @@ function formatPersonalNoteSection(note: string | null): string[] {
   ];
 }
 
+function formatActivityStatusSection(activityStatus: CoachContext['activityStatus']): string[] {
+  if (!activityStatus || activityStatus.status === 'active') {
+    return [];
+  }
+  const lines = [
+    `\n## Statut d’activité (impératif)`,
+    `Statut : ${activityStatus.label} (${activityStatus.status}).`,
+    activityStatus.planningImpact,
+    'Respecte ABSOLUMENT ce statut pour toute proposition de séance : ne contredis pas la contrainte (pause / blessure / maladie).',
+  ];
+  if (activityStatus.retentionSummary) {
+    lines.push(`Durée déclarée : ${activityStatus.retentionSummary}.`);
+  }
+  return lines;
+}
+
 function formatPmcSection(ctx: CoachContext): string[] {
   return [
     `\n## État de forme (PMC)\nForme/Fitness CTL ${ctx.fitness.ctl} · Fatigue ATL ${ctx.fitness.atl} · Fraîcheur TSB ${ctx.fitness.tsb}.`,
@@ -621,6 +637,7 @@ export const COACH_CONTEXT_SECTIONS = [
   'recent',
   'realized',
   'physical',
+  'activityStatus',
   'travel',
   'constraints',
   'upcoming',
@@ -647,6 +664,7 @@ function coachContextSections(ctx: CoachContext): Array<[CoachContextSection, st
     ['recent', formatRecentActivitiesSection(ctx.recent)],
     ['realized', formatRealizedSessionsSection(ctx.realizedSessions)],
     ['physical', formatPhysicalSection(ctx.physical)],
+    ['activityStatus', formatActivityStatusSection(ctx.activityStatus)],
     ['travel', formatTravelSection(ctx.travel)],
     ['constraints', formatConstraintsSection(ctx.constraints)],
     ['upcoming', formatUpcomingPlannedSection(ctx.upcomingPlanned)],

@@ -114,6 +114,12 @@ function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
       performanceAdjustment: -0.03,
     },
     scenarioComparison: null,
+    activityStatus: {
+      status: 'active',
+      label: 'Actif',
+      planningImpact: 'Charge et séances suivent le plan.',
+      retentionSummary: null,
+    },
     ...overrides,
   } as CoachContext;
 }
@@ -170,6 +176,30 @@ describe('formatConstraintsSection', () => {
   it('renders active constraints', () => {
     const text = formatConstraintsSection([baseConstraint()]).join('\n');
     expect(text).toContain('Tendinite genou');
+  });
+});
+
+describe('formatCoachContext activity status', () => {
+  it('omits the section when the athlete is active', () => {
+    const text = formatCoachContext(minimalContext());
+    expect(text).not.toContain('Statut d’activité');
+  });
+
+  it('surfaces an imperative block when the athlete is sick', () => {
+    const text = formatCoachContext(
+      minimalContext({
+        activityStatus: {
+          status: 'sick',
+          label: 'Malade',
+          planningImpact: 'Repos avant la charge — reprendre seulement quand le corps suit.',
+          retentionSummary: 'jusqu’au 2026-10-10',
+        },
+      }),
+    );
+    expect(text).toContain('Statut d’activité (impératif)');
+    expect(text).toContain('Malade (sick)');
+    expect(text).toContain('Respecte ABSOLUMENT ce statut');
+    expect(text).toContain('jusqu’au 2026-10-10');
   });
 });
 

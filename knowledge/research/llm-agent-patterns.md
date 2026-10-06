@@ -36,4 +36,4 @@
 9. **P4a** — Aide coach fera / ne fera pas (`/aide/coach/limites`) — **done**.
 10. **P4b** — Day load vs training status vocabulary — **done**.
 11. **P4d** — Offline coach prompt self-improve (one mutation, keep/rollback) — **done**.
-12. **P4e** — Activity Status global (product).
+12. **P4e** — Activity Status in coach context + help — **done**.

@@ -21,6 +21,7 @@ import { prisma } from '@sharpit/db/client';
 import { pickNutritionRow } from '@sharpit/app/lib/nutrition/food-log/nutrition-source';
 import { listTravelContexts } from '@sharpit/server/lib/travel-context/service';
 import { loadScenarioComparisonForCoach } from '@sharpit/server/lib/presentation/scenario/scenario-comparison';
+import { getActivityStatusStoreDb } from '@sharpit/server/lib/health/activity-status-service';
 
 async function loadNutritionSummary(
   athleteId: string,
@@ -114,6 +115,7 @@ export async function loadCoachContextSources(input: LoadCoachContextSourcesInpu
     timer.time('pmcAnchor', loadAthletePmcAnchor(athleteId, { refDate: today })),
     timer.time('dailyStress', loadDailyTrainingStressEntries(athleteId, { refDate: today })),
     timer.time('nutrition', loadNutritionSummary(athleteId, trainingDayId)),
+    timer.time('activityStatus', getActivityStatusStoreDb(prisma, athleteId, trainingDayId)),
   ] as const);
   console.info('[coach-context] sources', timer.durations());
   return sources;

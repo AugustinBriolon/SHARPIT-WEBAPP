@@ -71,6 +71,7 @@ describe('coachRequestScope', () => {
     const scope = coachRequestScope('nutrition');
     expect(scope.sections?.has('goals')).toBe(true);
     expect(scope.sections?.has('physical')).toBe(true);
+    expect(scope.sections?.has('activityStatus')).toBe(true);
     expect(scope.sections?.has('equipment')).toBe(false);
     expect(scope.tools).not.toContain('createPlannedSession');
     expect(scope.readsAgenda).toBe(false);

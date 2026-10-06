@@ -144,5 +144,33 @@ Un exemple de ce que SharpIt garde :
 Cette trace sert à lire tes réponses à l’entraînement au fil des semaines. Elle appartient à ton compte, pas à ton appareil : changer de montre ne l’efface pas.
 `,
     },
+    {
+      slug: 'statut-d-activite',
+      title: 'Ton statut d’activité',
+      summary:
+        'Actif, en pause, blessé ou malade : un mode global qui oriente le plan et le coach, indépendamment du verdict du jour.',
+      body: `
+### Les quatre modes
+
+| Statut | Effet |
+| --- | --- |
+| Actif | Charge et séances suivent le plan |
+| En pause | Pas de charge volontaire : le plan est en veille jusqu’à la reprise |
+| Blessé | Priorité sécurité : adapter ou reporter les séances à risque |
+| Malade | Repos avant la charge : reprendre seulement quand le corps suit |
+
+### Ce que ça change
+
+Le [verdict du jour](/aide/methode/verdict-du-jour) lit ton état physiologique. Le statut d’activité dit **comment tu veux entraîner** tant que le mode dure. Le coach doit respecter ce statut : il ne propose pas une charge normale pendant une pause, une blessure ou une maladie.
+
+### Durée
+
+Tu peux garder le statut jusqu’à ce que tu le changes, ou jusqu’à une date. Une fois la date passée, SharpIt revient à Actif.
+
+### Où le régler
+
+Depuis le Résumé (Today), en haut : le libellé de ton statut ouvre le choix et la durée.
+`,
+    },
   ],
 };

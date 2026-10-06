@@ -38,6 +38,11 @@ import { resolve, resolveCode } from '@sharpit/app/lib/french';
 import { computeTrainingLoad } from '@sharpit/server/lib/training/load/training-load';
 import { buildEnvironmentPresentationContext } from '@sharpit/server/lib/presentation/environment/environment';
 import { formatScenarioComparisonForCoach } from '@sharpit/server/lib/presentation/scenario/scenario-comparison';
+import {
+  ACTIVITY_STATUS_OPTIONS,
+  type ActivityStatusId,
+  type ActivityStatusStore,
+} from '@sharpit/app/lib/health/activity-status';
 import { normalizeAthleteEquipment } from '@sharpit/app/lib/equipment/parse';
 import { normalizeAthletePracticedSports } from '@sharpit/app/lib/practiced-sports';
 import { normalizeTrainingAvailability } from '@sharpit/server/lib/training-availability/parse';
@@ -629,6 +634,29 @@ function assembleCoachProfileSections(
   };
 }
 
+/** Compact activity-status payload for the coach prompt (presentation, not Core). */
+export type CoachActivityStatus = {
+  status: ActivityStatusId;
+  label: string;
+  planningImpact: string;
+  retentionSummary: string | null;
+};
+
+export function buildCoachActivityStatus(store: ActivityStatusStore): CoachActivityStatus {
+  const option =
+    ACTIVITY_STATUS_OPTIONS.find((entry) => entry.id === store.status) ??
+    ACTIVITY_STATUS_OPTIONS[0];
+  return {
+    status: store.status,
+    label: option.label,
+    planningImpact: option.planningImpact,
+    retentionSummary:
+      store.status !== 'active' && store.retention.kind === 'until_date'
+        ? `jusqu’au ${store.retention.untilDate}`
+        : null,
+  };
+}
+
 export function assembleCoachContextPayload(
   today: Date,
   sources: CoachContextSources,
@@ -649,6 +677,7 @@ export function assembleCoachContextPayload(
     anchor,
     dailyStress,
     nutritionToday,
+    activityStatusStore,
   ] = sources;
 
   const { fitness, load } = buildFitnessContext(anchor, dailyStress, refDate);
@@ -675,6 +704,7 @@ export function assembleCoachContextPayload(
     environment,
     scenarioComparison: formatScenarioComparisonForCoach(scenarioComparison),
     nutrition: nutritionToday,
+    activityStatus: buildCoachActivityStatus(activityStatusStore),
   };
 }
 
