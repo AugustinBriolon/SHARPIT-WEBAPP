@@ -8,20 +8,20 @@ import { prisma } from '@sharpit/db/client';
 import { Prisma } from '@prisma/client';
 
 export async function loadConnectedIntegrationIds(athleteId: string): Promise<IntegrationId[]> {
-  const [garmin, strava, withings, renpho, google, mfp, profile] = await Promise.all([
+  const [garmin, strava, withings, renpho, google, profile] = await Promise.all([
     prisma.garminAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.stravaAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.withingsAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.renphoAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.googleAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
-    prisma.myFitnessPalAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.athleteProfile.findUnique({
       where: { id: athleteId },
       select: { appleHealthLinkedAt: true },
     }),
   ]);
 
-  const ids: IntegrationId[] = [];
+  /** Sharpit nutrition is always available — no OAuth account. */
+  const ids: IntegrationId[] = ['sharpit'];
   if (garmin) {
     ids.push('garmin');
   }
@@ -36,9 +36,6 @@ export async function loadConnectedIntegrationIds(athleteId: string): Promise<In
   }
   if (google) {
     ids.push('google');
-  }
-  if (mfp) {
-    ids.push('myfitnesspal');
   }
   if (profile?.appleHealthLinkedAt) {
     ids.push('apple-health');

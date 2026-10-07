@@ -47,7 +47,7 @@ const CLASS_PRIMARY_PREFERENCE: Partial<Record<DataClassId, IntegrationId[]>> = 
   activities: ['garmin', 'strava', 'apple-health'],
   wearable_health: ['garmin', 'apple-health'],
   body: ['withings', 'renpho', 'apple-health'],
-  nutrition: ['myfitnesspal'],
+  nutrition: ['sharpit', 'apple-health'],
   calendar: ['google'],
 };
 

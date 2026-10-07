@@ -4,24 +4,25 @@ export const SOURCES: HelpCategory = {
   slug: 'sources',
   title: 'Sources connectées',
   description:
-    'Garmin, Apple Santé, Withings et Google Agenda : les connecter, choisir qui fait foi, les déconnecter.',
+    'Garmin, Strava, Apple Santé, Withings et Google Agenda : les connecter, choisir qui fait foi, les déconnecter.',
   icon: 'sources',
   articles: [
     {
       slug: 'quelles-sources',
       title: 'Quelles sources sont prises en charge ?',
       summary:
-        'Garmin, Apple Santé, Withings et Google Agenda se connectent. L’historique MyFitnessPal s’importe. Strava et Polar arrivent bientôt.',
+        'Garmin, Strava, Apple Santé, Withings et Google Agenda se connectent. La nutrition se note dans SharpIt ; Apple Santé pourra aussi y écrire.',
       body: `
 | Source | Ce qu’elle apporte | Où la connecter |
 | --- | --- | --- |
 | [Garmin](/aide/sources/garmin) | Séances, nuits, VFC, fréquence cardiaque au repos, stress, Body Battery, VO₂max | L’app iPhone |
-| [Apple Santé](/aide/sources/apple-sante) | Nuits, VFC, fréquence cardiaque au repos et séances de ton iPhone et de ton Apple Watch | L’app iPhone |
+| [Strava](/aide/sources/strava) | Séances et activités outdoor | Le carnet web |
+| [Apple Santé](/aide/sources/apple-sante) | Nuits, VFC, fréquence cardiaque au repos, séances ; écrit aussi nutrition et poids notés dans SharpIt | L’app iPhone |
 | [Withings](/aide/sources/withings) | Poids et composition corporelle | Le carnet web |
 | [Google Agenda](/aide/sources/google-agenda) | Tes créneaux occupés, pour placer les séances | Le carnet web |
-| [MyFitnessPal](/aide/nutrition/importer-myfitnesspal) | Ton historique alimentaire | Import de ton export |
+| Journal SharpIt | Repas notés dans l’app (recherche, scan, recettes) | L’app iPhone |
 
-**Bientôt** : Strava et Polar.
+**Bientôt** : Polar.
 
 ### Faut-il une montre Garmin ?
 
@@ -59,7 +60,7 @@ Si Garmin Connect partage tes données avec Apple Santé, ta montre arrive aussi
       body: `
 ### L’activer
 
-**Paramètres › Sources de données › Apple Santé**, puis autorise la lecture dans la fenêtre d’Apple. SharpIt ne fait que lire : il n’écrit rien dans Santé.
+**Paramètres › Sources de données › Apple Santé**, puis autorise lecture et écriture dans la fenêtre d’Apple. SharpIt lit nuits, cœur et séances, et peut écrire le total alimentaire du jour et le poids notés dans l’app.
 
 ### Ce qui est envoyé
 
@@ -73,6 +74,25 @@ Si un autre compte SharpIt se connecte sur le même iPhone, Apple Santé y déma
 ### Tes données Santé
 
 Elles servent uniquement à ton coaching. Elles ne sont ni partagées à des fins publicitaires ou commerciales, ni stockées dans iCloud.
+`,
+    },
+    {
+      slug: 'strava',
+      title: 'Connecter Strava',
+      summary:
+        'Strava se connecte depuis le carnet web, dans Compte › Sources. Tes activités arrivent ensuite dans SharpIt.',
+      body: `
+### Le connecter
+
+1. Ouvre [web.sharpit.app](https://web.sharpit.app) et connecte-toi avec le même compte que dans l’app.
+2. Va dans **Compte › Sources** et choisis **Strava**.
+3. Autorise SharpIt chez Strava.
+
+La connexion passe par ton navigateur : tu peux la déconnecter depuis l’app iPhone une fois reliée.
+
+### Ce qui arrive
+
+Tes séances Strava alimentent **Activités** et peuvent devenir la source principale si tu n’as pas Garmin.
 `,
     },
     {

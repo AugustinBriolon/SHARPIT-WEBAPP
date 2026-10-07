@@ -1,7 +1,6 @@
 import type { ProviderAccounts } from '@sharpit/server/lib/sync/athlete-provider-sync';
 
-export type V1SyncProviderKey =
-  'garmin' | 'strava' | 'withings' | 'renpho' | 'google' | 'myfitnesspal';
+export type V1SyncProviderKey = 'garmin' | 'strava' | 'withings' | 'renpho' | 'google';
 
 export type V1SyncStatus = {
   apiVersion: 1;
@@ -26,7 +25,6 @@ const PROVIDERS: ReadonlyArray<{
   { key: 'withings', label: 'Withings', account: 'withings' },
   { key: 'renpho', label: 'Renpho', account: 'renpho' },
   { key: 'google', label: 'Google Agenda', account: 'google' },
-  { key: 'myfitnesspal', label: 'MyFitnessPal', account: 'mfp' },
 ];
 
 const RECONNECT_LABELS: Record<string, V1SyncProviderKey> = {
@@ -36,7 +34,6 @@ const RECONNECT_LABELS: Record<string, V1SyncProviderKey> = {
   Withings: 'withings',
   Renpho: 'renpho',
   Google: 'google',
-  MyFitnessPal: 'myfitnesspal',
 };
 
 function lastSyncOf(account: unknown): Date | null {

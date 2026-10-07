@@ -34,10 +34,13 @@ describe('providerConnectRequirements', () => {
     });
   });
 
-  it('classifies Renpho/MFP as unofficial health feeders', () => {
+  it('classifies Renpho as an unofficial health feeder', () => {
     expect(providerFeedsHealthData('renpho')).toBe(true);
     expect(providerIsUnofficial('renpho')).toBe(true);
-    expect(providerFeedsHealthData('myfitnesspal')).toBe(true);
-    expect(providerIsUnofficial('myfitnesspal')).toBe(true);
+  });
+
+  it('treats the in-app Sharpit log as official nutrition', () => {
+    expect(providerFeedsHealthData('sharpit')).toBe(true);
+    expect(providerIsUnofficial('sharpit')).toBe(false);
   });
 });

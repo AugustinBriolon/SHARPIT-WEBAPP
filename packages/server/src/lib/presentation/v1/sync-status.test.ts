@@ -9,7 +9,6 @@ function accounts(over: Record<string, unknown> = {}): ProviderAccounts {
     renpho: null,
     withings: null,
     google: null,
-    mfp: null,
     ...over,
   } as unknown as ProviderAccounts;
 }

@@ -71,6 +71,14 @@ describe('source-prefs', () => {
     expect(prefs.classes.body.primary).toBe('withings');
   });
 
+  it('legacy nutrition prefers Sharpit then Apple Santé', () => {
+    const prefs = legacyDefaultsFromConnected(['sharpit', 'apple-health']);
+    expect(prefs.classes.nutrition).toEqual({
+      primary: 'sharpit',
+      enabled: ['sharpit', 'apple-health'],
+    });
+  });
+
   it('parseSourcePrefs rejects invalid shapes', () => {
     expect(parseSourcePrefs({})).toBeNull();
     expect(parseSourcePrefs({ version: 2, classes: {} })).toBeNull();

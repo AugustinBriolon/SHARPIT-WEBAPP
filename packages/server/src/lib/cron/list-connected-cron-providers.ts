@@ -11,7 +11,6 @@ export type CronProviderAccounts = {
   withings: MaybeAccount;
   renpho: MaybeAccount;
   google: MaybeAccount;
-  myfitnesspal: MaybeAccount;
 };
 
 const CRON_PROVIDER_ACCOUNT_KEYS: Array<{
@@ -23,7 +22,6 @@ const CRON_PROVIDER_ACCOUNT_KEYS: Array<{
   { provider: 'withings', accountKey: 'withings' },
   { provider: 'renpho', accountKey: 'renpho' },
   { provider: 'google', accountKey: 'google' },
-  { provider: 'myfitnesspal', accountKey: 'myfitnesspal' },
 ];
 
 /**

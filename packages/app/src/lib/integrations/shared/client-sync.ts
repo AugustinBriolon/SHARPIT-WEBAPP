@@ -52,7 +52,8 @@ export type IntegrationId =
   | 'withings'
   | 'renpho'
   | 'google'
-  | 'myfitnesspal'
+  /** In-app food log — always available, no OAuth account (ADR-061). */
+  | 'sharpit'
   /** Linked from the iPhone app (no account to connect here); see ADR-043 and ADR-054. */
   | 'apple-health';
 
@@ -115,13 +116,6 @@ export async function runWithingsSync(options?: { full?: boolean }): Promise<Wit
 export async function runGoogleSync(): Promise<GoogleSyncResult> {
   const response = await apiFetch('/api/google/sync', { method: 'POST' });
   return parseJson(response, 'Synchronisation Google échouée');
-}
-
-export type MfpSyncResult = { synced: number; errors: number };
-
-export async function runMfpSync(): Promise<MfpSyncResult> {
-  const response = await apiFetch('/api/myfitnesspal/sync', { method: 'POST' });
-  return parseJson(response, 'Synchronisation MyFitnessPal échouée');
 }
 
 export function stravaBackfillSummary(data: StravaBackfillResult): string {

@@ -78,12 +78,12 @@ export const PROVIDER_CATALOG: CatalogProvider[] = [
   {
     id: 'strava',
     name: 'Strava',
-    tagline: 'Temporairement indisponible',
-    status: 'coming_soon',
+    tagline: 'Séances & records — course, vélo, natation',
+    status: 'available',
     classes: ['activities'],
-    /** Kept for logo + greyed hub rows; OAuth/cron stay off while status is coming_soon. */
     integrationId: 'strava',
-    authKind: 'none',
+    authKind: 'oauth',
+    oauthPath: '/api/strava/connect',
     dataTypesByClass: {
       activities: ['Course', 'Vélo', 'Natation', 'Records'],
     },
@@ -115,15 +115,16 @@ export const PROVIDER_CATALOG: CatalogProvider[] = [
     },
   },
   {
-    id: 'myfitnesspal',
-    name: 'MyFitnessPal',
-    tagline: 'Nutrition & macros',
+    id: 'sharpit',
+    name: 'Sharpit',
+    tagline: 'Journal alimentaire dans l’app',
     status: 'available',
     classes: ['nutrition'],
-    integrationId: 'myfitnesspal',
-    authKind: 'credentials',
+    integrationId: 'sharpit',
+    /** Always connected — no OAuth; athletes enable/disable it in Priorités. */
+    authKind: 'none',
     dataTypesByClass: {
-      nutrition: ['Calories', 'Protéines', 'Glucides', 'Lipides'],
+      nutrition: ['Repas', 'Calories', 'Macros'],
     },
   },
   {
@@ -157,13 +158,14 @@ export const PROVIDER_CATALOG: CatalogProvider[] = [
     tagline: 'Depuis l’app iPhone',
     /** Linked from the iPhone app only: the web shows it, it cannot connect it (ADR-054). */
     status: 'coming_soon',
-    classes: ['activities', 'wearable_health', 'body'],
+    classes: ['activities', 'wearable_health', 'body', 'nutrition'],
     integrationId: 'apple-health',
     authKind: 'none',
     dataTypesByClass: {
       activities: ['Séances', 'Tracés'],
       wearable_health: ['Sommeil', 'VFC', 'FC repos', 'Pas'],
       body: ['Poids'],
+      nutrition: ['Calories', 'Macros'],
     },
   },
 ];

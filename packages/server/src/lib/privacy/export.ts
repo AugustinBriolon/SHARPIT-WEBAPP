@@ -209,7 +209,10 @@ export async function buildAthleteExportJson(athleteId: string) {
       google: google ? { connected: true, ...google } : { connected: false },
       renpho: renpho ? { connected: true, email: renpho.email } : { connected: false },
       withings: withings ? { connected: true, ...withings } : { connected: false },
-      myfitnesspal: mfp ? { connected: true, displayName: mfp.displayName } : { connected: false },
+      /** Legacy rows may still exist; product linking and sync were withdrawn (ADR-073). */
+      myfitnesspal: mfp
+        ? { connected: false, historicalAccount: true, displayName: mfp.displayName }
+        : { connected: false, historicalAccount: false },
     },
   };
 }

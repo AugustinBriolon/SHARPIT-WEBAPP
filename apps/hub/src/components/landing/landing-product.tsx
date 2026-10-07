@@ -114,10 +114,6 @@ function Sources() {
       <div className={cn(CONTAINER, 'mt-12 flex flex-wrap items-end justify-between gap-8')}>
         <dl className="text-muted-foreground flex flex-wrap gap-x-10 gap-y-2 text-lg" data-reveal>
           <div className="flex items-baseline gap-3">
-            <dt className={cn(DATA, 'text-xs uppercase')}>{LANDING_SOURCES.importLabel}</dt>
-            <dd>{LANDING_SOURCES.imported.join(' · ')}</dd>
-          </div>
-          <div className="flex items-baseline gap-3">
             <dt className={cn(DATA, 'text-xs uppercase')}>{LANDING_SOURCES.upcomingLabel}</dt>
             <dd>{LANDING_SOURCES.upcoming.join(' · ')}</dd>
           </div>

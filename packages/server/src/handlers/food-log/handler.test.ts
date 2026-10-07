@@ -19,9 +19,6 @@ vi.mock('@sharpit/server/lib/nutrition/food-log/ciqual-search', () => ({
 vi.mock('@sharpit/server/lib/nutrition/analysis/nutrition-analysis-inputs', () => ({
   loadDeclaredDiet: vi.fn().mockResolvedValue({ ids: ['vegan'], labels: ['Végétalien'] }),
 }));
-vi.mock('@sharpit/server/lib/nutrition/import/mfp-export-import', () => ({
-  importMfpExport: vi.fn(),
-}));
 vi.mock('@sharpit/server/lib/nutrition/food-log/food-log-service', () => {
   class FoodLogNotFoundError extends Error {}
   return {
@@ -265,43 +262,17 @@ describe('/api/food-log/foods/mine and /foods/[id]', () => {
 });
 
 describe('/api/food-log/import/myfitnesspal', () => {
-  const upload = (file?: File) => {
-    const form = new FormData();
-    if (file) {
-      form.set('file', file);
-    }
-    return new NextRequest(`${BASE}/import/myfitnesspal`, { method: 'POST', body: form });
-  };
-
-  it('imports the uploaded export and answers what it read', async () => {
+  it('answers 410 Gone (ADR-073)', async () => {
     const { POST } = await import('./import/myfitnesspal/handler');
-    const { importMfpExport } =
-      await import('@sharpit/server/lib/nutrition/import/mfp-export-import');
-    const result = {
-      importedDays: 2,
-      firstDay: '2026-09-30',
-      lastDay: '2026-10-01',
-      skippedRows: 0,
-    };
-    vi.mocked(importMfpExport).mockResolvedValue(result);
-
-    const response = await POST(upload(new File(['Date,Meal,Calories'], 'Nutrition.csv')));
-
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual(result);
-    expect(importMfpExport).toHaveBeenCalledWith('athlete-1', expect.any(Uint8Array));
-  });
-
-  it('asks for a file, and says why an unreadable one is refused', async () => {
-    const { POST } = await import('./import/myfitnesspal/handler');
-    const { importMfpExport } =
-      await import('@sharpit/server/lib/nutrition/import/mfp-export-import');
-    const { MfpExportFormatError } = await import('@sharpit/app/lib/nutrition/import/mfp-export');
-    vi.mocked(importMfpExport).mockRejectedValue(new MfpExportFormatError('Pas un export'));
-
-    expect((await POST(upload())).status).toBe(400);
-    const refused = await POST(upload(new File(['x'], 'x.csv')));
-    expect(refused.status).toBe(400);
-    expect(await refused.json()).toEqual({ error: 'Pas un export' });
+    const response = await POST(
+      new NextRequest(`${BASE}/import/myfitnesspal`, {
+        method: 'POST',
+        body: new FormData(),
+      }),
+    );
+    expect(response.status).toBe(410);
+    expect(await response.json()).toMatchObject({
+      error: expect.stringContaining('MyFitnessPal'),
+    });
   });
 });

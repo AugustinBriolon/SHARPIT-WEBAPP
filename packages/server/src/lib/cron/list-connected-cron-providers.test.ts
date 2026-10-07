@@ -24,7 +24,6 @@ function emptyAccounts() {
     withings: null,
     renpho: null,
     google: null,
-    myfitnesspal: null,
   };
 }
 
@@ -39,7 +38,6 @@ describe('listConnectedCronProviders', () => {
         ...emptyAccounts(),
         garmin: { oauth1TokenEnc: '', oauth2TokenEnc: '' },
         renpho: { email: 'a@b.c', passwordEnc: 'demo' },
-        myfitnesspal: { sessionTokenEnc: '' },
       }),
     ).toEqual([]);
   });
@@ -62,24 +60,7 @@ describe('listConnectedCronProviders', () => {
           }),
         ),
       },
-      myfitnesspal: { sessionTokenEnc: 'demo' },
     });
     expect(providers).toEqual(['garmin']);
-  });
-
-  it('includes MyFitnessPal when connected and skips when disconnected', () => {
-    expect(
-      listConnectedCronProviders({
-        ...emptyAccounts(),
-        myfitnesspal: { sessionTokenEnc: enc('cookie') },
-      }),
-    ).toEqual(['myfitnesspal']);
-
-    expect(
-      listConnectedCronProviders({
-        ...emptyAccounts(),
-        myfitnesspal: { sessionTokenEnc: '' },
-      }),
-    ).toEqual([]);
   });
 });

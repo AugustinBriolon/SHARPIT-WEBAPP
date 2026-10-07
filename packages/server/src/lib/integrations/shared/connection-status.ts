@@ -170,7 +170,6 @@ interface ProviderAccounts {
   withings: MaybeAccount;
   renpho: MaybeAccount;
   google: MaybeAccount;
-  myfitnesspal?: MaybeAccount;
 }
 
 const RECONNECT_CHECKS: Array<{
@@ -183,7 +182,6 @@ const RECONNECT_CHECKS: Array<{
   { accountKey: 'withings', label: 'Withings', isConnected: isOAuthAccountConnected },
   { accountKey: 'renpho', label: 'Renpho', isConnected: isRenphoAccountConnected },
   { accountKey: 'google', label: 'Google', isConnected: isOAuthAccountConnected },
-  { accountKey: 'myfitnesspal', label: 'MyFitnessPal', isConnected: isMfpAccountConnected },
 ];
 
 /**

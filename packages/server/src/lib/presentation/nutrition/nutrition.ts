@@ -6,10 +6,7 @@ import type {
   NutritionFuelDensity,
   NutritionViewModel,
 } from '@sharpit/app/presentation/nutrition-view-model';
-import {
-  getLiveNutrientGoals,
-  getMfpAccount,
-} from '@sharpit/server/lib/integrations/myfitnesspal/myfitnesspal-sync';
+import { getLiveNutrientGoals } from '@sharpit/server/lib/integrations/myfitnesspal/myfitnesspal-sync';
 import {
   getLatestBodyWeightKg,
   macroGPerKg,
@@ -216,17 +213,10 @@ async function buildConnectedNutritionViewModel(
   };
 }
 
-/**
- * The Nutrition page. The log lives in SHARPIT (ADR-061), so every athlete has one and the page
- * is never a « connect a provider » wall; MyFitnessPal only adds a sync action when linked.
- */
+/** The Nutrition page. The log lives in SHARPIT (ADR-061); every athlete has one. */
 export async function buildNutritionViewModel(
   athleteId: string,
   trainingDayId?: string,
 ): Promise<NutritionViewModel> {
-  const [account, viewModel] = await Promise.all([
-    getMfpAccount(athleteId).catch(() => null),
-    buildConnectedNutritionViewModel(athleteId, trainingDayId),
-  ]);
-  return { ...viewModel, mfpConnected: Boolean(account) };
+  return buildConnectedNutritionViewModel(athleteId, trainingDayId);
 }

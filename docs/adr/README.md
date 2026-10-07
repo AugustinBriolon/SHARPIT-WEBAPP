@@ -75,6 +75,7 @@
 | [ADR-070](./ADR-070-a-meal-is-scored-by-the-energy-of-its-foods.md)                     | Meal and day score: energy-weighted mean of the food scores, coverage, protein, fibre                            | Accepted                          |
 | [ADR-071](./ADR-071-a-meal-logs-again-in-one-tap.md)                                    | Copy a meal or a day, saved meals, recipes as own foods with a live label                                        | Accepted                          |
 | [ADR-072](./ADR-072-the-web-becomes-a-reading-carnet.md)                                | The web becomes a read-only carnet; the iPhone app is where the athlete acts                                     | Accepted                          |
+| [ADR-073](./ADR-073-myfitnesspal-withdrawn.md)                                          | MyFitnessPal withdrawn from the product surface (410 routes; SharpIt nutrition)                                  | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

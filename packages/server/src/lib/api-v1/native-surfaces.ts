@@ -48,7 +48,6 @@ export const NATIVE_V1_SURFACES = [
   { path: 'food-log/foods/barcode/[code]', methods: ['GET'] },
   { path: 'food-log/foods/[id]', methods: ['PATCH', 'DELETE'] },
   { path: 'food-log/foods/mine', methods: ['GET'] },
-  { path: 'food-log/import/myfitnesspal', methods: ['POST'] },
   { path: 'food-log/meals', methods: ['GET', 'POST'] },
   { path: 'food-log/meals/[id]', methods: ['DELETE'] },
   { path: 'food-log/meals/[id]/log', methods: ['POST'] },
@@ -59,6 +58,7 @@ export const NATIVE_V1_SURFACES = [
   { path: 'garmin/workouts/from-activity', methods: ['POST'] },
   { path: 'garmin/disconnect', methods: ['POST'] },
   { path: 'withings/disconnect', methods: ['POST'] },
+  { path: 'strava/disconnect', methods: ['POST'] },
   { path: 'google/disconnect', methods: ['POST'] },
   { path: 'privacy/consent', methods: ['GET', 'POST'] },
   { path: 'privacy/delete', methods: ['POST'] },
@@ -68,9 +68,6 @@ export const NATIVE_V1_SURFACES = [
   { path: 'physical-notes/[id]/checkins', methods: ['POST'] },
   { path: 'onboarding/complete', methods: ['POST'] },
   { path: 'garmin/sync', methods: ['POST'] },
-  { path: 'myfitnesspal/connect', methods: ['POST'] },
-  { path: 'myfitnesspal/sync', methods: ['POST'] },
-  { path: 'myfitnesspal/disconnect', methods: ['POST'] },
 ] as const;
 
 /**

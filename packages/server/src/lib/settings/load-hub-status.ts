@@ -5,13 +5,11 @@ import {
   getGoogleAccount,
   isGoogleConnected,
 } from '@sharpit/server/lib/integrations/google/google-sync';
-import { getMfpAccount } from '@sharpit/server/lib/integrations/myfitnesspal/myfitnesspal-sync';
 import { getRenphoAccount } from '@sharpit/server/lib/integrations/renpho/renpho-sync';
 import { getStravaAccount } from '@sharpit/server/lib/integrations/strava/strava-sync';
 import { getWithingsAccount } from '@sharpit/server/lib/integrations/withings/withings-sync';
 import {
   isGarminAccountConnected,
-  isMfpAccountConnected,
   isOAuthAccountConnected,
   isRenphoAccountConnected,
   reconnectProviderNames,
@@ -34,13 +32,12 @@ async function loadIntegrationHubFacts(athleteId: string): Promise<{
   connectedCount: number;
   reconnectNames: string[];
 }> {
-  const [strava, garmin, withings, renpho, google, myfitnesspal] = await Promise.all([
+  const [strava, garmin, withings, renpho, google] = await Promise.all([
     getStravaAccount(athleteId).catch(() => null),
     getGarminAccount(athleteId).catch(() => null),
     getWithingsAccount(athleteId).catch(() => null),
     getRenphoAccount(athleteId).catch(() => null),
     getGoogleAccount(athleteId).catch(() => null),
-    getMfpAccount(athleteId).catch(() => null),
   ]);
 
   const connectedCount = [
@@ -49,7 +46,6 @@ async function loadIntegrationHubFacts(athleteId: string): Promise<{
     isOAuthAccountConnected(withings),
     isRenphoAccountConnected(renpho),
     isGoogleConnected(google),
-    isMfpAccountConnected(myfitnesspal),
   ].filter(Boolean).length;
 
   return {
@@ -60,7 +56,6 @@ async function loadIntegrationHubFacts(athleteId: string): Promise<{
       withings,
       renpho,
       google,
-      myfitnesspal,
     }),
   };
 }

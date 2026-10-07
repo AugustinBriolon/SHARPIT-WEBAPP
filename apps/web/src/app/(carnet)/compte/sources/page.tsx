@@ -29,7 +29,7 @@ const RETURN_TO = '/settings/integrations';
 
 type Source = {
   id: IntegrationId;
-  key: 'withings' | 'google' | 'strava' | 'garmin' | 'renpho' | 'myfitnesspal';
+  key: 'withings' | 'google' | 'strava' | 'garmin' | 'renpho';
   name: string;
   /** Linked here: its OAuth runs in the browser. Otherwise it is linked in the app. */
   connectPath?: string;

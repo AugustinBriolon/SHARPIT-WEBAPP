@@ -8,10 +8,6 @@ import {
   getGoogleAccount,
   syncFromGoogle,
 } from '@sharpit/server/lib/integrations/google/google-sync';
-import {
-  getMfpAccount,
-  syncMfpNutrition,
-} from '@sharpit/server/lib/integrations/myfitnesspal/myfitnesspal-sync';
 import { updateRecordsAfterProviderSync } from '@sharpit/server/lib/training/records/records';
 import {
   getRenphoAccount,
@@ -132,7 +128,6 @@ export type ProviderAccounts = {
   renpho: Awaited<ReturnType<typeof getRenphoAccount>>;
   withings: Awaited<ReturnType<typeof getWithingsAccount>>;
   google: Awaited<ReturnType<typeof getGoogleAccount>>;
-  mfp: Awaited<ReturnType<typeof getMfpAccount>>;
 };
 
 function connectedProviderSet(accounts: ProviderAccounts): Set<string> {
@@ -143,7 +138,6 @@ function connectedProviderSet(accounts: ProviderAccounts): Set<string> {
       withings: accounts.withings,
       renpho: accounts.renpho,
       google: accounts.google,
-      myfitnesspal: accounts.mfp,
     }),
   );
 }
@@ -210,13 +204,6 @@ function appendOptionalProviderSpecs(
       provider: 'Google',
       fallback: 'Sync Google échouée',
       task: () => syncFromGoogle(athleteId),
-    });
-  }
-  if (connected.has('myfitnesspal') && options.hasHealthConsent) {
-    specs.push({
-      provider: 'MyFitnessPal',
-      fallback: 'Sync MyFitnessPal échouée',
-      task: () => syncMfpNutrition(athleteId),
     });
   }
 }
@@ -331,18 +318,17 @@ export function emptyAthleteResult(athleteId: string): AthleteSyncResult {
 
 /** The athlete's provider accounts and consents, read once for a sync. */
 export async function loadAthleteSyncContext(athleteId: string) {
-  const [strava, garmin, renpho, withings, google, mfp, hasHealthConsent, hasAiConsent] =
+  const [strava, garmin, renpho, withings, google, hasHealthConsent, hasAiConsent] =
     await Promise.all([
       getStravaAccount(athleteId),
       getGarminAccount(athleteId),
       getRenphoAccount(athleteId),
       getWithingsAccount(athleteId),
       getGoogleAccount(athleteId),
-      getMfpAccount(athleteId),
       athleteHasHealthDataConsent(athleteId),
       athleteHasAiProcessingConsent(athleteId),
     ]);
-  const accounts: ProviderAccounts = { strava, garmin, renpho, withings, google, mfp };
+  const accounts: ProviderAccounts = { strava, garmin, renpho, withings, google };
   return { accounts, hasHealthConsent, hasAiConsent };
 }
 

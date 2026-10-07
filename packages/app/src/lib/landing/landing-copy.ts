@@ -288,11 +288,9 @@ export const LANDING_REFUSALS = {
 export const LANDING_SOURCES = {
   title: 'Branché sur tes appareils',
   subtitle: 'La montre change, ton modèle reste.',
-  connected: ['Garmin', 'Apple Santé', 'Withings', 'Google Agenda'],
-  importLabel: 'Import',
-  imported: ['MyFitnessPal'],
+  connected: ['Garmin', 'Strava', 'Apple Santé', 'Withings', 'Google Agenda'],
   upcomingLabel: 'Bientôt',
-  upcoming: ['Strava', 'Polar'],
+  upcoming: ['Polar'],
 } as const;
 
 export type LandingQuestion = { question: string; answer: string };
@@ -304,7 +302,7 @@ export const LANDING_FAQ = {
     {
       question: 'Faut-il une montre Garmin ?',
       answer:
-        'Non. Une Apple Watch suffit, par Apple Santé. Si tu as les deux, Garmin fait foi et Apple Santé comble les trous.',
+        'Non. Une Apple Watch ou Strava suffisent. Sur l’App Store, les séances viennent de Strava et d’Apple Santé ; Garmin reste disponible en TestFlight. Pour les mesures du matin, Apple Santé fait foi quand Garmin n’est pas là.',
     },
     {
       question: 'Pour quels sports ?',
@@ -414,8 +412,6 @@ export function landingCopyStrings(): string[] {
     LANDING_SOURCES.title,
     LANDING_SOURCES.subtitle,
     ...LANDING_SOURCES.connected,
-    LANDING_SOURCES.importLabel,
-    ...LANDING_SOURCES.imported,
     LANDING_SOURCES.upcomingLabel,
     ...LANDING_SOURCES.upcoming,
     LANDING_FAQ.label,

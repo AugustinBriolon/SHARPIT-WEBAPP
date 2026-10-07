@@ -45,5 +45,6 @@ per category.
 - A change of primary applies from the next write on: days already written stay as they are.
 - `fill` needs the day's current row before Garmin writes it: one more read per synced day while
   Apple Health is the primary.
-- Strava stays unavailable (ADR-027 catalog): activities' priority is between Garmin and Apple
-  Health in practice.
+- Strava is available again in the catalog (OAuth + cron): default activities preference remains
+  Garmin > Strava > Apple Health. App Store distribution still hides Garmin in the iPhone app
+  (TestFlight/debug only); store athletes use Strava + Apple Health.

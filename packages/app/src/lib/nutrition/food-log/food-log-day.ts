@@ -116,15 +116,6 @@ export type NutritionTargetsPayload = {
 /** `GET /api/food-log/foods/mine`. */
 export type OwnFoodsPayload = { foods: FoodProductPayload[] };
 
-/** `POST /api/food-log/import/myfitnesspal`. */
-export type MfpImportResultPayload = {
-  importedDays: number;
-  firstDay: string | null;
-  lastDay: string | null;
-  /** Rows without a readable date or calories, left out. */
-  skippedRows: number;
-};
-
 export type RecentFoodPayload = { product: FoodProductPayload; lastGrams: number };
 
 export type FoodLogDayPayload = {

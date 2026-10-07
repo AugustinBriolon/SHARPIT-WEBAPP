@@ -4,7 +4,7 @@ export const NUTRITION: HelpCategory = {
   slug: 'nutrition',
   title: 'Nutrition',
   description:
-    'Noter tes repas, tes aliments et recettes, les notes de repas et l’import MyFitnessPal.',
+    'Noter tes repas, tes aliments et recettes, et les notes de repas dans le journal SharpIt.',
   icon: 'nutrition',
   articles: [
     {
@@ -105,28 +105,26 @@ Ta cible de poids se règle depuis le même menu, ou depuis Santé.
 `,
     },
     {
-      slug: 'importer-myfitnesspal',
-      title: 'Importer ton historique MyFitnessPal',
+      slug: 'priorites-nutrition',
+      title: 'Nutrition et sources',
       summary:
-        'L’app ne se connecte pas à MyFitnessPal. Tu importes ton propre export : un fichier ZIP ou CSV choisi dans Fichiers.',
+        'Le journal alimentaire vit dans SharpIt. Choisis la source principale dans Priorités par catégorie ; Apple Santé complétera bientôt l’écriture.',
       body: `
-### Exporter depuis MyFitnessPal
+### Où noter
 
-MyFitnessPal Premium permet d’exporter ton historique : **Rapports › Exporter**. Tu reçois un ZIP par e-mail.
+Tout se passe dans **Nutrition** : recherche, scan, recettes et objectifs. Aucune connexion MyFitnessPal n’est proposée.
 
-### L’importer dans SharpIt
+### Priorités
 
-1. Dans **Nutrition**, ouvre **…** › **Importer depuis MyFitnessPal**.
-2. Choisis le ZIP ou le CSV dans Fichiers (4 Mo au plus).
-3. SharpIt te dit combien de jours sont arrivés, et sur quelles dates.
+Dans **Paramètres › Sources de données › Priorités par catégorie**, la catégorie **Nutrition** met **SharpIt** en source principale quand tu actives le journal.
 
-### Ce qui est importé
+### Données déjà importées
 
-Le total de chaque repas, jour par jour : l’export de MyFitnessPal ne contient pas le détail des aliments. Un jour importé reste en lecture seule, jusqu’à ce que tu y notes toi-même un aliment.
+Les jours importés autrefois depuis MyFitnessPal restent visibles en lecture seule jusqu’à ce que tu y ajoutes un aliment toi-même.
 
-### Pourquoi pas une connexion directe
+### Apple Santé
 
-MyFitnessPal n’offre pas d’accès officiel à ces données. L’import de ton propre export évite de passer par un accès non autorisé.
+SharpIt lira et écrira progressivement nutrition et poids vers Apple Santé ; la formulation exacte suivra la mise en production.
 `,
     },
   ],

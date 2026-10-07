@@ -39,7 +39,6 @@ describe('shouldCronSyncProvider', () => {
   it('skips when the account row is missing', () => {
     expect(shouldCronSyncProvider('garmin', null)).toBe(false);
     expect(shouldCronSyncProvider('renpho', null)).toBe(false);
-    expect(shouldCronSyncProvider('myfitnesspal', null)).toBe(false);
     expect(shouldCronSyncProvider('strava', null)).toBe(false);
   });
 
@@ -48,7 +47,6 @@ describe('shouldCronSyncProvider', () => {
       false,
     );
     expect(shouldCronSyncProvider('renpho', { email: 'a@b.c', passwordEnc: '' })).toBe(false);
-    expect(shouldCronSyncProvider('myfitnesspal', { sessionTokenEnc: '' })).toBe(false);
   });
 
   it('skips malformed placeholder tokens that would explode AES-GCM decrypt', () => {
@@ -56,7 +54,6 @@ describe('shouldCronSyncProvider', () => {
       shouldCronSyncProvider('garmin', { oauth1TokenEnc: 'demo', oauth2TokenEnc: 'demo' }),
     ).toBe(false);
     expect(shouldCronSyncProvider('renpho', { email: 'a@b.c', passwordEnc: 'demo' })).toBe(false);
-    expect(shouldCronSyncProvider('myfitnesspal', { sessionTokenEnc: 'demo' })).toBe(false);
   });
 
   it('skips ciphertext-looking blobs that are not live Garmin token JSON', () => {
@@ -68,10 +65,6 @@ describe('shouldCronSyncProvider', () => {
 
   it('syncs Garmin when DI credentials match the Settings hub connected meaning', () => {
     expect(shouldCronSyncProvider('garmin', diGarminAccount())).toBe(true);
-  });
-
-  it('syncs MyFitnessPal when credentials look like live encrypted secrets', () => {
-    expect(shouldCronSyncProvider('myfitnesspal', { sessionTokenEnc: enc('cookie') })).toBe(true);
   });
 
   it('skips Renpho while the catalog marks it coming_soon (withdrawn before launch)', () => {
@@ -96,12 +89,12 @@ describe('shouldCronSyncProvider', () => {
     ).toBe(true);
   });
 
-  it('skips Strava while the catalog marks it coming_soon (paid API pause)', () => {
+  it('allows Strava cron when the catalog marks it available and tokens are present', () => {
     expect(
       shouldCronSyncProvider('strava', {
         accessTokenEnc: enc('access'),
         refreshTokenEnc: enc('refresh'),
       }),
-    ).toBe(false);
+    ).toBe(true);
   });
 });
