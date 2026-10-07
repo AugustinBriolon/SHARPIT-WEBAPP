@@ -20,7 +20,7 @@
     "@langfuse/otel": "^5.11.1",
     "@langfuse/tracing": "^5.11.1",
     "@langfuse/vercel-ai-sdk": "^5.11.1",
-    "@opentelemetry/sdk-node": "^0.222.0",
+    "@opentelemetry/sdk-trace-node": "^2.11.0",
     "@prisma/client": "^6.19.3",
     "@sharpit/app": "workspace:*",
     "@sharpit/core": "workspace:*",

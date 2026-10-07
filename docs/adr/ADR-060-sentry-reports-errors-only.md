@@ -17,9 +17,9 @@ Two constraints shape what an error tool may do here:
 - **The data is health data (art. 9 GDPR).** A report must never carry what the athlete
   measured or wrote: request bodies (journal answers, notes, brick evaluations), query strings
   (`?groupId=…`, `?date=…`), cookies and auth headers.
-- **OpenTelemetry is already taken.** `registerAiTelemetry` starts a NodeSDK whose span
-  processor exports the coach's AI calls to Langfuse. A second OpenTelemetry setup in the same
-  process would double-register providers.
+- **OpenTelemetry is already taken.** Sentry's JS SDK (v8+) often claims the global
+  TracerProvider on `Sentry.init()`. Coach spans must still reach Langfuse without sharing
+  that provider (privacy + sampling).
 
 ---
 
@@ -27,8 +27,12 @@ Two constraints shape what an error tool may do here:
 
 1. **Sentry, EU region (`ingest.de.sentry.io`)**, one project for the web and the API (tagged
    `app: web | api`), one for iOS.
-2. **Errors only.** `tracesSampleRate: 0`, no session replay, `skipOpenTelemetrySetup: true`:
-   Langfuse keeps OpenTelemetry for the coach.
+2. **Errors only.** `tracesSampleRate: 0`, no session replay, `skipOpenTelemetrySetup: true`
+   when the installed Sentry SDK honours it. Langfuse does **not** call `NodeSDK.start()`;
+   it uses an isolated TracerProvider via `setLangfuseTracerProvider` (Option C in the
+   Langfuse "existing Sentry setup" FAQ) so coach spans keep flowing even if Sentry owns
+   the global provider. (Regression 2026-10-01 → 2026-10-07: global `NodeSDK` after
+   Sentry.init produced zero Langfuse observations.)
 3. **Nothing personal leaves.** `sendDefaultPii: false`; `scrubSentryEvent` keeps a request's
    method and path only, and a user's id only. iOS strips breadcrumb URL queries, sends no
    screenshot or view hierarchy, and drops request data the same way.
