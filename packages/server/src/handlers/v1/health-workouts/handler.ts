@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
         {
           provider: 'apple-health',
           imported: result.imported,
-          updated: 0,
+          updated: result.enriched,
           observationCount: 0,
           activityIds: result.activityIds,
         },
@@ -72,6 +72,7 @@ export async function POST(request: NextRequest) {
       apiVersion: 1,
       acceptsWorkouts: true,
       imported: result.imported,
+      enriched: result.enriched,
       skipped: result.skipped,
     });
   } catch (error) {

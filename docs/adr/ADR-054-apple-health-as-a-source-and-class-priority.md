@@ -33,9 +33,11 @@ per category.
    always go in. Apple's HRV (SDNN) enters beside Garmin's (RMSSD) only when Apple owns the class.
 3. **Body follows the primary** for Apple Health's weight the same way.
 4. **Activities.** Apple Health workouts are taken while Apple Health is enabled for activities
-   (no longer only without Garmin). A session another source already holds is skipped by its
-   fingerprint; when Garmin later brings a session first sent by Apple Health, it merges into it and
-   the Apple session observation is removed, so the day's load is not counted twice.
+   (no longer only without Garmin). A session another source already holds is matched by fingerprint
+   and **enriched** (fill blank scalars, metrics, streams) — never duplicated. Sync order prefers
+   Garmin › Strava › Apple Health as the primary row; secondary providers only fill missing fields.
+   When Garmin later brings a session first sent by Apple Health, it merges into it and the Apple
+   session observation is removed, so the day's load is not counted twice.
 5. **Reads** of the day rows need any source enabled for `wearable_health`, not Garmin specifically.
 6. The native app reads and writes the prefs through `/api/v1/integrations/source-prefs`, whose GET
    also lists each class with the providers that can feed it.

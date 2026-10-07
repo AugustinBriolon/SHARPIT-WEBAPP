@@ -92,7 +92,10 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
       title="Sources de données"
     >
       {outcomes.length > 0 ? (
-        <p className="bg-highlight rounded-md px-4 py-3 text-sm" role="status">
+        <p
+          className="bg-highlight text-highlight-foreground rounded-md px-4 py-3 text-sm"
+          role="status"
+        >
           {outcomes.join(' ')}
         </p>
       ) : null}

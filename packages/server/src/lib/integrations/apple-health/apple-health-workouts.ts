@@ -1,6 +1,8 @@
 import { ActivityType, Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { findMatchingActivity } from '@sharpit/server/lib/activity/list/activity-dedup';
+import { fillMissingActivityUpdate } from '@sharpit/server/lib/activity/list/activity-fill-missing';
+import { loadActivityFillSnapshot } from '@sharpit/server/lib/activity/list/load-activity-fill-snapshot';
 import { prisma } from '@sharpit/db/client';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import { storedActivityToSession } from '@sharpit/server/lib/observation/activity-to-session';
@@ -14,11 +16,11 @@ const DEFAULT_ATHLETE_TIME_ZONE = 'Europe/Paris';
  * Apple Health workouts, sent by the native app, as SharpIt activities — what lets an athlete
  * without Garmin or Strava train with SharpIt on an Apple Watch alone.
  *
- * Taken while Apple Health is enabled for activities (ADR-054). A workout already held
- * (same sport, start and duration — or the same distance when durations diverge, the
- * Garmin/Strava fingerprint, on the wall-clock start) is skipped, which also makes
- * a workout sent twice harmless. The stored row goes to the Core as any activity without a
- * provider id does (`storedActivityToSession`), so its load is the Core's.
+ * Taken while Apple Health is enabled for activities (ADR-054). A workout that matches an
+ * existing Garmin/Strava (or earlier Apple) row fills blank fields and streams only — never a
+ * second activity. A duplicate send of the same HealthKit workout is then a no-op fill.
+ * The stored row goes to the Core as any activity without a provider id does
+ * (`storedActivityToSession`), so its load is the Core's.
  */
 
 const MAX_STREAM_POINTS = 8_000;
@@ -164,6 +166,58 @@ export function appleHealthRawStreams(workout: AppleHealthWorkout): RawStreams |
   };
 }
 
+function metricCreateToUpsert(
+  create: Record<string, unknown> | undefined,
+): Prisma.ActivityUpdateInput[keyof Prisma.ActivityUpdateInput] | undefined {
+  if (!create) {
+    return undefined;
+  }
+  const update: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(create)) {
+    if (value !== null && value !== undefined) {
+      update[key] = value;
+    }
+  }
+  return {
+    upsert: { create, update },
+  } as Prisma.ActivityUpdateInput[keyof Prisma.ActivityUpdateInput];
+}
+
+/** Patch a matched Garmin/Strava row with Apple Santé fields that are still blank. */
+export function appleHealthEnrichmentUpdate(
+  workout: AppleHealthWorkout,
+  timeZone: string,
+): Prisma.ActivityUpdateInput {
+  const created = appleHealthActivityData(workout, timeZone);
+  const data: Prisma.ActivityUpdateInput = {
+    title: created.title ?? undefined,
+    duration: typeof created.duration === 'number' ? created.duration : undefined,
+  };
+  const run = created.runMetrics as { create?: Record<string, unknown> } | undefined;
+  const bike = created.bikeMetrics as { create?: Record<string, unknown> } | undefined;
+  const swim = created.swimMetrics as { create?: Record<string, unknown> } | undefined;
+  const hike = created.hikeMetrics as { create?: Record<string, unknown> } | undefined;
+  if (run?.create) {
+    data.runMetrics = metricCreateToUpsert(run.create) as Prisma.ActivityUpdateInput['runMetrics'];
+  }
+  if (bike?.create) {
+    data.bikeMetrics = metricCreateToUpsert(
+      bike.create,
+    ) as Prisma.ActivityUpdateInput['bikeMetrics'];
+  }
+  if (swim?.create) {
+    data.swimMetrics = metricCreateToUpsert(
+      swim.create,
+    ) as Prisma.ActivityUpdateInput['swimMetrics'];
+  }
+  if (hike?.create) {
+    data.hikeMetrics = metricCreateToUpsert(
+      hike.create,
+    ) as Prisma.ActivityUpdateInput['hikeMetrics'];
+  }
+  return data;
+}
+
 /** Where the athlete lives, for a start sent without its offset: the calendar's, else Paris. */
 async function athleteTimeZone(athleteId: string): Promise<string> {
   const google = await prisma.googleAccount.findUnique({
@@ -175,15 +229,36 @@ async function athleteTimeZone(athleteId: string): Promise<string> {
 
 export type AppleHealthWorkoutImport = {
   imported: number;
+  /** Matched an existing activity and filled blanks (not a new row). */
+  enriched: number;
   skipped: number;
   activityIds: string[];
 };
+
+async function enrichMatchedAppleHealthWorkout(
+  athleteId: string,
+  activityId: string,
+  workout: AppleHealthWorkout,
+  timeZone: string,
+): Promise<void> {
+  const existing = await loadActivityFillSnapshot(activityId);
+  if (!existing) {
+    return;
+  }
+  const data = fillMissingActivityUpdate(existing, appleHealthEnrichmentUpdate(workout, timeZone));
+  if (Object.keys(data).length > 0) {
+    await prisma.activity.update({ where: { id: activityId }, data });
+  }
+  if (!existing.hasStream) {
+    await persistStream(athleteId, activityId, appleHealthRawStreams(workout));
+  }
+}
 
 async function importOne(
   athleteId: string,
   workout: AppleHealthWorkout,
   timeZone: string,
-): Promise<string | null> {
+): Promise<{ kind: 'created' | 'enriched'; activityId: string } | { kind: 'skipped' }> {
   const data = appleHealthActivityData(workout, timeZone);
   const match = await findMatchingActivity(athleteId, {
     type: workout.type,
@@ -192,7 +267,8 @@ async function importOne(
     distanceM: workout.distanceM ?? null,
   });
   if (match) {
-    return null;
+    await enrichMatchedAppleHealthWorkout(athleteId, match.id, workout, timeZone);
+    return { kind: 'enriched', activityId: match.id };
   }
 
   const created = await prisma.activity.create({
@@ -208,21 +284,29 @@ async function importOne(
   }
   // After the session: storing the streams re-extracts its features from them.
   await persistStream(athleteId, created.id, appleHealthRawStreams(workout));
-  return created.id;
+  return { kind: 'created', activityId: created.id };
 }
 
 export async function importAppleHealthWorkouts(
   athleteId: string,
   workouts: AppleHealthWorkout[],
 ): Promise<AppleHealthWorkoutImport> {
-  const result: AppleHealthWorkoutImport = { imported: 0, skipped: 0, activityIds: [] };
+  const result: AppleHealthWorkoutImport = {
+    imported: 0,
+    enriched: 0,
+    skipped: 0,
+    activityIds: [],
+  };
   const timeZone = await athleteTimeZone(athleteId);
   // In order, one at a time: two workouts of one batch can match each other.
   for (const workout of workouts) {
-    const id = await importOne(athleteId, workout, timeZone);
-    if (id) {
+    const outcome = await importOne(athleteId, workout, timeZone);
+    if (outcome.kind === 'created') {
       result.imported += 1;
-      result.activityIds.push(id);
+      result.activityIds.push(outcome.activityId);
+    } else if (outcome.kind === 'enriched') {
+      result.enriched += 1;
+      result.activityIds.push(outcome.activityId);
     } else {
       result.skipped += 1;
     }

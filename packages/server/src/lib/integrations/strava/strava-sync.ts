@@ -4,6 +4,8 @@ import {
   findMatchingActivity,
   mergedSource,
 } from '@sharpit/server/lib/activity/list/activity-dedup';
+import { fillMissingActivityUpdate } from '@sharpit/server/lib/activity/list/activity-fill-missing';
+import { loadActivityFillSnapshot } from '@sharpit/server/lib/activity/list/load-activity-fill-snapshot';
 import { prisma } from '@sharpit/db/client';
 import { syncSinceFromLastSync } from '@sharpit/server/lib/integrations/shared/sync-since';
 import { resolveOAuthAccessToken } from '@sharpit/server/lib/integrations/shared/oauth-access-token';
@@ -294,10 +296,19 @@ async function mergeStravaIntoMatch(input: MergeStravaMatchInput): Promise<Strav
     return { kind: 'skipped' };
   }
   try {
-    await prisma.activity.update({
-      where: { id: match.id },
-      data: stravaEnrichmentUpdate(strava, type, match.garminId),
-    });
+    const existing = await loadActivityFillSnapshot(match.id);
+    const enrichment = stravaEnrichmentUpdate(strava, type, match.garminId);
+    // Behind Garmin: fill blanks only. Against Apple Santé alone: Strava is primary — overwrite.
+    const data =
+      match.garminId && existing
+        ? fillMissingActivityUpdate(existing, enrichment, { always: ['stravaId', 'source'] })
+        : enrichment;
+    if (Object.keys(data).length > 0) {
+      await prisma.activity.update({
+        where: { id: match.id },
+        data,
+      });
+    }
     if (!match.garminId) {
       await ingestStravaActivity(athleteId, strava);
     }
