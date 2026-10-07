@@ -14,16 +14,19 @@ export function AuthShell({
   beforeForm?: React.ReactNode;
 }) {
   return (
-    <div className="auth-surface bg-background relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12">
-      <div className="relative z-10 flex w-full max-w-[420px] flex-col items-center gap-8">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <div className="brand-tile size-12" aria-hidden>
-            <BrandMark className="size-6" />
+    <div className="auth-surface landing-canvas relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-6 py-12">
+      <div className="relative z-10 flex w-full max-w-[420px] flex-col items-center gap-10">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="brand-tile size-14" aria-hidden>
+            <BrandMark className="size-7" />
           </div>
           <div>
-            <h1 className="text-page-title">SharpIt</h1>
-            {/* Supporting copy — lecture critique: auth-muted clears AA on dark */}
-            <p className="text-auth-muted mt-1 text-sm">{subtitle}</p>
+            <h1 className="font-heading text-[clamp(2rem,6vw,2.75rem)] leading-[0.98] font-semibold tracking-[-0.035em]">
+              SharpIt
+            </h1>
+            <p className="text-auth-muted mt-3 max-w-sm text-base leading-relaxed text-pretty">
+              {subtitle}
+            </p>
           </div>
         </div>
         {beforeForm ? <div className="w-full">{beforeForm}</div> : null}

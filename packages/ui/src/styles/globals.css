@@ -788,6 +788,34 @@
 }
 
 /*
+  Shared landing / auth ground — same micro-dot canvas as sharpit.app (hub).
+  Kept here so AuthShell on apps/web matches the public site without hub CSS.
+*/
+@utility landing-canvas {
+  background-image:
+    radial-gradient(
+      circle at 1px 1px,
+      color-mix(in oklch, var(--color-foreground) 7%, transparent) 1px,
+      transparent 0
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 0% 0%,
+      color-mix(in oklch, var(--color-primary) 7%, transparent),
+      transparent
+    ),
+    radial-gradient(
+      ellipse 50% 45% at 100% 100%,
+      color-mix(in oklch, var(--color-highlight) 9%, transparent),
+      transparent
+    );
+  background-size:
+    20px 20px,
+    100% 100%,
+    100% 100%;
+  background-color: var(--color-background);
+}
+
+/*
   Auth « lecture critique » — scoped contrast for /sign-in & /sign-up only.
   Does NOT retune app-wide --muted-foreground; atmospheric dark stays intact.
   Targets WCAG AA: body/labels/placeholders ≥ 4.5:1; control borders ≥ 3:1.

@@ -11,8 +11,8 @@ import { cn } from '@sharpit/app/lib/utils';
 export default function SignUpPage() {
   return (
     <AuthShell subtitle="Ton compte se crée dans l'app SharpIt sur iPhone.">
-      <div className="border-auth-panel rounded-analysis-lg flex flex-col gap-4 border bg-[var(--color-analysis-surface)] px-5 py-6 text-center">
-        <p className="text-foreground text-sm leading-relaxed">
+      <div className="border-foreground/15 flex flex-col gap-4 border-t border-b py-6 text-center">
+        <p className="text-foreground text-sm leading-relaxed text-pretty">
           L&apos;app te pose quelques questions, relie ta montre et prépare ta première semaine. Le
           site sert ensuite à relire ta saison sur grand écran.
         </p>

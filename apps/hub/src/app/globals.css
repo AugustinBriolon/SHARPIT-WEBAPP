@@ -20,29 +20,7 @@
   --landing-night: oklch(0.17 0.035 139);
 }
 
-@utility landing-canvas {
-  background-image:
-    radial-gradient(
-      circle at 1px 1px,
-      color-mix(in oklch, var(--color-foreground) 7%, transparent) 1px,
-      transparent 0
-    ),
-    radial-gradient(
-      ellipse 60% 50% at 0% 0%,
-      color-mix(in oklch, var(--color-primary) 7%, transparent),
-      transparent
-    ),
-    radial-gradient(
-      ellipse 50% 45% at 100% 100%,
-      color-mix(in oklch, var(--color-highlight) 9%, transparent),
-      transparent
-    );
-  background-size:
-    20px 20px,
-    100% 100%,
-    100% 100%;
-  background-color: var(--color-background);
-}
+/* `landing-canvas` lives in `@sharpit/ui` so auth and the landing share one ground. */
 
 @utility landing-night {
   background-color: var(--landing-night);

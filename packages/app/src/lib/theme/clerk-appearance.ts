@@ -25,10 +25,10 @@ const clerkColorVariables = {
 
 const sharedElements = {
   rootBox: 'mx-auto w-full max-w-[420px]',
-  cardBox: 'shadow-none border border-border rounded-xl bg-card',
-  card: 'rounded-xl border-0 bg-transparent shadow-none gap-4',
+  cardBox: 'shadow-none border border-foreground/15 rounded-none bg-transparent',
+  card: 'rounded-none border-0 bg-transparent shadow-none gap-4',
   header: 'gap-1',
-  headerTitle: 'font-heading text-lg font-semibold text-foreground',
+  headerTitle: 'font-heading text-lg font-semibold tracking-tight text-foreground',
   headerSubtitle: 'text-sm text-muted-foreground',
   socialButtonsBlockButton:
     'rounded-lg border border-border bg-card text-foreground shadow-none hover:bg-muted/60',
@@ -97,7 +97,7 @@ const authElements = {
   headerSubtitle: 'hidden',
   logoBox: 'hidden',
   footer: 'bg-transparent pt-2',
-  cardBox: 'shadow-none border border-auth-panel rounded-xl bg-card',
+  cardBox: 'shadow-none border-0 rounded-none bg-transparent',
   socialButtonsBlockButton:
     'rounded-lg border border-auth-input bg-auth-input text-foreground! shadow-none hover:bg-muted/60',
   socialButtonsBlockButtonText: 'font-medium text-foreground!',

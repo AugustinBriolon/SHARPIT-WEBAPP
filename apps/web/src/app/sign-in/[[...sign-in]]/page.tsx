@@ -8,16 +8,16 @@ import { cn } from '@sharpit/app/lib/utils';
 
 function DemoCallout() {
   return (
-    <div className="border-auth-panel rounded-analysis-lg flex flex-col items-center gap-3 border bg-[var(--color-analysis-surface)] px-5 py-5 text-center">
+    <div className="border-foreground/15 flex flex-col items-center gap-3 border-t border-b py-6 text-center">
       <p className="text-label text-auth-muted">Sans inscription</p>
-      <p className="text-foreground text-sm leading-relaxed">
+      <p className="text-foreground text-sm leading-relaxed text-pretty">
         Explore SharpIt avec des données réalistes, en lecture seule.
       </p>
       <a
         href="/demo"
         className={cn(
           buttonVariants({ variant: 'accent', size: 'lg' }),
-          'w-full motion-safe:duration-150 motion-safe:ease-out motion-safe:active:not-disabled:scale-[0.96]',
+          'mt-1 w-full motion-safe:duration-150 motion-safe:ease-out motion-safe:active:not-disabled:scale-[0.96]',
         )}
       >
         Essayer la démo
