@@ -2,11 +2,11 @@
  * Registers Langfuse OTEL + AI SDK v7 telemetry once per Node server process,
  * from each app's `instrumentation.ts`. Edge runtime is skipped.
  *
- * Uses an *isolated* TracerProvider (`setLangfuseTracerProvider`) so Sentry can
- * own the global OpenTelemetry provider without swallowing coach spans
- * (ADR-060; Langfuse FAQ "existing Sentry setup", Option C). Do not call
- * `NodeSDK.start()` here — that fights Sentry for the global provider and was
- * the silence after 2026-10-01.
+ * Must run *before* `Sentry.init()`: Sentry v8+ claims the global TracerProvider.
+ * With `tracesSampleRate: 0`, that provider drops spans — so Langfuse must own
+ * the global provider first (ADR-060). An isolated Langfuse-only provider is not
+ * enough under Next.js: duplicated `@langfuse/tracing` bundles fall back to the
+ * global provider and lose the isolated one.
  *
  * Env (already in .env / Vercel):
  * - LANGFUSE_PUBLIC_KEY
@@ -42,13 +42,13 @@ export async function registerAiTelemetry(): Promise<void> {
 
   const { registerTelemetry } = await import('ai');
   const { NodeTracerProvider } = await import('@opentelemetry/sdk-trace-node');
-  const { setLangfuseTracerProvider, getLangfuseTracer } = await import('@langfuse/tracing');
   const { LangfuseVercelAiSdkIntegration } = await import('@langfuse/vercel-ai-sdk');
 
   const provider = new NodeTracerProvider({
     spanProcessors: [processor],
   });
-  setLangfuseTracerProvider(provider);
-  registerTelemetry(new LangfuseVercelAiSdkIntegration({ tracer: getLangfuseTracer() }));
+  // Claim the process-global provider before Sentry can.
+  provider.register();
+  registerTelemetry(new LangfuseVercelAiSdkIntegration());
   registered = true;
 }

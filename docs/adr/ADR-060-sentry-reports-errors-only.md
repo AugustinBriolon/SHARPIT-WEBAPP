@@ -27,12 +27,11 @@ Two constraints shape what an error tool may do here:
 
 1. **Sentry, EU region (`ingest.de.sentry.io`)**, one project for the web and the API (tagged
    `app: web | api`), one for iOS.
-2. **Errors only.** `tracesSampleRate: 0`, no session replay, `skipOpenTelemetrySetup: true`
-   when the installed Sentry SDK honours it. Langfuse does **not** call `NodeSDK.start()`;
-   it uses an isolated TracerProvider via `setLangfuseTracerProvider` (Option C in the
-   Langfuse "existing Sentry setup" FAQ) so coach spans keep flowing even if Sentry owns
-   the global provider. (Regression 2026-10-01 → 2026-10-07: global `NodeSDK` after
-   Sentry.init produced zero Langfuse observations.)
+2. **Errors only.** `tracesSampleRate: 0`, no session replay. Langfuse registers its
+   TracerProvider **before** `Sentry.init()` and uses `exportMode: 'immediate'` on Vercel.
+   Sentry must not own the global OTEL provider first: with sample rate 0 it drops spans,
+   and an isolated Langfuse provider is unreliable under Next.js (duplicate `@langfuse/tracing`
+   module instances fall back to the global provider). (Regression 2026-10-01 → 2026-10-07.)
 3. **Nothing personal leaves.** `sendDefaultPii: false`; `scrubSentryEvent` keeps a request's
    method and path only, and a user's id only. iOS strips breadcrumb URL queries, sends no
    screenshot or view hierarchy, and drops request data the same way.

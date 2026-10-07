@@ -24,7 +24,9 @@ export async function getLangfuseSpanProcessor(): Promise<LangfuseSpanProcessor 
   }
   if (!processorPromise) {
     processorPromise = import('@langfuse/otel').then(({ LangfuseSpanProcessor }) => {
-      return new LangfuseSpanProcessor();
+      // Immediate export: Vercel freezes the isolate; batched spans are often lost
+      // even when `after()` flushes (Langfuse serverless guidance).
+      return new LangfuseSpanProcessor({ exportMode: 'immediate' });
     });
   }
   return processorPromise;
