@@ -26,6 +26,7 @@ import {
 import { loadTodayHabitCoachingSignal } from '@sharpit/server/lib/presentation/today/today-habit-coaching';
 import { buildTodayHeroReliability } from '@sharpit/server/lib/science/reliability/today-hero-reliability';
 import { buildTodayDaySummary } from '@sharpit/app/lib/today/dashboard/today-day-summary';
+import { findSessionPurposesByPlannedSessionIds } from '@sharpit/server/lib/decision-memory/repository';
 import { prisma } from '@sharpit/db/client';
 import { addDays } from 'date-fns';
 import {
@@ -969,7 +970,35 @@ export async function buildTodayPresentationViewModel(
 ): Promise<TodayViewModel> {
   const day = localDateFromTrainingDayId(trainingDayId);
   const inputs = await loadTodayPresentationInputs(athleteId, trainingDayId, day, options);
-  return buildTodayViewModelFromInputs(inputs);
+  const vm = buildTodayViewModelFromInputs(inputs);
+  return attachSessionPurposes(athleteId, vm);
+}
+
+/** Decision Memory "why" on each planned line — kept out of the pure assembler. */
+async function attachSessionPurposes(
+  athleteId: string,
+  vm: TodayViewModel,
+): Promise<TodayViewModel> {
+  const ids = vm.actionRow.daySummaryLines
+    .map((line) => line.plannedSessionId)
+    .filter((id): id is string => typeof id === 'string' && id.length > 0);
+  if (ids.length === 0) {
+    return vm;
+  }
+  const purposes = await findSessionPurposesByPlannedSessionIds(athleteId, ids);
+  if (purposes.size === 0) {
+    return vm;
+  }
+  return {
+    ...vm,
+    actionRow: {
+      ...vm.actionRow,
+      daySummaryLines: vm.actionRow.daySummaryLines.map((line) => ({
+        ...line,
+        purpose: line.plannedSessionId ? (purposes.get(line.plannedSessionId) ?? null) : null,
+      })),
+    },
+  };
 }
 
 async function loadReconnectProviderNames(athleteId: string): Promise<string[]> {

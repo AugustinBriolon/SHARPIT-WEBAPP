@@ -24,6 +24,7 @@ vi.mock('@sharpit/server/lib/decision-memory/repository', () => ({
   recordDecisionAction: vi.fn().mockResolvedValue({ id: 'action-1' }),
   findDecisionForPlannedSession: vi.fn().mockResolvedValue(null),
   findCoachingDecisionById: vi.fn().mockResolvedValue(null),
+  findSessionPurposeForPlannedSession: vi.fn().mockResolvedValue(null),
 }));
 
 async function importRoute() {

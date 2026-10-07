@@ -46,6 +46,8 @@ export type V1TodaySource = {
       activityType?: ActivityType;
       plannedSessionId?: string | null;
       isKey?: boolean;
+      /** Why the coach wrote this session — Decision Memory rationale. */
+      purpose?: string | null;
       metrics?: Array<{ label: string; value: string; unit: string }> | null;
       brickLegs?: ReadonlyArray<BrickLegSource> | null;
       brickTransitionsSec?: ReadonlyArray<number | null> | null;
@@ -126,6 +128,8 @@ export type V1TodayResponse = {
     plannedSessionId: string | null;
     /** One of the week's key sessions (F2): the ones that carry the preparation. */
     isKey: boolean;
+    /** Why the coach wrote this session — Decision Memory rationale; null when unknown. */
+    rationale: string | null;
     /**
      * Set on a brick line: its legs, so a client opens the chain as one session rather
      * than its first leg alone. Null on any other line.
@@ -268,6 +272,7 @@ function projectSessions(
     priority: index === 0,
     plannedSessionId: line.plannedSessionId ?? null,
     isKey: line.isKey ?? false,
+    rationale: line.purpose ?? null,
     brickLegs:
       line.brickLegs?.map(({ id, type, title, durationMin, completed, activityId, actual }) => ({
         id,
@@ -418,6 +423,7 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         activityType: line.activityType,
         plannedSessionId: line.plannedSessionId,
         isKey: line.isKey,
+        purpose: line.purpose,
         metrics: line.metrics,
         brickLegs: line.brickLegs,
         brickTransitionsSec: line.brickTransitionsSec,

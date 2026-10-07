@@ -224,6 +224,11 @@ export type TodayViewModel = {
       plannedSessionId?: string | null;
       /** One of the week's key sessions (F2) — a brick by its first leg. */
       isKey?: boolean;
+      /**
+       * Why the coach wrote this prescription — Decision Memory proposal rationale.
+       * Null when the session was never linked to a decision or carried no prose.
+       */
+      purpose?: string | null;
       /** Key KPIs for session preview cards (done + planned — max 3). */
       metrics?: Array<{ label: string; value: string; unit: string }> | null;
       /** Morning choice annotation on this session (post-choice). */

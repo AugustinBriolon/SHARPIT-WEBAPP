@@ -17,6 +17,7 @@ import { refreshAndPersistPlannedSessionContext } from '@sharpit/server/lib/plan
 import { createPlannedSessionSchema } from '@sharpit/server/lib/validators/planned-session';
 import {
   findCoachingDecisionById,
+  findSessionPurposesByPlannedSessionIds,
   recordDecisionAction,
 } from '@sharpit/server/lib/decision-memory/repository';
 
@@ -75,10 +76,16 @@ export async function GET(request: NextRequest) {
     // breakdown a client shows is the one a watch push would send. Resolving it here
     // keeps that one calculation on the server instead of in every client.
     const thresholds = athleteThresholds(profile);
+    const purposes = await findSessionPurposesByPlannedSessionIds(
+      athleteId,
+      sessions.map((session) => session.id),
+    );
 
     return NextResponse.json(
       sessions.map((session) => ({
         ...session,
+        // Decision Memory holds the coach's "why" — PlannedSession does not store prose.
+        rationale: purposes.get(session.id) ?? null,
         breakdown: buildPlannedSessionSteps(session, thresholds, {
           defaultPoolLengthM: profile?.defaultPoolLengthM,
         }),

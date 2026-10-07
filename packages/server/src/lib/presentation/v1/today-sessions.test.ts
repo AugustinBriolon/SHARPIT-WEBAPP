@@ -63,6 +63,23 @@ describe('projectV1Today sessions', () => {
     expect(session.plannedSessionId).toBeNull();
   });
 
+  it('carries the Decision Memory purpose as rationale', () => {
+    const [session] = projectV1Today(
+      source([
+        {
+          id: 'line-1',
+          kind: 'planned',
+          primary: 'Seuil',
+          plannedSessionId: 'ps-1',
+          purpose: 'Construire la base aérobie.',
+        },
+      ]),
+      input,
+    ).sessions;
+
+    expect(session.rationale).toBe('Construire la base aérobie.');
+  });
+
   it("carries a brick line's legs in order, and none on a plain line", () => {
     const [brick, plain] = projectV1Today(
       source([

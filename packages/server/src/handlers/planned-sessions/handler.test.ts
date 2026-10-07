@@ -22,6 +22,7 @@ vi.mock('@sharpit/server/lib/planned-session/resolve-context', () => ({
 vi.mock('@sharpit/server/lib/decision-memory/repository', () => ({
   recordDecisionAction: vi.fn().mockResolvedValue({ id: 'action-1' }),
   findCoachingDecisionById: vi.fn().mockResolvedValue(null),
+  findSessionPurposesByPlannedSessionIds: vi.fn().mockResolvedValue(new Map()),
 }));
 
 async function importRoute() {

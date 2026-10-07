@@ -121,7 +121,10 @@ function Brief({ brief }: { brief: WeeklyCoachingBriefViewModel }) {
                   {s.intensityLabel ? ` · ${s.intensityLabel}` : ''}
                 </p>
                 {s.purpose ? (
-                  <p className="text-muted-foreground mt-0.5 text-sm">{s.purpose}</p>
+                  <p className="text-muted-foreground mt-0.5 text-sm">
+                    <span className="text-label text-muted-foreground">Pourquoi · </span>
+                    {s.purpose}
+                  </p>
                 ) : null}
               </div>
             </ReadingRow>

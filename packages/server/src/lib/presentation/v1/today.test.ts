@@ -84,6 +84,7 @@ describe('projectV1Today', () => {
         priority: true,
         plannedSessionId: null,
         isKey: false,
+        rationale: null,
         brickLegs: null,
         brickTransitionsSec: null,
         brickGroupId: null,

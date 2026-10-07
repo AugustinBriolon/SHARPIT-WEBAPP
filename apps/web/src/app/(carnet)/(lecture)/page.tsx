@@ -87,6 +87,9 @@ function TheDay({ vm }: { vm: TodayViewModel }) {
             {line.secondary ? (
               <p className="text-muted-foreground mt-0.5 text-sm">{line.secondary}</p>
             ) : null}
+            {line.purpose ? (
+              <p className="text-muted-foreground mt-0.5 text-sm">{line.purpose}</p>
+            ) : null}
             {line.morningChoiceLabel ? (
               <p className="text-muted-foreground mt-0.5 text-sm">{line.morningChoiceLabel}</p>
             ) : null}

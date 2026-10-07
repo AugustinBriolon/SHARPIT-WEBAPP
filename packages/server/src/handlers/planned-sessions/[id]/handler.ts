@@ -15,6 +15,7 @@ import { updatePlannedSessionSchema } from '@sharpit/server/lib/validators/plann
 import {
   findCoachingDecisionById,
   findDecisionForPlannedSession,
+  findSessionPurposeForPlannedSession,
   recordDecisionAction,
 } from '@sharpit/server/lib/decision-memory/repository';
 import { garminPushClearOnSessionChange } from '@sharpit/server/lib/integrations/garmin/garmin-workout-push-state';
@@ -31,7 +32,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!session) {
       return NextResponse.json({ error: 'Séance planifiée introuvable' }, { status: 404 });
     }
-    return NextResponse.json(session);
+    const rationale = await findSessionPurposeForPlannedSession(athleteId, id);
+    return NextResponse.json({ ...session, rationale });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

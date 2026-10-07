@@ -25,6 +25,7 @@ import type {
   ShortTermRecoveryResponse,
   SubjectiveResponse,
 } from '@sharpit/app/lib/decision-memory/types';
+import { mapPurposesFromActions, purposeFromProposal } from './session-purpose';
 
 /** A PRESENTED decision with no athlete action after this many hours is treated as EXPIRED. */
 export const PRESENTED_EXPIRY_HOURS = 48;
@@ -140,6 +141,47 @@ export async function findDecisionForPlannedSession(
     return null;
   }
   return findCoachingDecisionById(athleteId, action.decisionId);
+}
+
+/**
+ * Athlete-facing "why" for each planned session, from the newest Decision Memory
+ * action that created or accepted it. Empty when the session was never linked to a
+ * decision or the proposal carried no rationale.
+ */
+export async function findSessionPurposesByPlannedSessionIds(
+  athleteId: string,
+  plannedSessionIds: readonly string[],
+): Promise<Map<string, string>> {
+  const ids = [...new Set(plannedSessionIds.filter(Boolean))];
+  if (ids.length === 0) {
+    return new Map();
+  }
+  const actions = await prisma.coachingDecisionAction.findMany({
+    where: {
+      resultingPlannedSessionId: { in: ids },
+      decision: { athleteId },
+    },
+    orderBy: { occurredAt: 'desc' },
+    select: {
+      resultingPlannedSessionId: true,
+      decision: { select: { proposal: true } },
+    },
+  });
+  return mapPurposesFromActions(
+    actions.map((action) => ({
+      resultingPlannedSessionId: action.resultingPlannedSessionId,
+      proposal: action.decision.proposal,
+    })),
+  );
+}
+
+/** Single-session twin of {@link findSessionPurposesByPlannedSessionIds}. */
+export async function findSessionPurposeForPlannedSession(
+  athleteId: string,
+  plannedSessionId: string,
+): Promise<string | null> {
+  const decision = await findDecisionForPlannedSession(athleteId, plannedSessionId);
+  return decision ? purposeFromProposal(decision.proposal) : null;
 }
 
 /**
