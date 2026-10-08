@@ -47,12 +47,14 @@ export const DATA_CLASSES: DataClassDefinition[] = [
   {
     id: 'nutrition',
     label: 'Nutrition',
-    description: 'Calories et macros',
+    description:
+      'Journal Sharpit et/ou Apple Santé. Active les deux pour choisir laquelle fait foi.',
   },
   {
     id: 'calendar',
     label: 'Agenda',
-    description: 'Planning et disponibilités',
+    description:
+      'Tes créneaux Google (réunions, blocages). Ce n’est pas le calendrier des séances Sharpit (onglet Plan).',
   },
 ];
 
@@ -129,7 +131,7 @@ export const PROVIDER_CATALOG: CatalogProvider[] = [
   },
   {
     id: 'google',
-    name: 'Google Calendar',
+    name: 'Google Agenda',
     tagline: 'Planning & disponibilités',
     status: 'available',
     classes: ['calendar'],
@@ -137,7 +139,7 @@ export const PROVIDER_CATALOG: CatalogProvider[] = [
     authKind: 'oauth',
     oauthPath: '/api/google/connect',
     dataTypesByClass: {
-      calendar: ['Agenda', 'Créneaux', 'Séances planifiées'],
+      calendar: ['Créneaux occupés', 'Disponibilités'],
     },
   },
   {
