@@ -49,6 +49,9 @@ export const rateLimiters = {
   foodSearch: limiter(20, '1 m', 'food-search'),
   /** A MyFitnessPal export rewrites years of days: a few tries an hour is plenty. */
   nutritionImport: limiter(5, '1 h', 'nutrition-import'),
+  /** Free-text meal → foods (LLM): a handful of tries per hour is real use. */
+  foodDescribe: limiter(20, '1 h', 'food-describe'),
+
   /** Journal taps are debounced on every client: a minute's worth is far above real use. */
   dayJournal: limiter(60, '1 m', 'day-journal'),
   /** Apple Health is sent by the phone in batches — a first import spans a year. */

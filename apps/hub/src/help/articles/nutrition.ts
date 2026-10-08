@@ -11,11 +11,13 @@ export const NUTRITION: HelpCategory = {
       slug: 'noter-un-repas',
       title: 'Noter un repas',
       summary:
-        'Chaque repas a son « + » : cherche un aliment, scanne un code-barres, reprends un aliment récent ou fais un ajout rapide, puis choisis la portion.',
+        'Chaque repas a son « + » : cherche un aliment, décris un repas (Pro), scanne un code-barres, reprends un aliment récent ou fais un ajout rapide, puis choisis la portion.',
       body: `
 Ouvre **Nutrition** depuis la carte du Résumé.
 
 ### Trouver un aliment
+
+Tant que tu n’as pas commencé à chercher, les raccourcis restent visibles (scanner, décrire, mes repas…). Dès que tu tapes une recherche, ils s’effacent pour laisser la place aux résultats.
 
 La recherche montre dans l’ordre :
 
@@ -25,6 +27,10 @@ La recherche montre dans l’ordre :
 4. **Les produits** d’Open Food Facts.
 
 Un aliment vérifié (Ciqual, ou valeurs fournies par le fabricant) porte un sceau après son nom.
+
+### Décrire un repas (Pro)
+
+**Décrire un repas** laisse SharpIt découper ta description en aliments distincts (ex. faux-filet, frites, brocolis), avec des grammes et macros estimés. Tu ajustes les portions, puis tu ajoutes le tout d’un geste.
 
 ### Scanner un code-barres
 
