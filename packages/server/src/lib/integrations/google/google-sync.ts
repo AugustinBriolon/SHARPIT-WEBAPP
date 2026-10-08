@@ -18,6 +18,12 @@ import {
   type BusyInterval,
 } from '@sharpit/server/lib/integrations/google/google';
 
+import {
+  googleCalendarGateFromPrefs,
+  shouldSyncGoogleCalendarFreeBusy,
+  shouldSyncGoogleCalendarWrites,
+} from '@sharpit/server/lib/cron/provider-sync-gates';
+import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
 import { syncSinceFromLastSync } from '@sharpit/server/lib/integrations/shared/sync-since';
 import {
   isDecryptMalformedSoftFailure,
@@ -46,6 +52,19 @@ const TYPE_LABELS: Record<string, string> = {
 
 export async function getGoogleAccount(athleteId: string) {
   return prisma.googleAccount.findUnique({ where: { athleteId } });
+}
+
+async function athleteMayWriteGoogleCalendar(athleteId: string): Promise<boolean> {
+  const [account, prefs] = await Promise.all([
+    getGoogleAccount(athleteId),
+    loadResolvedSourcePrefs(athleteId),
+  ]);
+  const calendarGate = googleCalendarGateFromPrefs(prefs);
+  return shouldSyncGoogleCalendarWrites({
+    connected: isOAuthAccountConnected(account) && Boolean(account?.targetCalendarId),
+    targetCalendarId: account?.targetCalendarId,
+    ...calendarGate,
+  });
 }
 
 /** Both OAuth blobs must look like live ciphertext — same bar as Strava/Withings. */
@@ -303,6 +322,9 @@ export async function pushSessionToGoogle(session: PlannedSession): Promise<Push
   if (!account.targetCalendarId) {
     return { synced: false, reason: 'no_target_calendar' };
   }
+  if (!(await athleteMayWriteGoogleCalendar(athleteId))) {
+    return { synced: false, reason: 'not_calendar_primary' };
+  }
 
   const token = await getValidAccessToken(athleteId);
   const { timeZone } = account;
@@ -499,6 +521,9 @@ export async function syncFromGoogle(athleteId: string): Promise<GooglePullResul
   if (!account?.targetCalendarId) {
     throw new Error('Aucun calendrier cible sélectionné');
   }
+  if (!(await athleteMayWriteGoogleCalendar(athleteId))) {
+    return { pushed: 0, updated: 0, unlinked: 0 };
+  }
   const token = await getValidAccessToken(athleteId);
   const now = new Date();
   const from = syncSinceFromLastSync(account.lastSyncAt, 7);
@@ -647,8 +672,20 @@ export async function getUpcomingBusy(
   athleteId: string,
   days = 21,
 ): Promise<Array<{ dayKey: string; start: string; end: string }>> {
-  const account = await getGoogleAccount(athleteId);
+  const [account, prefs] = await Promise.all([
+    getGoogleAccount(athleteId),
+    loadResolvedSourcePrefs(athleteId),
+  ]);
   if (!account) {
+    return [];
+  }
+  const calendarGate = googleCalendarGateFromPrefs(prefs);
+  if (
+    !shouldSyncGoogleCalendarFreeBusy({
+      connected: isOAuthAccountConnected(account),
+      calendarEnabled: calendarGate.calendarEnabled,
+    })
+  ) {
     return [];
   }
   const token = await validAccessTokenFor(athleteId, account);

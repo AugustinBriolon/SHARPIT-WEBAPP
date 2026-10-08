@@ -29,7 +29,14 @@ import { generateAndStoreWeeklyReview, isSunday } from '@sharpit/server/lib/coac
 import { isProAthlete } from '@sharpit/server/lib/access/is-pro-athlete';
 import { notifyWeeklyReviewReady } from '@sharpit/server/lib/push/athlete-notifications';
 import { isCoachConfigured } from '@sharpit/server/lib/ai';
+import {
+  googleCalendarGateFromPrefs,
+  shouldSyncGoogleCalendarWrites,
+} from '@sharpit/server/lib/cron/provider-sync-gates';
 import { listConnectedCronProviders } from '@sharpit/server/lib/cron/list-connected-cron-providers';
+import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
+import { isOAuthAccountConnected } from '@sharpit/server/lib/integrations/shared/connection-status';
+import type { IntegrationSourcePrefs } from '@sharpit/app/lib/integrations/source-prefs';
 import type { CronAthleteSyncResult } from '@sharpit/server/lib/cron/sync-summary';
 import {
   isDecryptAuthenticitySoftFailure,
@@ -147,6 +154,7 @@ function buildProviderSyncSpecs(
   accounts: ProviderAccounts,
   result: AthleteSyncResult,
   options: { hasHealthConsent: boolean },
+  prefs: IntegrationSourcePrefs,
 ): ProviderSyncSpec[] {
   const connected = connectedProviderSet(accounts);
   const specs: ProviderSyncSpec[] = [];
@@ -175,24 +183,34 @@ function buildProviderSyncSpecs(
       },
     });
   }
-  appendOptionalProviderSpecs(athleteId, connected, specs, options);
+  appendOptionalProviderSpecs({
+    athleteId,
+    accounts,
+    connected,
+    specs,
+    hasHealthConsent: options.hasHealthConsent,
+    prefs,
+  });
   return specs;
 }
 
-function appendOptionalProviderSpecs(
-  athleteId: string,
-  connected: Set<string>,
-  specs: ProviderSyncSpec[],
-  options: { hasHealthConsent: boolean },
-): void {
-  if (connected.has('withings') && options.hasHealthConsent) {
+function appendOptionalProviderSpecs(input: {
+  athleteId: string;
+  accounts: ProviderAccounts;
+  connected: Set<string>;
+  specs: ProviderSyncSpec[];
+  hasHealthConsent: boolean;
+  prefs: IntegrationSourcePrefs;
+}): void {
+  const { athleteId, accounts, connected, specs, hasHealthConsent, prefs } = input;
+  if (connected.has('withings') && hasHealthConsent) {
     specs.push({
       provider: 'Withings',
       fallback: 'Sync Withings échouée',
       task: () => syncWithingsHealth(athleteId),
     });
   }
-  if (connected.has('renpho') && options.hasHealthConsent) {
+  if (connected.has('renpho') && hasHealthConsent) {
     specs.push({
       provider: 'Renpho',
       fallback: 'Sync Renpho échouée',
@@ -200,11 +218,21 @@ function appendOptionalProviderSpecs(
     });
   }
   if (connected.has('google')) {
-    specs.push({
-      provider: 'Google',
-      fallback: 'Sync Google échouée',
-      task: () => syncFromGoogle(athleteId),
-    });
+    const calendarGate = googleCalendarGateFromPrefs(prefs);
+    if (
+      shouldSyncGoogleCalendarWrites({
+        connected:
+          isOAuthAccountConnected(accounts.google) && Boolean(accounts.google?.targetCalendarId),
+        targetCalendarId: accounts.google?.targetCalendarId,
+        ...calendarGate,
+      })
+    ) {
+      specs.push({
+        provider: 'Google',
+        fallback: 'Sync Google échouée',
+        task: () => syncFromGoogle(athleteId),
+      });
+    }
   }
 }
 
@@ -214,7 +242,8 @@ export async function syncConnectedProviders(
   result: AthleteSyncResult,
   options: { hasHealthConsent: boolean },
 ) {
-  const specs = buildProviderSyncSpecs(athleteId, accounts, result, options);
+  const prefs = await loadResolvedSourcePrefs(athleteId);
+  const specs = buildProviderSyncSpecs(athleteId, accounts, result, options, prefs);
   await Promise.all(
     specs.map((spec) =>
       runProviderSync({

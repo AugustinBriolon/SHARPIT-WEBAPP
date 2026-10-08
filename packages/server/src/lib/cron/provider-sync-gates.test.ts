@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { encryptSecret } from '@sharpit/server/lib/secret-box';
-import { shouldCronSyncProvider } from '@sharpit/server/lib/cron/provider-sync-gates';
+import {
+  shouldCronSyncProvider,
+  shouldSyncGoogleCalendarFreeBusy,
+  shouldSyncGoogleCalendarWrites,
+} from '@sharpit/server/lib/cron/provider-sync-gates';
 
 const ORIGINAL_KEY = process.env.SECRET_ENCRYPTION_KEY;
 
@@ -96,5 +100,49 @@ describe('shouldCronSyncProvider', () => {
         refreshTokenEnc: enc('refresh'),
       }),
     ).toBe(true);
+  });
+});
+
+describe('shouldSyncGoogleCalendarWrites', () => {
+  it('does not run Google write sync when calendar primary is apple-calendar', () => {
+    expect(
+      shouldSyncGoogleCalendarWrites({
+        connected: true,
+        targetCalendarId: 'cal-1',
+        calendarPrimary: 'apple-calendar',
+        calendarEnabled: ['google', 'apple-calendar'],
+      }),
+    ).toBe(false);
+  });
+
+  it('runs Google write sync when google is primary', () => {
+    expect(
+      shouldSyncGoogleCalendarWrites({
+        connected: true,
+        targetCalendarId: 'cal-1',
+        calendarPrimary: 'google',
+        calendarEnabled: ['google'],
+      }),
+    ).toBe(true);
+  });
+});
+
+describe('shouldSyncGoogleCalendarFreeBusy', () => {
+  it('runs Google freebusy when google is enabled but not calendar primary', () => {
+    expect(
+      shouldSyncGoogleCalendarFreeBusy({
+        connected: true,
+        calendarEnabled: ['google', 'apple-calendar'],
+      }),
+    ).toBe(true);
+  });
+
+  it('skips Google freebusy when google is not enabled', () => {
+    expect(
+      shouldSyncGoogleCalendarFreeBusy({
+        connected: true,
+        calendarEnabled: ['apple-calendar'],
+      }),
+    ).toBe(false);
   });
 });

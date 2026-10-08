@@ -1,3 +1,8 @@
+import type { IntegrationId } from '@sharpit/app/lib/integrations/shared/client-sync';
+import {
+  primaryForClass,
+  type IntegrationSourcePrefs,
+} from '@sharpit/app/lib/integrations/source-prefs';
 import { getCatalogProviderByIntegration } from '@sharpit/app/lib/integrations/provider-catalog';
 import {
   isGarminAccountConnected,
@@ -37,4 +42,40 @@ export function shouldCronSyncProvider(provider: CronSyncProvider, account: Mayb
     return false;
   }
   return CRON_CONNECTION_CHECKS[provider](account);
+}
+
+export type GoogleCalendarWriteGateInput = {
+  connected: boolean;
+  targetCalendarId: string | null | undefined;
+  calendarPrimary: IntegrationId | null;
+  calendarEnabled: readonly IntegrationId[];
+};
+
+export function googleCalendarGateFromPrefs(
+  prefs: IntegrationSourcePrefs,
+): Pick<GoogleCalendarWriteGateInput, 'calendarPrimary' | 'calendarEnabled'> {
+  const slot = prefs.classes.calendar;
+  return {
+    calendarPrimary: primaryForClass(prefs, 'calendar'),
+    calendarEnabled: slot?.enabled ?? [],
+  };
+}
+
+/** Push/pull Sharpit sessions to Google only when Google is the calendar primary. */
+export function shouldSyncGoogleCalendarWrites(input: GoogleCalendarWriteGateInput): boolean {
+  if (!input.connected || !input.targetCalendarId) {
+    return false;
+  }
+  if (!input.calendarEnabled.includes('google')) {
+    return false;
+  }
+  return input.calendarPrimary === 'google';
+}
+
+/** Free/busy reads stay on whenever Google remains enabled for calendar. */
+export function shouldSyncGoogleCalendarFreeBusy(input: {
+  connected: boolean;
+  calendarEnabled: readonly IntegrationId[];
+}): boolean {
+  return input.connected && input.calendarEnabled.includes('google');
 }
