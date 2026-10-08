@@ -23,7 +23,7 @@ Tout ce qui t’appartient : ton plan et le coach, tes séances, ton journal, to
 - **[Lecture coach de ta nutrition](/aide/nutrition/note-des-repas)**, chaque jour, face à ton entraînement.
 - **[Âge biologique](/aide/sante/age-biologique)**, à partir de ta VO₂max.
 - **Envoi vers la montre** de tes séances planifiées.
-- **[Calendrier de l’iPhone](/aide/compte/calendrier-iphone)** synchronisé avec ton plan.
+- **Écriture dans ton calendrier** (Google ou Calendrier Apple), quand tu choisis la source principale Agenda (voir [Calendrier Apple](/aide/sources/calendrier-apple) et [Google Agenda](/aide/sources/google-agenda)).
 - **[Widgets supplémentaires](/aide/compte/widgets)** : sommeil, poids, volume de la semaine, régularité et prochain objectif.
 - **Accès anticipé** aux nouveautés.
 
@@ -130,19 +130,21 @@ SharpIt n’envoie pas de notification pour te faire revenir, ni de série à ne
       slug: 'calendrier-iphone',
       title: 'Le calendrier de l’iPhone',
       summary:
-        'Avec Pro, tes séances des 21 prochains jours s’écrivent dans un calendrier « SharpIt » sur ton iPhone et suivent chaque changement du plan.',
+        'Les séances planifiées s’écrivent dans ton calendrier quand Calendrier Apple (ou Google Agenda) est source principale Agenda (Pro, réglé dans Sources et Priorités).',
       body: `
-### L’activer
+### Où le régler
 
-**Paramètres › Calendrier de l’iPhone**. SharpIt crée un calendrier « SharpIt » et y copie les 21 prochains jours de ton plan.
+**Paramètres › Sources de données › Calendrier Apple**, puis **Priorités › Agenda** : active la source, mets-la **principale** si tu veux que SharpIt y écrive, et choisis le **calendrier d’écriture** (souvent un calendrier « SharpIt »).
 
-### Ce qui se passe ensuite
+Tu peux aussi utiliser [Google Agenda](/aide/sources/google-agenda) comme source principale ; voir [Choisir la source principale](/aide/sources/source-principale).
 
-Chaque changement du plan est reporté. Touche un événement pour ouvrir la séance dans SharpIt.
+### Ce qui se passe ensuite (Pro)
+
+Avec [SharpIt Pro](/aide/compte/sharpit-pro), SharpIt crée et met à jour tes séances dans ce calendrier. Touche un événement pour ouvrir la séance dans l’app. Si tu déplaces ou supprimes l’événement dans Calendrier, le plan suit au prochain sync.
 
 ### Le désactiver
 
-Le calendrier « SharpIt » est retiré de ton iPhone.
+Désactive Calendrier Apple dans Sources, ou choisis une autre source principale Agenda. Les événements déjà créés restent dans ton calendrier ; SharpIt ne les met plus à jour.
 `,
     },
   ],

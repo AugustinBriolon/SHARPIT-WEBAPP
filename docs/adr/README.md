@@ -76,6 +76,7 @@
 | [ADR-071](./ADR-071-a-meal-logs-again-in-one-tap.md)                                    | Copy a meal or a day, saved meals, recipes as own foods with a live label                                        | Accepted                          |
 | [ADR-072](./ADR-072-the-web-becomes-a-reading-carnet.md)                                | The web becomes a read-only carnet; the iPhone app is where the athlete acts                                     | Accepted                          |
 | [ADR-073](./ADR-073-myfitnesspal-withdrawn.md)                                          | MyFitnessPal withdrawn from the product surface (410 routes; SharpIt nutrition)                                  | Accepted                          |
+| [ADR-074](./ADR-074-calendar-primary-writer-and-apple-calendar.md)                      | Calendar primary is the sole writer; Apple Calendar on-device (EventKit) + busy upload                           | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
