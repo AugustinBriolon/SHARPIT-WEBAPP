@@ -392,6 +392,9 @@ export async function deleteSessionFromGoogle(
   if (!account?.targetCalendarId) {
     return;
   }
+  if (!(await athleteMayWriteGoogleCalendar(session.athleteId))) {
+    return;
+  }
   const token = await getValidAccessToken(session.athleteId);
   await deleteEvent(token, account.targetCalendarId, session.googleEventId);
 }
