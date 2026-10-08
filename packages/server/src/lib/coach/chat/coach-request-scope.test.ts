@@ -67,12 +67,13 @@ describe('coachRequestScope', () => {
     });
   });
 
-  it('sends a nutrition question its core and no calendar-writing tool', () => {
+  it('sends a nutrition question its core, logFoods, and no calendar-writing tool', () => {
     const scope = coachRequestScope('nutrition');
     expect(scope.sections?.has('goals')).toBe(true);
     expect(scope.sections?.has('physical')).toBe(true);
     expect(scope.sections?.has('activityStatus')).toBe(true);
     expect(scope.sections?.has('equipment')).toBe(false);
+    expect(scope.tools).toContain('logFoods');
     expect(scope.tools).not.toContain('createPlannedSession');
     expect(scope.readsAgenda).toBe(false);
   });

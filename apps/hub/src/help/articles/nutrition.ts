@@ -85,6 +85,8 @@ La moyenne des notes de ses aliments, pondérée par l’énergie de chacun : un
 ### La lecture du coach
 
 Chaque jour, le coach peut lire ce que tu as mangé face à ton entraînement : carburant, qualité, régime, avec une action concrète. Cette lecture fait partie de [SharpIt Pro](/aide/compte/sharpit-pro). Ton journal alimentaire, lui, reste ouvert à tous.
+
+Tu peux aussi lui demander d’ajouter des aliments : il propose une carte (repas + grammes), tu ajustes, puis tu valides. Les noms sont rapprochés de ton catalogue comme pour [Décrire un repas](/aide/nutrition/noter-un-repas).
 `,
     },
     {

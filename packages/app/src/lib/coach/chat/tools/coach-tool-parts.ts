@@ -17,6 +17,7 @@ export const CALENDAR_MUTATION_TOOL_TYPES = new Set([
   'tool-deletePlannedSession',
   'tool-setTravelContext',
   'tool-setTrainingConstraint',
+  'tool-logFoods',
 ]);
 
 const TERMINAL_TOOL_STATES = new Set(['output-available', 'output-error', 'output-denied']);

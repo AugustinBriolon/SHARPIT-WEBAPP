@@ -22,7 +22,8 @@ export type CoachToolName =
   | 'createBrickSession'
   | 'updatePlannedSession'
   | 'deletePlannedSession'
-  | 'setTravelContext';
+  | 'setTravelContext'
+  | 'logFoods';
 
 export type CoachRequestScope = {
   intent: CoachIntent;
@@ -80,7 +81,7 @@ const SCOPES: Record<CoachIntent, Omit<CoachRequestScope, 'intent'>> = {
   nutrition: {
     sections: new Set([...CORE, 'nutrition', 'fatigue', 'recent', 'upcoming']),
     readsAgenda: false,
-    tools: READ_ONLY_TOOLS,
+    tools: [...READ_ONLY_TOOLS, 'logFoods'],
     reasoning: COACH_REASONING_LEVEL.answer,
   },
   recovery: {
