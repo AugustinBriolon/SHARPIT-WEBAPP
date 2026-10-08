@@ -91,6 +91,7 @@ export const NATIVE_V1_ONLY = [
   { path: 'health-workouts', methods: ['POST'] },
   { path: 'apple-health/link', methods: ['POST'] },
   { path: 'apple-calendar/link', methods: ['POST'] },
+  { path: 'calendar/busy', methods: ['POST'] },
   { path: 'push/device-token', methods: ['POST', 'DELETE'] },
   { path: 'push/test', methods: ['POST'] },
   { path: 'body/overview', methods: ['GET'] },

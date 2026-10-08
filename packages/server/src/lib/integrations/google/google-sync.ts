@@ -23,6 +23,8 @@ import {
   shouldSyncGoogleCalendarFreeBusy,
   shouldSyncGoogleCalendarWrites,
 } from '@sharpit/server/lib/cron/provider-sync-gates';
+import { loadAppleCalendarBusy } from '@sharpit/server/lib/integrations/apple-calendar/calendar-busy-snapshot';
+import { mergeBusyIntervals } from '@sharpit/server/lib/integrations/google/merge-busy-intervals';
 import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
 import { syncSinceFromLastSync } from '@sharpit/server/lib/integrations/shared/sync-since';
 import {
@@ -268,6 +270,7 @@ interface PushResult {
 }
 
 async function resolvePushStartTime(input: {
+  athleteId: string;
   token: string;
   account: NonNullable<Awaited<ReturnType<typeof getGoogleAccount>>>;
   session: PlannedSession;
@@ -286,7 +289,17 @@ async function resolvePushStartTime(input: {
   } catch {
     calendarIds = [input.account.targetCalendarId!];
   }
-  const busy = await getFreeBusy(input.token, start, end, calendarIds);
+  const googleBusy = await getFreeBusy(input.token, start, end, calendarIds);
+  const prefs = await loadResolvedSourcePrefs(input.athleteId);
+  const calendarGate = googleCalendarGateFromPrefs(prefs);
+  const appleBusy = calendarGate.calendarEnabled.includes('apple-calendar')
+    ? (await loadAppleCalendarBusy(input.athleteId)).filter((b) => {
+        const s = new Date(b.start);
+        const e = new Date(b.end);
+        return e > start && s < end;
+      })
+    : [];
+  const busy = mergeBusyIntervals([...googleBusy, ...appleBusy]);
   return findFreeSlot(input.dayKey, input.duration, busy, input.account.timeZone) ?? '07:00';
 }
 
@@ -331,6 +344,7 @@ export async function pushSessionToGoogle(session: PlannedSession): Promise<Push
   const duration = session.durationMin ?? DEFAULT_DURATION_MIN;
   const dayKey = dayKeyFromDate(session.date);
   const startTime = await resolvePushStartTime({
+    athleteId,
     token,
     account,
     session,
@@ -670,6 +684,33 @@ export async function getCalendarEvents(
   return results;
 }
 
+function busyIntervalsInWindow(
+  intervals: BusyInterval[],
+  windowStart: Date,
+  windowEnd: Date,
+): BusyInterval[] {
+  return intervals.filter((b) => {
+    const start = new Date(b.start);
+    const end = new Date(b.end);
+    return end > windowStart && start < windowEnd;
+  });
+}
+
+function formatBusyForCoach(
+  busy: BusyInterval[],
+  timeZone: string,
+): Array<{ dayKey: string; start: string; end: string }> {
+  return busy.map((b) => {
+    const s = zonedDayAndMinutes(new Date(b.start), timeZone);
+    const e = zonedDayAndMinutes(new Date(b.end), timeZone);
+    return {
+      dayKey: s.dayKey,
+      start: minutesToHHmm(s.minutes),
+      end: e.dayKey === s.dayKey ? minutesToHHmm(e.minutes) : '24:00',
+    };
+  });
+}
+
 /** Intervalles occupés à venir, résumés pour le contexte du coach. */
 export async function getUpcomingBusy(
   athleteId: string,
@@ -679,36 +720,36 @@ export async function getUpcomingBusy(
     getGoogleAccount(athleteId),
     loadResolvedSourcePrefs(athleteId),
   ]);
-  if (!account) {
-    return [];
-  }
   const calendarGate = googleCalendarGateFromPrefs(prefs);
+  const timeZone = account?.timeZone ?? 'Europe/Paris';
+
+  const now = new Date();
+  const to = new Date(now.getTime() + days * 86400_000);
+  const parts: BusyInterval[] = [];
+
   if (
-    !shouldSyncGoogleCalendarFreeBusy({
+    account &&
+    shouldSyncGoogleCalendarFreeBusy({
       connected: isOAuthAccountConnected(account),
       calendarEnabled: calendarGate.calendarEnabled,
     })
   ) {
-    return [];
+    try {
+      const token = await validAccessTokenFor(athleteId, account);
+      const calendarIds = await readableCalendarIds(athleteId, token);
+      parts.push(...(await getFreeBusy(token, now, to, calendarIds)));
+    } catch {
+      // Google outage: still surface uploaded Apple busy below.
+    }
   }
-  const token = await validAccessTokenFor(athleteId, account);
 
-  const now = new Date();
-  const to = new Date(now.getTime() + days * 86400_000);
-  let calendarIds: string[] = [];
-  try {
-    calendarIds = await readableCalendarIds(athleteId, token);
-  } catch {
+  if (calendarGate.calendarEnabled.includes('apple-calendar')) {
+    parts.push(...busyIntervalsInWindow(await loadAppleCalendarBusy(athleteId), now, to));
+  }
+
+  if (parts.length === 0) {
     return [];
   }
-  const busy = await getFreeBusy(token, now, to, calendarIds);
-  return busy.map((b) => {
-    const s = zonedDayAndMinutes(new Date(b.start), account.timeZone);
-    const e = zonedDayAndMinutes(new Date(b.end), account.timeZone);
-    return {
-      dayKey: s.dayKey,
-      start: minutesToHHmm(s.minutes),
-      end: e.dayKey === s.dayKey ? minutesToHHmm(e.minutes) : '24:00',
-    };
-  });
+
+  return formatBusyForCoach(mergeBusyIntervals(parts), timeZone);
 }
