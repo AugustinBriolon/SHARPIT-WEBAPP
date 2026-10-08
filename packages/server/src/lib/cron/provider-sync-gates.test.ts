@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { encryptSecret } from '@sharpit/server/lib/secret-box';
 import {
   shouldCronSyncProvider,
+  shouldLoadCalendarBusyBlocks,
   shouldSyncGoogleCalendarFreeBusy,
   shouldSyncGoogleCalendarWrites,
 } from '@sharpit/server/lib/cron/provider-sync-gates';
@@ -142,6 +143,26 @@ describe('shouldSyncGoogleCalendarFreeBusy', () => {
       shouldSyncGoogleCalendarFreeBusy({
         connected: true,
         calendarEnabled: ['apple-calendar'],
+      }),
+    ).toBe(false);
+  });
+});
+
+describe('shouldLoadCalendarBusyBlocks', () => {
+  it('loads when Apple calendar is enabled without Google OAuth', () => {
+    expect(
+      shouldLoadCalendarBusyBlocks({
+        googleOAuthConnected: false,
+        calendarEnabled: ['apple-calendar'],
+      }),
+    ).toBe(true);
+  });
+
+  it('skips when no calendar provider is enabled', () => {
+    expect(
+      shouldLoadCalendarBusyBlocks({
+        googleOAuthConnected: true,
+        calendarEnabled: [],
       }),
     ).toBe(false);
   });

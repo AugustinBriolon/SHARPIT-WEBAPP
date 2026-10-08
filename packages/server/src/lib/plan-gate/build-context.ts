@@ -9,9 +9,15 @@ import {
   getTrainingZoneNotes,
 } from '@sharpit/server/lib/queries';
 import {
+  googleCalendarGateFromPrefs,
+  shouldLoadCalendarBusyBlocks,
+} from '@sharpit/server/lib/cron/provider-sync-gates';
+import { isOAuthAccountConnected } from '@sharpit/server/lib/integrations/shared/connection-status';
+import {
   getGoogleAccount,
   getUpcomingBusy,
 } from '@sharpit/server/lib/integrations/google/google-sync';
+import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
 import { loadDailyTrainingStressEntries } from '@sharpit/server/lib/training/pmc/pmc-server';
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
 import { normalizeAthletePracticedSports } from '@sharpit/app/lib/practiced-sports';
@@ -137,6 +143,7 @@ export async function buildGateContext(params: {
     athleteProfile,
     googleAccount,
     trainingZones,
+    sourcePrefs,
   ] = await Promise.all([
     getOrBuildAthleteSnapshot(athleteId, trainingDayId),
     loadDailyTrainingStressEntries(athleteId, { refDate: now }),
@@ -146,10 +153,17 @@ export async function buildGateContext(params: {
     getAthleteProfile(athleteId),
     getGoogleAccount(athleteId),
     getTrainingZoneNotes(athleteId, now),
+    loadResolvedSourcePrefs(athleteId),
   ]);
 
+  const calendarGate = googleCalendarGateFromPrefs(sourcePrefs);
+  const loadBusy = shouldLoadCalendarBusyBlocks({
+    googleOAuthConnected: isOAuthAccountConnected(googleAccount),
+    calendarEnabled: calendarGate.calendarEnabled,
+  });
+
   // null = no calendar connected (skip the rule); [] = connected with nothing busy.
-  const busyBlocks = googleAccount
+  const busyBlocks = loadBusy
     ? await getUpcomingBusy(
         athleteId,
         WINDOW_PADDING_DAYS + Math.max(1, proposalDates.length),

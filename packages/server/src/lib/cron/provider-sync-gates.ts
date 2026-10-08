@@ -79,3 +79,16 @@ export function shouldSyncGoogleCalendarFreeBusy(input: {
 }): boolean {
   return input.connected && input.calendarEnabled.includes('google');
 }
+
+/** Coach / plan-gate busy blocks when Google free-busy or Apple upload is enabled. */
+export function shouldLoadCalendarBusyBlocks(input: {
+  googleOAuthConnected: boolean;
+  calendarEnabled: readonly IntegrationId[];
+}): boolean {
+  return (
+    shouldSyncGoogleCalendarFreeBusy({
+      connected: input.googleOAuthConnected,
+      calendarEnabled: input.calendarEnabled,
+    }) || input.calendarEnabled.includes('apple-calendar')
+  );
+}
