@@ -159,9 +159,27 @@ describe('journal data days', () => {
     activityDates: [],
     nutrition: [],
     journal: [
-      { trainingDayId: '2026-09-27', factors: { alcohol: 'yes' }, moodLabel: null, hydrationMl: null, caffeineMg: null },
-      { trainingDayId: '2026-09-28', factors: { alcohol: 'unset' }, moodLabel: null, hydrationMl: null, caffeineMg: null },
-      { trainingDayId: '2026-09-29', factors: {}, moodLabel: null, hydrationMl: 500, caffeineMg: null },
+      {
+        trainingDayId: '2026-09-27',
+        factors: { alcohol: 'yes' },
+        moodLabel: null,
+        hydrationMl: null,
+        caffeineMg: null,
+      },
+      {
+        trainingDayId: '2026-09-28',
+        factors: { alcohol: 'unset' },
+        moodLabel: null,
+        hydrationMl: null,
+        caffeineMg: null,
+      },
+      {
+        trainingDayId: '2026-09-29',
+        factors: {},
+        moodLabel: null,
+        hydrationMl: 500,
+        caffeineMg: null,
+      },
     ],
   };
 
