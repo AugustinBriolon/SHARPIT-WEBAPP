@@ -10,8 +10,13 @@ export function coachChatGenerationSettings(scope: CoachRequestScope) {
   return {
     // Only the tools this question can use: fewer schemas in every step's prompt.
     ...(scope.tools ? { activeTools: [...scope.tools] } : {}),
-    // Les actions qui modifient le calendrier nécessitent la validation de l'athlète.
+    // Les actions qui modifient le calendrier / le journal nécessitent la validation de l'athlète.
     // listPlannedSessions (lecture seule) s'exécute automatiquement.
+    //
+    // Intentionally no `experimental_toolApprovalSecret`: the AI SDK HMAC binds the exact
+    // tool input, which would reject athlete edits (grams / meal) on the approval card.
+    // Binding is instead: Clerk session → athleteId, plus CoachToolExecution idempotency
+    // on (athleteId, toolCallId), with zod revalidation of the edited input before write.
     toolApproval: {
       createPlannedSession: 'user-approval',
       createBrickSession: 'user-approval',

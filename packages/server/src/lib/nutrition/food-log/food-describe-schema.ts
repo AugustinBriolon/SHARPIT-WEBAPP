@@ -24,7 +24,14 @@ export const foodDescribeRequestSchema = z.object({
 export type FoodDescribeRequest = z.infer<typeof foodDescribeRequestSchema>;
 
 /** Portion macros for a quick-add entry (same contract as `FoodQuickAdd`). */
-export function portionFromPer100g(item: FoodDescribeItem): {
+export function portionFromPer100g(item: {
+  name: string;
+  grams: number;
+  kcalPer100g: number;
+  proteinPer100g: number;
+  carbsPer100g: number;
+  fatPer100g: number;
+}): {
   name: string;
   grams: number;
   kcal: number;

@@ -296,22 +296,30 @@ export async function servedEntry(entry: FoodLogEntry, diets: DeclaredDiets) {
   return { ...entry, health: product ? servedHealth(product, diets) : null };
 }
 
+/** Resolves product / quick-add fields for a create, without writing. Used by batch + coach tools. */
+export async function resolveFoodLogEntryCreateData(
+  athleteId: string,
+  input: FoodLogEntryCreateInput,
+) {
+  const fields = input.productId
+    ? await productEntryFields(athleteId, input.productId, input.grams)
+    : quickEntryFields(input.quick!);
+  return {
+    athleteId,
+    date: foodLogDayDate(input.trainingDayId),
+    meal: input.meal,
+    grams: input.grams,
+    ...fields,
+  };
+}
+
 export async function addFoodLogEntry(
   athleteId: string,
   input: FoodLogEntryCreateInput,
   diets: DeclaredDiets = NO_DIETS,
 ) {
-  const fields = input.productId
-    ? await productEntryFields(athleteId, input.productId, input.grams)
-    : quickEntryFields(input.quick!);
   const entry = await prisma.foodLogEntry.create({
-    data: {
-      athleteId,
-      date: foodLogDayDate(input.trainingDayId),
-      meal: input.meal,
-      grams: input.grams,
-      ...fields,
-    },
+    data: await resolveFoodLogEntryCreateData(athleteId, input),
   });
   await recomputeFoodLogDay(athleteId, input.trainingDayId);
   return servedEntry(entry, diets);
