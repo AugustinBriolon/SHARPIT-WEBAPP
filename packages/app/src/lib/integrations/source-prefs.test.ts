@@ -71,6 +71,14 @@ describe('source-prefs', () => {
     expect(prefs.classes.body.primary).toBe('withings');
   });
 
+  it('legacy calendar prefers Google over Apple Calendar', () => {
+    const prefs = legacyDefaultsFromConnected(['google', 'apple-calendar']);
+    expect(prefs.classes.calendar).toEqual({
+      primary: 'google',
+      enabled: ['google', 'apple-calendar'],
+    });
+  });
+
   it('legacy nutrition prefers Sharpit then Apple Santé', () => {
     const prefs = legacyDefaultsFromConnected(['sharpit', 'apple-health']);
     expect(prefs.classes.nutrition).toEqual({

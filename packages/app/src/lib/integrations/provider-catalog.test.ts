@@ -49,6 +49,12 @@ describe('provider-catalog', () => {
     );
   });
 
+  it('lists Google and Apple Calendar for calendar class', () => {
+    expect(providersForClass('calendar').map((p) => p.id)).toEqual(
+      expect.arrayContaining(['google', 'apple-calendar']),
+    );
+  });
+
   it('lists Sharpit and Apple Santé for nutrition, not MyFitnessPal', () => {
     expect(PROVIDER_CATALOG.find((p) => p.id === 'myfitnesspal')).toBeUndefined();
     expect(providersForClass('nutrition').map((p) => p.id)).toEqual(

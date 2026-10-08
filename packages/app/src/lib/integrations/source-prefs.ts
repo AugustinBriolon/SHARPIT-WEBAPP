@@ -48,7 +48,7 @@ const CLASS_PRIMARY_PREFERENCE: Partial<Record<DataClassId, IntegrationId[]>> = 
   wearable_health: ['garmin', 'apple-health'],
   body: ['withings', 'renpho', 'apple-health'],
   nutrition: ['sharpit', 'apple-health'],
-  calendar: ['google'],
+  calendar: ['google', 'apple-calendar'],
 };
 
 function pickDefaultPrimary(classId: DataClassId, enabled: IntegrationId[]): IntegrationId | null {

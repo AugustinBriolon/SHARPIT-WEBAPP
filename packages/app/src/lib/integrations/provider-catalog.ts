@@ -143,6 +143,19 @@ export const PROVIDER_CATALOG: CatalogProvider[] = [
     },
   },
   {
+    id: 'apple-calendar',
+    name: 'Calendrier Apple',
+    tagline: 'Depuis l’app iPhone',
+    /** Linked from the iPhone app only: the web shows it, it cannot connect it (same pattern as apple-health). */
+    status: 'coming_soon',
+    classes: ['calendar'],
+    integrationId: 'apple-calendar',
+    authKind: 'none',
+    dataTypesByClass: {
+      calendar: ['Créneaux occupés', 'Disponibilités'],
+    },
+  },
+  {
     id: 'polar',
     name: 'Polar',
     tagline: 'Montre & cardio',
