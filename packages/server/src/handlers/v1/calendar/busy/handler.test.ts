@@ -26,6 +26,24 @@ describe('/api/v1/calendar/busy', () => {
     expect(res.status).toBe(400);
   });
 
+  it('returns 401 when there is no authenticated athlete', async () => {
+    vi.mocked(authModule.getCurrentAthleteId).mockRejectedValue(
+      new Error('getCurrentAthleteId called without an authenticated session'),
+    );
+
+    const req = new NextRequest('https://sharpit.app/api/v1/calendar/busy', {
+      method: 'POST',
+      body: JSON.stringify({
+        provider: 'apple-calendar',
+        intervals: [{ start: '2026-10-10T07:00:00.000Z', end: '2026-10-10T08:00:00.000Z' }],
+      }),
+    });
+
+    const res = await POST(req);
+    expect(res.status).toBe(401);
+    expect(snapshotModule.saveAppleCalendarBusy).not.toHaveBeenCalled();
+  });
+
   it('stores apple-calendar busy intervals for the current athlete', async () => {
     vi.mocked(authModule.getCurrentAthleteId).mockResolvedValue('ath-1');
     const intervals = [

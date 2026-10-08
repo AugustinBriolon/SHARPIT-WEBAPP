@@ -4,6 +4,23 @@ import type { BusyInterval } from '@sharpit/server/lib/integrations/google/googl
 
 export const APPLE_CALENDAR_BUSY_PROVIDER = 'apple-calendar' as const;
 
+function parseBusyInterval(item: unknown): BusyInterval | null {
+  if (!item || typeof item !== 'object') {
+    return null;
+  }
+  const startRaw = (item as BusyInterval).start;
+  const endRaw = (item as BusyInterval).end;
+  if (typeof startRaw !== 'string' || typeof endRaw !== 'string') {
+    return null;
+  }
+  const startMs = Date.parse(startRaw);
+  const endMs = Date.parse(endRaw);
+  if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || startMs >= endMs) {
+    return null;
+  }
+  return { start: startRaw, end: endRaw };
+}
+
 const intervalSchema = {
   parse(raw: unknown): BusyInterval[] {
     if (!Array.isArray(raw)) {
@@ -11,13 +28,9 @@ const intervalSchema = {
     }
     const out: BusyInterval[] = [];
     for (const item of raw) {
-      if (
-        item &&
-        typeof item === 'object' &&
-        typeof (item as BusyInterval).start === 'string' &&
-        typeof (item as BusyInterval).end === 'string'
-      ) {
-        out.push({ start: (item as BusyInterval).start, end: (item as BusyInterval).end });
+      const interval = parseBusyInterval(item);
+      if (interval) {
+        out.push(interval);
       }
     }
     return out;

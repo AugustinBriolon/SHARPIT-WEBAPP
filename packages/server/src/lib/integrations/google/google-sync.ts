@@ -23,6 +23,7 @@ import {
   shouldSyncGoogleCalendarFreeBusy,
   shouldSyncGoogleCalendarWrites,
 } from '@sharpit/server/lib/cron/provider-sync-gates';
+import { resolveAthleteCalendarTimeZone } from '@sharpit/server/lib/integrations/apple-calendar/athlete-calendar-time-zone';
 import { loadAppleCalendarBusy } from '@sharpit/server/lib/integrations/apple-calendar/calendar-busy-snapshot';
 import { mergeBusyIntervals } from '@sharpit/server/lib/integrations/google/merge-busy-intervals';
 import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
@@ -716,12 +717,12 @@ export async function getUpcomingBusy(
   athleteId: string,
   days = 21,
 ): Promise<Array<{ dayKey: string; start: string; end: string }>> {
-  const [account, prefs] = await Promise.all([
+  const [account, prefs, timeZone] = await Promise.all([
     getGoogleAccount(athleteId),
     loadResolvedSourcePrefs(athleteId),
+    resolveAthleteCalendarTimeZone(athleteId),
   ]);
   const calendarGate = googleCalendarGateFromPrefs(prefs);
-  const timeZone = account?.timeZone ?? 'Europe/Paris';
 
   const now = new Date();
   const to = new Date(now.getTime() + days * 86400_000);

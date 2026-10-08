@@ -28,8 +28,14 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
+  let athleteId: string;
   try {
-    const athleteId = await getCurrentAthleteId();
+    athleteId = await getCurrentAthleteId();
+  } catch {
+    return NextResponse.json({ error: 'Non authentifié' }, { status: 401 });
+  }
+
+  try {
     await saveAppleCalendarBusy(athleteId, parsed.data.intervals);
     return NextResponse.json({
       apiVersion: 1,
