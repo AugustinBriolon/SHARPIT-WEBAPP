@@ -1,24 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isProAthlete } from '@sharpit/server/lib/access/is-pro-athlete';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
+import { loadDeclaredDiet } from '@sharpit/server/lib/nutrition/analysis/nutrition-analysis-inputs';
 import {
   describeMealFromText,
   FoodDescribeEmptyError,
   FoodDescribeUnavailableError,
 } from '@sharpit/server/lib/nutrition/food-log/food-describe';
+import { resolveDescribedFoods } from '@sharpit/server/lib/nutrition/food-log/food-describe-resolve';
 import {
   foodDescribeRequestSchema,
   portionFromPer100g,
+  type FoodDescribeItem,
 } from '@sharpit/server/lib/nutrition/food-log/food-describe-schema';
+import { servedProduct } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
 import { athleteHasAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
 import {
   checkRateLimit,
   rateLimitJsonResponse,
   rateLimiters,
 } from '@sharpit/server/lib/rate-limit';
+import type { FoodProduct } from '@prisma/client';
 
 /**
- * `POST /api/v1/food-log/describe` — Pro: free-text meal → distinct foods with estimated macros.
+ * `POST /api/v1/food-log/describe` — Pro: free-text meal → distinct foods, matched to known
+ * products when the name is confident (eaten → own → Ciqual → OFF), else estimated macros.
  */
 export async function POST(request: NextRequest) {
   let athleteId: string;
@@ -61,16 +67,14 @@ export async function POST(request: NextRequest) {
       athleteId,
       description: parsed.data.description,
     });
+    const [resolved, diets] = await Promise.all([
+      resolveDescribedFoods(athleteId, result.items),
+      loadDeclaredDiet(athleteId),
+    ]);
     return NextResponse.json({
-      items: result.items.map((item) => ({
-        ...portionFromPer100g(item),
-        per100g: {
-          kcal: item.kcalPer100g,
-          protein: item.proteinPer100g,
-          carbs: item.carbsPer100g,
-          fat: item.fatPer100g,
-        },
-      })),
+      items: resolved.map(({ item, product, match }) =>
+        serializeDescribedItem(item, product, match, diets),
+      ),
     });
   } catch (error) {
     if (error instanceof FoodDescribeEmptyError) {
@@ -85,4 +89,44 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+}
+
+function serializeDescribedItem(
+  item: FoodDescribeItem,
+  product: FoodProduct | null,
+  match: string | null,
+  diets: Parameters<typeof servedProduct>[1],
+) {
+  const estimated = portionFromPer100g(item);
+  if (!product) {
+    return {
+      ...estimated,
+      per100g: {
+        kcal: item.kcalPer100g,
+        protein: item.proteinPer100g,
+        carbs: item.carbsPer100g,
+        fat: item.fatPer100g,
+      },
+      product: null,
+      match: null,
+    };
+  }
+  const factor = item.grams / 100;
+  const round1 = (n: number) => Math.round(n * 10) / 10;
+  return {
+    name: product.name,
+    grams: estimated.grams,
+    kcal: Math.round(product.kcalPer100g * factor),
+    protein: round1(product.proteinPer100g * factor),
+    carbs: round1(product.carbsPer100g * factor),
+    fat: round1(product.fatPer100g * factor),
+    per100g: {
+      kcal: product.kcalPer100g,
+      protein: product.proteinPer100g,
+      carbs: product.carbsPer100g,
+      fat: product.fatPer100g,
+    },
+    product: servedProduct(product, diets),
+    match,
+  };
 }

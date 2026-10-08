@@ -140,6 +140,27 @@ export function matchesFoodQuery(food: RankableFood, query: string): boolean {
   );
 }
 
+/**
+ * How closely the food's name (or brand) reads against the query — same tiers as
+ * `rankFoodsByName`. Used to accept or reject an auto-match (e.g. meal describe).
+ */
+export function foodMatchTier(food: RankableFood, query: string): number {
+  const variants = foodQueryVariants(query);
+  if (variants.length === 0) {
+    return TIER.elsewhere;
+  }
+  const name = normalizeFoodText(food.name);
+  const brand = normalizeFoodText(food.brand ?? '');
+  return Math.max(...variants.map((variant) => tierWithBrand(name, brand, variant)));
+}
+
+/** Minimum tier for a confident auto-match on a personal food (eaten / own). */
+export const FOOD_MATCH_TIER_PERSONAL = TIER.allWords;
+/** Minimum tier for a confident auto-match on Ciqual. */
+export const FOOD_MATCH_TIER_GENERIC = TIER.allWordsInOrder;
+/** Minimum tier for a confident auto-match on Open Food Facts (noisier than Ciqual). */
+export const FOOD_MATCH_TIER_OFF = TIER.allWordsInOrder;
+
 export type RankOptions<T> = {
   /**
    * What the athlete would rather see first among names that read alike — a verified food over a

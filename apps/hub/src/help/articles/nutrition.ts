@@ -30,7 +30,7 @@ Un aliment vérifié (Ciqual, ou valeurs fournies par le fabricant) porte un sce
 
 ### Décrire un repas (Pro)
 
-**Décrire un repas** laisse SharpIt découper ta description en aliments distincts (ex. faux-filet, frites, brocolis), avec des grammes et macros estimés. Tu ajustes les portions, puis tu ajoutes le tout d’un geste.
+**Décrire un repas** laisse SharpIt découper ta description en aliments distincts (ex. faux-filet, frites, brocolis). Pour chaque nom, SharpIt cherche d’abord parmi tes aliments déjà mangés, tes aliments perso, la table Ciqual, puis Open Food Facts : un match fiable garde la note du produit. Sinon, grammes et macros restent une estimation (sans note). Tu ajustes les portions, puis tu ajoutes le tout d’un geste.
 
 ### Scanner un code-barres
 

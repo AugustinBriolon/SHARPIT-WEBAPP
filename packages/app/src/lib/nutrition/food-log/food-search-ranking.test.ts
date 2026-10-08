@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   dedupeFoods,
+  FOOD_MATCH_TIER_GENERIC,
+  FOOD_MATCH_TIER_PERSONAL,
+  foodMatchTier,
   foodQueryVariants,
   matchesFoodQuery,
   normalizeFoodText,
@@ -100,6 +103,20 @@ describe('rankFoodsByName — brand, synonyms, preference and quality (ADR-069)'
       quality: (food) => (food.complete ? 1 : 0),
     });
     expect(ranked).toEqual([foods[2], foods[3], foods[1], foods[0]]);
+  });
+});
+
+describe('foodMatchTier', () => {
+  it('accepts a personal food when every query word is present', () => {
+    expect(foodMatchTier({ name: 'Pain turc maison' }, 'pain turc')).toBeGreaterThanOrEqual(
+      FOOD_MATCH_TIER_PERSONAL,
+    );
+  });
+
+  it('accepts a Ciqual-style name that opens on the query', () => {
+    expect(foodMatchTier({ name: 'Frites de pommes de terre' }, 'frites')).toBeGreaterThanOrEqual(
+      FOOD_MATCH_TIER_GENERIC,
+    );
   });
 });
 
