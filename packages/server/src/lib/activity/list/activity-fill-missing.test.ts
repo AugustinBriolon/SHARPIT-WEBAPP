@@ -47,6 +47,12 @@ describe('fillMissingMetricUpdate', () => {
       avgHr: 140,
     });
   });
+
+  it('ignores blank incoming metric values', () => {
+    expect(
+      fillMissingMetricUpdate({ distanceM: null, avgHr: null }, { distanceM: null, avgHr: 140 }),
+    ).toEqual({ avgHr: 140 });
+  });
 });
 
 describe('fillMissingActivityUpdate', () => {

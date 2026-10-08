@@ -1,4 +1,4 @@
-import type { ActivityType, Prisma } from '@prisma/client';
+import { ActivityType, type Prisma } from '@prisma/client';
 import { addHours, subHours } from 'date-fns';
 import { prisma } from '@sharpit/db/client';
 
@@ -43,23 +43,60 @@ export interface MatchedActivity {
   duration: number | null;
   garminId: string | null;
   stravaId: string | null;
+  appleHealthId: string | null;
   source: string;
   rpe: number | null;
   feeling: string | null;
 }
 
-/** Source unifiée quand les deux plateformes pointent vers la même séance. */
-export function mergedSource(hasGarmin: boolean, hasStrava: boolean): string {
-  if (hasGarmin && hasStrava) {
-    return 'both';
+/**
+ * Provenance tokens stored on `Activity.source`.
+ * Legacy `both` = garmin+strava without Apple Health.
+ * Composites use `+` (e.g. `strava+apple-health`, `garmin+strava+apple-health`).
+ */
+export function sourceIncludes(source: string | null | undefined, provider: string): boolean {
+  if (!source) {
+    return false;
   }
+  if (provider === 'garmin' && (source === 'garmin' || source === 'both')) {
+    return true;
+  }
+  if (provider === 'strava' && (source === 'strava' || source === 'both')) {
+    return true;
+  }
+  if (source === provider) {
+    return true;
+  }
+  return source.split('+').includes(provider);
+}
+
+/** Unified source when several platforms point at the same session. */
+export function mergedSource(
+  hasGarmin: boolean,
+  hasStrava: boolean,
+  hasAppleHealth = false,
+): string {
+  const parts: string[] = [];
   if (hasGarmin) {
-    return 'garmin';
+    parts.push('garmin');
   }
   if (hasStrava) {
-    return 'strava';
+    parts.push('strava');
   }
-  return 'manual';
+  if (hasAppleHealth) {
+    parts.push('apple-health');
+  }
+  if (parts.length === 0) {
+    return 'manual';
+  }
+  if (parts.length === 1) {
+    return parts[0]!;
+  }
+  // Preserve the historical token for Garmin+Strava alone.
+  if (hasGarmin && hasStrava && !hasAppleHealth) {
+    return 'both';
+  }
+  return parts.join('+');
 }
 
 function positiveNumber(value: number | null | undefined): number | null {
@@ -115,6 +152,11 @@ function anyDurationMatch(a: ActivityFingerprint, b: ActivityFingerprint): boole
   return false;
 }
 
+/** Strength / gym sessions rarely have distance — never match on start time alone. */
+function isDurationCriticalType(type: ActivityType): boolean {
+  return type === ActivityType.STRENGTH;
+}
+
 export function activitiesMatch(a: ActivityFingerprint, b: ActivityFingerprint): boolean {
   if (a.type !== b.type) {
     return false;
@@ -134,11 +176,20 @@ export function activitiesMatch(a: ActivityFingerprint, b: ActivityFingerprint):
     if (aDist !== null && bDist !== null && distancesClose(aDist, bDist)) {
       return true;
     }
+    // STRENGTH without duration on either side: refuse time-only collapse.
+    if (isDurationCriticalType(a.type)) {
+      return false;
+    }
     return timeDiff <= TIME_ONLY_TOLERANCE_MS;
   }
 
   if (anyDurationMatch(a, b)) {
     return true;
+  }
+
+  // STRENGTH: require a duration match — distance fallback does not apply.
+  if (isDurationCriticalType(a.type)) {
+    return false;
   }
 
   // Même séance, horloges différentes : Garmin moving vs Apple elapsed, distance quasi égale.
@@ -170,6 +221,7 @@ function toMatchedActivity(row: {
   duration: number | null;
   garminId: string | null;
   stravaId: string | null;
+  appleHealthId: string | null;
   source: string;
   rpe: number | null;
   feeling: string | null;
@@ -181,6 +233,7 @@ function toMatchedActivity(row: {
     duration: row.duration,
     garminId: row.garminId,
     stravaId: row.stravaId,
+    appleHealthId: row.appleHealthId,
     source: row.source,
     rpe: row.rpe,
     feeling: row.feeling,
@@ -188,7 +241,7 @@ function toMatchedActivity(row: {
 }
 
 async function findByExternalId(
-  field: 'garminId' | 'stravaId',
+  field: 'garminId' | 'stravaId' | 'appleHealthId',
   value: string,
   excludeId?: string,
 ): Promise<MatchedActivity | null> {
@@ -212,6 +265,7 @@ export async function findMatchingActivity(
   candidate: ActivityFingerprint & {
     garminId?: string | null;
     stravaId?: string | null;
+    appleHealthId?: string | null;
     excludeId?: string;
   },
 ): Promise<MatchedActivity | null> {
@@ -226,6 +280,17 @@ export async function findMatchingActivity(
     const byStrava = await findByExternalId('stravaId', candidate.stravaId, candidate.excludeId);
     if (byStrava) {
       return byStrava;
+    }
+  }
+
+  if (candidate.appleHealthId) {
+    const byApple = await findByExternalId(
+      'appleHealthId',
+      candidate.appleHealthId,
+      candidate.excludeId,
+    );
+    if (byApple) {
+      return byApple;
     }
   }
 
@@ -262,6 +327,7 @@ const matchSelect = {
   duration: true,
   garminId: true,
   stravaId: true,
+  appleHealthId: true,
   source: true,
   rpe: true,
   feeling: true,

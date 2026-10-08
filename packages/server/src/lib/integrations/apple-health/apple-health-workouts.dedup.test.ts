@@ -13,6 +13,16 @@ vi.mock('@sharpit/server/lib/streams/streams', () => ({ persistStream: vi.fn() }
 const { importAppleHealthWorkouts, appleHealthWorkoutSchema } =
   await import('./apple-health-workouts');
 
+function mockFillSnapshot(row: Record<string, unknown>) {
+  db.activity.findUnique.mockImplementation((args: { where: Record<string, unknown> }) => {
+    const { where } = args;
+    if ('appleHealthId' in where || 'garminId' in where || 'stravaId' in where) {
+      return Promise.resolve(null);
+    }
+    return Promise.resolve(row);
+  });
+}
+
 describe('importAppleHealthWorkouts · a session Garmin already brought', () => {
   it('enriches the Garmin row instead of creating a duplicate bike', async () => {
     db.googleAccount.findUnique.mockResolvedValue({ timeZone: 'Europe/Paris' });
@@ -26,6 +36,7 @@ describe('importAppleHealthWorkouts · a session Garmin already brought', () => 
         duration: 4_815,
         garminId: '24553201218',
         stravaId: null,
+        appleHealthId: null,
         source: 'garmin',
         rpe: null,
         feeling: null,
@@ -35,7 +46,7 @@ describe('importAppleHealthWorkouts · a session Garmin already brought', () => 
         hikeMetrics: null,
       },
     ]);
-    db.activity.findUnique.mockResolvedValue({
+    mockFillSnapshot({
       id: 'garmin-bike',
       title: 'Bike',
       duration: 4_815,
@@ -47,7 +58,7 @@ describe('importAppleHealthWorkouts · a session Garmin already brought', () => 
       bikeMetrics: { distanceM: 32_100 },
       swimMetrics: null,
       hikeMetrics: null,
-      stream: { activityId: 'garmin-bike' },
+      stream: { activityId: 'garmin-bike', available: true },
     });
     const bike = appleHealthWorkoutSchema.parse({
       id: 'HK-1',
@@ -80,6 +91,7 @@ describe('importAppleHealthWorkouts · a session Garmin already brought', () => 
         duration: 2_400,
         garminId: '99',
         stravaId: null,
+        appleHealthId: null,
         source: 'garmin',
         rpe: null,
         feeling: null,
@@ -89,7 +101,7 @@ describe('importAppleHealthWorkouts · a session Garmin already brought', () => 
         hikeMetrics: null,
       },
     ]);
-    db.activity.findUnique.mockResolvedValue({
+    mockFillSnapshot({
       id: 'garmin-run',
       title: 'Run',
       duration: 2_400,

@@ -117,6 +117,8 @@ export interface StravaActivity {
   type: string;
   sport_type: string;
   start_date: string;
+  /** Local wall-clock start; digits are local even when Strava appends `Z`. */
+  start_date_local?: string;
   moving_time: number;
   elapsed_time: number;
   distance: number;

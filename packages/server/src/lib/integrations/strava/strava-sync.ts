@@ -3,6 +3,7 @@ import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import {
   findMatchingActivity,
   mergedSource,
+  sourceIncludes,
 } from '@sharpit/server/lib/activity/list/activity-dedup';
 import { fillMissingActivityUpdate } from '@sharpit/server/lib/activity/list/activity-fill-missing';
 import { loadActivityFillSnapshot } from '@sharpit/server/lib/activity/list/load-activity-fill-snapshot';
@@ -15,13 +16,25 @@ import {
   refreshAccessToken,
   type StravaActivity,
 } from '@sharpit/server/lib/integrations/strava/strava';
+import { stravaWallClockStart } from '@sharpit/server/lib/integrations/strava/strava-time';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import { stravaActivityToSession } from '@sharpit/server/adapters/strava-adapter';
 import { mapWithConcurrency } from '@sharpit/server/lib/async/map-with-concurrency';
 import { encryptSecret } from '@sharpit/server/lib/secret-box';
+import { removeManualActivityObservations } from '@sharpit/server/lib/observation/manual-observation-sync';
 
 /** Parallel DB upserts for Strava candidates within a page. */
 export const STRAVA_ACTIVITY_CONCURRENCY = 6;
+
+const DEFAULT_ATHLETE_TIME_ZONE = 'Europe/Paris';
+
+async function athleteTimeZone(athleteId: string): Promise<string> {
+  const google = await prisma.googleAccount.findUnique({
+    where: { athleteId },
+    select: { timeZone: true },
+  });
+  return google?.timeZone ?? DEFAULT_ATHLETE_TIME_ZONE;
+}
 
 async function ingestStravaActivity(athleteId: string, activity: StravaActivity): Promise<void> {
   try {
@@ -149,10 +162,11 @@ const STRAVA_SPORT_METRIC_ATTACHERS: Partial<
 function buildActivityData(
   strava: StravaActivity,
   type: ActivityType,
+  timeZone: string,
 ): Omit<Prisma.ActivityUncheckedCreateInput, 'athleteId'> {
   const base: Omit<Prisma.ActivityUncheckedCreateInput, 'athleteId'> = {
     type,
-    date: new Date(strava.start_date),
+    date: stravaWallClockStart(strava, timeZone),
     title: strava.name,
     duration: strava.moving_time || strava.elapsed_time || null,
     load: strava.suffer_score ?? null,
@@ -253,15 +267,20 @@ const STRAVA_ENRICHMENT_ATTACHERS: Partial<
   [ActivityType.SWIM]: enrichStravaSwimMetrics,
 };
 
-/** Enrichit une activité Garmin existante avec les métriques Strava (streams via stravaId). */
+/** Enrichit une activité existante avec les métriques Strava (streams via stravaId). */
 function stravaEnrichmentUpdate(
   strava: StravaActivity,
   type: ActivityType,
   existingGarminId: string | null,
+  existingSource: string,
 ): Prisma.ActivityUpdateInput {
   const data: Prisma.ActivityUpdateInput = {
     stravaId: String(strava.id),
-    source: mergedSource(Boolean(existingGarminId), true),
+    source: mergedSource(
+      Boolean(existingGarminId),
+      true,
+      sourceIncludes(existingSource, 'apple-health'),
+    ),
     title: strava.name,
     duration: strava.moving_time || strava.elapsed_time || undefined,
     load: strava.suffer_score ?? undefined,
@@ -296,20 +315,44 @@ async function mergeStravaIntoMatch(input: MergeStravaMatchInput): Promise<Strav
     return { kind: 'skipped' };
   }
   try {
+    // Claim stravaId first so concurrent page workers cannot double-merge the same row.
+    if (!match.stravaId) {
+      try {
+        await prisma.activity.update({
+          where: { id: match.id },
+          data: { stravaId },
+        });
+      } catch (error) {
+        if (isDuplicateKeyError(error)) {
+          return { kind: 'skipped' };
+        }
+        throw error;
+      }
+    }
+
     const existing = await loadActivityFillSnapshot(match.id);
-    const enrichment = stravaEnrichmentUpdate(strava, type, match.garminId);
-    // Behind Garmin: fill blanks only. Against Apple Santé alone: Strava is primary — overwrite.
-    const data =
-      match.garminId && existing
-        ? fillMissingActivityUpdate(existing, enrichment, { always: ['stravaId', 'source'] })
-        : enrichment;
+    // Behind Garmin: never overwrite when the snapshot failed to load.
+    if (match.garminId && !existing) {
+      console.error('[strava-sync] skip merge: fill snapshot missing for Garmin row', match.id);
+      return { kind: 'skipped' };
+    }
+    const enrichment = stravaEnrichmentUpdate(strava, type, match.garminId, match.source);
+    // Always fill blanks only for scalars/metrics; ids/source always land.
+    // Strava may still be "primary" vs Apple Health for ownership, but never wipe filled fields.
+    const data = existing
+      ? fillMissingActivityUpdate(existing, enrichment, { always: ['stravaId', 'source'] })
+      : enrichment;
     if (Object.keys(data).length > 0) {
       await prisma.activity.update({
         where: { id: match.id },
         data,
       });
+    } else if (!match.garminId) {
+      // Patch empty and no Core ingest needed beyond claim — still count as merged when we ingest.
     }
     if (!match.garminId) {
+      // AH (and any manual SESSION) wrote Core without a provider id — remove before Strava.
+      await removeManualActivityObservations(athleteId, match.id);
       await ingestStravaActivity(athleteId, strava);
     }
     return { kind: 'merged', type, activityId: match.id };
@@ -325,10 +368,11 @@ async function importNewStravaActivity(
   athleteId: string,
   strava: StravaActivity,
   type: ActivityType,
+  timeZone: string,
 ): Promise<StravaProcessOutcome> {
   try {
     const created = await prisma.activity.create({
-      data: { ...buildActivityData(strava, type), athleteId },
+      data: { ...buildActivityData(strava, type, timeZone), athleteId },
     });
     await ingestStravaActivity(athleteId, strava);
     return { kind: 'imported', type, activityId: created.id };
@@ -343,8 +387,9 @@ async function importNewStravaActivity(
 async function processStravaCandidate(
   athleteId: string,
   { stravaId, type, strava }: StravaCandidate,
+  timeZone: string,
 ): Promise<StravaProcessOutcome> {
-  const date = new Date(strava.start_date);
+  const date = stravaWallClockStart(strava, timeZone);
   const duration = strava.moving_time || strava.elapsed_time || null;
   const altDurations = [strava.moving_time, strava.elapsed_time].filter(
     (value): value is number => typeof value === 'number' && value > 0 && value !== duration,
@@ -361,7 +406,7 @@ async function processStravaCandidate(
   if (match) {
     return mergeStravaIntoMatch({ athleteId, match, strava, type, stravaId });
   }
-  return importNewStravaActivity(athleteId, strava, type);
+  return importNewStravaActivity(athleteId, strava, type, timeZone);
 }
 
 function collectStravaCandidates(
@@ -408,6 +453,7 @@ async function processStravaActivityPage(
     importedTypes: Set<ActivityType>;
     importedActivityIds: string[];
   },
+  timeZone: string,
 ): Promise<number> {
   const { candidates, skipped: dedupeSkipped } = collectStravaCandidates(activities, seenStravaIds);
   counters.skipped += dedupeSkipped;
@@ -425,7 +471,7 @@ async function processStravaActivityPage(
   counters.skipped += candidates.length - pending.length;
 
   const outcomes = await mapWithConcurrency(pending, STRAVA_ACTIVITY_CONCURRENCY, (candidate) =>
-    processStravaCandidate(athleteId, candidate),
+    processStravaCandidate(athleteId, candidate, timeZone),
   );
 
   for (const outcome of outcomes) {
@@ -478,13 +524,20 @@ export async function syncStravaActivities(athleteId: string): Promise<SyncResul
   };
   let fetched = 0;
   const seenStravaIds = new Set<string>();
+  const timeZone = await athleteTimeZone(athleteId);
 
   while (page <= 10) {
     const activities = await fetchActivities(accessToken, { after, page });
     if (!activities.length) {
       break;
     }
-    fetched += await processStravaActivityPage(athleteId, activities, seenStravaIds, counters);
+    fetched += await processStravaActivityPage(
+      athleteId,
+      activities,
+      seenStravaIds,
+      counters,
+      timeZone,
+    );
 
     if (activities.length < 100) {
       break;

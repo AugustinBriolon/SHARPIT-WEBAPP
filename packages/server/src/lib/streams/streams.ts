@@ -481,19 +481,42 @@ export async function persistStream(
 ): Promise<boolean> {
   const available = isSet(raw) && rawStreamsHaveSignal(raw);
   const stored = available && raw ? compactRawStreamsForStorage(raw) : null;
-  await prisma.activityStream.create({
-    data: {
+
+  if (!available) {
+    // Never write or overwrite with an unavailable stub — leave the row absent so a
+    // later provider can attach real series. Callers that need a stub use createStubStream.
+    return false;
+  }
+
+  await prisma.activityStream.upsert({
+    where: { activityId },
+    create: {
       activityId,
-      available,
-      data: stored ? (stored as unknown as object) : undefined,
+      available: true,
+      data: stored as unknown as object,
+    },
+    update: {
+      available: true,
+      data: stored as unknown as object,
     },
   });
 
-  if (available) {
-    await refreshSessionFeaturesAfterStream(athleteId, activityId);
-  }
+  await refreshSessionFeaturesAfterStream(athleteId, activityId);
+  return true;
+}
 
-  return available;
+/** Explicit unavailable marker (manual activities with no provider streams). */
+export async function createUnavailableStreamStub(activityId: string): Promise<void> {
+  const existing = await prisma.activityStream.findUnique({
+    where: { activityId },
+    select: { activityId: true },
+  });
+  if (existing) {
+    return;
+  }
+  await prisma.activityStream.create({
+    data: { activityId, available: false },
+  });
 }
 
 /** Features are often extracted before streams arrive — refresh SESSION once cached. */
@@ -560,7 +583,8 @@ async function loadCachedActivityStream(
     return buildPayload(activity.stream.data as unknown as RawStreams, activityCtx, profile);
   }
 
-  if (activity.garminId) {
+  // Garmin or Strava can replace an unavailable stub; delete and refetch.
+  if (activity.garminId || activity.stravaId) {
     await prisma.activityStream.delete({ where: { id: activity.stream.id } });
     return null;
   }
@@ -589,9 +613,7 @@ export async function getActivityStreams(
   }
 
   if (!activity.garminId && !activity.stravaId) {
-    await prisma.activityStream.create({
-      data: { activityId, available: false },
-    });
+    await createUnavailableStreamStub(activityId);
     return UNAVAILABLE;
   }
 

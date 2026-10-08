@@ -345,7 +345,10 @@ export function hasSubstantialLocalDescription(notes: string | null | undefined)
 }
 
 function isStravaLinkedActivity(activity: LinkedActivity): boolean {
-  return (activity.source === 'strava' || activity.source === 'both') && isSet(activity.stravaId);
+  const source = activity.source ?? '';
+  const fromStrava =
+    source === 'strava' || source === 'both' || source.split('+').includes('strava');
+  return fromStrava && isSet(activity.stravaId);
 }
 
 /** Description libre Strava (détail réel). Best-effort : ne lève jamais. */

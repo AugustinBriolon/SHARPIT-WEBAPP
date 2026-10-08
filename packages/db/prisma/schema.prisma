@@ -183,9 +183,11 @@ model Activity {
   athleteId String
   athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
 
-  source   String  @default("manual") // manual | garmin | strava | both
+  source   String  @default("manual") // manual | garmin | strava | apple-health | both | garmin+strava+apple-health | strava+apple-health | …
   stravaId String? @unique
   garminId String? @unique
+  /// HealthKit workout UUID — stable match when fingerprint is weak (STRENGTH).
+  appleHealthId String? @unique
 
   /// Jambes et transitions d'un multisport Garmin (natation, T1, vélo, T2, course…)
   multisportLegs Json?

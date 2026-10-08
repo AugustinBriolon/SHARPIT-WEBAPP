@@ -1,13 +1,20 @@
 import { ActivityType, Prisma } from '@prisma/client';
 import { z } from 'zod';
-import { findMatchingActivity } from '@sharpit/server/lib/activity/list/activity-dedup';
+import {
+  findMatchingActivity,
+  mergedSource,
+  sourceIncludes,
+} from '@sharpit/server/lib/activity/list/activity-dedup';
 import { fillMissingActivityUpdate } from '@sharpit/server/lib/activity/list/activity-fill-missing';
 import { loadActivityFillSnapshot } from '@sharpit/server/lib/activity/list/load-activity-fill-snapshot';
 import { prisma } from '@sharpit/db/client';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import { storedActivityToSession } from '@sharpit/server/lib/observation/activity-to-session';
 import { persistStream } from '@sharpit/server/lib/streams/streams';
-import type { RawStreams } from '@sharpit/server/lib/integrations/garmin/garmin-streams';
+import {
+  rawStreamsHaveSignal,
+  type RawStreams,
+} from '@sharpit/server/lib/integrations/garmin/garmin-streams';
 import { appleHealthWallClockStart } from './apple-health-time';
 
 const DEFAULT_ATHLETE_TIME_ZONE = 'Europe/Paris';
@@ -42,7 +49,7 @@ const streamSchema = z.object({
 });
 
 export const appleHealthWorkoutSchema = z.object({
-  /** HealthKit's workout UUID — logged, not stored: the fingerprint deduplicates. */
+  /** HealthKit's workout UUID — stored as `Activity.appleHealthId` for stable rematch. */
   id: z.string().min(1).max(64),
   type: z.enum(['RUN', 'BIKE', 'SWIM', 'STRENGTH', 'HIKE', 'OTHER']),
   title: z.string().max(120).nullish(),
@@ -142,6 +149,7 @@ export function appleHealthActivityData(
     title: workout.title ?? null,
     duration: workout.durationSec,
     source: 'apple-health',
+    appleHealthId: workout.id,
     ...metricsFor(workout),
   };
 }
@@ -187,11 +195,24 @@ function metricCreateToUpsert(
 export function appleHealthEnrichmentUpdate(
   workout: AppleHealthWorkout,
   timeZone: string,
+  existing?: {
+    source: string;
+    garminId: string | null;
+    stravaId: string | null;
+  },
 ): Prisma.ActivityUpdateInput {
   const created = appleHealthActivityData(workout, timeZone);
   const data: Prisma.ActivityUpdateInput = {
     title: created.title ?? undefined,
     duration: typeof created.duration === 'number' ? created.duration : undefined,
+    appleHealthId: workout.id,
+    source: existing
+      ? mergedSource(
+          Boolean(existing.garminId) || sourceIncludes(existing.source, 'garmin'),
+          Boolean(existing.stravaId) || sourceIncludes(existing.source, 'strava'),
+          true,
+        )
+      : 'apple-health',
   };
   const run = created.runMetrics as { create?: Record<string, unknown> } | undefined;
   const bike = created.bikeMetrics as { create?: Record<string, unknown> } | undefined;
@@ -237,21 +258,36 @@ export type AppleHealthWorkoutImport = {
 
 async function enrichMatchedAppleHealthWorkout(
   athleteId: string,
-  activityId: string,
+  match: {
+    id: string;
+    source: string;
+    garminId: string | null;
+    stravaId: string | null;
+  },
   workout: AppleHealthWorkout,
   timeZone: string,
-): Promise<void> {
-  const existing = await loadActivityFillSnapshot(activityId);
+): Promise<'enriched' | 'skipped'> {
+  const existing = await loadActivityFillSnapshot(match.id);
   if (!existing) {
-    return;
+    return 'skipped';
   }
-  const data = fillMissingActivityUpdate(existing, appleHealthEnrichmentUpdate(workout, timeZone));
+  const data = fillMissingActivityUpdate(
+    existing,
+    appleHealthEnrichmentUpdate(workout, timeZone, match),
+    { always: ['source', 'appleHealthId'] },
+  );
+  const raw = appleHealthRawStreams(workout);
+  const canWriteStream = Boolean(raw && rawStreamsHaveSignal(raw) && !existing.hasStream);
+  if (Object.keys(data).length === 0 && !canWriteStream) {
+    return 'skipped';
+  }
   if (Object.keys(data).length > 0) {
-    await prisma.activity.update({ where: { id: activityId }, data });
+    await prisma.activity.update({ where: { id: match.id }, data });
   }
-  if (!existing.hasStream) {
-    await persistStream(athleteId, activityId, appleHealthRawStreams(workout));
+  if (canWriteStream) {
+    await persistStream(athleteId, match.id, raw);
   }
+  return 'enriched';
 }
 
 async function importOne(
@@ -265,9 +301,13 @@ async function importOne(
     date: data.date as Date,
     duration: workout.durationSec,
     distanceM: workout.distanceM ?? null,
+    appleHealthId: workout.id,
   });
   if (match) {
-    await enrichMatchedAppleHealthWorkout(athleteId, match.id, workout, timeZone);
+    const outcome = await enrichMatchedAppleHealthWorkout(athleteId, match, workout, timeZone);
+    if (outcome === 'skipped') {
+      return { kind: 'skipped' };
+    }
     return { kind: 'enriched', activityId: match.id };
   }
 
@@ -282,8 +322,11 @@ async function importOne(
   if (session) {
     await observationEngine.ingest(athleteId, session);
   }
-  // After the session: storing the streams re-extracts its features from them.
-  await persistStream(athleteId, created.id, appleHealthRawStreams(workout));
+  // After the session: only persist when there is usable signal (no forever stubs).
+  const raw = appleHealthRawStreams(workout);
+  if (raw && rawStreamsHaveSignal(raw)) {
+    await persistStream(athleteId, created.id, raw);
+  }
   return { kind: 'created', activityId: created.id };
 }
 

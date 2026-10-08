@@ -275,13 +275,14 @@ async function mergeGarminActivityMatch(
 
   await prisma.activity.update({
     where: { id: match.id },
-    data: garminEnrichmentUpdate(activity, evaluation, type, match.stravaId),
+    data: garminEnrichmentUpdate(activity, evaluation, type, match.stravaId, match.source),
   });
   await backfillStrengthSets(match.id, strengthSets);
-  await prisma.activityStream.deleteMany({ where: { activityId: match.id } });
-  // A session first sent by Apple Health went to the Core without a provider id; Garmin's own
-  // session replaces it, so the day's load is not counted twice (ADR-054).
-  if (match.source === 'apple-health') {
+  // Do not delete streams here — a failed Garmin fetch would leave the row without series.
+  // getActivityStreams retries when garminId is set and replaces stubs / older series on demand.
+  // A session first sent by Apple Health (or merged Strava onto AH) went to the Core without a
+  // provider id; Garmin's own session replaces it, so the day's load is not counted twice (ADR-054).
+  if (!match.garminId) {
     await removeManualActivityObservations(athleteId, match.id);
   }
   await ingestGarminActivity(athleteId, activity, evaluation, new Date());

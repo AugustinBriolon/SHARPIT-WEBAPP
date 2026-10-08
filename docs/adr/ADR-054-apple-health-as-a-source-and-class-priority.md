@@ -36,8 +36,13 @@ per category.
    (no longer only without Garmin). A session another source already holds is matched by fingerprint
    and **enriched** (fill blank scalars, metrics, streams) — never duplicated. Sync order prefers
    Garmin › Strava › Apple Health as the primary row; secondary providers only fill missing fields.
-   When Garmin later brings a session first sent by Apple Health, it merges into it and the Apple
-   session observation is removed, so the day's load is not counted twice.
+   Fingerprints use **wall-clock-as-UTC** for Strava (`start_date_local`), Apple Health, and Garmin
+   so App Store athletes (Strava + Apple Health) do not get duplicate rows from timezone offset.
+   `Activity.source` carries multi-provider provenance (`strava+apple-health`, `both`, …).
+   When Strava or Garmin merges onto a row that first wrote a **manual** Core SESSION (Apple Health),
+   that manual observation is removed before the provider session is ingested — including when
+   `source` has already become `strava` after an earlier merge — so the day's load is not counted
+   twice. Stream stubs (`available: false`) do not block a later provider from writing usable series.
 5. **Reads** of the day rows need any source enabled for `wearable_health`, not Garmin specifically.
 6. The native app reads and writes the prefs through `/api/v1/integrations/source-prefs`, whose GET
    also lists each class with the providers that can feed it.

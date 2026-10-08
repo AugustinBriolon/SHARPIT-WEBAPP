@@ -6,7 +6,7 @@ import {
   garminFeelLabel,
   garminRpeToScale,
 } from '@sharpit/server/lib/integrations/garmin/garmin-feel';
-import { mergedSource } from '@sharpit/server/lib/activity/list/activity-dedup';
+import { mergedSource, sourceIncludes } from '@sharpit/server/lib/activity/list/activity-dedup';
 import { resolveGarminExerciseLabel } from '@sharpit/server/lib/integrations/garmin/garmin-exercise-labels';
 
 type GCClient = InstanceType<typeof GarminConnect>;
@@ -800,19 +800,24 @@ export function buildGarminActivityData(
   return base;
 }
 
-/** Enrichit une activité existante (souvent importée Strava) avec les données Garmin. */
+/** Enrichit une activité existante (souvent importée Strava / Apple Santé) avec les données Garmin. */
 export function garminEnrichmentUpdate(
   activity: IActivity,
   evaluation: GarminActivityEvaluation,
   type: ActivityType,
   existingStravaId: string | null,
+  existingSource = '',
 ): Prisma.ActivityUpdateInput {
   const duration = garminSessionDurationSec(activity, type);
   const load = garminTrainingStressScore(activity);
 
   const data: Prisma.ActivityUpdateInput = {
     garminId: String(activity.activityId),
-    source: mergedSource(true, Boolean(existingStravaId)),
+    source: mergedSource(
+      true,
+      Boolean(existingStravaId),
+      sourceIncludes(existingSource, 'apple-health'),
+    ),
     title: activity.activityName || undefined,
     duration: duration ?? undefined,
     load: load ?? undefined,

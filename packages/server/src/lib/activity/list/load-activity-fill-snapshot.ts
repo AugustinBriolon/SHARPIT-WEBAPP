@@ -19,7 +19,7 @@ export async function loadActivityFillSnapshot(
       bikeMetrics: true,
       swimMetrics: true,
       hikeMetrics: true,
-      stream: { select: { activityId: true } },
+      stream: { select: { activityId: true, available: true } },
     },
   });
   if (!row) {
@@ -37,6 +37,7 @@ export async function loadActivityFillSnapshot(
     bikeMetrics: row.bikeMetrics,
     swimMetrics: row.swimMetrics,
     hikeMetrics: row.hikeMetrics,
-    hasStream: Boolean(row.stream),
+    // Stubs (`available: false`) must not block a later provider from writing real series.
+    hasStream: row.stream?.available === true,
   };
 }

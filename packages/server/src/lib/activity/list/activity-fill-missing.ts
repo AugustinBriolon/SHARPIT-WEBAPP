@@ -49,7 +49,7 @@ export function fillMissingMetricUpdate(
   }
   const filled: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(update)) {
-    if (value === undefined) {
+    if (value === undefined || isBlankActivityValue(value)) {
       continue;
     }
     if (isBlankActivityValue(existing[key])) {
