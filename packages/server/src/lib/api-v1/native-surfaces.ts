@@ -88,6 +88,7 @@ export const NATIVE_V1_ONLY = [
   { path: 'health-samples', methods: ['POST'] },
   { path: 'health-workouts', methods: ['POST'] },
   { path: 'apple-health/link', methods: ['POST'] },
+  { path: 'apple-calendar/link', methods: ['POST'] },
   { path: 'push/device-token', methods: ['POST', 'DELETE'] },
   { path: 'push/test', methods: ['POST'] },
   { path: 'body/overview', methods: ['GET'] },

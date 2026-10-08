@@ -346,6 +346,8 @@ model AthleteProfile {
   featurePrefs Json?
   /// Apple Health linked from the iPhone app — its « connection », there being no account (ADR-054).
   appleHealthLinkedAt DateTime?
+  /// Apple Calendar linked from the iPhone app — EventKit peer to Google Agenda (no OAuth account).
+  appleCalendarLinkedAt DateTime?
 
   /// Date (YYYY-MM-DD) of the last morning verdict push sent to this athlete.
   /// Prevents duplicate morning pushes across cron runs (silence over noise).
