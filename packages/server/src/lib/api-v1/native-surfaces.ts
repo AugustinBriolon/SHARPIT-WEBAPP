@@ -60,6 +60,8 @@ export const NATIVE_V1_SURFACES = [
   { path: 'withings/disconnect', methods: ['POST'] },
   { path: 'strava/disconnect', methods: ['POST'] },
   { path: 'google/disconnect', methods: ['POST'] },
+  { path: 'google/calendars', methods: ['GET'] },
+  { path: 'google/select-calendar', methods: ['POST'] },
   { path: 'privacy/consent', methods: ['GET', 'POST'] },
   { path: 'privacy/delete', methods: ['POST'] },
   { path: 'privacy/export', methods: ['GET'] },
