@@ -16,7 +16,7 @@ export async function loadConnectedIntegrationIds(athleteId: string): Promise<In
     prisma.googleAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.athleteProfile.findUnique({
       where: { id: athleteId },
-      select: { appleHealthLinkedAt: true },
+      select: { appleHealthLinkedAt: true, appleCalendarLinkedAt: true },
     }),
   ]);
 
@@ -39,6 +39,9 @@ export async function loadConnectedIntegrationIds(athleteId: string): Promise<In
   }
   if (profile?.appleHealthLinkedAt) {
     ids.push('apple-health');
+  }
+  if (profile?.appleCalendarLinkedAt) {
+    ids.push('apple-calendar');
   }
   return ids;
 }

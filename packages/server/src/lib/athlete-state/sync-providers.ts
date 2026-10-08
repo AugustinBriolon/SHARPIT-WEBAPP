@@ -12,9 +12,14 @@ import {
   syncGarminHealth,
 } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import {
+  googleCalendarGateFromPrefs,
+  shouldSyncGoogleCalendarWrites,
+} from '@sharpit/server/lib/cron/provider-sync-gates';
+import {
   getGoogleAccount,
   syncFromGoogle,
 } from '@sharpit/server/lib/integrations/google/google-sync';
+import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
 import {
   getRenphoAccount,
   syncRenphoHealth,
@@ -130,8 +135,18 @@ async function syncWithingsProvider(athleteId: string): Promise<ProviderSyncResu
 }
 
 async function syncGoogleProvider(athleteId: string): Promise<ProviderSyncResult | null> {
-  const account = await getGoogleAccount(athleteId);
-  if (!account?.targetCalendarId) {
+  const [account, prefs] = await Promise.all([
+    getGoogleAccount(athleteId),
+    loadResolvedSourcePrefs(athleteId),
+  ]);
+  const calendarGate = googleCalendarGateFromPrefs(prefs);
+  if (
+    !shouldSyncGoogleCalendarWrites({
+      connected: isOAuthAccountConnected(account) && Boolean(account?.targetCalendarId),
+      targetCalendarId: account?.targetCalendarId,
+      ...calendarGate,
+    })
+  ) {
     return null;
   }
   const google = await syncFromGoogle(athleteId);

@@ -55,7 +55,9 @@ export type IntegrationId =
   /** In-app food log — always available, no OAuth account (ADR-061). */
   | 'sharpit'
   /** Linked from the iPhone app (no account to connect here); see ADR-043 and ADR-054. */
-  | 'apple-health';
+  | 'apple-health'
+  /** EventKit calendar — linked from the iPhone app only. */
+  | 'apple-calendar';
 
 async function parseJson<T>(response: Response, fallbackError: string): Promise<T> {
   const text = await response.text().catch(() => '');

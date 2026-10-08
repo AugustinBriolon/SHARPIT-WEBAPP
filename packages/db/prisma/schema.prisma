@@ -346,6 +346,8 @@ model AthleteProfile {
   featurePrefs Json?
   /// Apple Health linked from the iPhone app — its « connection », there being no account (ADR-054).
   appleHealthLinkedAt DateTime?
+  /// Apple Calendar linked from the iPhone app — EventKit peer to Google Agenda (no OAuth account).
+  appleCalendarLinkedAt DateTime?
 
   /// Date (YYYY-MM-DD) of the last morning verdict push sent to this athlete.
   /// Prevents duplicate morning pushes across cron runs (silence over noise).
@@ -393,6 +395,7 @@ model AthleteProfile {
   renphoAccount               RenphoAccount?
   withingsAccount             WithingsAccount?
   myFitnessPalAccount         MyFitnessPalAccount?
+  calendarBusySnapshots       CalendarBusySnapshot[]
   foodLogEntries              FoodLogEntry[]
   customFoods                 FoodProduct[]
   savedMeals                  SavedMeal[]
@@ -410,6 +413,21 @@ model AthleteProfile {
   updatedAt DateTime @updatedAt
 
   @@index([deletedAt])
+}
+
+/// Latest busy intervals uploaded from a calendar provider (e.g. Apple EventKit on device).
+model CalendarBusySnapshot {
+  id        String         @id @default(cuid())
+  athleteId String
+  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  /// Integration id, e.g. `apple-calendar`.
+  provider  String
+  /// Array of `{ start: ISO8601, end: ISO8601 }`.
+  intervals Json
+  updatedAt DateTime       @updatedAt
+
+  @@unique([athleteId, provider])
+  @@index([athleteId])
 }
 
 /// APNs device token registered by the native iOS client (SHARPIT-APP).

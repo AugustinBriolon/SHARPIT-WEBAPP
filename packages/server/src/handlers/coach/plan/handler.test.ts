@@ -37,6 +37,13 @@ vi.mock('@sharpit/server/lib/integrations/google/google-sync', () => ({
   getGoogleAccount: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('@sharpit/server/lib/integrations/source-prefs-store', async () => {
+  const { emptySourcePrefs } = await import('@sharpit/app/lib/integrations/source-prefs');
+  return {
+    loadResolvedSourcePrefs: vi.fn().mockResolvedValue(emptySourcePrefs()),
+  };
+});
+
 vi.mock('@sharpit/server/lib/queries', () => ({
   getGoalById: vi.fn().mockResolvedValue(null),
   getActivitiesList: vi.fn().mockResolvedValue([]),

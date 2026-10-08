@@ -10,6 +10,7 @@ const LOGO_PATHS: Record<Exclude<IntegrationId, 'sharpit'>, string> = {
   renpho: '/images/renpho.png',
   google: '/images/googleagenda.png',
   'apple-health': '/images/applehealth.svg',
+  'apple-calendar': '/images/applehealth.svg',
 };
 
 export function IntegrationLogo({ id, className }: { id: IntegrationId; className?: string }) {

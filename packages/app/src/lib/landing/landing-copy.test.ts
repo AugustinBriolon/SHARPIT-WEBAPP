@@ -13,9 +13,6 @@ import {
 
 const GATE_RULES_DIR = path.resolve(__dirname, '../../../../server/src/lib/plan-gate/rules');
 
-/** The landing's names for catalog entries the athlete knows under another name. */
-const CATALOG_NAME: Record<string, string> = { 'Google Agenda': 'Google Calendar' };
-
 /** Linked from the iPhone app only, which the web catalog marks as coming soon (ADR-054). */
 const LINKED_IN_APP = new Set(['Apple Santé']);
 
@@ -62,7 +59,7 @@ describe('landing copy', () => {
       PROVIDER_CATALOG.filter((provider) => provider.status === 'available').map((p) => p.name),
     );
     for (const name of LANDING_SOURCES.connected.filter((n) => !LINKED_IN_APP.has(n))) {
-      expect(available, name).toContain(CATALOG_NAME[name] ?? name);
+      expect(available, name).toContain(name);
     }
     for (const name of LANDING_SOURCES.upcoming) {
       expect(available, name).not.toContain(name);

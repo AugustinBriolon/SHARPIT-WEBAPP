@@ -18,6 +18,15 @@ import {
   type BusyInterval,
 } from '@sharpit/server/lib/integrations/google/google';
 
+import {
+  googleCalendarGateFromPrefs,
+  shouldSyncGoogleCalendarFreeBusy,
+  shouldSyncGoogleCalendarWrites,
+} from '@sharpit/server/lib/cron/provider-sync-gates';
+import { resolveAthleteCalendarTimeZone } from '@sharpit/server/lib/integrations/apple-calendar/athlete-calendar-time-zone';
+import { loadAppleCalendarBusy } from '@sharpit/server/lib/integrations/apple-calendar/calendar-busy-snapshot';
+import { mergeBusyIntervals } from '@sharpit/server/lib/integrations/google/merge-busy-intervals';
+import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
 import { syncSinceFromLastSync } from '@sharpit/server/lib/integrations/shared/sync-since';
 import {
   isDecryptMalformedSoftFailure,
@@ -46,6 +55,19 @@ const TYPE_LABELS: Record<string, string> = {
 
 export async function getGoogleAccount(athleteId: string) {
   return prisma.googleAccount.findUnique({ where: { athleteId } });
+}
+
+async function athleteMayWriteGoogleCalendar(athleteId: string): Promise<boolean> {
+  const [account, prefs] = await Promise.all([
+    getGoogleAccount(athleteId),
+    loadResolvedSourcePrefs(athleteId),
+  ]);
+  const calendarGate = googleCalendarGateFromPrefs(prefs);
+  return shouldSyncGoogleCalendarWrites({
+    connected: isOAuthAccountConnected(account) && Boolean(account?.targetCalendarId),
+    targetCalendarId: account?.targetCalendarId,
+    ...calendarGate,
+  });
 }
 
 /** Both OAuth blobs must look like live ciphertext — same bar as Strava/Withings. */
@@ -249,6 +271,7 @@ interface PushResult {
 }
 
 async function resolvePushStartTime(input: {
+  athleteId: string;
   token: string;
   account: NonNullable<Awaited<ReturnType<typeof getGoogleAccount>>>;
   session: PlannedSession;
@@ -267,7 +290,17 @@ async function resolvePushStartTime(input: {
   } catch {
     calendarIds = [input.account.targetCalendarId!];
   }
-  const busy = await getFreeBusy(input.token, start, end, calendarIds);
+  const googleBusy = await getFreeBusy(input.token, start, end, calendarIds);
+  const prefs = await loadResolvedSourcePrefs(input.athleteId);
+  const calendarGate = googleCalendarGateFromPrefs(prefs);
+  const appleBusy = calendarGate.calendarEnabled.includes('apple-calendar')
+    ? (await loadAppleCalendarBusy(input.athleteId)).filter((b) => {
+        const s = new Date(b.start);
+        const e = new Date(b.end);
+        return e > start && s < end;
+      })
+    : [];
+  const busy = mergeBusyIntervals([...googleBusy, ...appleBusy]);
   return findFreeSlot(input.dayKey, input.duration, busy, input.account.timeZone) ?? '07:00';
 }
 
@@ -303,12 +336,16 @@ export async function pushSessionToGoogle(session: PlannedSession): Promise<Push
   if (!account.targetCalendarId) {
     return { synced: false, reason: 'no_target_calendar' };
   }
+  if (!(await athleteMayWriteGoogleCalendar(athleteId))) {
+    return { synced: false, reason: 'not_calendar_primary' };
+  }
 
   const token = await getValidAccessToken(athleteId);
   const { timeZone } = account;
   const duration = session.durationMin ?? DEFAULT_DURATION_MIN;
   const dayKey = dayKeyFromDate(session.date);
   const startTime = await resolvePushStartTime({
+    athleteId,
     token,
     account,
     session,
@@ -368,6 +405,9 @@ export async function deleteSessionFromGoogle(
   }
   const account = await getGoogleAccount(session.athleteId);
   if (!account?.targetCalendarId) {
+    return;
+  }
+  if (!(await athleteMayWriteGoogleCalendar(session.athleteId))) {
     return;
   }
   const token = await getValidAccessToken(session.athleteId);
@@ -498,6 +538,9 @@ export async function syncFromGoogle(athleteId: string): Promise<GooglePullResul
   const account = await getGoogleAccount(athleteId);
   if (!account?.targetCalendarId) {
     throw new Error('Aucun calendrier cible sélectionné');
+  }
+  if (!(await athleteMayWriteGoogleCalendar(athleteId))) {
+    return { pushed: 0, updated: 0, unlinked: 0 };
   }
   const token = await getValidAccessToken(athleteId);
   const now = new Date();
@@ -642,33 +685,72 @@ export async function getCalendarEvents(
   return results;
 }
 
-/** Intervalles occupés à venir, résumés pour le contexte du coach. */
-export async function getUpcomingBusy(
-  athleteId: string,
-  days = 21,
-): Promise<Array<{ dayKey: string; start: string; end: string }>> {
-  const account = await getGoogleAccount(athleteId);
-  if (!account) {
-    return [];
-  }
-  const token = await validAccessTokenFor(athleteId, account);
+function busyIntervalsInWindow(
+  intervals: BusyInterval[],
+  windowStart: Date,
+  windowEnd: Date,
+): BusyInterval[] {
+  return intervals.filter((b) => {
+    const start = new Date(b.start);
+    const end = new Date(b.end);
+    return end > windowStart && start < windowEnd;
+  });
+}
 
-  const now = new Date();
-  const to = new Date(now.getTime() + days * 86400_000);
-  let calendarIds: string[] = [];
-  try {
-    calendarIds = await readableCalendarIds(athleteId, token);
-  } catch {
-    return [];
-  }
-  const busy = await getFreeBusy(token, now, to, calendarIds);
+function formatBusyForCoach(
+  busy: BusyInterval[],
+  timeZone: string,
+): Array<{ dayKey: string; start: string; end: string }> {
   return busy.map((b) => {
-    const s = zonedDayAndMinutes(new Date(b.start), account.timeZone);
-    const e = zonedDayAndMinutes(new Date(b.end), account.timeZone);
+    const s = zonedDayAndMinutes(new Date(b.start), timeZone);
+    const e = zonedDayAndMinutes(new Date(b.end), timeZone);
     return {
       dayKey: s.dayKey,
       start: minutesToHHmm(s.minutes),
       end: e.dayKey === s.dayKey ? minutesToHHmm(e.minutes) : '24:00',
     };
   });
+}
+
+/** Intervalles occupés à venir, résumés pour le contexte du coach. */
+export async function getUpcomingBusy(
+  athleteId: string,
+  days = 21,
+): Promise<Array<{ dayKey: string; start: string; end: string }>> {
+  const [account, prefs, timeZone] = await Promise.all([
+    getGoogleAccount(athleteId),
+    loadResolvedSourcePrefs(athleteId),
+    resolveAthleteCalendarTimeZone(athleteId),
+  ]);
+  const calendarGate = googleCalendarGateFromPrefs(prefs);
+
+  const now = new Date();
+  const to = new Date(now.getTime() + days * 86400_000);
+  const parts: BusyInterval[] = [];
+
+  if (
+    account &&
+    shouldSyncGoogleCalendarFreeBusy({
+      connected: isOAuthAccountConnected(account),
+      calendarEnabled: calendarGate.calendarEnabled,
+    })
+  ) {
+    try {
+      const token = await validAccessTokenFor(athleteId, account);
+      const calendarIds = await readableCalendarIds(athleteId, token);
+      parts.push(...(await getFreeBusy(token, now, to, calendarIds)));
+    } catch {
+      // Google outage: still surface uploaded Apple busy below.
+    }
+  }
+
+  if (calendarGate.calendarEnabled.includes('apple-calendar')) {
+    parts.push(...busyIntervalsInWindow(await loadAppleCalendarBusy(athleteId), now, to));
+  }
+
+  if (parts.length === 0) {
+    return [];
+  }
+
+  return formatBusyForCoach(mergeBusyIntervals(parts), timeZone);
 }

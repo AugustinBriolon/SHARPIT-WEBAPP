@@ -2,9 +2,16 @@ import { tool } from 'ai';
 import { addDays, startOfDay } from 'date-fns';
 import { z } from 'zod';
 import {
+  googleCalendarGateFromPrefs,
+  shouldLoadCalendarBusyBlocks,
+} from '@sharpit/server/lib/cron/provider-sync-gates';
+import { resolveAthleteCalendarTimeZone } from '@sharpit/server/lib/integrations/apple-calendar/athlete-calendar-time-zone';
+import {
   getGoogleAccount,
   getUpcomingBusy,
 } from '@sharpit/server/lib/integrations/google/google-sync';
+import { isOAuthAccountConnected } from '@sharpit/server/lib/integrations/shared/connection-status';
+import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
 import { getPlannedSessions } from '@sharpit/server/lib/queries';
 import { dayKeyFromDate } from '@sharpit/app/lib/date/day-key';
 import { suggestGarminTaxonomy } from '@sharpit/app/lib/integrations/garmin/garmin-exercise-taxonomy';
@@ -106,24 +113,33 @@ function buildSearchWatchExercisesTool() {
 function buildGetCalendarAvailabilityTool(athleteId: string) {
   return tool({
     description:
-      "Liste les créneaux OCCUPÉS de l'agenda Google de l'athlète (tous calendriers confondus) sur les prochains jours, pour placer les séances sur des créneaux libres. À appeler avant de proposer des horaires précis. Renvoie une liste vide si Google Calendar n'est pas connecté.",
+      "Liste les créneaux OCCUPÉS de l'agenda (Google et/ou Apple selon les intégrations actives) sur les prochains jours, pour placer les séances sur des créneaux libres. À appeler avant de proposer des horaires précis. Renvoie connected:false si aucun calendrier n'est actif.",
     inputSchema: z.object({
       days: z.number().int().min(1).max(30).optional().describe('Horizon en jours (défaut 14).'),
     }),
     execute: async ({ days = 14 }) => {
-      const account = await getGoogleAccount(athleteId);
-      if (!account) {
+      const [account, prefs, timeZone] = await Promise.all([
+        getGoogleAccount(athleteId),
+        loadResolvedSourcePrefs(athleteId),
+        resolveAthleteCalendarTimeZone(athleteId),
+      ]);
+      const calendarGate = googleCalendarGateFromPrefs(prefs);
+      const connected = shouldLoadCalendarBusyBlocks({
+        googleOAuthConnected: isOAuthAccountConnected(account),
+        calendarEnabled: calendarGate.calendarEnabled,
+      });
+      if (!connected) {
         return { connected: false as const, busy: [] };
       }
       try {
         const busy = await getUpcomingBusy(athleteId, days);
         return {
           connected: true as const,
-          timeZone: account.timeZone,
+          timeZone,
           busy,
         };
       } catch (error) {
-        console.error('Lecture agenda Google échouée', error);
+        console.error('Lecture agenda échouée', error);
         return { connected: true as const, busy: [], error: 'fetch_failed' };
       }
     },

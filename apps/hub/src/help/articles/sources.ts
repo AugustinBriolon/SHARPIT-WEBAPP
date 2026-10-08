@@ -4,14 +4,14 @@ export const SOURCES: HelpCategory = {
   slug: 'sources',
   title: 'Sources connectées',
   description:
-    'Garmin, Strava, Apple Santé, Withings et Google Agenda : les connecter, choisir qui fait foi, les déconnecter.',
+    'Garmin, Strava, Apple Santé, Withings, Google Agenda et Calendrier Apple : les connecter, choisir qui fait foi, les déconnecter.',
   icon: 'sources',
   articles: [
     {
       slug: 'quelles-sources',
       title: 'Quelles sources sont prises en charge ?',
       summary:
-        'Garmin, Strava, Apple Santé, Withings et Google Agenda se connectent. La nutrition se note dans SharpIt ; Apple Santé pourra aussi y écrire.',
+        'Garmin, Strava, Apple Santé, Withings, Google Agenda et Calendrier Apple se connectent. La nutrition se note dans SharpIt ; Apple Santé pourra aussi y écrire.',
       body: `
 | Source | Ce qu’elle apporte | Où la connecter |
 | --- | --- | --- |
@@ -19,7 +19,8 @@ export const SOURCES: HelpCategory = {
 | [Strava](/aide/sources/strava) | Séances et activités outdoor | Le carnet web |
 | [Apple Santé](/aide/sources/apple-sante) | Nuits, VFC, fréquence cardiaque au repos, séances ; écrit aussi nutrition et poids notés dans SharpIt | L’app iPhone |
 | [Withings](/aide/sources/withings) | Poids et composition corporelle | Le carnet web |
-| [Google Agenda](/aide/sources/google-agenda) | Tes créneaux occupés, pour placer les séances | Le carnet web |
+| [Google Agenda](/aide/sources/google-agenda) | Créneaux occupés ; avec Pro, écriture des séances si c’est la source principale Agenda | Carnet web (connexion) ; app iPhone (calendrier d’écriture) |
+| [Calendrier Apple](/aide/sources/calendrier-apple) | Créneaux occupés depuis ton iPhone ; avec Pro, écriture des séances si c’est la source principale Agenda | L’app iPhone |
 | Journal SharpIt | Repas notés dans l’app (recherche, scan, recettes) | L’app iPhone |
 
 **Bientôt** : Polar.
@@ -118,19 +119,48 @@ Poids, masse grasse, graisse viscérale, muscle, dans **Santé › Corps**. Les 
       slug: 'google-agenda',
       title: 'Connecter Google Agenda',
       summary:
-        'Google Agenda se connecte depuis le carnet web. Le coach voit tes créneaux occupés pour ne pas placer une séance en conflit.',
+        'Google Agenda se connecte depuis le carnet web. Tes créneaux occupés alimentent le coach ; avec Pro, SharpIt peut aussi y écrire tes séances si tu le mets source principale Agenda.',
       body: `
 ### Le connecter
 
 Sur [web.sharpit.app](https://web.sharpit.app), **Compte › Sources › Google Agenda**, puis autorise SharpIt chez Google.
 
+Dans l’app iPhone, **Paramètres › Sources de données › Priorités › Agenda**, choisis le **calendrier d’écriture** Google si tu l’utilises comme source principale.
+
 ### Ce que ça change
 
-Un [garde-fou](/aide/plan/garde-fous) vérifie qu’aucune séance proposée n’entre en conflit avec ton agenda.
+Un [garde-fou](/aide/plan/garde-fous) vérifie qu’aucune séance proposée n’entre en conflit avec ton agenda, dès que Google Agenda est activé pour la catégorie Agenda.
 
-### Dans l’autre sens
+### Écrire tes séances (Pro)
 
-Pour voir tes séances dans le calendrier de ton iPhone, voir [Calendrier de l’iPhone](/aide/compte/calendrier-iphone).
+Avec [SharpIt Pro](/aide/compte/sharpit-pro), SharpIt **écrit et suit** tes séances planifiées dans le calendrier Google choisi **seulement** si Google Agenda est ta [source principale](/aide/sources/source-principale) pour **Agenda**. Si [Calendrier Apple](/aide/sources/calendrier-apple) est principal, Google reste utile pour tes créneaux occupés, sans double écriture.
+
+### Avec Calendrier Apple
+
+Tu peux activer les deux : une seule source principale écrit ; l’autre contribue aux créneaux occupés. Voir [Calendrier Apple](/aide/sources/calendrier-apple).
+`,
+    },
+    {
+      slug: 'calendrier-apple',
+      title: 'Connecter Calendrier Apple',
+      summary:
+        'Calendrier Apple se connecte depuis l’app iPhone. Tes événements locaux alimentent le coach ; avec Pro, SharpIt peut y écrire tes séances si tu le mets source principale Agenda.',
+      body: `
+### Le connecter
+
+**Paramètres › Sources de données › Calendrier Apple**, autorise l’accès au calendrier iOS, puis règle **Priorités › Agenda** : active la source, choisis-la comme principale si tu veux que SharpIt y écrive, et sélectionne le **calendrier d’écriture** (par défaut un calendrier « SharpIt »).
+
+### Ce que ça change
+
+SharpIt envoie tes créneaux occupés lus sur l’iPhone pour le coach et les [garde-fous](/aide/plan/garde-fous), même si Google Agenda est aussi connecté.
+
+### Écrire tes séances (Pro)
+
+Avec [SharpIt Pro](/aide/compte/sharpit-pro), quand Calendrier Apple est **source principale Agenda**, SharpIt crée et met à jour tes séances dans le calendrier choisi. Si tu déplaces ou supprimes un événement SharpIt dans Calendrier, le plan suit au prochain sync.
+
+### Avec Google Agenda
+
+Les deux peuvent rester activés : **une seule** source principale écrit ; l’autre ne fait que signaler les créneaux occupés. Changer de principale laisse les anciens événements dans l’ancien calendrier ; SharpIt n’y touche plus.
 `,
     },
     {
@@ -143,7 +173,9 @@ Ouvre **Paramètres › Sources de données › Priorités par catégorie**.
 
 ### Par catégorie de données
 
-Pour chaque catégorie (séances, sommeil, corps…), active ou désactive chaque source connectée, et choisis celle qui fait foi.
+Pour chaque catégorie (séances, sommeil, corps, **agenda**…), active ou désactive chaque source connectée, et choisis celle qui fait foi.
+
+Pour **Agenda**, la source principale est la seule qui **écrit** tes séances planifiées dans un calendrier externe (Pro). Les autres sources connectées peuvent quand même indiquer tes créneaux occupés au coach.
 
 ### Par défaut
 
