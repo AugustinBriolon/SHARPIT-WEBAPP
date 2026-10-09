@@ -9,8 +9,20 @@ import { coachToolFailure } from './coach-tools-shared';
  * 0…1000. Grams match entry create (`positive`…5000).
  */
 const foodLogItemSchema = z.object({
-  name: z.string().trim().min(1).max(120).describe('Nom court de l’aliment en français.'),
-  grams: z.number().finite().positive().max(5_000).describe('Portion estimée en grammes.'),
+  name: z
+    .string()
+    .trim()
+    .min(1)
+    .max(120)
+    .describe('Nom court de l’aliment en français, tel que l’athlète le décrit (ex. frites).'),
+  grams: z
+    .number()
+    .finite()
+    .positive()
+    .max(5_000)
+    .describe(
+      'Portion en grammes. Si l’athlète donne une quantité (ex. 100 g), utilise EXACTEMENT cette valeur ; sinon estime.',
+    ),
   kcalPer100g: z
     .number()
     .finite()
@@ -23,11 +35,15 @@ const foodLogItemSchema = z.object({
 });
 
 export const logFoodsInputSchema = z.object({
-  date: z.string().describe('Jour du journal au format yyyy-MM-dd (souvent aujourd’hui).'),
+  date: z
+    .string()
+    .describe(
+      'Jour du journal yyyy-MM-dd. Calcule depuis la date ISO du contexte : « hier » = veille, « avant-hier » = J-2, date citée = ce jour. Ne mets JAMAIS aujourd’hui si l’athlète parle d’un autre jour.',
+    ),
   meal: z
     .enum(FOOD_MEALS)
     .describe(
-      'Repas cible : BREAKFAST, LUNCH, DINNER ou SNACKS. Pré-remplis selon l’heure ou ce que dit l’athlète.',
+      'Repas cible : petit-déj → BREAKFAST, déjeuner → LUNCH, dîner/diner → DINNER, collation/snack → SNACKS ; sinon selon l’heure.',
     ),
   items: z
     .array(foodLogItemSchema)
@@ -42,7 +58,7 @@ export type LogFoodsInput = z.infer<typeof logFoodsInputSchema>;
 export function buildLogFoodsTool(athleteId: string) {
   return tool({
     description:
-      'Ajoute un ou plusieurs aliments au journal alimentaire SharpIt (un repas). À utiliser quand l’athlète demande d’enregistrer ce qu’il a mangé ou veut ajouter des aliments. Une carte propose le repas et les grammes : l’athlète peut les ajuster avant de valider. Ne pas inventer de produits hors de ce qu’il décrit.',
+      'Ajoute un ou plusieurs aliments au journal alimentaire SharpIt (un repas, aujourd’hui ou un jour passé). Respecte le jour (hier / date), le repas et les grammes donnés par l’athlète. Une carte propose le repas et les grammes : l’athlète peut les ajuster avant de valider (pas la date). Ne pas inventer de produits hors de ce qu’il décrit.',
     inputSchema: logFoodsInputSchema,
     execute: async (input, { toolCallId }) => {
       try {

@@ -623,7 +623,8 @@ function assembleCoachProfileSections(
   const health = buildHealthFromEntries(healthEntries);
   const { primaryRace, races, metricGoals } = buildGoalsContext(goals, today);
   return {
-    today: format(today, 'EEEE d MMMM yyyy', { locale: fr }),
+    // ISO in parentheses so tools like logFoods can resolve « hier » / relative days precisely.
+    today: `${format(today, 'EEEE d MMMM yyyy', { locale: fr })} (${dayKeyFromDate(today)})`,
     note: coachProfileNote(profile),
     ...coachProfileInventories(profile),
     profile: buildCoachProfile(profile),

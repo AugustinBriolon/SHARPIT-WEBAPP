@@ -50,7 +50,7 @@ function baseDecision(overrides: Partial<CoachContext['decision']> = {}): CoachC
 
 function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
   return {
-    today: 'lundi 10 août 2026',
+    today: 'lundi 10 août 2026 (2026-08-10)',
     note: null,
     equipment: normalizeAthleteEquipment(null),
     practicedSports: ['run', 'bike', 'swim', 'triathlon'],
