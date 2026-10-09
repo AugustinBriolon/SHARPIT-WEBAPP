@@ -4,6 +4,7 @@ import { Prisma } from '@prisma/client';
 const resolveDescribedName = vi.hoisted(() => vi.fn());
 const resolveFoodLogEntryCreateData = vi.hoisted(() => vi.fn());
 const recomputeFoodLogDay = vi.hoisted(() => vi.fn());
+const createCustomFood = vi.hoisted(() => vi.fn());
 const coachToolExecutionFindUnique = vi.hoisted(() => vi.fn());
 const coachToolExecutionCreate = vi.hoisted(() => vi.fn());
 const foodLogEntryCreate = vi.hoisted(() => vi.fn());
@@ -15,6 +16,7 @@ vi.mock('@sharpit/server/lib/nutrition/food-log/food-describe-resolve', () => ({
 vi.mock('@sharpit/server/lib/nutrition/food-log/food-log-service', () => ({
   resolveFoodLogEntryCreateData,
   recomputeFoodLogDay,
+  createCustomFood,
 }));
 vi.mock('@sharpit/db/client', () => ({
   prisma: {
@@ -67,6 +69,10 @@ describe('executeLogFoodsTool', () => {
       sugar: null,
     }));
     recomputeFoodLogDay.mockResolvedValue(undefined);
+    createCustomFood.mockImplementation(async (_athleteId: string, food: { name: string }) => ({
+      id: `own-${food.name}`,
+      name: food.name,
+    }));
     coachToolExecutionFindUnique.mockResolvedValue(null);
     transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => {
       const tx = {
@@ -143,6 +149,41 @@ describe('executeLogFoodsTool', () => {
       }),
     });
     expect(recomputeFoodLogDay).toHaveBeenCalledWith('ath-1', '2026-10-08');
+  });
+
+  it('logs an estimated food as an own food, so the entry is scored', async () => {
+    await executeLogFoodsTool(
+      'ath-1',
+      { date: '2026-10-08', meal: 'LUNCH', items: [{ ...baseItem, grams: 180 }] },
+      { toolCallId: 'call-estimated' },
+    );
+
+    expect(createCustomFood).toHaveBeenCalledWith('ath-1', {
+      name: 'Pain turc',
+      kcalPer100g: 270,
+      proteinPer100g: 9,
+      carbsPer100g: 50,
+      fatPer100g: 3,
+    });
+    expect(resolveFoodLogEntryCreateData).toHaveBeenCalledWith(
+      'ath-1',
+      expect.objectContaining({ productId: 'own-Pain turc', grams: 180 }),
+    );
+  });
+
+  it('creates no own food when a later item has invalid grams', async () => {
+    const result = await executeLogFoodsTool(
+      'ath-1',
+      {
+        date: '2026-10-08',
+        meal: 'LUNCH',
+        items: [baseItem, { ...baseItem, name: 'Pain', grams: 9_000 }],
+      },
+      { toolCallId: 'call-bad-second' },
+    );
+
+    expect(result).toMatchObject({ ok: false });
+    expect(createCustomFood).not.toHaveBeenCalled();
   });
 
   it('logs a matched product by id', async () => {

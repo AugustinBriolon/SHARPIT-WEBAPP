@@ -1,11 +1,11 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@sharpit/db/client';
 import {
+  createCustomFood,
   resolveFoodLogEntryCreateData,
   recomputeFoodLogDay,
 } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
 import { resolveDescribedName } from '@sharpit/server/lib/nutrition/food-log/food-describe-resolve';
-import { portionFromPer100g } from '@sharpit/server/lib/nutrition/food-log/food-describe-schema';
 import type { FoodLogEntryCreateInput } from '@sharpit/app/lib/validators/food-log';
 import { logFoodsInputSchema, type LogFoodsInput } from './coach-tools-food-log';
 
@@ -90,12 +90,14 @@ export async function executeLogFoodsTool(
     return prior;
   }
 
+  const rounded = input.items.map((item) => ({ ...item, grams: Math.round(item.grams) }));
+  if (rounded.some((item) => item.grams < 1 || item.grams > 5_000)) {
+    return { ok: false, error: 'Quantité invalide (1 à 5000 g).' };
+  }
+
   const prepared: PreparedItem[] = [];
-  for (const item of input.items) {
-    const grams = Math.round(item.grams);
-    if (grams < 1 || grams > 5_000) {
-      return { ok: false, error: 'Quantité invalide (1 à 5000 g).' };
-    }
+  for (const item of rounded) {
+    const { grams } = item;
     const linked = await resolveDescribedName(athleteId, item.name);
     if (linked) {
       prepared.push({
@@ -115,9 +117,10 @@ export async function executeLogFoodsTool(
       continue;
     }
 
-    const portion = portionFromPer100g({
+    // Not in any catalogue: the coach's per-100 g estimate becomes an own food, so the entry is
+    // scored from its macros (ADR-066) and found again by name next time — a quick add has no score.
+    const estimated = await createCustomFood(athleteId, {
       name: item.name.trim().slice(0, 120),
-      grams,
       kcalPer100g: item.kcalPer100g,
       proteinPer100g: item.proteinPer100g,
       carbsPer100g: item.carbsPer100g,
@@ -125,7 +128,7 @@ export async function executeLogFoodsTool(
     });
     prepared.push({
       summary: {
-        name: portion.name,
+        name: estimated.name,
         grams,
         matched: false,
         match: null,
@@ -134,13 +137,7 @@ export async function executeLogFoodsTool(
         trainingDayId: input.date,
         meal: input.meal,
         grams,
-        quick: {
-          name: portion.name,
-          kcal: portion.kcal,
-          protein: portion.protein,
-          carbs: portion.carbs,
-          fat: portion.fat,
-        },
+        productId: estimated.id,
       },
     });
   }
