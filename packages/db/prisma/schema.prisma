@@ -399,6 +399,7 @@ model AthleteProfile {
   foodLogEntries              FoodLogEntry[]
   customFoods                 FoodProduct[]
   savedMeals                  SavedMeal[]
+  coachToolExecutions         CoachToolExecution[]
   // Core / Inference layer (already athlete-scoped, gaining the FK only):
   observations                Observation[]
   featureSets                 FeatureSet[]
@@ -728,6 +729,22 @@ model FoodLogEntry {
   updatedAt DateTime @updatedAt
 
   @@index([athleteId, date])
+}
+
+/// Idempotency record for a coach tool call that wrote state (e.g. logFoods after approval).
+/// Unique per athlete + toolCallId so a multi-item tool writes once; replays return `result`.
+model CoachToolExecution {
+  id         String         @id @default(cuid())
+  athleteId  String
+  athlete    AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  toolCallId String
+  toolName   String
+  /// Snapshot of the successful tool payload returned to the model / client.
+  result     Json
+  createdAt  DateTime       @default(now())
+
+  @@unique([athleteId, toolCallId])
+  @@index([athleteId])
 }
 
 /// A meal the athlete keeps to log again in one tap (ADR-071). `items` snapshot each food as

@@ -15,7 +15,7 @@ const LOGO_PATHS: Record<Exclude<IntegrationId, 'sharpit'>, string> = {
 
 export function IntegrationLogo({ id, className }: { id: IntegrationId; className?: string }) {
   if (id === 'sharpit') {
-    return <BrandMark className={cn('size-10 rounded-xl bg-muted p-1.5', className)} />;
+    return <BrandMark className={cn('bg-muted size-10 rounded-xl p-1.5', className)} />;
   }
   return (
     <Image

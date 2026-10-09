@@ -4,18 +4,22 @@ import { FOOD_MEALS } from '@sharpit/app/lib/nutrition/food-log/food-log-math';
 import { executeLogFoodsTool } from './coach-tools-food-log-executor';
 import { coachToolFailure } from './coach-tools-shared';
 
+/**
+ * Per-100 g ranges match the food-log own-food API (`customFoodSchema`): kcal and macros
+ * 0…1000. Grams match entry create (`positive`…5000).
+ */
 const foodLogItemSchema = z.object({
   name: z.string().trim().min(1).max(120).describe('Nom court de l’aliment en français.'),
-  grams: z.number().finite().min(1).max(5_000).describe('Portion estimée en grammes.'),
+  grams: z.number().finite().positive().max(5_000).describe('Portion estimée en grammes.'),
   kcalPer100g: z
     .number()
     .finite()
     .min(0)
-    .max(900)
+    .max(1_000)
     .describe('Énergie pour 100 g (estimation si l’aliment n’est pas trouvé en catalogue).'),
-  proteinPer100g: z.number().finite().min(0).max(100),
-  carbsPer100g: z.number().finite().min(0).max(100),
-  fatPer100g: z.number().finite().min(0).max(100),
+  proteinPer100g: z.number().finite().min(0).max(1_000),
+  carbsPer100g: z.number().finite().min(0).max(1_000),
+  fatPer100g: z.number().finite().min(0).max(1_000),
 });
 
 export const logFoodsInputSchema = z.object({
@@ -40,11 +44,12 @@ export function buildLogFoodsTool(athleteId: string) {
     description:
       'Ajoute un ou plusieurs aliments au journal alimentaire SharpIt (un repas). À utiliser quand l’athlète demande d’enregistrer ce qu’il a mangé ou veut ajouter des aliments. Une carte propose le repas et les grammes : l’athlète peut les ajuster avant de valider. Ne pas inventer de produits hors de ce qu’il décrit.',
     inputSchema: logFoodsInputSchema,
-    execute: async (input) => {
+    execute: async (input, { toolCallId }) => {
       try {
-        return await executeLogFoodsTool(athleteId, input);
+        return await executeLogFoodsTool(athleteId, input, { toolCallId });
       } catch (error) {
-        console.error('[coach] logFoods', error);
+        // Do not log meal content / tool input — only a short failure tag.
+        console.error('[coach] logFoods failed');
         return coachToolFailure("Impossible d'ajouter ces aliments au journal", error);
       }
     },
