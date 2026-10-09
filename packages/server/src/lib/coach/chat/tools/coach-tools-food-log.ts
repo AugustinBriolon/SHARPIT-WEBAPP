@@ -58,7 +58,7 @@ export type LogFoodsInput = z.infer<typeof logFoodsInputSchema>;
 export function buildLogFoodsTool(athleteId: string) {
   return tool({
     description:
-      'Ajoute un ou plusieurs aliments au journal alimentaire SharpIt (un repas, aujourd’hui ou un jour passé). Respecte le jour (hier / date), le repas et les grammes donnés par l’athlète. Une carte propose le repas et les grammes : l’athlète peut les ajuster avant de valider (pas la date). Ne pas inventer de produits hors de ce qu’il décrit.',
+      'Ajoute au journal SharpIt uniquement les aliments que l’athlète demande d’enregistrer (un repas). Pas pour un conseil menu ni une liste d’options au choix. Si l’athlète ne cite que certains items (ex. la soupe), n’inclus que ceux-là. Respecte jour (hier / date), repas et grammes. Carte d’accord avant écriture (repas + grammes éditables, pas la date). Ne pas inventer hors de ce qu’il décrit.',
     inputSchema: logFoodsInputSchema,
     execute: async (input, { toolCallId }) => {
       try {

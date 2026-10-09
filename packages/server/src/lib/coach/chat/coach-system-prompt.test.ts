@@ -56,6 +56,25 @@ describe('coach system prompt · day load vs training status', () => {
   });
 });
 
+describe('coach system prompt · logFoods intent', () => {
+  beforeEach(() => {
+    loadLearningMemoryBlock.mockResolvedValue('');
+  });
+
+  it('tells the coach not to logFoods on menu advice or option lists', async () => {
+    const { system } = await buildCoachSystemPrompt(
+      'athlete-1',
+      async () => null,
+      coachRequestScope('nutrition'),
+    );
+
+    expect(system).toContain("Appelle-le SEULEMENT quand l'athlète demande clairement");
+    expect(system).toContain("ce n'est PAS le panier");
+    expect(system).toContain("n'inclus QUE ces items");
+    expect(system).toContain('pas une carte seule');
+  });
+});
+
 describe('coach system prompt · learning memory', () => {
   beforeEach(() => {
     loadLearningMemoryBlock.mockReset();
