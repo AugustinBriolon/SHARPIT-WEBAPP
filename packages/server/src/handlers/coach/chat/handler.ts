@@ -14,7 +14,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from 'ai';
-import { after, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import {
   COACH_EMPTY_ANSWER_RETRY_MODEL,
   COACH_MODEL,
@@ -154,12 +154,21 @@ const EMPTY_ANSWER_RETRY: CoachAttempt = {
   reasoning: 'none',
 };
 
-async function streamCoachReply(input: CoachReplyInput): Promise<Response> {
-  const generate = await coachGenerator(input);
+async function streamCoachReply(
+  input: CoachReplyInput,
+  abortSignal: AbortSignal,
+): Promise<Response> {
+  const generate = await coachGenerator(input, abortSignal);
   const stream = createUIMessageStream({
     originalMessages: input.messages,
     onError: () => COACH_STREAM_ERROR_COPY,
-    onEnd: ({ messages }) => saveServerHistory(input, messages),
+    onEnd: ({ messages, isAborted }) => {
+      // Save what landed: the full answer, or the user turn + any partial if the athlete stopped.
+      void saveServerHistory(input, messages);
+      if (isAborted) {
+        console.info('[coach-chat] aborted', { conversationId: input.conversationId });
+      }
+    },
     execute: async ({ writer }) => {
       const first = generate({
         name: 'first',
@@ -178,11 +187,9 @@ async function streamCoachReply(input: CoachReplyInput): Promise<Response> {
   return createUIMessageStreamResponse({
     stream,
     headers: withAiBudgetWarningHeader({}, input.budgetWarning),
-    // Read to the end on the server too, kept alive past the response by `after`: an athlete who
-    // closes the screen still finds the answer saved in the conversation.
-    consumeSseStream: ({ stream: copy }) => {
-      after(consumeStream({ stream: copy }));
-    },
+    // Consume so `onEnd` still runs when the client aborts. Do not wrap in `after`: that kept
+    // generation alive after stop and saved a full answer the athlete had cancelled.
+    consumeSseStream: consumeStream,
   });
 }
 
@@ -222,7 +229,7 @@ async function pipeAttempt(
 }
 
 /** The shared parts of every attempt of this turn, built once: history, tools, logging. */
-async function coachGenerator(input: CoachReplyInput) {
+async function coachGenerator(input: CoachReplyInput, abortSignal: AbortSignal) {
   const { athleteId, timing, scope } = input;
   // A tool call a stream left without result (a cut connection) is dropped rather than sent:
   // the provider would reject the whole request.
@@ -237,6 +244,7 @@ async function coachGenerator(input: CoachReplyInput) {
       system: input.system,
       messages,
       tools,
+      abortSignal,
       ...coachChatGenerationSettings(scope),
       reasoning: attempt.reasoning,
       telemetry: { functionId: 'coach-chat' },
@@ -338,15 +346,18 @@ export async function POST(req: Request) {
   timing.note('messages', messages.length);
   console.info('[coach-chat] scope', { intent: scope.intent, tools: scope.tools?.length ?? 'all' });
   return withCoachTrace({ traceName: 'coach-chat', athleteId, tags: ['chat', scope.intent] }, () =>
-    streamCoachReply({
-      athleteId,
-      system,
-      messages,
-      practicedSports,
-      budgetWarning: guard.budgetWarning,
-      timing,
-      scope,
-      conversationId,
-    }),
+    streamCoachReply(
+      {
+        athleteId,
+        system,
+        messages,
+        practicedSports,
+        budgetWarning: guard.budgetWarning,
+        timing,
+        scope,
+        conversationId,
+      },
+      req.signal,
+    ),
   );
 }

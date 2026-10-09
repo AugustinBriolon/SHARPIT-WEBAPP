@@ -32,9 +32,9 @@ Make the chat route the writer of stored conversations:
    conversation the athlete owns, and answers 404 otherwise. It adds the message, validates the result
    and answers it. A message already stored takes its place and ends the thread: that is how a coach
    message carrying the athlete's approvals comes back, and how « régénérer » asks a question again.
-2. **The route saves the thread with the answer** in the UI stream's `onEnd`. The response stream is also
-   read to its end on the server (`consumeSseStream`, kept alive by `after`), so an answer is saved even
-   if the athlete leaves.
+2. **The route saves the thread in the UI stream's `onEnd`.** `consumeSseStream: consumeStream` lets
+   `onEnd` run when the client aborts (partial save). Generation is tied to `req.signal` — stop cancels
+   the model call; the server does **not** keep generating behind the athlete's back via `after`.
 3. **The coach message carries the server's id.** The route names the answer in its `start` chunk. The
    web already adopted it; iOS now does too, so a later approval reaches the stored message.
 4. **Clients stop saving after a turn.**
@@ -95,13 +95,13 @@ if threads grow long.
 ### Positive
 
 - A question sends one message instead of the whole thread.
-- An answer is saved even if the athlete leaves mid-stream.
 - Web and iOS share one persistence rule, the server's.
+- Stop aborts the model request; history keeps the user turn and any partial already streamed.
 
 ### Negative
 
-- A turn aborted from the web (stop button) keeps generating on the server and is saved whole; the screen
-  shows the partial answer until the conversation is opened again.
+- Closing the screen mid-stream no longer finishes a full answer in the background (Live Activity /
+  reopen may show a partial or stopped turn).
 - The route now does one more read (the stored thread) before answering, in the same region as the
   database.
 - Installed app versions keep the old path until they update.
