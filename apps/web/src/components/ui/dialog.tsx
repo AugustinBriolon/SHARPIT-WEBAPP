@@ -36,6 +36,10 @@ function DialogOverlay({ className, ...props }: DialogPrimitive.Backdrop.Props) 
   );
 }
 
+/**
+ * Privacy / confirm surfaces: sheet from the bottom on small viewports (mirrored
+ * enter/exit), centered critically-damped zoom on `sm+`. Reduced motion → cross-fade only.
+ */
 function DialogContent({
   className,
   children,
@@ -50,7 +54,16 @@ function DialogContent({
       <DialogPrimitive.Popup
         data-slot="dialog-content"
         className={cn(
-          'bg-popover text-popover-foreground ring-foreground/10 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-[0.98] data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-[0.98] fixed top-1/2 left-1/2 z-50 grid max-h-[80dvh] w-full max-w-[calc(100%-2rem)] min-w-0 -translate-x-1/2 -translate-y-1/2 gap-4 overflow-x-hidden overflow-y-auto overscroll-contain rounded-xl p-4 text-sm ring-1 duration-200 outline-none motion-reduce:animate-none sm:max-h-[min(90vh,40rem)] sm:max-w-sm',
+          'bg-popover text-popover-foreground ring-foreground/10 fixed z-50 grid min-w-0 gap-4 overflow-x-hidden overflow-y-auto overscroll-contain p-4 text-sm ring-1 outline-none',
+          // Mobile: bottom sheet — slide mirrors on open/close.
+          'inset-x-0 top-auto bottom-0 max-h-[85dvh] w-full max-w-none translate-x-0 translate-y-0 rounded-t-2xl rounded-b-none',
+          'data-open:animate-in data-open:fade-in-0 data-open:slide-in-from-bottom-4',
+          'data-closed:animate-out data-closed:fade-out-0 data-closed:slide-out-to-bottom-4',
+          // Desktop: centered panel — zoom mirrors on open/close (critically damped feel).
+          'sm:inset-auto sm:top-1/2 sm:left-1/2 sm:max-h-[min(90vh,40rem)] sm:w-full sm:max-w-sm sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl',
+          'sm:data-open:slide-in-from-bottom-0 sm:data-open:zoom-in-[0.98]',
+          'sm:data-closed:slide-out-to-bottom-0 sm:data-closed:zoom-out-[0.98]',
+          'motion-reduce:data-open:zoom-in-0 motion-reduce:data-closed:zoom-out-0 motion-reduce:data-open:slide-in-from-bottom-0 motion-reduce:data-closed:slide-out-to-bottom-0 duration-200 ease-out motion-reduce:animate-none',
           className,
         )}
         {...props}

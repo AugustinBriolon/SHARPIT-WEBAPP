@@ -1,5 +1,7 @@
+import { auth } from '@clerk/nextjs/server';
 import type { IntegrationId } from '@sharpit/app/lib/integrations/shared/client-sync';
 import type { DataClassId } from '@sharpit/app/lib/integrations/provider-catalog';
+import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { readSignedToken, signToken } from '@sharpit/server/lib/signed-token';
 
 /**
@@ -48,4 +50,21 @@ export function readConnectState(
   const { athleteId, returnTo, dataClass, webOrigin, redirectUri } =
     payload as unknown as ConnectState;
   return { provider, athleteId, returnTo, dataClass, webOrigin, redirectUri };
+}
+
+/**
+ * When a Clerk session is present on the callback host (same posture as Garmin SSO),
+ * the signed state must name that athlete — blocks account-linking CSRF. When there is
+ * no session (`api.` host, ADR-048), the signed state alone is the authority.
+ */
+export async function connectStateMatchesSession(state: ConnectState): Promise<boolean> {
+  const { userId } = await auth();
+  if (!userId) {
+    return true;
+  }
+  try {
+    return (await getCurrentAthleteId()) === state.athleteId;
+  } catch {
+    return false;
+  }
 }

@@ -16,13 +16,14 @@ describe('coachChatGenerationSettings', () => {
     expect(settings.reasoning).toBe(scope.reasoning);
   });
 
-  it('asks the athlete before any calendar or food-log write', () => {
+  it('asks the athlete before any calendar, constraint or food-log write', () => {
     const { toolApproval } = coachChatGenerationSettings(coachRequestScope('general'));
     expect(Object.keys(toolApproval).sort()).toEqual([
       'createBrickSession',
       'createPlannedSession',
       'deletePlannedSession',
       'logFoods',
+      'setTrainingConstraint',
       'setTravelContext',
       'updatePlannedSession',
     ]);

@@ -129,84 +129,86 @@ async function SessionReading({ id }: { id: string }) {
   const sport = activityTypeLabels[activity.type];
 
   return (
-    <CarnetPage
-      back={SESSIONS}
-      kicker={`${sport} · ${format(activity.date, 'EEEE d MMMM yyyy', { locale: fr })}`}
-      lead={narrative?.headline}
-      title={activity.title ?? sport}
-    >
-      <CarnetSection label="Les chiffres">
-        <KeyFigures activity={activity} stats={streams?.stats ?? null} />
-        {activity.notes ? <Quiet>{activity.notes}</Quiet> : null}
-      </CarnetSection>
-
-      {narrative ? (
-        <CarnetSection label="La lecture" title="Ce que le coach en retient">
-          <p className="max-w-prose leading-relaxed">{narrative.narrative}</p>
+    <div className="activity-reading">
+      <CarnetPage
+        back={SESSIONS}
+        kicker={`${sport} · ${format(activity.date, 'EEEE d MMMM yyyy', { locale: fr })}`}
+        lead={narrative?.headline}
+        title={activity.title ?? sport}
+      >
+        <CarnetSection label="Les chiffres">
+          <KeyFigures activity={activity} stats={streams?.stats ?? null} />
+          {activity.notes ? <Quiet>{activity.notes}</Quiet> : null}
         </CarnetSection>
-      ) : null}
 
-      {streams?.path && streams.path.length > 1 ? (
-        <CarnetSection label="Le parcours">
-          <RouteMap
-            className="h-[22rem] sm:h-[28rem]"
-            lineColor={SPORT_IDENTITY_HEX[activity.type]}
-            path={streams.path}
-          />
-        </CarnetSection>
-      ) : null}
+        {narrative ? (
+          <CarnetSection label="La lecture" title="Ce que le coach en retient">
+            <p className="max-w-prose leading-relaxed">{narrative.narrative}</p>
+          </CarnetSection>
+        ) : null}
 
-      {hasProfile ? (
-        <CarnetSection label="Le profil">
-          {profile.some((p) => p.hr !== null) ? (
-            <CarnetLineChart
-              data={profile.map((p) => ({ label: p.label, hr: p.hr }))}
-              title="Fréquence cardiaque"
-              series={[
-                { key: 'hr', name: 'Fréquence cardiaque', stroke: CHART_VO2_STROKE, unit: 'bpm' },
-              ]}
+        {streams?.path && streams.path.length > 1 ? (
+          <CarnetSection label="Le parcours">
+            <RouteMap
+              className="h-[22rem] sm:h-[28rem]"
+              lineColor={SPORT_IDENTITY_HEX[activity.type]}
+              path={streams.path}
             />
-          ) : null}
-          {profile.some((p) => p.alt !== null) ? (
-            <CarnetLineChart
-              data={profile.map((p) => ({ label: p.label, alt: p.alt }))}
-              height={140}
-              series={[{ key: 'alt', name: 'Altitude', stroke: CHART_BASE_STROKE, unit: 'm' }]}
-              title="Altitude"
-            />
-          ) : null}
-        </CarnetSection>
-      ) : null}
+          </CarnetSection>
+        ) : null}
 
-      {planned ? (
-        <CarnetSection
-          label="Face au plan"
-          title={analysis ? VERDICT_LABEL[analysis.verdict] : (planned.title ?? 'Séance prévue')}
-        >
-          {analysis ? (
-            <>
-              <Figures>
-                <Figure label="Conformité" unit="/100" value={analysis.complianceScore} />
-                {planned.durationMin ? (
-                  <Figure label="Durée prévue" value={formatDuration(planned.durationMin * 60)} />
+        {hasProfile ? (
+          <CarnetSection label="Le profil">
+            {profile.some((p) => p.hr !== null) ? (
+              <CarnetLineChart
+                data={profile.map((p) => ({ label: p.label, hr: p.hr }))}
+                title="Fréquence cardiaque"
+                series={[
+                  { key: 'hr', name: 'Fréquence cardiaque', stroke: CHART_VO2_STROKE, unit: 'bpm' },
+                ]}
+              />
+            ) : null}
+            {profile.some((p) => p.alt !== null) ? (
+              <CarnetLineChart
+                data={profile.map((p) => ({ label: p.label, alt: p.alt }))}
+                height={140}
+                series={[{ key: 'alt', name: 'Altitude', stroke: CHART_BASE_STROKE, unit: 'm' }]}
+                title="Altitude"
+              />
+            ) : null}
+          </CarnetSection>
+        ) : null}
+
+        {planned ? (
+          <CarnetSection
+            label="Face au plan"
+            title={analysis ? VERDICT_LABEL[analysis.verdict] : (planned.title ?? 'Séance prévue')}
+          >
+            {analysis ? (
+              <>
+                <Figures>
+                  <Figure label="Conformité" unit="/100" value={analysis.complianceScore} />
+                  {planned.durationMin ? (
+                    <Figure label="Durée prévue" value={formatDuration(planned.durationMin * 60)} />
+                  ) : null}
+                </Figures>
+                <p className="max-w-prose leading-relaxed">{analysis.summary}</p>
+                <Reasons items={analysis.remarks} />
+                {analysis.recommendation ? (
+                  <Quiet>
+                    <span className="text-foreground font-medium">À retenir.</span>{' '}
+                    {analysis.recommendation}
+                  </Quiet>
                 ) : null}
-              </Figures>
-              <p className="max-w-prose leading-relaxed">{analysis.summary}</p>
-              <Reasons items={analysis.remarks} />
-              {analysis.recommendation ? (
-                <Quiet>
-                  <span className="text-foreground font-medium">À retenir.</span>{' '}
-                  {analysis.recommendation}
-                </Quiet>
-              ) : null}
-            </>
-          ) : (
-            <Quiet>La comparaison avec la séance prévue n&apos;est pas encore faite.</Quiet>
-          )}
-        </CarnetSection>
-      ) : null}
+              </>
+            ) : (
+              <Quiet>La comparaison avec la séance prévue n&apos;est pas encore faite.</Quiet>
+            )}
+          </CarnetSection>
+        ) : null}
 
-      <InApp>Modifier, lier ou supprimer cette séance</InApp>
-    </CarnetPage>
+        <InApp>Modifier, lier ou supprimer cette séance</InApp>
+      </CarnetPage>
+    </div>
   );
 }

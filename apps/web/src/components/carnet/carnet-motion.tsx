@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect } from 'react';
 import { MotionConfig } from 'motion/react';
+import { springs } from '@/client/motion/tokens';
 
 let settled = false;
 
@@ -24,7 +25,7 @@ export function CarnetMotion({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <MotionConfig reducedMotion="user" transition={{ type: 'spring', stiffness: 380, damping: 36 }}>
+    <MotionConfig reducedMotion="user" transition={springs.snappy}>
       {children}
     </MotionConfig>
   );
@@ -36,3 +37,13 @@ export function prefersReducedMotion(): boolean {
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   );
 }
+
+/** Shared enter/exit helpers (DESIGN_LANGUAGE §9.9) — re-exported so call sites stay on carnet. */
+export {
+  FadePresence,
+  MotionExpand,
+  collapseVariants,
+  dialogTransition,
+  fadeTransition,
+  fadeVariants,
+} from '@/components/motion';

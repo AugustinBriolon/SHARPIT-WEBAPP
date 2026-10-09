@@ -1,5 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { type ConnectState, createConnectState, readConnectState } from './oauth-state';
+
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(),
+}));
+
+vi.mock('@sharpit/server/lib/auth/current-athlete', () => ({
+  getCurrentAthleteId: vi.fn(),
+}));
+
+import { auth } from '@clerk/nextjs/server';
+import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
+import {
+  connectStateMatchesSession,
+  type ConnectState,
+  createConnectState,
+  readConnectState,
+} from './oauth-state';
 
 const state: ConnectState = {
   provider: 'strava',
@@ -13,6 +29,8 @@ const state: ConnectState = {
 describe('connect state', () => {
   beforeEach(() => {
     vi.stubEnv('SECRET_ENCRYPTION_KEY', 'test-key');
+    vi.mocked(auth).mockReset();
+    vi.mocked(getCurrentAthleteId).mockReset();
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -37,5 +55,33 @@ describe('connect state', () => {
   it('refuses a missing or forged state', () => {
     expect(readConnectState(null, 'strava')).toBeNull();
     expect(readConnectState('forged.state', 'strava')).toBeNull();
+  });
+});
+
+describe('connectStateMatchesSession', () => {
+  beforeEach(() => {
+    vi.mocked(auth).mockReset();
+    vi.mocked(getCurrentAthleteId).mockReset();
+  });
+
+  it('accepts the signed state alone when no Clerk session is on the host', async () => {
+    vi.mocked(auth).mockResolvedValue({ userId: null } as never);
+    await expect(connectStateMatchesSession(state)).resolves.toBe(true);
+    expect(getCurrentAthleteId).not.toHaveBeenCalled();
+  });
+
+  it('requires the session athlete to match the signed state', async () => {
+    vi.mocked(auth).mockResolvedValue({ userId: 'user-1' } as never);
+    vi.mocked(getCurrentAthleteId).mockResolvedValue('ath-1');
+    await expect(connectStateMatchesSession(state)).resolves.toBe(true);
+
+    vi.mocked(getCurrentAthleteId).mockResolvedValue('ath-other');
+    await expect(connectStateMatchesSession(state)).resolves.toBe(false);
+  });
+
+  it('rejects when a session is present but the athlete cannot be resolved', async () => {
+    vi.mocked(auth).mockResolvedValue({ userId: 'user-1' } as never);
+    vi.mocked(getCurrentAthleteId).mockRejectedValue(new Error('unauthenticated'));
+    await expect(connectStateMatchesSession(state)).resolves.toBe(false);
   });
 });

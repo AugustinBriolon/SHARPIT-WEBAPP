@@ -22,6 +22,21 @@ function validateReplayRequest(body: ReplayRequestBody): NextResponse | null {
   if (body.mode && body.mode !== 'dry-run' && body.mode !== 'write') {
     return NextResponse.json({ error: 'mode must be "dry-run" or "write".' }, { status: 400 });
   }
+  // Default is dry-run. Production write replaces feature sets — require an explicit
+  // escape hatch so a mis-aimed admin call cannot persist by accident.
+  if (
+    body.mode === 'write' &&
+    process.env.NODE_ENV === 'production' &&
+    process.env.DEV_TOOLS_WRITE !== 'true'
+  ) {
+    return NextResponse.json(
+      {
+        error:
+          'mode=write is disabled in production. Use dry-run, or set DEV_TOOLS_WRITE=true deliberately.',
+      },
+      { status: 403 },
+    );
+  }
   return null;
 }
 

@@ -36,9 +36,7 @@ export function CarnetPage({
             </CarnetStepLink>
           ) : null}
           <p className="text-label text-muted-foreground">{kicker}</p>
-          <h1 className="text-page-title mt-2 text-3xl first-letter:uppercase sm:text-4xl">
-            {title}
-          </h1>
+          <h1 className="text-page-title mt-2 first-letter:uppercase">{title}</h1>
           {lead ? (
             <div className="text-muted-foreground mt-3 text-base leading-relaxed">{lead}</div>
           ) : null}
@@ -151,7 +149,7 @@ export function ReadingRow({ href, children }: { href: string | null; children: 
   return (
     <li>
       <CarnetIntentLink
-        className="group hover:bg-muted/40 -mx-3 block rounded-md px-3 transition-[background-color,transform] duration-150 active:scale-[0.995] motion-reduce:active:scale-100"
+        className="pressable-lg group hover:bg-muted/40 -mx-3 block rounded-md px-3"
         href={href}
       >
         {inner}
@@ -163,8 +161,8 @@ export function ReadingRow({ href, children }: { href: string | null; children: 
 export function RowArrow() {
   return (
     <span
-      aria-hidden
       className="text-muted-foreground inline-block transition-transform duration-200 ease-out group-hover:translate-x-1 motion-reduce:transition-none"
+      aria-hidden
     >
       →
     </span>
@@ -205,12 +203,12 @@ export function CarnetStepLink({
       )}
     >
       <Chevron
-        aria-hidden
+        strokeWidth={1.75}
         className={cn(
           'size-4 transition-transform duration-200 ease-out motion-reduce:transition-none',
           direction === 'back' ? 'group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5',
         )}
-        strokeWidth={1.75}
+        aria-hidden
       />
       {children}
     </Link>

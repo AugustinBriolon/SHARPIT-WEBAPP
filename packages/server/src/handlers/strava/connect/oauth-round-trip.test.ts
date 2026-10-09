@@ -5,6 +5,10 @@ const upsert = vi.fn();
 const persistSourcePrefsMutation = vi.fn();
 
 vi.mock('server-only', () => ({}));
+// Callback binds state to the session when one is present; api. round-trips have none (ADR-048).
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: async () => ({ userId: null }),
+}));
 vi.mock('@sharpit/db/client', () => ({ prisma: { stravaAccount: { upsert } } }));
 vi.mock('@sharpit/server/lib/auth/current-athlete', () => ({
   getCurrentAthleteId: async () => 'ath-1',

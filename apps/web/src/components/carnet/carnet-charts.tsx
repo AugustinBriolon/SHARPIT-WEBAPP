@@ -97,7 +97,7 @@ export function CarnetLineChart({
   const reduceMotion = useReducedMotion() ?? false;
   return (
     <div className="space-y-2">
-      <p aria-hidden className="text-label text-muted-foreground">
+      <p className="text-label text-muted-foreground" aria-hidden>
         {title}
       </p>
       <ChartFigure height={height} series={toChartSeries(data, series)} title={title}>
@@ -110,10 +110,10 @@ export function CarnetLineChart({
           {series.map((s) => (
             <Line
               key={s.key}
+              animationDuration={300}
+              animationEasing="ease-out"
               dataKey={s.key}
               dot={false}
-              animationDuration={700}
-              animationEasing="ease-out"
               isAnimationActive={!reduceMotion}
               name={s.name}
               stroke={s.stroke}
@@ -148,7 +148,7 @@ export function CarnetBarChart({
   const reduceMotion = useReducedMotion() ?? false;
   return (
     <div className="space-y-2">
-      <p aria-hidden className="text-label text-muted-foreground">
+      <p className="text-label text-muted-foreground" aria-hidden>
         {title}
       </p>
       <ChartFigure height={height} series={toChartSeries(data, series)} title={title}>
@@ -166,11 +166,11 @@ export function CarnetBarChart({
           {series.map((s) => (
             <Bar
               key={s.key}
+              animationDuration={300}
+              animationEasing="ease-out"
               dataKey={s.key}
               fill={s.stroke}
               fillOpacity={s.dashed ? 0.3 : 1}
-              animationDuration={700}
-              animationEasing="ease-out"
               isAnimationActive={!reduceMotion}
               name={s.name}
               radius={[3, 3, 0, 0]}

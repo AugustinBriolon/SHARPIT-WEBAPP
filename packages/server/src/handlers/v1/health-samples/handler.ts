@@ -54,24 +54,36 @@ async function applyAppleHealthDays(
   days: z.infer<typeof daySchema>[],
   policy: AppleHealthPolicy,
 ): Promise<DailyHealth[]> {
-  const updated: DailyHealth[] = [];
-  for (const day of days) {
-    const date = dayKey(day.date);
-    const existing = await prisma.dailyHealth.findUnique({
-      where: { athleteId_date: { athleteId, date } },
-    });
-    const patch = appleHealthPatch(existing, day, policy);
-    if (Object.keys(patch).length === 0) {
-      continue;
-    }
-    const row = await prisma.dailyHealth.upsert({
-      where: { athleteId_date: { athleteId, date } },
-      create: { athleteId, date, ...patch },
-      update: patch,
-    });
-    updated.push(row);
+  if (days.length === 0) {
+    return [];
   }
-  return updated;
+
+  const dates = days.map((day) => dayKey(day.date));
+  return prisma.$transaction(async (tx) => {
+    const existingRows = await tx.dailyHealth.findMany({
+      where: { athleteId, date: { in: dates } },
+    });
+    const existingByDay = new Map(
+      existingRows.map((row) => [row.date.toISOString().slice(0, 10), row]),
+    );
+
+    const updated: DailyHealth[] = [];
+    for (const day of days) {
+      const date = dayKey(day.date);
+      const existing = existingByDay.get(day.date) ?? null;
+      const patch = appleHealthPatch(existing, day, policy);
+      if (Object.keys(patch).length === 0) {
+        continue;
+      }
+      const row = await tx.dailyHealth.upsert({
+        where: { athleteId_date: { athleteId, date } },
+        create: { athleteId, date, ...patch },
+        update: patch,
+      });
+      updated.push(row);
+    }
+    return updated;
+  });
 }
 
 /**
@@ -104,10 +116,10 @@ export async function POST(request: NextRequest) {
 
     if (updatedDays > 0) {
       // The Core reads observations, not day rows: without this an athlete on Apple Health
-      // alone would never get a readiness.
-      await ingestDailyHealthObservations(athleteId, updatedRows, 'APPLE_HEALTH').catch((error) => {
-        console.error('[api/v1/health-samples] observations', error);
-      });
+      // alone would never get a readiness. Fail the request if ingest fails so the client
+      // retries — day upserts are idempotent. Refresh stays soft: a snapshot miss is not
+      // worth rolling back a successful write.
+      await ingestDailyHealthObservations(athleteId, updatedRows, 'APPLE_HEALTH');
       await refreshAthleteState(athleteId, { source: 'today_refresh' }).catch((error) => {
         console.error('[api/v1/health-samples] refresh', error);
       });

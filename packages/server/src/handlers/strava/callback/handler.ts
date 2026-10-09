@@ -1,7 +1,10 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@sharpit/db/client';
 import { redirectAfterIntegrationConnect } from '@sharpit/server/lib/integrations/oauth-return';
-import { readConnectState } from '@sharpit/server/lib/integrations/oauth-state';
+import {
+  connectStateMatchesSession,
+  readConnectState,
+} from '@sharpit/server/lib/integrations/oauth-state';
 import { exchangeCodeForToken } from '@sharpit/server/lib/integrations/strava/strava';
 import { encryptSecret } from '@sharpit/server/lib/secret-box';
 
@@ -50,6 +53,9 @@ export async function GET(request: NextRequest) {
     return redirectAfterIntegrationConnect(request, state, 'strava', 'denied');
   }
   if (!code || !state) {
+    return redirectAfterIntegrationConnect(request, state, 'strava', 'invalid_state');
+  }
+  if (!(await connectStateMatchesSession(state))) {
     return redirectAfterIntegrationConnect(request, state, 'strava', 'invalid_state');
   }
 

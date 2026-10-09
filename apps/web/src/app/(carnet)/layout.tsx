@@ -24,11 +24,11 @@ export const metadata: Metadata = {
 export default function CarnetLayout({ children }: { children: ReactNode }) {
   return (
     <div className="bg-background text-foreground min-h-full">
-      <header className="border-border/70 bg-background/90 sticky top-0 z-10 border-b backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl flex-col gap-3 px-4 pt-4 pb-3 sm:px-8">
+      <header className="border-border/70 bg-background/90 [@media(prefers-reduced-transparency:reduce)]:bg-background sticky top-0 z-10 border-b backdrop-blur-md [@media(prefers-reduced-transparency:reduce)]:backdrop-blur-none">
+        <div className="safe-page-top mx-auto flex max-w-5xl flex-col gap-3 px-4 pb-3 sm:px-8">
           <div className="flex items-center justify-between gap-4">
             <Link className="group flex items-center gap-2" href="/">
-              <BrandMark className="size-6 transition-transform duration-500 ease-out group-hover:rotate-[60deg] motion-reduce:transition-none" />
+              <BrandMark className="size-6 transition-transform duration-300 ease-out group-hover:rotate-[60deg] motion-reduce:transition-none motion-reduce:group-hover:rotate-0" />
               <span className="text-card-title">SharpIt</span>
             </Link>
             <Suspense fallback={<CarnetAccountLinkFor pathname={null} />}>

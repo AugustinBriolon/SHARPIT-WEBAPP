@@ -69,3 +69,6 @@ apps/web/scripts/tmp-*.mts
 # Local Garmin DI mint (python-garminconnect) — never commit
 garmin_tokens.json
 apps/api/.bench/
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/

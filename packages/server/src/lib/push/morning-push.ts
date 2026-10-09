@@ -148,6 +148,42 @@ function morningPushSkipReason(
 }
 
 /**
+ * Claims today's morning-push slot so `after()` and the cron cannot both send.
+ * Returns false when another caller already claimed (or finished) this day.
+ * `force` (test push) skips the claim — the athlete asked for another one.
+ */
+async function claimMorningPushDay(
+  athleteId: string,
+  dayId: string,
+  force: boolean,
+): Promise<boolean> {
+  if (force) {
+    return true;
+  }
+  const claimed = await prisma.athleteProfile.updateMany({
+    where: {
+      id: athleteId,
+      deletedAt: null,
+      NOT: { lastMorningPushDate: dayId },
+    },
+    data: { lastMorningPushDate: dayId },
+  });
+  return claimed.count === 1;
+}
+
+/** Releases a claim after a total send failure so the late cron can retry. */
+async function releaseMorningPushDayClaim(athleteId: string, dayId: string): Promise<void> {
+  try {
+    await prisma.athleteProfile.updateMany({
+      where: { id: athleteId, lastMorningPushDate: dayId },
+      data: { lastMorningPushDate: null },
+    });
+  } catch (error) {
+    console.error('[morning-push] release claim', athleteId, dayId, error);
+  }
+}
+
+/**
  * Sends the morning push notification to all active devices of an athlete.
  * By default, idempotent per day (skips if already sent today, unless force=true).
  */
@@ -160,6 +196,7 @@ export async function sendMorningPushForAthlete(
   },
 ): Promise<MorningPushAthleteResult> {
   const dayId = options?.trainingDayId ?? trainingDayIdNow();
+  const force = options?.force ?? false;
 
   const athlete = await prisma.athleteProfile.findUnique({
     where: { id: athleteId },
@@ -175,9 +212,20 @@ export async function sendMorningPushForAthlete(
     },
   });
 
-  const skippedReason = morningPushSkipReason(athlete, dayId, options?.force ?? false);
+  const skippedReason = morningPushSkipReason(athlete, dayId, force);
   if (skippedReason || !athlete) {
     return { athleteId, sent: 0, failed: 0, deactivated: 0, skippedReason };
+  }
+
+  // Claim before building/sending so a concurrent after()+cron cannot both deliver.
+  if (!(await claimMorningPushDay(athleteId, dayId, force))) {
+    return {
+      athleteId,
+      sent: 0,
+      failed: 0,
+      deactivated: 0,
+      skippedReason: 'ALREADY_SENT_TODAY',
+    };
   }
 
   // Read or compute today's snapshot
@@ -190,12 +238,15 @@ export async function sendMorningPushForAthlete(
         skipSync: true,
       });
       snapshot = refreshed.athleteSnapshot;
-    } catch {
-      // Fallback: minimal synthetic snapshot if state generation fails
+    } catch (error) {
+      console.error('[morning-push] snapshot refresh', athleteId, error);
     }
   }
 
   if (!snapshot) {
+    if (!force) {
+      await releaseMorningPushDayClaim(athleteId, dayId);
+    }
     return {
       athleteId,
       sent: 0,
@@ -216,13 +267,19 @@ export async function sendMorningPushForAthlete(
 
   const { sent, failed, deactivated } = await sendPushToDevices(athlete.deviceTokens, apnsPayload);
 
-  if (sent > 0) {
+  if (sent === 0 && !force) {
+    // Nothing reached a device — free the day so the late cron can try again.
+    await releaseMorningPushDayClaim(athleteId, dayId);
+  } else if (sent > 0 && force) {
+    // Test pushes still stamp the day so the real morning slot stays quiet after a manual send.
     try {
       await prisma.athleteProfile.update({
         where: { id: athleteId },
         data: { lastMorningPushDate: dayId },
       });
-    } catch {}
+    } catch (error) {
+      console.error('[morning-push] stamp lastMorningPushDate', athleteId, dayId, error);
+    }
   }
 
   return {

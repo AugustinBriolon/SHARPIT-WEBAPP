@@ -58,6 +58,8 @@ function buildSetTrainingConstraintTool(
   athleteId: string,
   proposalTravelEnum: ReturnType<typeof travelDisciplineEnumForSports>,
 ) {
+  // Approval is declared in coachChatGenerationSettings.toolApproval
+  // (`setTrainingConstraint: 'user-approval'`), same as setTravelContext.
   return tool({
     description:
       "Enregistre une contrainte temporaire (dates + capacité d'entraînement réduite) SANS lieu — à utiliser quand l'athlète n'est PAS en déplacement mais a une capacité réduite : maladie, blessure, semaine de travail chargée, etc. Si l'athlète mentionne être ailleurs que chez lui, utilise setTravelContext à la place.",

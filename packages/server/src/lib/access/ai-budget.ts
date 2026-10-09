@@ -18,10 +18,11 @@ import {
  *
  * A real limit, not a technical ceiling: sized to a legitimately engaged
  * FREE athlete's daily use (several chat exchanges, one plan/adapt run), not
- * to the rate limiters' raw maximum throughput. Pro has no real billing yet
- * either, so leaving it uncapped is a deliberate next step, not an oversight.
+ * to the rate limiters' raw maximum throughput. Pro gets a soft ceiling well
+ * above Free so a runaway loop cannot burn unbounded tokens.
  */
 const FREE_DAILY_TOKEN_BUDGET = 50_000;
+const PRO_DAILY_TOKEN_BUDGET = 500_000;
 
 /**
  * Rolling window, not a calendar-day reset: usage counts if it happened in
@@ -50,7 +51,11 @@ export type AiBudgetStatus = {
  * real "available again" time. Only called once the aggregate has already
  * confirmed the athlete is over budget, so this second query stays rare.
  */
-async function computeRetryAfterSeconds(athleteId: string, since: Date): Promise<number> {
+async function computeRetryAfterSeconds(
+  athleteId: string,
+  since: Date,
+  budget: number,
+): Promise<number> {
   const events = await prisma.aiUsageEvent.findMany({
     where: { athleteId, feature: 'coach', createdAt: { gte: since } },
     select: { createdAt: true, totalTokens: true },
@@ -59,7 +64,7 @@ async function computeRetryAfterSeconds(athleteId: string, since: Date): Promise
   let remaining = events.reduce((sum, event) => sum + (event.totalTokens ?? 0), 0);
   for (const event of events) {
     remaining -= event.totalTokens ?? 0;
-    if (remaining < FREE_DAILY_TOKEN_BUDGET) {
+    if (remaining < budget) {
       const availableAt = addHours(event.createdAt, BUDGET_WINDOW_HOURS);
       return Math.max(1, Math.ceil((availableAt.getTime() - Date.now()) / 1000));
     }
@@ -76,8 +81,6 @@ export async function ensureFreeAiBudget(athleteId: string): Promise<AiBudgetSta
     return { allowed: true, isPro: true, warning: false, retryAfterSeconds: null };
   }
 
-  // Both reads at once: the sum is wasted for a Pro athlete, but it is cheap, and a Free athlete
-  // (the one this check exists for) no longer waits for two round trips in a row.
   const since = subHours(new Date(), BUDGET_WINDOW_HOURS);
   const [profile, usage] = await Promise.all([
     prisma.athleteProfile.findUnique({ where: { id: athleteId }, select: { tier: true } }),
@@ -87,27 +90,30 @@ export async function ensureFreeAiBudget(athleteId: string): Promise<AiBudgetSta
     }),
   ]);
   const isPro = hasProAccess(profile?.tier ?? 'FREE');
-  if (isPro) {
-    return { allowed: true, isPro: true, warning: false, retryAfterSeconds: null };
-  }
-
+  const budget = isPro ? PRO_DAILY_TOKEN_BUDGET : FREE_DAILY_TOKEN_BUDGET;
   const usedRecently = usage._sum.totalTokens ?? 0;
-  const allowed = usedRecently < FREE_DAILY_TOKEN_BUDGET;
+  const allowed = usedRecently < budget;
 
   return {
     allowed,
-    isPro: false,
-    warning: allowed && usedRecently >= FREE_DAILY_TOKEN_BUDGET * WARNING_THRESHOLD_RATIO,
-    retryAfterSeconds: allowed ? null : await computeRetryAfterSeconds(athleteId, since),
+    isPro,
+    warning: allowed && usedRecently >= budget * WARNING_THRESHOLD_RATIO,
+    retryAfterSeconds: allowed ? null : await computeRetryAfterSeconds(athleteId, since, budget),
   };
 }
 
-export function aiBudgetResponseBody(retryAfterSeconds: number): {
+export function aiBudgetResponseBody(
+  retryAfterSeconds: number,
+  isPro = false,
+): {
   error: string;
   retryAfterSeconds: number;
 } {
+  const wait = formatRetryDuration(retryAfterSeconds);
   return {
-    error: `Tu as atteint ta limite d'échanges avec le coach. Réessaie dans ${formatRetryDuration(retryAfterSeconds)}, ou passe Pro pour un usage illimité.`,
+    error: isPro
+      ? `Tu as atteint ta limite d'échanges avec le coach pour les dernières 24h. Réessaie dans ${wait}.`
+      : `Tu as atteint ta limite d'échanges avec le coach. Réessaie dans ${wait}, ou passe Pro pour un plafond plus élevé.`,
     retryAfterSeconds,
   };
 }

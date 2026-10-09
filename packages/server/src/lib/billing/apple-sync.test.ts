@@ -61,6 +61,22 @@ describe('applyAppleTransaction', () => {
     ).rejects.toBeInstanceOf(AppleOwnershipError);
   });
 
+  it('rejects a verify-path purchase with no appAccountToken', async () => {
+    const { applyAppleTransaction, AppleOwnershipError } = await import('./apple-sync');
+    const { appAccountToken: _omit, ...withoutToken } = transaction;
+    await expect(
+      applyAppleTransaction({
+        athleteId: 'athlete-1',
+        athleteAppAccountToken: 'token-a',
+        transaction: withoutToken,
+        renewal: null,
+        now,
+        requireAppAccountToken: true,
+      }),
+    ).rejects.toBeInstanceOf(AppleOwnershipError);
+    expect(store.upsertAppleSubscription).not.toHaveBeenCalled();
+  });
+
   it('keeps an original transaction on the account that holds it', async () => {
     store.findAppleSubscription.mockResolvedValue({ athleteId: 'athlete-2' });
     const { applyAppleTransaction, AppleOwnershipError } = await import('./apple-sync');

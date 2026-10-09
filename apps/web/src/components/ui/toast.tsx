@@ -100,17 +100,17 @@ function ToastList() {
           <ToastIcon type={item.type} />
           <div className="flex min-w-0 flex-1 flex-col gap-0">
             {item.title && (
-              <ToastPrimitive.Title className="text-[0.8rem] leading-snug font-medium wrap-break-word" />
+              <ToastPrimitive.Title className="text-[0.8125rem] leading-snug font-medium wrap-break-word" />
             )}
             {item.description && (
-              <ToastPrimitive.Description className="text-muted-foreground text-[0.7rem] leading-snug wrap-break-word" />
+              <ToastPrimitive.Description className="text-muted-foreground text-[0.8125rem] leading-snug wrap-break-word" />
             )}
           </div>
           {item.actionProps ? (
             <ToastPrimitive.Action
               className={cn(
                 'border-analysis-border/60 text-foreground hover:border-primary/40 shrink-0',
-                'inline-flex min-h-7 items-center rounded-full border px-2.5 text-[0.7rem] font-medium',
+                'inline-flex min-h-7 items-center rounded-full border px-2.5 text-[0.8125rem] font-medium',
                 'focus-visible:ring-primary/35 transition-colors focus-visible:ring-2 focus-visible:outline-hidden',
               )}
             />

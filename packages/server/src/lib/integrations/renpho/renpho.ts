@@ -2,9 +2,28 @@ import crypto from 'crypto';
 import { isSet } from '@sharpit/shared/value';
 
 const API_BASE = 'https://cloud.renpho.com';
-const ENCRYPTION_SECRET = 'ed*wijdi$h6fe3ew';
 const DEFAULT_PAGE_SIZE = 200;
 const MAX_MEASUREMENT_SCAN = 2000;
+
+/**
+ * AES key Renpho's cloud API expects for request/response bodies. Never hardcode —
+ * fail closed when unset so a misconfigured deploy cannot talk to Renpho with a
+ * secret baked into source.
+ */
+function renphoEncryptionSecret(): Buffer {
+  const secret = process.env.RENPHO_ENCRYPTION_SECRET;
+  if (!secret) {
+    throw new Error(
+      'RENPHO_ENCRYPTION_SECRET is not configured — refusing Renpho API crypto without an env secret.',
+    );
+  }
+  const key = Buffer.from(secret, 'utf8');
+  // aes-128-ecb — Node rejects any other length; fail early with a clear message.
+  if (key.length !== 16) {
+    throw new Error(`RENPHO_ENCRYPTION_SECRET must be exactly 16 UTF-8 bytes (got ${key.length}).`);
+  }
+  return key;
+}
 
 export interface RenphoUser {
   id: string;
@@ -85,31 +104,19 @@ export class RenphoClient {
   }
 
   private encryptAES(content: string): string {
-    const cipher = crypto.createCipheriv(
-      'aes-128-ecb',
-      Buffer.from(ENCRYPTION_SECRET, 'utf8'),
-      null,
-    );
+    const cipher = crypto.createCipheriv('aes-128-ecb', renphoEncryptionSecret(), null);
     let encrypted = cipher.update(content, 'utf8', 'base64');
     encrypted += cipher.final('base64');
     return encrypted;
   }
 
   private encryptEmptyBytes(): string {
-    const cipher = crypto.createCipheriv(
-      'aes-128-ecb',
-      Buffer.from(ENCRYPTION_SECRET, 'utf8'),
-      null,
-    );
+    const cipher = crypto.createCipheriv('aes-128-ecb', renphoEncryptionSecret(), null);
     return Buffer.concat([cipher.update(Buffer.from([])), cipher.final()]).toString('base64');
   }
 
   private decryptAES(encryptedContent: string): string {
-    const decipher = crypto.createDecipheriv(
-      'aes-128-ecb',
-      Buffer.from(ENCRYPTION_SECRET, 'utf8'),
-      null,
-    );
+    const decipher = crypto.createDecipheriv('aes-128-ecb', renphoEncryptionSecret(), null);
     let decrypted = decipher.update(encryptedContent, 'base64', 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;

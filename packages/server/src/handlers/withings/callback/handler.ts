@@ -4,7 +4,11 @@ import {
   publicOriginFromRequest,
   redirectAfterIntegrationConnect,
 } from '@sharpit/server/lib/integrations/oauth-return';
-import { type ConnectState, readConnectState } from '@sharpit/server/lib/integrations/oauth-state';
+import {
+  connectStateMatchesSession,
+  type ConnectState,
+  readConnectState,
+} from '@sharpit/server/lib/integrations/oauth-state';
 import {
   exchangeWithingsCode,
   getWithingsRedirectUri,
@@ -69,6 +73,9 @@ export async function GET(request: NextRequest) {
     return redirectAfterIntegrationConnect(request, state, 'withings', 'denied');
   }
   if (!code || !state) {
+    return redirectAfterIntegrationConnect(request, state, 'withings', 'invalid_state');
+  }
+  if (!(await connectStateMatchesSession(state))) {
     return redirectAfterIntegrationConnect(request, state, 'withings', 'invalid_state');
   }
 

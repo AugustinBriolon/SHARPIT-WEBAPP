@@ -268,7 +268,7 @@ async function checkAdaptAccess(athleteId: string): Promise<AdaptAccess> {
   const budget = await ensureFreeAiBudget(athleteId);
   if (!budget.allowed) {
     return {
-      blocked: NextResponse.json(aiBudgetResponseBody(budget.retryAfterSeconds!), {
+      blocked: NextResponse.json(aiBudgetResponseBody(budget.retryAfterSeconds!, budget.isPro), {
         status: 402,
         headers: { [RETRY_AFTER_HEADER]: String(budget.retryAfterSeconds) },
       }),

@@ -18,6 +18,7 @@ vi.mock('@sharpit/db/client', () => ({
       findUnique: vi.fn(),
       findMany: vi.fn(),
       update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     deviceToken: {
       update: vi.fn().mockResolvedValue({}),
@@ -154,10 +155,60 @@ describe('morning-push', () => {
       expect(result.skippedReason).toBeUndefined();
       // An Xcode build's token goes to the APNs sandbox, not production.
       expect(send.mock.calls[0]?.[0].config).toMatchObject({ production: false });
+      // force skips the atomic claim; a successful test push still stamps the day.
+      expect(prisma.athleteProfile.updateMany).not.toHaveBeenCalled();
       expect(prisma.athleteProfile.update).toHaveBeenCalledWith({
         where: { id: 'ath-1' },
         data: { lastMorningPushDate: '2026-09-24' },
       });
+    });
+
+    it('claims the day before sending so after()+cron cannot double-deliver', async () => {
+      vi.mocked(prisma.athleteProfile.findUnique).mockResolvedValueOnce({
+        id: 'ath-1',
+        deletedAt: null,
+        lastMorningPushDate: null,
+        deviceTokens: [
+          { id: 'dev-1', token: 'token123', bundleId: 'app.sharpit.ios', environment: 'sandbox' },
+        ],
+      } as never);
+      vi.mocked(prisma.athleteProfile.updateMany).mockResolvedValueOnce({ count: 1 } as never);
+      vi.mocked(snapshotRepo.getLatestAthleteSnapshot).mockResolvedValueOnce(dummySnapshot);
+      vi.spyOn(apnsModule, 'sendApnsNotification').mockResolvedValueOnce({
+        success: true,
+        status: 200,
+        deviceToken: 'token123',
+      });
+      vi.spyOn(apnsModule, 'apnsConfigFor').mockImplementation(
+        (environment) => ({ production: environment !== 'sandbox' }) as never,
+      );
+
+      const result = await sendMorningPushForAthlete('ath-1', { trainingDayId: '2026-09-24' });
+
+      expect(result.sent).toBe(1);
+      expect(prisma.athleteProfile.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'ath-1',
+          deletedAt: null,
+          NOT: { lastMorningPushDate: '2026-09-24' },
+        },
+        data: { lastMorningPushDate: '2026-09-24' },
+      });
+    });
+
+    it('skips when the day was already claimed by a concurrent sender', async () => {
+      vi.mocked(prisma.athleteProfile.findUnique).mockResolvedValueOnce({
+        id: 'ath-1',
+        deletedAt: null,
+        lastMorningPushDate: null,
+        deviceTokens: [{ id: 'dev-1', token: 'token123', bundleId: 'app.sharpit.ios' }],
+      } as never);
+      vi.mocked(prisma.athleteProfile.updateMany).mockResolvedValueOnce({ count: 0 } as never);
+
+      const result = await sendMorningPushForAthlete('ath-1', { trainingDayId: '2026-09-24' });
+
+      expect(result.skippedReason).toBe('ALREADY_SENT_TODAY');
+      expect(snapshotRepo.getLatestAthleteSnapshot).not.toHaveBeenCalled();
     });
 
     it('skips an athlete who turned the morning verdict off', async () => {
@@ -247,7 +298,7 @@ describe('morning-push', () => {
         status: 200,
         deviceToken: 'token',
       });
-      vi.mocked(prisma.athleteProfile.update).mockResolvedValue({} as never);
+      vi.mocked(prisma.athleteProfile.updateMany).mockResolvedValue({ count: 1 } as never);
 
       const summary = await sendMorningVerdictPushes({ trainingDayId: '2026-09-24' });
 

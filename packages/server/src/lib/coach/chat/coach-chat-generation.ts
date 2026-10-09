@@ -23,6 +23,7 @@ export function coachChatGenerationSettings(scope: CoachRequestScope) {
       updatePlannedSession: 'user-approval',
       deletePlannedSession: 'user-approval',
       setTravelContext: 'user-approval',
+      setTrainingConstraint: 'user-approval',
       logFoods: 'user-approval',
     },
     // Keep tool loops short — DeepSeek Flash can otherwise re-call list tools and bloat the SSE.

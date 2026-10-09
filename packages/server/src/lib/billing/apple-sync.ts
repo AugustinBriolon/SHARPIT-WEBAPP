@@ -25,11 +25,20 @@ type AppleTransactionInput = {
   renewal: JWSRenewalInfoDecodedPayload | null;
   statusOverride?: SubscriptionStatus | null;
   now?: Date;
+  /**
+   * Verify (StoreKit → app → our API): the purchase must carry `appAccountToken`.
+   * Notifications keep the opposite posture — unknown owner → ignore via
+   * `athleteForAppleTransaction`, so this stays false there.
+   */
+  requireAppAccountToken?: boolean;
 };
 
 /** Refuses a purchase that is not this athlete's; returns the row already stored, if any. */
 async function assertOwnership(input: AppleTransactionInput, originalTransactionId: string) {
   const token = input.transaction.appAccountToken;
+  if (input.requireAppAccountToken && !token) {
+    throw new AppleOwnershipError('Transaction Apple sans appAccountToken');
+  }
   if (token && input.athleteAppAccountToken && token !== input.athleteAppAccountToken) {
     throw new AppleOwnershipError('Cet achat appartient à un autre compte');
   }

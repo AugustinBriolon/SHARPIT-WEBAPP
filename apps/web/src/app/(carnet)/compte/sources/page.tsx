@@ -120,7 +120,7 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
                   </div>
                   {!linked && canLink ? (
                     <ConnectLink
-                      className="bg-foreground text-background shrink-0 rounded-md px-3 py-1.5 text-sm font-medium transition-transform active:scale-[0.97] motion-reduce:active:scale-100"
+                      className="pressable bg-foreground text-background shrink-0 rounded-full px-3 py-1.5 text-sm font-medium"
                       href={`${source.connectPath}?returnTo=${RETURN_TO}`}
                     >
                       {view.needsReconnect ? 'Relier à nouveau' : 'Relier'}

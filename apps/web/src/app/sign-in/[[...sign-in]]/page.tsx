@@ -30,7 +30,7 @@ function AuthDivider() {
   return (
     <div className="flex items-center gap-3" aria-hidden>
       <span className="bg-auth-divider h-px flex-1" />
-      <span className="text-auth-muted text-xs tracking-wider uppercase">ou connecte-toi</span>
+      <span className="text-label text-auth-muted">ou connecte-toi</span>
       <span className="bg-auth-divider h-px flex-1" />
     </div>
   );

@@ -7,6 +7,7 @@ import * as authModule from '@sharpit/server/lib/auth/current-athlete';
 vi.mock('@sharpit/db/client', () => ({
   prisma: {
     deviceToken: {
+      findUnique: vi.fn(),
       upsert: vi.fn(),
       deleteMany: vi.fn(),
     },
@@ -43,6 +44,7 @@ describe('/api/v1/push/device-token', () => {
 
     it('cleans brackets and spaces from device token and upserts cleanly', async () => {
       vi.mocked(authModule.getCurrentAthleteId).mockResolvedValueOnce('ath-1');
+      vi.mocked(prisma.deviceToken.findUnique).mockResolvedValueOnce(null);
       vi.mocked(prisma.deviceToken.upsert).mockResolvedValueOnce({
         id: 'tok-1',
         athleteId: 'ath-1',
@@ -79,7 +81,6 @@ describe('/api/v1/push/device-token', () => {
           enabled: true,
         },
         update: {
-          athleteId: 'ath-1',
           platform: 'ios',
           bundleId: 'app.sharpit.ios',
           environment: 'production',
@@ -90,6 +91,7 @@ describe('/api/v1/push/device-token', () => {
 
     it('files a token from a build run in Xcode under the APNs sandbox', async () => {
       vi.mocked(authModule.getCurrentAthleteId).mockResolvedValueOnce('ath-1');
+      vi.mocked(prisma.deviceToken.findUnique).mockResolvedValueOnce(null);
       vi.mocked(prisma.deviceToken.upsert).mockResolvedValueOnce({
         id: 'tok-2',
         enabled: true,
@@ -106,6 +108,23 @@ describe('/api/v1/push/device-token', () => {
         create: { environment: 'sandbox' },
         update: { environment: 'sandbox', enabled: true },
       });
+    });
+
+    it('refuses reassigning another athlete’s APNs token', async () => {
+      vi.mocked(authModule.getCurrentAthleteId).mockResolvedValueOnce('ath-1');
+      vi.mocked(prisma.deviceToken.findUnique).mockResolvedValueOnce({
+        athleteId: 'ath-2',
+      } as never);
+
+      const token = '1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef';
+      const req = new NextRequest('https://sharpit.app/api/v1/push/device-token', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+      });
+
+      const res = await POST(req);
+      expect(res.status).toBe(409);
+      expect(prisma.deviceToken.upsert).not.toHaveBeenCalled();
     });
   });
 

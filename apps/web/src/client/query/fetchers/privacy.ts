@@ -19,7 +19,11 @@ export async function downloadPrivacyExport(): Promise<Blob> {
 }
 
 export async function deletePrivacyAccount(): Promise<void> {
-  const response = await apiFetch('/api/privacy/delete', { method: 'POST' });
+  const response = await apiFetch('/api/privacy/delete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ confirmation: 'SUPPRIMER' }),
+  });
   if (!response.ok) {
     throw new Error('Suppression impossible');
   }

@@ -242,7 +242,7 @@ async function preparePlanGeneration(
   if (!budget.allowed) {
     return {
       ok: false as const,
-      response: NextResponse.json(aiBudgetResponseBody(budget.retryAfterSeconds!), {
+      response: NextResponse.json(aiBudgetResponseBody(budget.retryAfterSeconds!, budget.isPro), {
         status: 402,
         headers: { [RETRY_AFTER_HEADER]: String(budget.retryAfterSeconds) },
       }),

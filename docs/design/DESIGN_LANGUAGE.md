@@ -369,16 +369,14 @@ Floor: never below **0.95** on `:active` scale. Deviations from a preset require
 
 ### 9.9 Enter / Exit Motion — Shared Primitives Only
 
-Mount, unmount, and exit animations are state-bound — use Motion via shared components in `src/components/motion/`, with variants from `src/lib/motion/variants.ts` and durations from `motionTokens`. Do not add raw `AnimatePresence` with bespoke timings.
+Mount, unmount, and exit animations are state-bound — use Motion via shared components in `apps/web/src/components/motion/`, with variants from `apps/web/src/client/motion/variants.ts` and durations from `motionTokens` (`apps/web/src/client/motion/tokens.ts`). Do not add raw `AnimatePresence` with bespoke timings.
 
-| Pattern           | Component                              | Use                                                         |
-| ----------------- | -------------------------------------- | ----------------------------------------------------------- |
-| Mount + exit      | `FadePresence`                         | Conditional panels, hub state swaps                         |
-| One-shot fade-in  | `FadeIn`                               | Post-mount opacity only                                     |
-| Expand / collapse | `MotionExpand`                         | Sections (grid 0fr→1fr + opacity, §9.3)                     |
-| List enter        | `StaggerList`                          | Multi-item reveal on first paint — not every optimistic row |
-| Dialog / morph    | `MorphPopover`, motion dialog wrappers | `dialogTransition` / `springs.gentle`                       |
-| Action label swap | `ActionSwap`, `ActionSwapRollText`     | In-flight feedback without blocking                         |
+| Pattern           | Component                             | Use                                                 |
+| ----------------- | ------------------------------------- | --------------------------------------------------- |
+| Mount + exit      | `FadePresence`                        | Conditional panels, hub state swaps                 |
+| Expand / collapse | `MotionExpand`                        | Sections (grid 0fr→1fr + opacity, §9.3)             |
+| Dialog / morph    | `dialogTransition` / dialog sheet CSS | `springs.gentle` / bottom sheet on mobile (no Vaul) |
+| List / action     | Prefer tokens + presets               | Stagger / ActionSwap when a surface needs them      |
 
 Exit duration ≤ 80% of enter. `initial={false}` when replay would jar. Reduced motion: instant state change, no animation (§9.5). Reveal animations remain a separate category — [ADR-024](../adr/ADR-024-route-reveal-motion-exception.md).
 

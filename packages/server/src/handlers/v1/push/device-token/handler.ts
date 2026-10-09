@@ -57,6 +57,18 @@ export async function POST(request: NextRequest) {
     const { token, platform, bundleId, debug } = parsed.data;
     const environment = debug ? 'sandbox' : 'production';
 
+    // Refuse hijacking another athlete's APNs token via upsert reassignment.
+    const existing = await prisma.deviceToken.findUnique({
+      where: { token },
+      select: { athleteId: true },
+    });
+    if (existing && existing.athleteId !== athleteId) {
+      return NextResponse.json(
+        { error: 'Ce jeton APNs appartient déjà à un autre compte' },
+        { status: 409 },
+      );
+    }
+
     const device = await prisma.deviceToken.upsert({
       where: { token },
       create: {
@@ -68,7 +80,6 @@ export async function POST(request: NextRequest) {
         enabled: true,
       },
       update: {
-        athleteId, // reassign to current athlete if device was transferred
         platform,
         bundleId,
         environment,

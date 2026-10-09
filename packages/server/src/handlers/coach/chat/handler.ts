@@ -113,7 +113,7 @@ async function guardCoachChat(
   }
   if (!budget.allowed) {
     return {
-      blocked: NextResponse.json(aiBudgetResponseBody(budget.retryAfterSeconds!), {
+      blocked: NextResponse.json(aiBudgetResponseBody(budget.retryAfterSeconds!, budget.isPro), {
         status: 402,
         headers: { [RETRY_AFTER_HEADER]: String(budget.retryAfterSeconds) },
       }),

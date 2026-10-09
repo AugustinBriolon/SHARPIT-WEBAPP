@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { animate } from 'motion/react';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { motionTokens, springs } from '@/client/motion/tokens';
 import { type CountableText, formatCountable, parseCountable } from './carnet-count';
 import { hasSettled, prefersReducedMotion } from './carnet-motion';
 import { headingBetween } from './carnet-pages';
@@ -108,9 +109,13 @@ export function CarnetPageTransition({
       still
         ? { opacity: [0, 1] }
         : { opacity: [0, 1], x: [toward * 16, 0], y: [toward === 0 ? 8 : 0, 0] },
-      { duration: still ? 0.14 : 0.22, ease: [0.22, 1, 0.36, 1] },
+      still
+        ? { duration: motionTokens.duration.fast, ease: motionTokens.easing.smooth }
+        : springs.snappy,
     );
-    return () => controls.complete();
+    return () => {
+      controls.stop();
+    };
   }, [pathname, nested]);
 
   useLayoutEffect(() => {
@@ -140,7 +145,7 @@ export function CarnetPageTransition({
           gsap.to(batch, {
             autoAlpha: 1,
             y: 0,
-            duration: 0.45,
+            duration: motionTokens.duration.slow,
             ease: 'power3.out',
             stagger: { each: 0.06, amount: 0.24 },
             overwrite: true,
@@ -156,7 +161,7 @@ export function CarnetPageTransition({
   }, [pathname]);
 
   return (
-    <div data-heading={direction} ref={ref}>
+    <div ref={ref} data-heading={direction}>
       {children}
     </div>
   );

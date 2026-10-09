@@ -4,7 +4,11 @@ import {
   exchangeCodeForToken,
 } from '@sharpit/server/lib/integrations/google/google';
 import { redirectAfterIntegrationConnect } from '@sharpit/server/lib/integrations/oauth-return';
-import { type ConnectState, readConnectState } from '@sharpit/server/lib/integrations/oauth-state';
+import {
+  connectStateMatchesSession,
+  type ConnectState,
+  readConnectState,
+} from '@sharpit/server/lib/integrations/oauth-state';
 import { prisma } from '@sharpit/db/client';
 import { encryptSecret } from '@sharpit/server/lib/secret-box';
 
@@ -55,6 +59,9 @@ export async function GET(request: NextRequest) {
     return redirectAfterIntegrationConnect(request, state, 'google', 'denied');
   }
   if (!code || !state) {
+    return redirectAfterIntegrationConnect(request, state, 'google', 'invalid_state');
+  }
+  if (!(await connectStateMatchesSession(state))) {
     return redirectAfterIntegrationConnect(request, state, 'google', 'invalid_state');
   }
 

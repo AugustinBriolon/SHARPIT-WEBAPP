@@ -62,6 +62,7 @@ describe('POST /api/v1/billing/apple/verify', () => {
     expect(sync.applyAppleTransaction).toHaveBeenCalledWith({
       athleteId: 'athlete-1',
       athleteAppAccountToken: 'token-a',
+      requireAppAccountToken: true,
       transaction: { originalTransactionId: '1' },
       renewal: { autoRenewStatus: 1 },
     });

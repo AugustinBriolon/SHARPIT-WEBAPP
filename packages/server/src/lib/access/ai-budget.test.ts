@@ -43,17 +43,36 @@ describe('ensureFreeAiBudget', () => {
     expect(aggregateMock).not.toHaveBeenCalled();
   });
 
-  it('is always allowed for Pro athletes, whatever their usage', async () => {
+  it('allows a Pro athlete under the soft daily ceiling', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.resetModules();
     findUniqueMock.mockResolvedValue({ tier: 'PRO' });
-    aggregateMock.mockResolvedValue({ _sum: { totalTokens: 10_000_000 } });
+    aggregateMock.mockResolvedValue({ _sum: { totalTokens: 100_000 } });
     const { ensureFreeAiBudget } = await import('./ai-budget');
 
     const status = await ensureFreeAiBudget('athlete-1');
 
     expect(status).toEqual({ allowed: true, isPro: true, warning: false, retryAfterSeconds: null });
     expect(findManyMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks a Pro athlete once the soft daily ceiling is spent', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.resetModules();
+    findUniqueMock.mockResolvedValue({ tier: 'PRO' });
+    aggregateMock.mockResolvedValue({ _sum: { totalTokens: 600_000 } });
+    const oldestEventAt = new Date(Date.now() - 20 * 60 * 60 * 1000);
+    findManyMock.mockResolvedValue([
+      { createdAt: oldestEventAt, totalTokens: 550_000 },
+      { createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000), totalTokens: 50_000 },
+    ]);
+    const { ensureFreeAiBudget } = await import('./ai-budget');
+
+    const status = await ensureFreeAiBudget('athlete-1');
+
+    expect(status.allowed).toBe(false);
+    expect(status.isPro).toBe(true);
+    expect(status.retryAfterSeconds).toBeGreaterThan(3 * 60 * 60);
   });
 
   it('allows a FREE athlete under the rolling 24h budget', async () => {
@@ -118,13 +137,14 @@ describe('ensureFreeAiBudget', () => {
     expect(status).toEqual({ allowed: true, isPro: false, warning: true, retryAfterSeconds: null });
   });
 
-  it('never warns a Pro athlete, even at high usage', async () => {
+  it('warns a Pro athlete approaching the soft daily ceiling', async () => {
     findUniqueMock.mockResolvedValue({ tier: 'PRO' });
+    aggregateMock.mockResolvedValue({ _sum: { totalTokens: 420_000 } });
     const { ensureFreeAiBudget } = await importModule();
 
     const status = await ensureFreeAiBudget('athlete-1');
 
-    expect(status.warning).toBe(false);
+    expect(status).toEqual({ allowed: true, isPro: true, warning: true, retryAfterSeconds: null });
   });
 
   it('queries a rolling 24h window, not a calendar-day reset', async () => {

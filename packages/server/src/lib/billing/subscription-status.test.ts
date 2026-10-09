@@ -14,7 +14,8 @@ describe('subscriptionGrantsPro', () => {
   it('grants Pro while active or in grace, until the end date', () => {
     expect(subscriptionGrantsPro('active', new Date(later), now)).toBe(true);
     expect(subscriptionGrantsPro('grace_period', new Date(later), now)).toBe(true);
-    expect(subscriptionGrantsPro('active', null, now)).toBe(true);
+    expect(subscriptionGrantsPro('active', null, now)).toBe(false);
+    expect(subscriptionGrantsPro('grace_period', null, now)).toBe(false);
     expect(subscriptionGrantsPro('active', new Date(earlier), now)).toBe(false);
   });
 

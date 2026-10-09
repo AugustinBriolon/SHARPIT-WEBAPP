@@ -50,6 +50,7 @@ export async function POST(request: NextRequest) {
     await applyAppleTransaction({
       athleteId,
       athleteAppAccountToken: await appAccountTokenFor(athleteId),
+      requireAppAccountToken: true,
       ...verified,
     });
     const { tier, subscription } = await loadProState(athleteId);

@@ -154,6 +154,9 @@ export async function GET(request: Request) {
     return unauthorized();
   }
 
+  // Deferred: continue-token / cursor pagination across cron invocations when the
+  // athlete count outgrows one Vercel run. Bounded concurrency below is the current
+  // backstop; adding a page token needs a durable cursor store — out of scope here.
   const athletes = await prisma.athleteProfile.findMany({
     where: cronSyncAthleteFilter(),
     select: { id: true },

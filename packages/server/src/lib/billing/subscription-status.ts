@@ -9,9 +9,9 @@ export function subscriptionGrantsPro(
   if (status !== 'active' && status !== 'grace_period') {
     return false;
   }
-  // A renewal Apple has not reported yet must not keep Pro forever. The grace period
-  // carries its own end date, stored in `expiresAt` too.
-  return expiresAt === null || expiresAt.getTime() > now.getTime();
+  // Active/grace without an end date must not grant Pro forever — Apple's renewals
+  // and grace always carry an expiry; a null `expiresAt` is incomplete, not infinite.
+  return expiresAt !== null && expiresAt.getTime() > now.getTime();
 }
 
 /** What a verified Apple transaction (plus its renewal info, when sent) says right now. */

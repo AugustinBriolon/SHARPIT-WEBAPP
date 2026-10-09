@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'motion/react';
 import { cn } from '@sharpit/app/lib/utils';
+import { springs } from '@/client/motion/tokens';
+import { prefersReducedMotion } from './carnet-motion';
 import { ACCOUNT_PAGE, CARNET_PAGES, isCurrentPage } from './carnet-pages';
 
 /**
@@ -24,12 +26,16 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
 
   useEffect(() => {
     const current = listRef.current?.querySelector<HTMLElement>('[aria-current="page"]');
-    current?.scrollIntoView({ block: 'nearest', inline: 'nearest', behavior: 'smooth' });
+    current?.scrollIntoView({
+      block: 'nearest',
+      inline: 'nearest',
+      behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+    });
   }, [pathname]);
 
   return (
     <nav aria-label="Carnet" className="no-scrollbar -mx-4 overflow-x-auto px-4">
-      <ul className="flex min-w-max gap-1" ref={listRef}>
+      <ul ref={listRef} className="flex min-w-max gap-1">
         {CARNET_PAGES.map((page) => {
           const current = pathname !== null && isCurrentPage(pathname, page.href);
           return (
@@ -41,7 +47,7 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
                 // carry: this one tab is prefetched with them resolved (runtime prefetch).
                 prefetch={page.href === '/seances' ? true : undefined}
                 className={cn(
-                  'relative block rounded-md px-3 py-1.5 text-sm transition-[color,transform] duration-150 active:scale-[0.97] motion-reduce:active:scale-100',
+                  'relative block rounded-md px-3 py-1.5 text-sm transition-colors duration-150',
                   current
                     ? 'text-foreground font-medium'
                     : 'text-muted-foreground hover:text-foreground',
@@ -49,9 +55,10 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
               >
                 {current ? (
                   <motion.span
-                    aria-hidden
                     className="bg-highlight absolute inset-0 rounded-md"
                     layoutId="carnet-nav-current"
+                    transition={springs.snappy}
+                    aria-hidden
                   />
                 ) : null}
                 <span className="relative">{page.label}</span>
