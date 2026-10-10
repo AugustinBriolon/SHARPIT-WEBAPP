@@ -592,6 +592,58 @@ async function loadCachedActivityStream(
   return UNAVAILABLE;
 }
 
+/**
+ * When a stream without position, distance or speed last asked the provider for a fuller one —
+ * kept in the stored series so a provider with nothing better is not asked on every open.
+ */
+type StoredStreams = RawStreams & { providerCheckedAt?: number };
+
+const PROVIDER_RECHECK_MS = 6 * 60 * 60 * 1000;
+
+/**
+ * Heart rate alone, no route, no distance, no speed: what an Apple Health copy written by
+ * Garmin Connect carries. The provider's own recording holds the rest.
+ */
+export function isThinStream(raw: RawStreams): boolean {
+  return [raw.latlng, raw.distance, raw.velocity].every((series) => !series?.length);
+}
+
+/** A thin stream of a session Garmin or Strava also holds is worth asking them again. */
+export function shouldAskProviderForFullerStream(
+  stored: StoredStreams,
+  activity: { garminId: string | null; stravaId: string | null },
+  now: number,
+): boolean {
+  if (!activity.garminId && !activity.stravaId) {
+    return false;
+  }
+  if (!isThinStream(stored)) {
+    return false;
+  }
+  return !stored.providerCheckedAt || now - stored.providerCheckedAt >= PROVIDER_RECHECK_MS;
+}
+
+/** Replaces a thin cached stream with the provider's when it holds more; else notes the try. */
+async function upgradeThinStream(
+  athleteId: string,
+  activity: ActivityWithStream,
+  stored: StoredStreams,
+): Promise<RawStreams> {
+  try {
+    const fuller = await fetchRawStreams(athleteId, activity);
+    if (fuller && !isThinStream(fuller) && (await persistStream(athleteId, activity.id, fuller))) {
+      return fuller;
+    }
+  } catch (error) {
+    console.error('[streams] upgradeThinStream', activity.id, error);
+  }
+  await prisma.activityStream.update({
+    where: { activityId: activity.id },
+    data: { data: { ...stored, providerCheckedAt: Date.now() } as unknown as object },
+  });
+  return stored;
+}
+
 export async function getActivityStreams(
   athleteId: string,
   activityId: string,
@@ -605,6 +657,18 @@ export async function getActivityStreams(
   ]);
   if (!activity) {
     return null;
+  }
+
+  const stored = activity.stream?.available
+    ? (activity.stream.data as unknown as StoredStreams)
+    : null;
+  if (stored && shouldAskProviderForFullerStream(stored, activity, Date.now())) {
+    const raw = await upgradeThinStream(athleteId, activity, stored);
+    return buildPayload(
+      raw,
+      { type: activity.type, duration: activity.duration, bikeMetrics: activity.bikeMetrics },
+      profile,
+    );
   }
 
   const cached = await loadCachedActivityStream(activity, profile);

@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   compactRawStreamsForStorage,
+  isThinStream,
   normalizeMultisportLegRawStreams,
+  shouldAskProviderForFullerStream,
 } from '@sharpit/server/lib/streams/streams';
 
 describe('compactRawStreamsForStorage', () => {
@@ -83,5 +85,44 @@ describe('normalizeMultisportLegRawStreams', () => {
     const normalized = normalizeMultisportLegRawStreams(raw);
 
     expect(normalized.distance).toEqual([0, 500, 1000]);
+  });
+});
+
+describe('shouldAskProviderForFullerStream', () => {
+  const heartRateOnly = {
+    time: [0, 1, 2],
+    heartrate: [120, 121, 122],
+    distance: [],
+    altitude: [],
+    watts: [],
+    cadence: [],
+    velocity: [],
+    latlng: [],
+  };
+  const garmin = { garminId: '24671569284', stravaId: null };
+  const now = Date.UTC(2026, 9, 10, 12);
+
+  it('asks Garmin again for an Apple Health copy that carries heart rate alone', () => {
+    expect(isThinStream(heartRateOnly)).toBe(true);
+    expect(shouldAskProviderForFullerStream(heartRateOnly, garmin, now)).toBe(true);
+  });
+
+  it('keeps a stream that has a route or a distance', () => {
+    const run = { ...heartRateOnly, distance: [0, 3, 6] };
+    expect(isThinStream(run)).toBe(false);
+    expect(shouldAskProviderForFullerStream(run, garmin, now)).toBe(false);
+  });
+
+  it('never asks for a session no provider holds', () => {
+    expect(
+      shouldAskProviderForFullerStream(heartRateOnly, { garminId: null, stravaId: null }, now),
+    ).toBe(false);
+  });
+
+  it('waits six hours after a provider had nothing better', () => {
+    const checked = { ...heartRateOnly, providerCheckedAt: now - 60 * 60 * 1000 };
+    expect(shouldAskProviderForFullerStream(checked, garmin, now)).toBe(false);
+    const stale = { ...heartRateOnly, providerCheckedAt: now - 7 * 60 * 60 * 1000 };
+    expect(shouldAskProviderForFullerStream(stale, garmin, now)).toBe(true);
   });
 });
