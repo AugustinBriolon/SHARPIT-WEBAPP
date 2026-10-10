@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
-import { formatBudgetRetryEta } from './ai-budget-shared';
+import {
+  FREE_DAILY_TOKEN_BUDGET,
+  PRO_DAILY_TOKEN_BUDGET,
+  formatBudgetRetryEta,
+  questionsFor,
+} from './ai-budget-shared';
+import { PRO_ONLY_PERKS } from './pro-perks';
 
 describe('formatBudgetRetryEta', () => {
   afterEach(() => {
@@ -25,5 +31,22 @@ describe('formatBudgetRetryEta', () => {
     vi.setSystemTime(new Date('2026-08-29T14:00:00'));
 
     expect(formatBudgetRetryEta(3_600)).toBe('à 15:00');
+  });
+});
+
+describe('questionsFor', () => {
+  it('turns a budget of tokens into whole questions, never below zero', () => {
+    expect(questionsFor(FREE_DAILY_TOKEN_BUDGET)).toBe(6);
+    expect(questionsFor(PRO_DAILY_TOKEN_BUDGET)).toBe(62);
+    expect(questionsFor(-4_000)).toBe(0);
+  });
+});
+
+describe('Pro perks', () => {
+  it('sells the extended coach with the real budgets', () => {
+    const perk = PRO_ONLY_PERKS.find((candidate) => candidate.id === 'extended-coach');
+    expect(perk?.status).toBe('pro');
+    expect(perk?.description).toContain('62 questions');
+    expect(perk?.description).toContain('contre 6 sans Pro');
   });
 });

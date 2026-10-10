@@ -5,7 +5,10 @@ import {
   AI_BUDGET_WARNING_HEADER,
   RETRY_AFTER_HEADER,
   aiBudgetWarningMessage,
+  dailyTokenBudget,
   formatRetryDuration,
+  questionsFor,
+  type CoachQuota,
 } from '@sharpit/app/lib/access/ai-budget-shared';
 
 /**
@@ -14,15 +17,9 @@ import {
  * request *frequency*; this caps daily *spend* in tokens). Scoped to the
  * 'coach' AiUsageEvent feature only — session-narrative analysis has its own,
  * separate, tighter gate (narrative-trial.ts: 1/day, post-signup activities
- * only) and must not eat into or be eaten into by this budget.
- *
- * A real limit, not a technical ceiling: sized to a legitimately engaged
- * FREE athlete's daily use (several chat exchanges, one plan/adapt run), not
- * to the rate limiters' raw maximum throughput. Pro gets a soft ceiling well
- * above Free so a runaway loop cannot burn unbounded tokens.
+ * only) and must not eat into or be eaten into by this budget. The budgets
+ * themselves live in ai-budget-shared.ts, so the Pro page can quote them.
  */
-const FREE_DAILY_TOKEN_BUDGET = 50_000;
-const PRO_DAILY_TOKEN_BUDGET = 500_000;
 
 /**
  * Rolling window, not a calendar-day reset: usage counts if it happened in
@@ -74,13 +71,8 @@ async function computeRetryAfterSeconds(
   return BUDGET_WINDOW_HOURS * 3600;
 }
 
-/** Read-only check — never spends anything itself, the AiUsageEvent rows recordAiUsage already writes are the ledger. */
-export async function ensureFreeAiBudget(athleteId: string): Promise<AiBudgetStatus> {
-  // Local next dev: no Free token ceiling — same posture as rate-limit bypass.
-  if (process.env.NODE_ENV === 'development') {
-    return { allowed: true, isPro: true, warning: false, retryAfterSeconds: null };
-  }
-
+/** The athlete's tier, budget and coach spend over the rolling window. */
+async function readCoachSpend(athleteId: string) {
   const since = subHours(new Date(), BUDGET_WINDOW_HOURS);
   const [profile, usage] = await Promise.all([
     prisma.athleteProfile.findUnique({ where: { id: athleteId }, select: { tier: true } }),
@@ -90,8 +82,22 @@ export async function ensureFreeAiBudget(athleteId: string): Promise<AiBudgetSta
     }),
   ]);
   const isPro = hasProAccess(profile?.tier ?? 'FREE');
-  const budget = isPro ? PRO_DAILY_TOKEN_BUDGET : FREE_DAILY_TOKEN_BUDGET;
-  const usedRecently = usage._sum.totalTokens ?? 0;
+  return {
+    since,
+    isPro,
+    budget: dailyTokenBudget(isPro),
+    usedRecently: usage._sum.totalTokens ?? 0,
+  };
+}
+
+/** Read-only check — never spends anything itself, the AiUsageEvent rows recordAiUsage already writes are the ledger. */
+export async function ensureFreeAiBudget(athleteId: string): Promise<AiBudgetStatus> {
+  // Local next dev: no Free token ceiling — same posture as rate-limit bypass.
+  if (process.env.NODE_ENV === 'development') {
+    return { allowed: true, isPro: true, warning: false, retryAfterSeconds: null };
+  }
+
+  const { since, isPro, budget, usedRecently } = await readCoachSpend(athleteId);
   const allowed = usedRecently < budget;
 
   return {
@@ -99,6 +105,19 @@ export async function ensureFreeAiBudget(athleteId: string): Promise<AiBudgetSta
     isPro,
     warning: allowed && usedRecently >= budget * WARNING_THRESHOLD_RATIO,
     retryAfterSeconds: allowed ? null : await computeRetryAfterSeconds(athleteId, since, budget),
+  };
+}
+
+/** What is left of the coach budget, in questions — the coach's gauge reads it. */
+export async function coachQuota(athleteId: string): Promise<CoachQuota> {
+  const { since, isPro, budget, usedRecently } = await readCoachSpend(athleteId);
+  const spent = usedRecently >= budget;
+  return {
+    isPro,
+    dailyQuestions: questionsFor(budget),
+    remainingQuestions: questionsFor(budget - usedRecently),
+    usedRatio: Math.min(1, usedRecently / budget),
+    retryAfterSeconds: spent ? await computeRetryAfterSeconds(athleteId, since, budget) : null,
   };
 }
 

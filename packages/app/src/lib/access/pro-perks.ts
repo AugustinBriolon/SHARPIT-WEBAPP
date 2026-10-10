@@ -1,3 +1,5 @@
+import { FREE_DAILY_TOKEN_BUDGET, PRO_DAILY_TOKEN_BUDGET, questionsFor } from './ai-budget-shared';
+
 /**
  * SharpIt Pro perks — the one list, shared by the web Pro page and `/api/v1/pro` (the
  * native app never duplicates the copy). Icons are a web concern, added in
@@ -79,6 +81,12 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
     status: 'pro',
   },
   {
+    id: 'extended-coach',
+    title: 'Volume de coach étendu',
+    description: `Environ ${questionsFor(PRO_DAILY_TOKEN_BUDGET)} questions au coach par 24 h, contre ${questionsFor(FREE_DAILY_TOKEN_BUDGET)} sans Pro.`,
+    status: 'pro',
+  },
+  {
     id: 'early-access',
     title: 'Accès anticipé',
     description: 'Les nouveautés arrivent chez toi en premier, avant tout le monde.',
@@ -97,14 +105,7 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
 export const INCLUDED_FOR_EVERYONE: ProPerkData[] = [];
 
 /** Sur la feuille de route, rien à montrer encore. */
-export const PLANNED_PERKS: ProPerkData[] = [
-  {
-    id: 'extended-coach',
-    title: 'Volume de coach étendu',
-    description: 'Plus de questions au coach par jour que le quota de base.',
-    status: 'planned',
-  },
-];
+export const PLANNED_PERKS: ProPerkData[] = [];
 
 /** Every perk, in display order: Pro, then included, then planned. */
 export const ALL_PRO_PERKS: ProPerkData[] = [

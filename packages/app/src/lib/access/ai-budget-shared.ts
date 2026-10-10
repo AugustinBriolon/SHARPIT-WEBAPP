@@ -11,6 +11,42 @@ import { format } from 'date-fns';
 
 export const AI_BUDGET_WARNING_HEADER = 'X-Ai-Budget-Warning';
 
+/**
+ * The coach's daily spend, in tokens over a rolling 24 h: a real limit for Free, sized to several
+ * exchanges and one plan run; ten times that for Pro (« Volume de coach étendu »), a soft ceiling
+ * that only stops a runaway loop.
+ */
+export const FREE_DAILY_TOKEN_BUDGET = 50_000;
+export const PRO_DAILY_TOKEN_BUDGET = 500_000;
+
+/**
+ * What one coach question costs on average — chat turns with their tools, measured in prod in
+ * October 2026 (≈ 8k tokens). Turns the budget into questions an athlete can count.
+ */
+export const AVERAGE_COACH_QUESTION_TOKENS = 8_000;
+
+export function dailyTokenBudget(isPro: boolean): number {
+  return isPro ? PRO_DAILY_TOKEN_BUDGET : FREE_DAILY_TOKEN_BUDGET;
+}
+
+/** About how many questions a budget of tokens buys, never below zero. */
+export function questionsFor(tokens: number): number {
+  return Math.max(0, Math.floor(tokens / AVERAGE_COACH_QUESTION_TOKENS));
+}
+
+/** `/api/v1/coach/quota`: what is left of the athlete's coach budget, in questions. */
+export type CoachQuota = {
+  isPro: boolean;
+  /** About how many questions the full budget buys: 6 Free, 62 Pro. */
+  dailyQuestions: number;
+  /** About how many are left in the rolling 24 h. */
+  remainingQuestions: number;
+  /** Share of the budget spent, 0 to 1. */
+  usedRatio: number;
+  /** Set once the budget is spent: seconds until enough of it frees up. */
+  retryAfterSeconds: number | null;
+};
+
 /** Standard HTTP header — set on the 402 with the real wait, in seconds, until the rolling window frees enough budget. */
 export const RETRY_AFTER_HEADER = 'Retry-After';
 

@@ -177,3 +177,47 @@ describe('ensureFreeAiBudget', () => {
     );
   });
 });
+
+describe('coachQuota', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it('counts what is left of a Pro budget in questions', async () => {
+    findUniqueMock.mockResolvedValue({ tier: 'PRO' });
+    aggregateMock.mockResolvedValue({ _sum: { totalTokens: 100_000 } });
+    const { coachQuota } = await importModule();
+
+    const quota = await coachQuota('athlete-1');
+
+    expect(quota).toEqual({
+      isPro: true,
+      dailyQuestions: 62,
+      remainingQuestions: 50,
+      usedRatio: 0.2,
+      retryAfterSeconds: null,
+    });
+    expect(findManyMock).not.toHaveBeenCalled();
+  });
+
+  it('says when a spent Free budget frees up, with nothing left', async () => {
+    findUniqueMock.mockResolvedValue({ tier: 'FREE' });
+    aggregateMock.mockResolvedValue({ _sum: { totalTokens: 60_000 } });
+    findManyMock.mockResolvedValue([
+      { createdAt: new Date(Date.now() - 22 * 60 * 60 * 1000), totalTokens: 60_000 },
+    ]);
+    const { coachQuota } = await importModule();
+
+    const quota = await coachQuota('athlete-1');
+
+    expect(quota).toMatchObject({
+      isPro: false,
+      dailyQuestions: 6,
+      remainingQuestions: 0,
+      usedRatio: 1,
+    });
+    expect(quota.retryAfterSeconds).toBeGreaterThan(60 * 60);
+    expect(quota.retryAfterSeconds).toBeLessThanOrEqual(2 * 60 * 60 + 5);
+  });
+});

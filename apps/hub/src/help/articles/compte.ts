@@ -22,6 +22,7 @@ Tout ce qui t’appartient : ton plan et le coach, tes séances, ton journal, to
 - **[Analyse de séance](/aide/activite/relire-une-seance)** illimitée et sur tes séances passées (gratuite pour une séance par jour).
 - **[Lecture coach de ta nutrition](/aide/nutrition/note-des-repas)**, chaque jour, face à ton entraînement.
 - **[Âge biologique](/aide/sante/age-biologique)**, à partir de ta VO₂max.
+- **Volume de coach étendu** : environ 60 questions au coach par 24 h, contre 6 sans Pro. Quand tu as utilisé la moitié de ton quota, le coach t’affiche ce qu’il reste.
 - **Envoi vers la montre** de tes séances planifiées.
 - **Écriture dans ton calendrier** (Google ou Calendrier Apple), quand tu choisis la source principale Agenda (voir [Calendrier Apple](/aide/sources/calendrier-apple) et [Google Agenda](/aide/sources/google-agenda)).
 - **[Widgets supplémentaires](/aide/compte/widgets)** : sommeil, poids, volume de la semaine, régularité et prochain objectif.
