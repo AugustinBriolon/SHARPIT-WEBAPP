@@ -212,6 +212,53 @@ describe('food log service', () => {
     expect(entry).toMatchObject({ grams: 200, health: { score: 80 } });
   });
 
+  it('scores a quick add from its own macros, read per 100 g', async () => {
+    const { prisma, service } = await setup();
+    const quick = storedEntry({
+      productId: null,
+      grams: 200,
+      kcal: 900,
+      protein: 4,
+      carbs: 20,
+      fat: 80,
+      sugar: null,
+    });
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([
+      { ...quick, product: null },
+    ] as never);
+
+    const [entry] = await service.listFoodLogDay('athlete-1', '2026-10-10', {
+      ids: ['keto'],
+      labels: ['Cétogène'],
+    });
+    const fromLabel = service.servedProduct(
+      {
+        source: 'CUSTOM',
+        kcalPer100g: 450,
+        proteinPer100g: 2,
+        carbsPer100g: 10,
+        fatPer100g: 40,
+        fiberPer100g: null,
+        sugarPer100g: null,
+        saltPer100g: null,
+        saturatedFatPer100g: null,
+      } as never,
+      { ids: ['keto'], labels: ['Cétogène'] },
+    );
+
+    expect(entry?.health?.score).toEqual(expect.any(Number));
+    expect(entry?.health).toEqual(fromLabel.health);
+  });
+
+  it('leaves a quick add with no weight unscored', async () => {
+    const { service } = await setup();
+    const health = service.quickHealth(
+      { grams: 0, kcal: 100, protein: 1, carbs: 1, fat: 1, fiber: null, sugar: null },
+      { ids: [], labels: [] },
+    );
+    expect(health).toBeNull();
+  });
+
   it('serves a fresh cached barcode without calling Open Food Facts', async () => {
     const { prisma, service } = await setup();
     const { fetchOffProduct } = await import('./open-food-facts-client');

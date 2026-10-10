@@ -78,6 +78,7 @@
 | [ADR-073](./ADR-073-myfitnesspal-withdrawn.md)                                          | MyFitnessPal withdrawn from the product surface (410 routes; SharpIt nutrition)                                  | Accepted                          |
 | [ADR-074](./ADR-074-calendar-primary-writer-and-apple-calendar.md)                      | Calendar primary is the sole writer; Apple Calendar on-device (EventKit) + busy upload                           | Accepted                          |
 | [ADR-075](./ADR-075-coach-estimated-foods-are-logged-as-own-foods.md)                   | Foods the coach estimates are logged as own foods, so their entries are scored                                   | Accepted                          |
+| [ADR-076](./ADR-076-a-quick-add-is-scored-from-its-own-macros.md)                       | A quick add is scored on read from its own macros, so every logged food has a score                              | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

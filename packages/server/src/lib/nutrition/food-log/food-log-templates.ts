@@ -17,7 +17,7 @@ import {
   productForEntry,
   recomputeFoodLogDay,
   servedEntry,
-  servedHealth,
+  portionHealth,
   type DeclaredDiets,
 } from './food-log-service';
 
@@ -131,13 +131,13 @@ async function servedSavedMeal(
   const products = ids.length
     ? await prisma.foodProduct.findMany({ where: { id: { in: ids } } })
     : [];
-  const scores = new Map(products.map((product) => [product.id, servedHealth(product, diets)]));
+  const byId = new Map(products.map((product) => [product.id, product]));
   const scorable = items.map((item) => ({
     meal: 'LUNCH' as const,
     kcal: item.kcal,
     protein: item.protein,
     fiber: item.fiber,
-    health: item.productId ? (scores.get(item.productId) ?? null) : null,
+    health: portionHealth(item, byId.get(item.productId ?? '') ?? null, diets),
   }));
   return {
     id: meal.id,

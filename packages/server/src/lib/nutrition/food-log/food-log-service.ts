@@ -197,11 +197,57 @@ function currentHealth(product: FoodProduct): FoodHealthAssessment | null {
 /** The score with the athlete's diets read against it; facts are per food, fit per athlete. */
 export function servedHealth(product: FoodProduct, diets: DeclaredDiets): ServedFoodHealth | null {
   const health = currentHealth(product);
-  if (!health) {
+  return health ? withDietFit(health, product.carbsPer100g, diets) : null;
+}
+
+function withDietFit(
+  health: FoodHealthAssessment,
+  carbsPer100g: number,
+  diets: DeclaredDiets,
+): ServedFoodHealth {
+  const facts = health.dietFacts ?? UNKNOWN_DIET_FACTS;
+  return { ...health, dietFit: assessDietFit(facts, carbsPer100g, diets) };
+}
+
+/** What a logged portion carries, product or not: an entry or a saved meal's item. */
+export type LoggedPortion = {
+  grams: number;
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber: number | null;
+  sugar: number | null;
+};
+
+/**
+ * A quick add has no product, so it is scored from its own portion read per 100 g — as an own
+ * food is from its label (ADR-066). Every logged food gets a score (ADR-076).
+ */
+export function quickHealth(portion: LoggedPortion, diets: DeclaredDiets): ServedFoodHealth | null {
+  if (portion.grams <= 0) {
     return null;
   }
-  const facts = health.dietFacts ?? UNKNOWN_DIET_FACTS;
-  return { ...health, dietFit: assessDietFit(facts, product.carbsPer100g, diets) };
+  const per100g = (value: number) => (value * 100) / portion.grams;
+  const optionalPer100g = (value: number | null) => (value === null ? null : per100g(value));
+  const label = {
+    kcalPer100g: per100g(portion.kcal),
+    proteinPer100g: per100g(portion.protein),
+    carbsPer100g: per100g(portion.carbs),
+    fatPer100g: per100g(portion.fat),
+    fiberPer100g: optionalPer100g(portion.fiber),
+    sugarPer100g: optionalPer100g(portion.sugar),
+  };
+  return withDietFit(labelHealth(label), label.carbsPer100g, diets);
+}
+
+/** A logged portion's score: its product's, or its own macros' when it has none. */
+export function portionHealth(
+  portion: LoggedPortion,
+  product: FoodProduct | null,
+  diets: DeclaredDiets,
+): ServedFoodHealth | null {
+  return product ? servedHealth(product, diets) : quickHealth(portion, diets);
 }
 
 /**
@@ -254,10 +300,7 @@ export async function listFoodLogDay(
   );
   return rows.map(({ product, ...entry }) => {
     const resolved = product ? (refreshed.get(product.id) ?? product) : null;
-    return {
-      ...entry,
-      health: resolved ? servedHealth(resolved, diets) : null,
-    };
+    return { ...entry, health: portionHealth(entry, resolved, diets) };
   });
 }
 
@@ -293,7 +336,7 @@ export async function servedEntry(entry: FoodLogEntry, diets: DeclaredDiets) {
   const product = entry.productId
     ? await prisma.foodProduct.findUnique({ where: { id: entry.productId } })
     : null;
-  return { ...entry, health: product ? servedHealth(product, diets) : null };
+  return { ...entry, health: portionHealth(entry, product, diets) };
 }
 
 /** Resolves product / quick-add fields for a create, without writing. Used by batch + coach tools. */
