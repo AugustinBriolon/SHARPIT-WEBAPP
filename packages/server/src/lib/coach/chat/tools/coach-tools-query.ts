@@ -1,5 +1,5 @@
 import { tool } from 'ai';
-import { addDays, startOfDay } from 'date-fns';
+import { addDays, format, startOfDay, subDays } from 'date-fns';
 import { z } from 'zod';
 import {
   googleCalendarGateFromPrefs,
@@ -12,7 +12,7 @@ import {
 } from '@sharpit/server/lib/integrations/google/google-sync';
 import { isOAuthAccountConnected } from '@sharpit/server/lib/integrations/shared/connection-status';
 import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
-import { getPlannedSessions } from '@sharpit/server/lib/queries';
+import { getHealthEntries, getPlannedSessions } from '@sharpit/server/lib/queries';
 import { dayKeyFromDate } from '@sharpit/app/lib/date/day-key';
 import { suggestGarminTaxonomy } from '@sharpit/app/lib/integrations/garmin/garmin-exercise-taxonomy';
 import {
@@ -20,6 +20,14 @@ import {
   loadScenarioComparisonForCoach,
 } from '@sharpit/server/lib/presentation/scenario/scenario-comparison';
 import { parseStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
+import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/snapshot-service';
+import { loadV1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores';
+import {
+  formatCompareSleepVsReadinessMarkdown,
+  formatExplainDayScoresMarkdown,
+  formatExplainTargetBandMarkdown,
+} from '@sharpit/server/lib/coach/chat/tools/coach-insights-format';
+import { trainingDayIdNow } from '@sharpit/server/lib/athlete-state/freshness-service';
 
 function buildListPlannedSessionsTool(athleteId: string) {
   return tool({
@@ -146,11 +154,108 @@ function buildGetCalendarAvailabilityTool(athleteId: string) {
   });
 }
 
+function buildExplainDayScoresTool(athleteId: string) {
+  return tool({
+    description:
+      "Explique les scores SharpIt du jour (Réserve d'énergie, stress, cible d'effort, forme). Jour courant ou trainingDayId yyyy-MM-dd. Interdit : diagnostic médical / pathologie — cadre entraînement uniquement.",
+    inputSchema: z.object({
+      trainingDayId: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('Jour yyyy-MM-dd (défaut = aujourd’hui).'),
+    }),
+    execute: async ({ trainingDayId }) => {
+      const dayId = trainingDayId ?? trainingDayIdNow();
+      const [scores, snapshot] = await Promise.all([
+        loadV1DayScores(athleteId, dayId),
+        getOrBuildAthleteSnapshot(athleteId, dayId),
+      ]);
+      return {
+        ok: true as const,
+        markdown: formatExplainDayScoresMarkdown({
+          trainingDayId: dayId,
+          scores,
+          readiness: snapshot.readiness ?? null,
+        }),
+      };
+    },
+  });
+}
+
+function buildCompareSleepVsReadinessTool(athleteId: string) {
+  return tool({
+    description:
+      'Compare sommeil (minutes) et forme/readiness sur 7 ou 14 jours. Pour croiser récupération et nuits — pas un diagnostic médical.',
+    inputSchema: z.object({
+      windowDays: z
+        .union([z.literal(7), z.literal(14)])
+        .optional()
+        .describe('Fenêtre en jours (défaut 7).'),
+    }),
+    execute: async ({ windowDays = 7 }) => {
+      const ref = new Date();
+      const entries = await getHealthEntries(athleteId, windowDays + 1, ref);
+      const cutoff = subDays(startOfDay(ref), windowDays - 1);
+      const points = entries
+        .filter((entry) => entry.date >= cutoff)
+        .map((entry) => ({
+          trainingDayId: format(entry.date, 'yyyy-MM-dd'),
+          sleepMinutes: entry.sleepMinutes ?? null,
+          readiness: entry.recoveryScore ?? null,
+        }))
+        .sort((a, b) => a.trainingDayId.localeCompare(b.trainingDayId));
+      return {
+        ok: true as const,
+        markdown: formatCompareSleepVsReadinessMarkdown(points, windowDays),
+      };
+    },
+  });
+}
+
+function buildExplainTargetBandTool(athleteId: string) {
+  return tool({
+    description:
+      "Explique la cible d'effort (bande low–high) du jour et où se situe l'athlète. Pas de diagnostic médical.",
+    inputSchema: z.object({
+      trainingDayId: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .describe('Jour yyyy-MM-dd (défaut = aujourd’hui).'),
+    }),
+    execute: async ({ trainingDayId }) => {
+      const dayId = trainingDayId ?? trainingDayIdNow();
+      const [scores, snapshot] = await Promise.all([
+        loadV1DayScores(athleteId, dayId),
+        getOrBuildAthleteSnapshot(athleteId, dayId),
+      ]);
+      if (!scores.targetBand) {
+        return {
+          ok: false as const,
+          error: "Cible d'effort indisponible pour ce jour (données insuffisantes).",
+        };
+      }
+      return {
+        ok: true as const,
+        markdown: formatExplainTargetBandMarkdown({
+          trainingDayId: dayId,
+          band: scores.targetBand,
+          readiness: snapshot.readiness ?? null,
+        }),
+      };
+    },
+  });
+}
+
 export function buildQueryCoachTools(athleteId: string) {
   return {
     listPlannedSessions: buildListPlannedSessionsTool(athleteId),
     getScenarioProjection: buildGetScenarioProjectionTool(athleteId),
     searchWatchExercises: buildSearchWatchExercisesTool(),
     getCalendarAvailability: buildGetCalendarAvailabilityTool(athleteId),
+    explainDayScores: buildExplainDayScoresTool(athleteId),
+    compareSleepVsReadiness: buildCompareSleepVsReadinessTool(athleteId),
+    explainTargetBand: buildExplainTargetBandTool(athleteId),
   };
 }
