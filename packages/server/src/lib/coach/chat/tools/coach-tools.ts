@@ -4,6 +4,7 @@ import {
 } from '@sharpit/app/lib/practiced-sports';
 import { buildContextCoachTools } from './coach-tools-context';
 import { buildFoodLogCoachTools } from './coach-tools-food-log';
+import { buildMemoryCoachTools } from './coach-tools-memory';
 import { buildQueryCoachTools } from './coach-tools-query';
 import { buildSessionCoachTools } from './coach-tools-sessions';
 import { coachTypeEnumForSports, travelDisciplineEnumForSports } from './coach-tools-shared';
@@ -17,6 +18,8 @@ const COACH_WRITE_TOOLS: ReadonlySet<string> = new Set([
   'deletePlannedSession',
   'setTravelContext',
   'setTrainingConstraint',
+  'upsertCoachMemoryNote',
+  'archiveCoachMemoryNote',
   'logFoods',
 ]);
 
@@ -37,6 +40,7 @@ export function createCoachTools(
       ...buildQueryCoachTools(athleteId),
       ...buildSessionCoachTools(athleteId, practicedSports, proposalTypeEnum),
       ...buildContextCoachTools(athleteId, proposalTravelEnum),
+      ...buildMemoryCoachTools(athleteId),
       ...buildFoodLogCoachTools(athleteId),
     },
     COACH_WRITE_TOOLS,

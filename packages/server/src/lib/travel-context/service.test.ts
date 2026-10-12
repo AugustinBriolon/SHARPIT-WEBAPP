@@ -152,7 +152,11 @@ describe('purgeExpiredTravelContexts', () => {
 
     expect(count).toBe(2);
     expect(deleteMany).toHaveBeenCalledWith({
-      where: { athleteId: ATHLETE_ID, endDate: { lt: new Date('2026-07-22T00:00:00.000Z') } },
+      where: {
+        athleteId: ATHLETE_ID,
+        endDate: { lt: new Date('2026-07-22T00:00:00.000Z') },
+        type: { in: ['TRAVEL', 'CONSTRAINT', 'INJURY'] },
+      },
     });
   });
 });
@@ -176,7 +180,11 @@ describe('listTravelContexts', () => {
     );
 
     expect(deleteMany).toHaveBeenCalledWith({
-      where: { athleteId: ATHLETE_ID, endDate: { lt: new Date('2026-07-22T00:00:00.000Z') } },
+      where: {
+        athleteId: ATHLETE_ID,
+        endDate: { lt: new Date('2026-07-22T00:00:00.000Z') },
+        type: { in: ['TRAVEL', 'CONSTRAINT', 'INJURY'] },
+      },
     });
     expect(findMany).toHaveBeenCalledWith({
       where: { athleteId: ATHLETE_ID, endDate: { gte: new Date('2026-07-22T00:00:00.000Z') } },

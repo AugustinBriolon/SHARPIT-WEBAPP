@@ -14,8 +14,17 @@ import {
   travelTrainingConstraintLabel,
 } from '@sharpit/app/lib/travel-context/training-constraint';
 
-/** Implémentés aujourd'hui via AthleteTravelContext (voir son champ `type`). */
-export type CoachMemoryType = 'TRAVEL' | 'CONSTRAINT';
+/** Structured coach memory via AthleteTravelContext.type (ADR-080). */
+export type CoachMemoryType = 'TRAVEL' | 'CONSTRAINT' | 'INJURY' | 'PREFERENCE' | 'NOTE';
+
+/** Types that never auto-purge and may omit an end date (open-ended). */
+export const DURABLE_OPEN_ENDED_MEMORY_TYPES: ReadonlySet<CoachMemoryType> = new Set([
+  'PREFERENCE',
+  'NOTE',
+]);
+
+/** Open-ended end date stored for PREFERENCE / NOTE when the athlete leaves end empty. */
+export const OPEN_ENDED_MEMORY_END_DAY = '2099-12-31';
 
 export type CoachMemorySource = 'USER' | 'COACH';
 
@@ -60,6 +69,9 @@ export type TravelMemoryInput = {
 export const COACH_MEMORY_TYPE_LABELS: Record<CoachMemoryType, string> = {
   TRAVEL: 'Déplacement / voyage',
   CONSTRAINT: 'Contrainte',
+  INJURY: 'Blessure / gène',
+  PREFERENCE: 'Préférence',
+  NOTE: 'Note',
 };
 
 export const COACH_MEMORY_SOURCE_LABELS: Record<CoachMemorySource, string> = {
@@ -95,7 +107,13 @@ export function coachMemorySourceLabel(source: unknown): string | null {
 }
 
 export function isCoachMemoryType(value: unknown): value is CoachMemoryType {
-  return value === 'TRAVEL' || value === 'CONSTRAINT';
+  return (
+    value === 'TRAVEL' ||
+    value === 'CONSTRAINT' ||
+    value === 'INJURY' ||
+    value === 'PREFERENCE' ||
+    value === 'NOTE'
+  );
 }
 
 export function coachMemoryTypeLabel(type: unknown): string | null {

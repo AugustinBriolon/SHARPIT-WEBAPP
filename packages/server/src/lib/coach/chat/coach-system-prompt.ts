@@ -38,6 +38,7 @@ VALIDATION : créer/modifier/supprimer (séances, voyage, aliments) demande l'ac
 
 ${formatStrengthSessionRules()}
 - searchWatchExercises : cherche un exercice dans le catalogue Garmin Connect avant de le nommer dans une prescription (lecture seule, pas de validation).
+- Pour expliquer Réserve d'énergie / stress / cible d'effort / sommeil nécessaire, utilise explainDayScores, explainTargetBand ou compareSleepVsReadiness (lecture seule). Jamais de diagnostic médical.
 
 ## Principes d'entraînement
 - Périodise vers la course principale (base → spécifique → affûtage) selon les semaines restantes.

@@ -18,12 +18,18 @@ export type CoachToolName =
   | 'getScenarioProjection'
   | 'searchWatchExercises'
   | 'getCalendarAvailability'
+  | 'explainDayScores'
+  | 'compareSleepVsReadiness'
+  | 'explainTargetBand'
   | 'createPlannedSession'
   | 'createBrickSession'
   | 'updatePlannedSession'
   | 'deletePlannedSession'
   | 'setTravelContext'
-  | 'logFoods';
+  | 'logFoods'
+  | 'listCoachMemory'
+  | 'upsertCoachMemoryNote'
+  | 'archiveCoachMemoryNote';
 
 export type CoachRequestScope = {
   intent: CoachIntent;
@@ -39,6 +45,7 @@ export type CoachRequestScope = {
 /** Always sent: who the athlete is, where they stand today, what they aim for, what hurts. */
 const CORE: readonly CoachContextSection[] = [
   'note',
+  'durableMemory',
   'thresholds',
   'sports',
   'pmc',
@@ -49,7 +56,14 @@ const CORE: readonly CoachContextSection[] = [
   'activityStatus',
 ];
 
-const READ_ONLY_TOOLS: readonly CoachToolName[] = ['listPlannedSessions', 'getScenarioProjection'];
+const READ_ONLY_TOOLS: readonly CoachToolName[] = [
+  'listPlannedSessions',
+  'getScenarioProjection',
+  'explainDayScores',
+  'compareSleepVsReadiness',
+  'explainTargetBand',
+  'listCoachMemory',
+];
 
 const SCOPES: Record<CoachIntent, Omit<CoachRequestScope, 'intent'>> = {
   planning: {
@@ -196,6 +210,8 @@ const KEYWORDS: ReadonlyArray<[CoachIntent, readonly string[]]> = [
 
 /** The screen a conversation was opened from says more than any keyword. */
 const DISCUSS_INTENTS: Partial<Record<string, CoachIntent>> = {
+  today: 'general',
+  'morning-brief': 'general',
   planning: 'planning',
   'planned-session': 'planning',
   activity: 'session',

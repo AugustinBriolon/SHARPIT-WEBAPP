@@ -93,7 +93,8 @@ async function resolveLocationFields(input: TravelContextInput): Promise<{
   locationLat: number | null;
   locationLng: number | null;
 }> {
-  if ((input.type ?? 'TRAVEL') === 'CONSTRAINT') {
+  // Only TRAVEL needs a place; CONSTRAINT / INJURY / PREFERENCE / NOTE do not.
+  if ((input.type ?? 'TRAVEL') !== 'TRAVEL') {
     return { locationLabel: null, locationLat: null, locationLng: null };
   }
   if (!input.locationLabel) {
@@ -167,20 +168,31 @@ export async function purgeExpiredTravelContexts(
   onDate = new Date(),
 ) {
   const day = toUtcDateOnly(onDate);
+  // PREFERENCE / NOTE are durable (ADR-080) — never auto-purged; athlete archives them.
   const result = await prisma.athleteTravelContext.deleteMany({
-    where: { athleteId, endDate: { lt: day } },
+    where: {
+      athleteId,
+      endDate: { lt: day },
+      type: { in: ['TRAVEL', 'CONSTRAINT', 'INJURY'] },
+    },
   });
   return result.count;
 }
 
 /**
- * TRAVEL and CONSTRAINT entries covering a calendar day: the windows that limit which
- * sports may be scheduled. Read-only, unlike `listTravelContexts` it never purges.
+ * TRAVEL / CONSTRAINT / INJURY covering a calendar day: the windows that limit which
+ * sports may be scheduled. PREFERENCE / NOTE never restrict planning.
+ * Read-only, unlike `listTravelContexts` it never purges.
  */
 export async function listRestrictionsOnDay(prisma: PrismaClient, athleteId: string, onDate: Date) {
   const day = toUtcDateOnly(onDate);
   return prisma.athleteTravelContext.findMany({
-    where: { athleteId, startDate: { lte: day }, endDate: { gte: day } },
+    where: {
+      athleteId,
+      type: { in: ['TRAVEL', 'CONSTRAINT', 'INJURY'] },
+      startDate: { lte: day },
+      endDate: { gte: day },
+    },
     orderBy: [{ startDate: 'asc' }, { createdAt: 'asc' }],
   });
 }

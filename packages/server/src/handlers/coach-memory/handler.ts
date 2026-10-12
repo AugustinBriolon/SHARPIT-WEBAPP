@@ -13,9 +13,9 @@ const travelDisciplineSchema = z.enum(['RUN', 'BIKE', 'SWIM', 'STRENGTH', 'MOBIL
 
 const travelPayloadSchema = z
   .object({
-    type: z.enum(['TRAVEL', 'CONSTRAINT']).default('TRAVEL'),
+    type: z.enum(['TRAVEL', 'CONSTRAINT', 'INJURY', 'PREFERENCE', 'NOTE']).default('TRAVEL'),
     label: z.string().optional().nullable(),
-    /** Required for TRAVEL only — a Contrainte has no place. */
+    /** Required for TRAVEL only — other types have no place. */
     locationLabel: z.string().optional().nullable(),
     locationLat: z.number().optional().nullable(),
     locationLng: z.number().optional().nullable(),

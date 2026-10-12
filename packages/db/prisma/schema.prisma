@@ -1742,11 +1742,15 @@ enum TravelDiscipline {
 }
 
 /// TRAVEL = away-from-home period (has a location). CONSTRAINT = temporary
-/// training-capacity limitation not tied to travel — illness, injury, high
-/// work-stress week, etc. (no location).
+/// training-capacity limitation not tied to travel — illness, high work-stress
+/// week, etc. (no location). INJURY / PREFERENCE / NOTE = durable structured
+/// memory (ADR-080); PREFERENCE/NOTE are open-ended and never auto-purged.
 enum AthleteMemoryEntryType {
   TRAVEL
   CONSTRAINT
+  INJURY
+  PREFERENCE
+  NOTE
 }
 
 /// Despite the name, this table now hosts two kinds of entries (see `type`):

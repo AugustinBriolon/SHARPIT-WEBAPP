@@ -12,7 +12,7 @@ const travelDisciplineSchema = z.enum(['RUN', 'BIKE', 'SWIM', 'STRENGTH', 'MOBIL
 
 const updateSchema = z
   .object({
-    type: z.enum(['TRAVEL', 'CONSTRAINT']),
+    type: z.enum(['TRAVEL', 'CONSTRAINT', 'INJURY', 'PREFERENCE', 'NOTE']),
     label: z.string().optional().nullable(),
     locationLabel: z.string().optional().nullable(),
     locationLat: z.number().optional().nullable(),

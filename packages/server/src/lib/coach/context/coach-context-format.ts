@@ -16,6 +16,7 @@ import {
   type CoachActivity,
   type CoachContextData,
 } from '@sharpit/server/lib/coach/context/coach-context-assembly';
+import { formatDurableMemoryBlock } from '@sharpit/server/lib/coach-memory/format-durable-memory-block';
 
 type CoachContext = CoachContextData;
 
@@ -355,6 +356,9 @@ function healthSummaryBits(health: CoachContext['health']): string[] {
     health.readinessLevel ? `(${health.readinessLevel})` : null,
     health.hrvStatus ? `HRV ${health.hrvStatus}` : null,
     isSet(health.bodyBattery) ? `Body Battery ${health.bodyBattery}` : null,
+    // Callers: coach prompt. API: discuss context. User: implement Bevel gaps plan.
+    isSet(health.stress) ? `Stress ${health.stress}/100` : null,
+    isSet(health.energyBank) ? `Energy Bank ${health.energyBank}/100` : null,
     isSet(health.avgSleepMin)
       ? `sommeil moy 7j ${Math.floor(health.avgSleepMin / 60)}h${(health.avgSleepMin % 60).toString().padStart(2, '0')}`
       : null,
@@ -622,6 +626,7 @@ function formatUpcomingPlannedSection(upcomingPlanned: CoachContext['upcomingPla
 /** The parts of the coach context, so a request can carry only those it needs. */
 export const COACH_CONTEXT_SECTIONS = [
   'note',
+  'durableMemory',
   'thresholds',
   'sports',
   'equipment',
@@ -649,6 +654,12 @@ export type CoachContextSection = (typeof COACH_CONTEXT_SECTIONS)[number];
 function coachContextSections(ctx: CoachContext): Array<[CoachContextSection, string[]]> {
   return [
     ['note', formatPersonalNoteSection(ctx.note)],
+    [
+      'durableMemory',
+      formatDurableMemoryBlock(ctx.durableMemory ?? [])
+        .split('\n')
+        .filter(Boolean),
+    ],
     ['thresholds', formatProfileThresholdLines(ctx.profile)],
     ['sports', [`\n${formatPracticedSportsForCoach(ctx.practicedSports)}`]],
     ['equipment', [`\n${formatEquipmentForCoach(ctx.equipment)}`]],

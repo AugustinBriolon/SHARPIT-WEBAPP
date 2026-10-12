@@ -29,9 +29,12 @@ import {
   zoneStrategy,
 } from '@sharpit/app/lib/physical-health/zone-follow-up';
 import type { TrainingZone } from '@sharpit/app/lib/physical-health/zone-training-rules';
+import { runEnergyBankModel } from '@sharpit/core/inference/energy-bank/model';
 import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/snapshot-service';
 import { listTravelContexts } from '@sharpit/server/lib/travel-context/service';
 import { toUtcDateOnly } from '@sharpit/app/lib/travel-context/calendar-date';
+import { memoryEntriesFromTravelContexts } from '@sharpit/server/lib/coach-memory/summary/present';
+import type { CoachMemoryEntry } from '@sharpit/app/lib/coach-memory/core/types';
 import { buildTopActionLine } from '@sharpit/app/lib/today/rich/today-rich-view';
 import { decisionVerdict } from '@sharpit/app/lib/decision/projection';
 import { resolve, resolveCode } from '@sharpit/app/lib/french';
@@ -190,9 +193,11 @@ function buildTodayReadinessFields(
 function buildTodayAutonomicFields(
   todayHealth: Awaited<ReturnType<typeof getHealthEntries>>[number] | undefined,
 ) {
+  // Callers: coach discuss/adapt. API: coach context prompt. User: implement Bevel gaps plan.
   return {
     hrvStatus: todayHealth?.hrvStatus ?? null,
     bodyBattery: todayHealth?.bodyBattery ?? null,
+    stress: todayHealth?.stress ?? null,
   };
 }
 
@@ -207,9 +212,21 @@ function buildTodayHealthFields(
 
 function buildHealthFromEntries(healthEntries: Awaited<ReturnType<typeof getHealthEntries>>) {
   const last7 = healthEntries.slice(0, 7);
+  const [today] = healthEntries;
+  const energyBank = today
+    ? runEnergyBankModel({
+        readinessScore: today.recoveryScore ?? null,
+        sleepDebtMin: null,
+        strainScore: null,
+        stress: today.stress ?? null,
+        previousClose: null,
+        hourOfDay: new Date().getHours(),
+      }).value
+    : null;
   return {
-    ...buildTodayHealthFields(healthEntries[0]),
+    ...buildTodayHealthFields(today),
     ...buildHealthAverages(last7),
+    energyBank,
   };
 }
 
@@ -381,9 +398,19 @@ function buildTravelMemory(
     trainingConstraint: t.trainingConstraint,
     allowedDisciplines: t.allowedDisciplines,
   });
+  const durableMemory: CoachMemoryEntry[] = memoryEntriesFromTravelContexts(
+    travelContexts.filter(
+      (t) => t.type === 'INJURY' || t.type === 'PREFERENCE' || t.type === 'NOTE',
+    ),
+    refDate,
+  ).filter((entry) => entry.isActive);
+
   return {
     travel: memoryEntriesInWindow.filter((t) => t.type === 'TRAVEL').map(mapEntry),
-    constraints: memoryEntriesInWindow.filter((t) => t.type === 'CONSTRAINT').map(mapEntry),
+    constraints: memoryEntriesInWindow
+      .filter((t) => t.type === 'CONSTRAINT' || t.type === 'INJURY')
+      .map(mapEntry),
+    durableMemory,
   };
 }
 
@@ -687,7 +714,7 @@ export function assembleCoachContextPayload(
   const environment = buildCoachEnvironment(profile, athleteSnapshot, homeWeather);
   const physical = buildPhysicalContext(athleteSnapshot, physicalNotes, refDate);
   const trainingZones = buildTrainingZones(physicalNotes);
-  const { travel, constraints } = buildTravelMemory(travelContexts, refDate);
+  const { travel, constraints, durableMemory } = buildTravelMemory(travelContexts, refDate);
   const { fatigue, adaptation, decision } = buildCoachIntelligence(athleteSnapshot);
 
   return {
@@ -697,6 +724,7 @@ export function assembleCoachContextPayload(
     ...activitySections,
     travel,
     constraints,
+    durableMemory,
     physical,
     trainingZones,
     fatigue,

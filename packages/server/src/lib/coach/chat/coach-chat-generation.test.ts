@@ -19,6 +19,7 @@ describe('coachChatGenerationSettings', () => {
   it('asks the athlete before any calendar, constraint or food-log write', () => {
     const { toolApproval } = coachChatGenerationSettings(coachRequestScope('general'));
     expect(Object.keys(toolApproval).sort()).toEqual([
+      'archiveCoachMemoryNote',
       'createBrickSession',
       'createPlannedSession',
       'deletePlannedSession',
@@ -26,6 +27,7 @@ describe('coachChatGenerationSettings', () => {
       'setTrainingConstraint',
       'setTravelContext',
       'updatePlannedSession',
+      'upsertCoachMemoryNote',
     ]);
   });
 });
