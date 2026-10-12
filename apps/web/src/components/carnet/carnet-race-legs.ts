@@ -20,6 +20,8 @@ export type RaceLegView = {
   distance: string | null;
   /** Pace or speed in the sport's own unit; null when it cannot be told. */
   pace: string | null;
+  /** The leg's own séance, when the race was built from separate recordings. */
+  href: string | null;
 };
 
 function legSpeedMs(leg: MultisportLeg, durationSec: number): number | null {
@@ -60,6 +62,7 @@ export function raceLegViews(legs: readonly MultisportLeg[]): RaceLegView[] {
       color: type ? SPORT_IDENTITY_HEX[type] : null,
       distance: leg.distanceM ? formatDistance(leg.distanceM) : null,
       pace: legPaceText(leg),
+      href: leg.sourceActivityId ? `/seances/${leg.sourceActivityId}` : null,
     };
   });
 }

@@ -46,13 +46,31 @@ export function RaceLegsStrip({
                 style={{ backgroundColor: leg.color ?? undefined }}
                 aria-hidden
               />
-              <span className="text-muted-foreground">{leg.label}</span>
+              <LegName className="text-muted-foreground" leg={leg} />
               <span className="tabular-nums">{formatChronoSeconds(leg.durationSec)}</span>
             </li>
           ))}
         </ol>
       )}
     </div>
+  );
+}
+
+/** A leg's name, opening its own séance when it has one. */
+function LegName({ leg, className }: { leg: RaceLegView; className?: string }) {
+  if (!leg.href) {
+    return <span className={className}>{leg.label}</span>;
+  }
+  return (
+    <CarnetIntentLink
+      href={leg.href}
+      className={cn(
+        'hover:text-foreground focus-visible:ring-ring rounded-sm underline decoration-dotted underline-offset-4 focus-visible:ring-2 focus-visible:outline-none',
+        className,
+      )}
+    >
+      {leg.label}
+    </CarnetIntentLink>
   );
 }
 
@@ -81,7 +99,7 @@ export function RaceLegsTable({ legs }: { legs: readonly RaceLegView[] }) {
           {legs.map((leg) => (
             <tr key={leg.key}>
               <th className={`${TD} font-medium`} scope="row">
-                {leg.label}
+                <LegName leg={leg} />
               </th>
               <td className={TD}>{formatChronoSeconds(leg.durationSec)}</td>
               <td className={TD}>{leg.distance ?? '—'}</td>

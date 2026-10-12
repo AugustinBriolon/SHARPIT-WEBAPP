@@ -27,7 +27,7 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
-import { RaceFigures, RaceLegs } from '@/components/carnet/carnet-race';
+import { RaceReading } from '@/components/carnet/carnet-race-analysis';
 import { streamProfile } from '@/components/carnet/carnet-stream';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -123,7 +123,7 @@ async function SessionReading({ id }: { id: string }) {
     );
   }
 
-  const { activity, goal, multisportLegs } = detail;
+  const { activity, goal, multisportLegs, raceAnalysis } = detail;
   const narrative = isNarrative(activity.narrativeAnalysis) ? activity.narrativeAnalysis : null;
   const planned = activity.plannedSession;
   const analysis = planned && isAnalysis(planned.analysis) ? planned.analysis : null;
@@ -139,17 +139,12 @@ async function SessionReading({ id }: { id: string }) {
         lead={narrative?.headline}
         title={activity.title ?? sport}
       >
-        {goal ? (
-          <CarnetSection label="La course" title={goal.title}>
-            <RaceFigures
-              durationSec={activity.duration}
-              raceFormat={goal.raceFormat}
-              targetPerformance={goal.targetPerformance}
-            />
-          </CarnetSection>
-        ) : null}
-
-        {multisportLegs?.length ? <RaceLegs legs={multisportLegs} /> : null}
+        <RaceReading
+          analysis={raceAnalysis}
+          durationSec={activity.duration}
+          goal={goal}
+          legs={multisportLegs}
+        />
 
         <CarnetSection label="Les chiffres">
           <KeyFigures activity={activity} stats={streams?.stats ?? null} />
