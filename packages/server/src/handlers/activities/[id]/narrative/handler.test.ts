@@ -39,9 +39,21 @@ vi.mock('@sharpit/db/client', () => ({
   prisma: {
     activity: {
       findFirst: vi.fn().mockResolvedValue({ id: 'activity-1', date: new Date('2026-08-20') }),
-      findUnique: vi.fn().mockResolvedValue({ id: 'activity-1' }),
     },
   },
+}));
+
+vi.mock('@sharpit/server/lib/queries', () => ({
+  getActivityById: vi.fn().mockResolvedValue({
+    id: 'activity-1',
+    type: 'TRIATHLON',
+    multisportLegs: [{ kind: 'swim' }],
+    runMetrics: null,
+  }),
+}));
+
+vi.mock('@sharpit/server/lib/activity/multisport/load-race-analysis', () => ({
+  loadRaceAnalysis: vi.fn().mockResolvedValue({ legs: [] }),
 }));
 
 async function importRoute() {
@@ -76,6 +88,7 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
 
     expect(runActivityNarrativeAnalysisMock).toHaveBeenCalledWith('athlete-1', 'activity-1', {
       force: false,
+      allowHistorical: true,
     });
   });
 
@@ -95,6 +108,7 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
 
     expect(runActivityNarrativeAnalysisMock).toHaveBeenCalledWith('athlete-1', 'activity-1', {
       force: true,
+      allowHistorical: true,
     });
   });
 
@@ -133,6 +147,20 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
     expect(response.status).not.toBe(402);
     expect(runActivityNarrativeAnalysisMock).toHaveBeenCalledWith('athlete-1', 'activity-1', {
       force: true,
+      allowHistorical: true,
+    });
+  });
+
+  it('answers with the full detail payload, legs and race analysis included', async () => {
+    const { POST } = await importRoute();
+
+    const response = await POST(postRequest({ wait: true }), context);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      id: 'activity-1',
+      multisportLegs: [{ kind: 'swim' }],
+      raceAnalysis: { legs: [] },
     });
   });
 });

@@ -11,6 +11,8 @@ import {
 } from '@sharpit/server/lib/rate-limit';
 import { requireAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
 import { prisma } from '@sharpit/db/client';
+import { getActivityById } from '@sharpit/server/lib/queries';
+import { loadRaceAnalysis } from '@sharpit/server/lib/activity/multisport/load-race-analysis';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -35,13 +37,25 @@ async function checkNarrativeRateLimit(
   return NextResponse.json(limited.body, { status: limited.status });
 }
 
+// The athlete asked for it: the today-only rule is for the automatic ingest path, not this one.
+function narrativeOptions(force: boolean) {
+  return { force, allowHistorical: true };
+}
+
 async function runNarrativeAndRespond(athleteId: string, id: string, force: boolean) {
-  const ok = await runActivityNarrativeAnalysis(athleteId, id, { force });
+  const ok = await runActivityNarrativeAnalysis(athleteId, id, narrativeOptions(force));
   if (!ok) {
     return NextResponse.json({ error: 'Synthèse impossible' }, { status: 500 });
   }
-  const activity = await prisma.activity.findUnique({ where: { id } });
-  return NextResponse.json(activity);
+  // Same shape as GET /activities/[id]: the client swaps its whole detail for this answer.
+  const activity = await getActivityById(athleteId, id);
+  if (!activity) {
+    return NextResponse.json({ error: 'Activité introuvable' }, { status: 404 });
+  }
+  return NextResponse.json({
+    ...activity,
+    raceAnalysis: await loadRaceAnalysis(athleteId, activity, { cacheOnly: true }),
+  });
 }
 
 async function validateNarrativePost(
@@ -115,7 +129,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
 
     after(async () => {
       try {
-        await runActivityNarrativeAnalysis(athleteId, id, { force });
+        await runActivityNarrativeAnalysis(athleteId, id, narrativeOptions(force));
       } catch (error) {
         console.error('[activities/narrative]', id, error);
       }
