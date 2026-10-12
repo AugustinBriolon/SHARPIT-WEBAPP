@@ -1,4 +1,5 @@
 import type { AccessTier, Prisma } from '@prisma/client';
+import type { RaceAnalysis } from '@sharpit/app/lib/activity/race-analysis-types';
 import type { MultisportLeg } from '@sharpit/app/lib/activity/multisport';
 import type { DemoTranscriptMessage } from '@sharpit/app/lib/demo/demo-coach-transcript';
 import type { AthleteEquipment } from '@sharpit/app/lib/equipment/types';
@@ -35,6 +36,8 @@ export type ActivityDetailPayload = {
   /** The goal the activity was done for (same as `activity.goal`), for the race header. */
   goal: ClientActivityDetail['goal'];
   multisportLegs: MultisportLeg[] | null;
+  /** Race view (total vs target, legs, effort) — a triathlon or an activity done for a goal. */
+  raceAnalysis: RaceAnalysis | null;
   goalValidations: Prisma.GoalAchievementGetPayload<{
     include: {
       goal: { select: { id: true; title: true; unit: true; metricKey: true; targetValue: true } };

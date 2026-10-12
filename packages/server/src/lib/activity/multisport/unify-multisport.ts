@@ -163,11 +163,80 @@ function endMs(row: { date: Date; duration: number | null }): number {
 
 type RaceWindow = { date: Date; duration: number | null };
 
+/** Share of a row's own duration a race window must cover (strictly more) for the row to belong to it. */
+const MIN_WINDOW_OVERLAP = 0.5;
+
+function overlapMs(a: RaceWindow, b: RaceWindow): number {
+  return Math.max(0, Math.min(endMs(a), endMs(b)) - Math.max(a.date.getTime(), b.date.getTime()));
+}
+
+/**
+ * Starts within the window's margins and spends more than half its time inside it. An end bound
+ * alone missed legs that stop a few seconds after the parent (a run ending 1 s past the margin).
+ * A row without a duration has no overlap to measure: never inside.
+ */
 function insideWindow(window: RaceWindow, row: UnifyDayRow): boolean {
+  const start = row.date.getTime();
+  const startsInside =
+    start >= window.date.getTime() - WINDOW_MARGIN_MS && start <= endMs(window) + WINDOW_MARGIN_MS;
+  const durationMs = (row.duration ?? 0) * 1000;
+  return startsInside && durationMs > 0 && overlapMs(window, row) > durationMs * MIN_WINDOW_OVERLAP;
+}
+
+const LEG_ROW_TYPES: Record<Exclude<MultisportLeg['kind'], 'transition'>, ActivityType> = {
+  swim: ActivityType.SWIM,
+  bike: ActivityType.BIKE,
+  run: ActivityType.RUN,
+};
+
+function isTransitionRow(row: UnifyDayRow): boolean {
   return (
-    row.date.getTime() >= window.date.getTime() - WINDOW_MARGIN_MS &&
-    endMs(row) <= endMs(window) + WINDOW_MARGIN_MS
+    (row.type === ActivityType.STRENGTH || row.type === ActivityType.OTHER) &&
+    row.duration !== null &&
+    row.duration <= MAX_TRANSITION_ROW_SEC
   );
+}
+
+function rowFitsLeg(leg: MultisportLeg, row: UnifyDayRow): boolean {
+  return leg.kind === 'transition' ? isTransitionRow(row) : row.type === LEG_ROW_TYPES[leg.kind];
+}
+
+/**
+ * Points each provider leg (Garmin's) at the absorbed row recording it: same kind, largest time
+ * overlap, each row used once. A leg starts where the previous ones end. A link to a row no longer
+ * among the members (deleted, unmerged) is dropped and the leg relinked.
+ */
+export function linkLegSources(
+  legs: MultisportLeg[],
+  parentStart: Date,
+  rows: UnifyDayRow[],
+): MultisportLeg[] {
+  const memberIds = new Set(rows.map((row) => row.id));
+  const current = legs.map((leg) =>
+    leg.sourceActivityId && !memberIds.has(leg.sourceActivityId)
+      ? { ...leg, sourceActivityId: null }
+      : leg,
+  );
+  const used = new Set(current.map((leg) => leg.sourceActivityId).filter(Boolean));
+  let offsetSec = 0;
+  return current.map((leg) => {
+    const window = {
+      date: new Date(parentStart.getTime() + offsetSec * 1000),
+      duration: leg.durationSec,
+    };
+    offsetSec += leg.durationSec;
+    if (leg.sourceActivityId) {
+      return leg;
+    }
+    const [best] = rows
+      .filter((row) => !used.has(row.id) && rowFitsLeg(leg, row) && overlapMs(window, row) > 0)
+      .sort((a, b) => overlapMs(window, b) - overlapMs(window, a));
+    if (!best) {
+      return leg;
+    }
+    used.add(best.id);
+    return { ...leg, sourceActivityId: best.id };
+  });
 }
 
 const LEG_TYPES = new Set<ActivityType>([ActivityType.SWIM, ActivityType.BIKE, ActivityType.RUN]);
@@ -186,17 +255,19 @@ function recordsWholeRace(window: RaceWindow, row: UnifyDayRow): boolean {
 
 /** A leg, a short transition row, or a copy of the whole race — never another long session. */
 function isAbsorbable(window: RaceWindow, row: UnifyDayRow): boolean {
-  if (row.mergedIntoId !== null || !insideWindow(window, row)) {
+  if (row.mergedIntoId !== null) {
+    return false;
+  }
+  if (!row.duration) {
+    return recordsWholeRace(window, row);
+  }
+  if (!insideWindow(window, row)) {
     return false;
   }
   if (LEG_TYPES.has(row.type)) {
     return true;
   }
-  const shortTransition =
-    (row.type === ActivityType.STRENGTH || row.type === ActivityType.OTHER) &&
-    row.duration !== null &&
-    row.duration <= MAX_TRANSITION_ROW_SEC;
-  return shortTransition || recordsWholeRace(window, row);
+  return isTransitionRow(row) || recordsWholeRace(window, row);
 }
 
 function sessionExternalIds(row: UnifyDayRow): string[] {
@@ -240,37 +311,57 @@ function asJson(legs: MultisportLeg[]): Prisma.InputJsonValue {
   return legs as unknown as Prisma.InputJsonValue;
 }
 
+/**
+ * The parent's legs and what to write: ours built from the absorbed rows when it has none (and
+ * no Garmin id to fetch them from), else its stored legs pointed at the rows recording them.
+ */
+function parentLegs(parent: UnifyDayRow, members: UnifyDayRow[], absorbed: UnifyDayRow[]) {
+  const stored = isMultisportLegArray(parent.multisportLegs) ? parent.multisportLegs : null;
+  if (stored) {
+    const linked = linkLegSources(stored, parent.date, members);
+    const changed = JSON.stringify(linked) !== JSON.stringify(stored);
+    return { legs: stored, write: changed ? linked : null };
+  }
+  const built = parent.garminId
+    ? null
+    : (detectTriathlonChain(absorbed.map(toDetectable))?.legs ?? null);
+  return { legs: built, write: built };
+}
+
+function existingParentUpdate(
+  parent: UnifyDayRow,
+  members: UnifyDayRow[],
+  absorbed: UnifyDayRow[],
+  goal: UnifyRaceGoal | null,
+  legs: ReturnType<typeof parentLegs>,
+): Prisma.ActivityUncheckedUpdateInput {
+  const update: Prisma.ActivityUncheckedUpdateInput = { ...subjectiveFill(parent, absorbed) };
+  const title = titleUpdate(parent.title, goal, legs.legs);
+  const source = unifiedSource([parent, ...members]);
+  if (title !== undefined) {
+    update.title = title;
+  }
+  if (source !== parent.source) {
+    update.source = source;
+  }
+  if (legs.write) {
+    update.multisportLegs = asJson(legs.write);
+  }
+  if (goal && !parent.goalId) {
+    update.goalId = goal.id;
+  }
+  return update;
+}
+
 function planExistingTriathlon(
   parent: UnifyDayRow,
   rows: UnifyDayRow[],
   goal: UnifyRaceGoal | null,
 ): MultisportDayPlan | null {
   const absorbed = rows.filter((row) => row.id !== parent.id && isAbsorbable(parent, row));
-  const alreadyMerged = rows.filter((row) => row.mergedIntoId === parent.id);
-  const storedLegs = isMultisportLegArray(parent.multisportLegs) ? parent.multisportLegs : null;
-  // Garmin legs are fetched on demand from its id; only a parent without one takes ours.
-  const builtLegs =
-    !storedLegs && !parent.garminId
-      ? (detectTriathlonChain(absorbed.map(toDetectable))?.legs ?? null)
-      : null;
-  const legs = storedLegs ?? builtLegs;
-
-  const update: Prisma.ActivityUncheckedUpdateInput = { ...subjectiveFill(parent, absorbed) };
-  const title = titleUpdate(parent.title, goal, legs);
-  if (title !== undefined) {
-    update.title = title;
-  }
-  const source = unifiedSource([parent, ...alreadyMerged, ...absorbed]);
-  if (source !== parent.source) {
-    update.source = source;
-  }
-  if (builtLegs) {
-    update.multisportLegs = asJson(builtLegs);
-  }
-  const linkGoal = goal && !parent.goalId ? goal : null;
-  if (linkGoal) {
-    update.goalId = linkGoal.id;
-  }
+  const members = [...rows.filter((row) => row.mergedIntoId === parent.id), ...absorbed];
+  const legs = parentLegs(parent, members, absorbed);
+  const update = existingParentUpdate(parent, members, absorbed, goal, legs);
   if (absorbed.length === 0 && Object.keys(update).length === 0) {
     return null;
   }
@@ -278,8 +369,11 @@ function planExistingTriathlon(
     target: { kind: 'existing', id: parent.id, duration: parent.duration },
     absorbIds: absorbed.map((row) => row.id),
     update,
-    goal: linkGoal,
-    dropObservationExternalIds: duplicateObservationIds(absorbed, legs),
+    goal: goal && !parent.goalId ? goal : null,
+    // A provider parent counts the race in its own observation: every absorbed copy goes.
+    dropObservationExternalIds: parent.garminId
+      ? absorbed.flatMap(sessionExternalIds)
+      : duplicateObservationIds(absorbed, legs.legs),
   };
 }
 

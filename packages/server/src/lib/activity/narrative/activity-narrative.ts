@@ -44,6 +44,7 @@ RÈGLES :
 - narrative : 2 à 4 phrases fluides avec au moins une connexion entre systèmes (pas une liste de stats). Intègre les chiffres clés dans le texte plutôt que sous forme de liste.
 - Si peu de données contextuelles, dis-le honnêtement et concentre-toi sur ce qui est disponible.
 - Mentionne les objectifs validés si présents.
+- Si une section « Course » est présente, c'est une course préparée : dis d'abord ce qui a marché, puis où progresser (une ou deux pistes concrètes tirées des étapes, de la gestion d'effort ou de l'écart à l'objectif). Ton de coach, chaleureux et sobre : pas de superlatifs ni d'emphase.
 
 ${COACH_COPY_DASH_RULE}`;
 
@@ -201,7 +202,9 @@ export async function backfillActivityNarratives(athleteId: string): Promise<{
       ...visibleActivityWhere,
       narrativeAnalyzedAt: null,
       date: { gte: NARRATIVE_ANALYSIS_SINCE },
-      type: { in: [ActivityType.RUN, ActivityType.BIKE, ActivityType.SWIM] },
+      type: {
+        in: [ActivityType.RUN, ActivityType.BIKE, ActivityType.SWIM, ActivityType.TRIATHLON],
+      },
     },
     select: { id: true },
     orderBy: { date: 'asc' },

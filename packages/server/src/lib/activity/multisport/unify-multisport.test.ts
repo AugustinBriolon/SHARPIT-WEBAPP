@@ -25,6 +25,7 @@ vi.mock('@sharpit/db/client', () => ({ prisma: prismaMock }));
 
 import {
   isProviderDefaultTitle,
+  linkLegSources,
   planMultisportDay,
   unifyMultisportDay,
   type UnifyDayRow,
@@ -332,5 +333,124 @@ describe('unifyMultisportDay — dry run', () => {
     expect(plan?.target.kind).toBe('create');
     expect(prismaMock.activity.create).not.toHaveBeenCalled();
     expect(prismaMock.activity.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('prod case 2026-10-11 — Garmin half Ironman with Apple Health rows', () => {
+  const at = (hms: string) => new Date(`2026-10-11T${hms}Z`);
+  const apple = (id: string, type: ActivityType, hms: string, duration: number) => ({
+    ...row(id, type, 0, 0, { stravaId: null, appleHealthId: `a-${id}`, source: 'apple-health' }),
+    date: at(hms),
+    duration,
+  });
+  const garminLeg = (
+    kind: 'swim' | 'bike' | 'run' | 'transition',
+    durationSec: number,
+    transitionIndex: number | null = null,
+  ) => ({
+    kind,
+    label: kind,
+    durationSec,
+    movingDurationSec: null,
+    distanceM: null,
+    avgHr: null,
+    avgSpeedMs: null,
+    elevationM: null,
+    calories: null,
+    garminActivityId: `g-${kind}-${transitionIndex ?? 0}`,
+    transitionIndex,
+  });
+  const parent = {
+    ...row('garmin', ActivityType.TRIATHLON, 0, 0, {
+      title: 'Half IronMan Versailles',
+      goalId: 'goal-1',
+      garminId: 'g1',
+      stravaId: null,
+      source: 'garmin+apple-health',
+      multisportLegs: [
+        garminLeg('swim', 1805),
+        garminLeg('transition', 582, 1),
+        garminLeg('bike', 11514),
+        garminLeg('transition', 356, 2),
+        garminLeg('run', 6146),
+      ],
+    }),
+    date: at('08:19:42'),
+    duration: 20403,
+  };
+  const merged = [
+    apple('swim', ActivityType.SWIM, '08:19:42', 1522),
+    apple('whole', ActivityType.OTHER, '08:19:42', 20403),
+    apple('t1', ActivityType.OTHER, '08:49:47', 581),
+    apple('bike', ActivityType.BIKE, '08:59:29', 11516),
+    apple('t2', ActivityType.OTHER, '12:12:03', 358),
+  ].map((r) => ({ ...r, mergedIntoId: 'garmin' }));
+  // Ends 14:05:06 — one second past the parent's end + 5 min.
+  const run = apple('run', ActivityType.RUN, '12:18:01', 6425);
+
+  it('absorbs the run leg ending 1 s past the window', () => {
+    const plan = planMultisportDay([parent, ...merged, run], null);
+    expect(plan?.absorbIds).toEqual(['run']);
+  });
+
+  it('points every Garmin leg at the Apple row recording it', () => {
+    const plan = planMultisportDay([parent, ...merged, run], null);
+    const legs = plan?.update.multisportLegs as Array<{ sourceActivityId?: string }>;
+    expect(legs.map((leg) => leg.sourceActivityId)).toEqual(['swim', 't1', 'bike', 't2', 'run']);
+  });
+
+  it('is idempotent once linked', () => {
+    const linked = linkLegSources(parent.multisportLegs as never, parent.date, [
+      ...merged,
+      { ...run, mergedIntoId: 'garmin' },
+    ]);
+    const settled = { ...parent, multisportLegs: linked as never };
+    const absorbedRun = { ...run, mergedIntoId: 'garmin' };
+    expect(planMultisportDay([settled, ...merged, absorbedRun], null)).toBeNull();
+  });
+
+  it('drops a link to a row no longer among the members and relinks the leg', () => {
+    const linked = linkLegSources(parent.multisportLegs as never, parent.date, [
+      ...merged,
+      { ...run, mergedIntoId: 'garmin' },
+    ]);
+    const unlinked = linkLegSources(linked, parent.date, merged);
+    expect(unlinked.map((leg) => leg.sourceActivityId ?? null)).toEqual([
+      'swim',
+      't1',
+      'bike',
+      't2',
+      null,
+    ]);
+    const reimported = { ...run, id: 'run-2', mergedIntoId: 'garmin' };
+    const relinked = linkLegSources(linked, parent.date, [...merged, reimported]);
+    expect(relinked.at(-1)?.sourceActivityId).toBe('run-2');
+  });
+
+  it('never absorbs a leg-type row without a duration', () => {
+    const blank = { ...apple('blank', ActivityType.RUN, '12:18:01', 0), duration: null };
+    const zero = apple('zero', ActivityType.BIKE, '09:00:00', 0);
+    expect(planMultisportDay([parent, ...merged, run, blank, zero], null)?.absorbIds).toEqual([
+      'run',
+    ]);
+  });
+
+  it('absorbs a whole-race copy without a duration', () => {
+    const copy = { ...apple('copy', ActivityType.OTHER, '08:19:50', 0), duration: null };
+    expect(planMultisportDay([parent, ...merged, run, copy], null)?.absorbIds).toEqual([
+      'run',
+      'copy',
+    ]);
+  });
+
+  it('refuses a row only half inside the race', () => {
+    // Parent ends 13:59:45: this run spends exactly 1800 of its 3600 s inside.
+    const half = apple('half', ActivityType.RUN, '13:29:45', 3600);
+    expect(planMultisportDay([parent, ...merged, run, half], null)?.absorbIds).toEqual(['run']);
+  });
+
+  it('still refuses a row that mostly runs outside the race', () => {
+    const later = apple('cooldown', ActivityType.RUN, '13:55:00', 3600);
+    expect(planMultisportDay([parent, ...merged, run, later], null)?.absorbIds).toEqual(['run']);
   });
 });

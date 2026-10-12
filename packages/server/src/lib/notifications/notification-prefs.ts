@@ -20,6 +20,8 @@ export type NotificationPrefs = {
   /** « Dommage pour hier » the day after a planned session nothing counted for. */
   missedSession: boolean;
   syncAlerts: boolean;
+  /** « Cible du jour atteinte » when today’s strain enters the target band (ADR-079). */
+  targetStrain: boolean;
 };
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -31,6 +33,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   sessionDone: true,
   missedSession: true,
   syncAlerts: true,
+  targetStrain: true,
 };
 
 const morningTime = z
@@ -49,6 +52,7 @@ export const notificationPrefsPatchSchema = z
     sessionDone: z.boolean(),
     missedSession: z.boolean(),
     syncAlerts: z.boolean(),
+    targetStrain: z.boolean(),
   })
   .partial()
   .strict();

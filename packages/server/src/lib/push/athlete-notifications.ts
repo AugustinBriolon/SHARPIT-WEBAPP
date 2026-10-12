@@ -27,7 +27,11 @@ const WEEKLY_REVIEW_ALERT_TTL_SECONDS = 8 * 24 * 3600;
 const SESSION_DONE_ALERT_TTL_SECONDS = 3 * 24 * 3600;
 const MISSED_SESSION_ALERT_TTL_SECONDS = 3 * 24 * 3600;
 
-type NotificationKind = 'weeklyReview' | 'syncAlerts' | 'sessionDone' | 'missedSession';
+type NotificationKind =
+  'weeklyReview' | 'syncAlerts' | 'sessionDone' | 'missedSession' | 'targetStrain';
+
+/** Once per training day when strain first enters/exceeds the target band. */
+const TARGET_STRAIN_ALERT_TTL_SECONDS = 24 * 3600;
 
 async function wants(athleteId: string, kind: NotificationKind): Promise<boolean> {
   const profile = await prisma.athleteProfile.findUnique({
@@ -274,6 +278,57 @@ export function reconnectAlert(sources: readonly string[]): { title: string; bod
     title: `${names} ${one ? 's’est déconnecté' : 'se sont déconnectés'}`,
     body: `Reconnecte-${one ? 'le' : 'les'} dans Sources de données, sinon tes données ne m’arrivent plus.`,
   };
+}
+
+/**
+ * « Cible du jour atteinte » when today’s strain first enters or exceeds the target band
+ * (ADR-079). Once per training day. Callers: athlete-state orchestrator after activity sync.
+ * API: APNs category TARGET_STRAIN → Today. Pref: notificationPrefs.targetStrain.
+ */
+export async function notifyTargetStrainReached(
+  athleteId: string,
+  trainingDayId: string = trainingDayIdForNow(),
+) {
+  if (!(await wants(athleteId, 'targetStrain'))) {
+    return;
+  }
+  if (
+    !(await firstTime(
+      `push:target-strain:${athleteId}:${trainingDayId}`,
+      TARGET_STRAIN_ALERT_TTL_SECONDS,
+    ))
+  ) {
+    return;
+  }
+
+  const { loadV1DayScores } = await import('@sharpit/server/lib/presentation/v1/day-scores');
+  const scores = await loadV1DayScores(athleteId, trainingDayId).catch((error) => {
+    console.error('[push] target-strain scores', athleteId, error);
+    return null;
+  });
+  const band = scores?.targetBand;
+  if (!band || (band.status !== 'within' && band.status !== 'above')) {
+    return;
+  }
+
+  const statusLine =
+    band.status === 'above'
+      ? `Au-dessus de la bande (${band.low}–${band.high}).`
+      : `Dans la bande (${band.low}–${band.high}).`;
+  const delivery = await sendPushToAthlete(athleteId, {
+    aps: {
+      alert: {
+        title: 'Cible du jour atteinte',
+        body: statusLine,
+      },
+      sound: 'default',
+      'thread-id': 'target-strain',
+      category: 'TARGET_STRAIN',
+    },
+    url: '/today',
+    trainingDayId,
+  });
+  console.info('[push] target strain', delivery);
 }
 
 /**

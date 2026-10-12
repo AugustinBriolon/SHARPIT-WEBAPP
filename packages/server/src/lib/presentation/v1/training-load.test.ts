@@ -21,6 +21,21 @@ describe('projectV1TrainingLoad', () => {
 
     expect(load.days.map((day) => day.date)).toEqual(['2026-09-20', '2026-09-29']);
     expect(load.days.at(-1)).toEqual({ date: '2026-09-29', tss: 50, ctl: 52, atl: 62, tsb: -10 });
+    expect(load.calibration).toEqual({
+      status: 'calibrating',
+      daysWithLoad: 3,
+      daysNeeded: 14,
+    });
+  });
+
+  it('marks calibration ready once fourteen load days exist in the CTL window', () => {
+    const many = Array.from({ length: 14 }, (_, index) => ({
+      load: 50,
+      date: new Date(Date.UTC(2026, 8, 16 + index, 12)),
+    }));
+    const load = projectV1TrainingLoad('2026-09-29', pmc, many);
+    expect(load.calibration.status).toBe('ready');
+    expect(load.calibration.daysWithLoad).toBe(14);
   });
 
   it('sums each rolling week ending on the reference day, the current one last', () => {

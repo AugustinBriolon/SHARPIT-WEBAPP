@@ -363,7 +363,11 @@ const UNAVAILABLE: ActivityStreamPayload = {
   analysis: null,
 };
 
-async function fetchGarminLegRaw(athleteId: string, garminId: string): Promise<RawStreams | null> {
+/** `null`: Garmin has no usable series for the leg; `undefined`: the call failed, worth retrying. */
+async function fetchGarminLegRaw(
+  athleteId: string,
+  garminId: string,
+): Promise<RawStreams | null | undefined> {
   try {
     const client = await getGarminClient(athleteId);
     const garmin = await fetchGarminActivityStreams(client, garminId);
@@ -372,6 +376,7 @@ async function fetchGarminLegRaw(athleteId: string, garminId: string): Promise<R
     }
   } catch (error) {
     console.error('fetchGarminLegRaw', garminId, error);
+    return undefined;
   }
   return null;
 }
@@ -389,45 +394,150 @@ function buildLegStreamPayload(
   );
 }
 
-async function buildMultisportLegStream(
+/** Garmin leg streams have no row of their own: they are cached on the parent's stream row. */
+type StoredWithGarminLegs = RawStreams & { garminLegs?: Record<string, GarminLegCacheEntry> };
+
+/** Garmin had no stream for the leg: noted so every view does not ask again. */
+type GarminLegMissing = { missingAt: string };
+type GarminLegCacheEntry = RawStreams | GarminLegMissing;
+
+const GARMIN_LEG_RECHECK_MS = 24 * 60 * 60 * 1000;
+
+function isGarminLegMissing(entry: GarminLegCacheEntry | undefined): entry is GarminLegMissing {
+  return Boolean(entry && 'missingAt' in entry);
+}
+
+function garminLegMissingRecently(entry: GarminLegCacheEntry | undefined, now: number): boolean {
+  return isGarminLegMissing(entry) && now - Date.parse(entry.missingAt) < GARMIN_LEG_RECHECK_MS;
+}
+
+export type LegStreamOptions = {
+  parentId: string;
+  profile: Awaited<ReturnType<typeof getAthleteProfile>>;
+  /** Never call a provider: legs without stored streams are skipped (narrative path). */
+  cacheOnly?: boolean;
+};
+
+async function loadParentStreamData(parentId: string): Promise<StoredWithGarminLegs | null> {
+  const row = await prisma.activityStream.findUnique({
+    where: { activityId: parentId },
+    select: { available: true, data: true },
+  });
+  return row?.available && row.data ? (row.data as unknown as StoredWithGarminLegs) : null;
+}
+
+/** Stored streams only: the leg's own row when it carries heart rate, else Garmin's cached leg. */
+async function cachedLegStream(
   athleteId: string,
   leg: MultisportLeg,
-  profile: Awaited<ReturnType<typeof getAthleteProfile>>,
+  type: ActivityType,
+  options: LegStreamOptions,
+): Promise<ActivityStreamPayload | null> {
+  if (leg.sourceActivityId) {
+    const own = await getCachedActivityStreams(athleteId, leg.sourceActivityId);
+    if (own?.available && (own.has.hr || !leg.garminActivityId)) {
+      return own;
+    }
+  }
+  if (!leg.garminActivityId) {
+    return null;
+  }
+  const entry = (await loadParentStreamData(options.parentId))?.garminLegs?.[leg.garminActivityId];
+  return entry && !isGarminLegMissing(entry)
+    ? buildLegStreamPayload(entry, type, leg.durationSec, options.profile)
+    : null;
+}
+
+/**
+ * Keeps a fetched Garmin leg on the parent's stream row, so the next read is cache-only. Only an
+ * available row can hold it — an unavailable stub is deleted and refetched on read.
+ */
+async function cacheGarminLeg(
+  athleteId: string,
+  parentId: string,
+  garminLegId: string,
+  entry: GarminLegCacheEntry,
+): Promise<void> {
+  let data = await loadParentStreamData(parentId);
+  if (!data) {
+    await getActivityStreams(athleteId, parentId);
+    data = await loadParentStreamData(parentId);
+  }
+  if (!data) {
+    // shortcut: a parent without stored streams cannot hold the leg cache (a stub row would read as an empty stream), so its legs refetch per view; add a dedicated column if such races show up.
+    return;
+  }
+  const stored = isGarminLegMissing(entry) ? entry : compactRawStreamsForStorage(entry);
+  // Read-modify-write without a lock: a concurrent writer can drop an entry, costing one refetch.
+  const garminLegs = { ...data.garminLegs, [garminLegId]: stored };
+  await prisma.activityStream.update({
+    where: { activityId: parentId },
+    data: { data: { ...data, garminLegs } as unknown as object },
+  });
+}
+
+/** First read of a leg: its own row's provider (persisted by `getActivityStreams`), else Garmin once. */
+async function fetchLegStreamOnce(
+  athleteId: string,
+  leg: MultisportLeg,
+  type: ActivityType,
+  options: LegStreamOptions,
+): Promise<ActivityStreamPayload | null> {
+  if (!leg.garminActivityId) {
+    const own = leg.sourceActivityId
+      ? await getActivityStreams(athleteId, leg.sourceActivityId)
+      : null;
+    return own?.available ? own : null;
+  }
+  const cached = (await loadParentStreamData(options.parentId))?.garminLegs?.[leg.garminActivityId];
+  if (garminLegMissingRecently(cached, Date.now())) {
+    return null;
+  }
+  const raw = await fetchGarminLegRaw(athleteId, leg.garminActivityId);
+  if (raw === undefined) {
+    return null;
+  }
+  if (!raw) {
+    const missing = { missingAt: new Date().toISOString() };
+    await cacheGarminLeg(athleteId, options.parentId, leg.garminActivityId, missing);
+    return null;
+  }
+  await cacheGarminLeg(athleteId, options.parentId, leg.garminActivityId, raw);
+  return buildLegStreamPayload(raw, type, leg.durationSec, options.profile);
+}
+
+export async function buildMultisportLegStream(
+  athleteId: string,
+  leg: MultisportLeg,
+  options: LegStreamOptions,
 ): Promise<MultisportLegStream | null> {
   const type = legKindToActivityType(leg.kind);
   if (!type) {
     return null;
   }
-  if (!leg.garminActivityId) {
-    return legRowStream(athleteId, leg, type);
-  }
-
-  const raw = await fetchGarminLegRaw(athleteId, leg.garminActivityId);
-  if (!raw) {
-    return null;
-  }
-
-  return {
-    leg,
-    type,
-    stream: buildLegStreamPayload(raw, type, leg.durationSec, profile),
-  };
+  const stream =
+    (await cachedLegStream(athleteId, leg, type, options)) ??
+    (options.cacheOnly ? null : await fetchLegStreamOnce(athleteId, leg, type, options));
+  return stream ? { leg, type, stream } : null;
 }
 
-/** A leg assembled from its own row (Strava / Apple Health): that row's streams. */
-async function legRowStream(
+/**
+ * Leg by leg, in order: a fetched Garmin leg is written onto the parent's stream row before the
+ * next one reads it, so two legs never overwrite each other's cache entry.
+ */
+export async function buildMultisportLegStreams(
   athleteId: string,
-  leg: MultisportLeg,
-  type: ActivityType,
-): Promise<MultisportLegStream | null> {
-  if (!leg.sourceActivityId) {
-    return null;
+  legs: MultisportLeg[],
+  options: LegStreamOptions,
+): Promise<Array<MultisportLegStream | null>> {
+  const streams: Array<MultisportLegStream | null> = [];
+  for (const leg of legs) {
+    streams.push(await buildMultisportLegStream(athleteId, leg, options));
   }
-  const stream = await getActivityStreams(athleteId, leg.sourceActivityId);
-  return stream?.available ? { leg, type, stream } : null;
+  return streams;
 }
 
-/** Streams Garmin par jambe sportive d'un triathlon (natation, vélo, course). */
+/** Streams par jambe sportive d'un triathlon (natation, vélo, course). */
 export async function getMultisportLegStreams(
   athleteId: string,
   activityId: string,
@@ -444,9 +554,10 @@ export async function getMultisportLegStreams(
     return null;
   }
 
-  const sportLegs = sportLegsOnly(activity.multisportLegs);
-  const legStreams = await Promise.all(
-    sportLegs.map((leg) => buildMultisportLegStream(athleteId, leg, profile)),
+  const legStreams = await buildMultisportLegStreams(
+    athleteId,
+    sportLegsOnly(activity.multisportLegs),
+    { parentId: activityId, profile },
   );
   const results = legStreams.filter((stream): stream is MultisportLegStream => isSet(stream));
 
@@ -496,13 +607,18 @@ export async function persistStream(
   raw: RawStreams | null,
 ): Promise<boolean> {
   const available = isSet(raw) && rawStreamsHaveSignal(raw);
-  const stored = available && raw ? compactRawStreamsForStorage(raw) : null;
-
   if (!available) {
     // Never write or overwrite with an unavailable stub — leave the row absent so a
     // later provider can attach real series. Callers that need a stub use createStubStream.
     return false;
   }
+
+  const previous = await loadParentStreamData(activityId);
+  // A triathlon's Garmin legs live on its stream row: a new parent stream must not drop them.
+  const stored = {
+    ...compactRawStreamsForStorage(raw),
+    ...(previous?.garminLegs && { garminLegs: previous.garminLegs }),
+  };
 
   await prisma.activityStream.upsert({
     where: { activityId },

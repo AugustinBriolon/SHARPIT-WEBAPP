@@ -13,6 +13,7 @@ import {
   updateActivity,
 } from '@sharpit/server/lib/queries';
 import { clearRaceResult, recordRaceResult } from '@sharpit/server/lib/goals/goal-achievements';
+import { loadRaceAnalysis } from '@sharpit/server/lib/activity/multisport/load-race-analysis';
 import { updateRecordsForTypesSafe } from '@sharpit/server/lib/training/records/records';
 import { computeTrainingDayId } from '@sharpit/core/training/training-day';
 import { updateActivitySchema } from '@sharpit/app/lib/validators/activity';
@@ -50,7 +51,10 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
     }
 
-    return NextResponse.json(activity);
+    return NextResponse.json({
+      ...activity,
+      raceAnalysis: await loadRaceAnalysis(athleteId, activity),
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Impossible de charger la séance' }, { status: 500 });

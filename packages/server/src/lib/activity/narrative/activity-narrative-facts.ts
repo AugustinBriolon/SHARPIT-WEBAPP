@@ -26,7 +26,13 @@ import {
   parseGoalMetricConfig,
 } from '@sharpit/app/lib/goals/goal-metric-config';
 import { resolveEnvironmentalExplanation } from '@sharpit/server/lib/presentation/environment/environment';
-import { getActivePhysicalNotes, getAthleteProfile } from '@sharpit/server/lib/queries';
+import {
+  getActivePhysicalNotes,
+  getActivityById,
+  getAthleteProfile,
+} from '@sharpit/server/lib/queries';
+import { loadRaceAnalysis } from '@sharpit/server/lib/activity/multisport/load-race-analysis';
+import { buildRaceNarrativeLines } from '@sharpit/server/lib/activity/narrative/activity-narrative-race-facts';
 import { buildTechnicalSessionFacts } from '@sharpit/server/lib/activity/narrative/activity-narrative-technical-facts';
 import { getCachedActivityStreams } from '@sharpit/server/lib/streams/streams';
 import {
@@ -39,6 +45,7 @@ const TYPE_FR: Record<string, string> = {
   RUN: 'Course à pied',
   BIKE: 'Vélo',
   SWIM: 'Natation',
+  TRIATHLON: 'Triathlon',
 };
 
 type PeerRow = {
@@ -320,7 +327,22 @@ function mapPhysicalNotes(
 }
 
 function isEnduranceNarrativeActivity(type: ActivityType): boolean {
-  return type === ActivityType.RUN || type === ActivityType.BIKE || type === ActivityType.SWIM;
+  return (
+    type === ActivityType.RUN ||
+    type === ActivityType.BIKE ||
+    type === ActivityType.SWIM ||
+    type === ActivityType.TRIATHLON
+  );
+}
+
+/** A triathlon, or an activity done for a goal, is read as a race. Empty otherwise. */
+export async function loadRaceLines(athleteId: string, activityId: string): Promise<string[]> {
+  const detail = await getActivityById(athleteId, activityId);
+  // A single sport stays cache-only like its stream read. A triathlon's legs may hit Garmin once
+  // (cached after): the narrative is stamped analyzed, so a cache miss would lose pacing forever.
+  const cacheOnly = detail?.type !== ActivityType.TRIATHLON;
+  const analysis = detail ? await loadRaceAnalysis(athleteId, detail, { cacheOnly }) : null;
+  return analysis ? buildRaceNarrativeLines(analysis, detail?.goal?.title ?? null) : [];
 }
 
 export async function buildActivityNarrativeFacts(
@@ -388,6 +410,7 @@ export async function buildActivityNarrativeFacts(
     streamResult,
     pmcAnchor,
     dailyStress,
+    raceLines,
   ] = await Promise.all([
     prisma.activity.findMany({
       where: {
@@ -454,6 +477,10 @@ export async function buildActivityNarrativeFacts(
     // CTL than the dashboard. See ADR-011.
     loadAthletePmcAnchor(athleteId, { refDate: activity.date }),
     loadDailyTrainingStressEntries(athleteId, { refDate: activity.date }),
+    loadRaceLines(athleteId, activity.id).catch((err) => {
+      console.error('[activity-narrative-facts] race', activityId, err);
+      return [];
+    }),
   ]);
 
   const streamPayload = streamResult;
@@ -501,6 +528,7 @@ export async function buildActivityNarrativeFacts(
     environmentLines: buildEnvironmentNarrativeLines(environmentPresentation),
     streamPayload,
     goalLines: buildGoalNarrativeLines(goalHits),
+    raceLines,
   });
 }
 
@@ -578,11 +606,16 @@ function assembleActivityNarrativeSections(input: {
   environmentLines: string[];
   streamPayload: Awaited<ReturnType<typeof getCachedActivityStreams>>;
   goalLines: string[];
+  raceLines: string[];
 }): string {
-  const technicalLines = buildTechnicalSessionFacts({
-    sport: input.activity.type as 'RUN' | 'BIKE' | 'SWIM',
-    analysis: input.streamPayload?.analysis ?? null,
-  });
+  // A triathlon's own stream mixes three sports: its technique is read per leg in the race section.
+  const technicalLines =
+    input.activity.type === ActivityType.TRIATHLON
+      ? []
+      : buildTechnicalSessionFacts({
+          sport: input.activity.type as 'RUN' | 'BIKE' | 'SWIM',
+          analysis: input.streamPayload?.analysis ?? null,
+        });
 
   const sections = [
     '# Cette séance (données brutes — ne pas toutes répéter en prose)',
@@ -619,6 +652,10 @@ function assembleActivityNarrativeSections(input: {
 
   if (input.goalLines.length) {
     sections.push('', '# Objectifs', ...input.goalLines);
+  }
+
+  if (input.raceLines.length) {
+    sections.push('', '# Course (objectif et déroulé par étape)', ...input.raceLines);
   }
 
   return sections.join('\n');

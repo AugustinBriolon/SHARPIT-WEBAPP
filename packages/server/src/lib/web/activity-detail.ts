@@ -10,6 +10,7 @@ import {
   getMultisportLegsForActivity,
 } from '@sharpit/server/lib/queries';
 import { getPerformanceRecordsForActivity } from '@sharpit/server/lib/training/records/records';
+import { loadRaceAnalysis } from '@sharpit/server/lib/activity/multisport/load-race-analysis';
 
 /**
  * Everything the web's activity page reads, in one `api.` call (ADR-048 phase 3f); the page
@@ -28,17 +29,19 @@ export async function loadActivityDetail(
     return null;
   }
   const brickGroupId = activity.plannedSession?.brickGroupId ?? null;
-  const [multisportLegs, narrativeAccess, brickLegs] = await Promise.all([
+  const [multisportLegs, narrativeAccess, brickLegs, raceAnalysis] = await Promise.all([
     activity.type === ActivityType.TRIATHLON
       ? getMultisportLegsForActivity(athleteId, activity)
       : Promise.resolve(null),
     canGenerateNarrativeForActivity(athleteId, activity.date),
     brickGroupId ? getBrickSessions(athleteId, brickGroupId) : Promise.resolve([]),
+    loadRaceAnalysis(athleteId, activity),
   ]);
   return {
     activity,
     goal: activity.goal,
     multisportLegs,
+    raceAnalysis,
     goalValidations,
     performanceRecords,
     narrativeAccess,

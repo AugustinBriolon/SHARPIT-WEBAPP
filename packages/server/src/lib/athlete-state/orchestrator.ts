@@ -117,6 +117,15 @@ async function announceSessionsDone(athleteId: string, sessionIds: string[]): Pr
   );
 }
 
+/** « Cible du jour atteinte » after strain may have moved (activity sync). Never throws. */
+async function announceTargetStrain(athleteId: string, trainingDayId: string): Promise<void> {
+  const { notifyTargetStrainReached } =
+    await import('@sharpit/server/lib/push/athlete-notifications');
+  await notifyTargetStrainReached(athleteId, trainingDayId).catch((error) =>
+    console.error('[athlete-state/target-strain-push]', athleteId, error),
+  );
+}
+
 /**
  * ApplicationOpened — athlete-centric refresh.
  * Sync only what is needed; force Twin recompute only when evidence changed or asked.
@@ -183,6 +192,9 @@ export async function refreshAthleteState(
   );
 
   const plannedSessionIdsToAnalyze = await autoLinkAndCollectSessionIds(athleteId, activityIds);
+  if (activityIds.length > 0) {
+    await announceTargetStrain(athleteId, trainingDayId);
+  }
   scheduleBackgroundTasks({
     athleteId,
     activityIds,
@@ -230,6 +242,9 @@ export async function onProviderSyncCompleted(
     dayId,
     todayState,
   );
+  if (activityIds.length > 0) {
+    await announceTargetStrain(athleteId, dayId);
+  }
   scheduleBackgroundTasks({
     athleteId,
     activityIds,

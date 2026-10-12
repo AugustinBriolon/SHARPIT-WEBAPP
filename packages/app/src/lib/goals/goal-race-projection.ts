@@ -94,18 +94,27 @@ export function resolveRunRaceMeters(
   return null;
 }
 
-/** Parse "1h30", "6h", "5h00" style durations after Sub/Sous stripping. */
+/** Parse "1h30", "6h", "5h00", "5h28'30" style durations after Sub/Sous stripping. */
 function parseHourMinuteTarget(stripped: string): number | null {
-  const hourMin = stripped.match(/^(\d+)\s*h\s*(\d{1,2})?\s*(?:m(?:in)?)?$/i);
+  const hourMin = stripped.match(
+    /^(\d+)\s*h\s*(\d{1,2})?\s*(?:['’]|m(?:in)?)?\s*(\d{1,2})?\s*(?:["”]|s)?$/i,
+  );
   if (!hourMin) {
     return null;
   }
   const hours = Number(hourMin[1]);
   const minutes = hourMin[2] !== undefined ? Number(hourMin[2]) : 0;
-  if (!Number.isFinite(hours) || !Number.isFinite(minutes) || minutes >= 60) {
+  const seconds = hourMin[3] !== undefined ? Number(hourMin[3]) : 0;
+  if (minutes >= 60 || seconds >= 60 || (hourMin[3] !== undefined && hourMin[2] === undefined)) {
     return null;
   }
-  return hours * 3600 + minutes * 60;
+  return hours * 3600 + minutes * 60 + seconds;
+}
+
+/** Parse "50 min", "50min" — minutes alone. */
+function parseMinuteTarget(stripped: string): number | null {
+  const minutes = stripped.match(/^(\d+)\s*min(?:utes?)?$/i);
+  return minutes ? Number(minutes[1]) * 60 : null;
 }
 
 /**
@@ -122,7 +131,9 @@ export function parseRaceTargetSeconds(raw: string | null | undefined): number |
   }
 
   const stripped = trimmed.replace(/^(sub|sous|<)\s*/i, '').trim();
-  return parseChronoInput(stripped) ?? parseHourMinuteTarget(stripped);
+  return (
+    parseChronoInput(stripped) ?? parseHourMinuteTarget(stripped) ?? parseMinuteTarget(stripped)
+  );
 }
 
 function gapLabel(projectedSeconds: number, targetSeconds: number): string {

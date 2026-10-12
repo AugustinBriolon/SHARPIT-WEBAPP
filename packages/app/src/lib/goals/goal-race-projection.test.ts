@@ -44,6 +44,11 @@ describe('parseRaceTargetSeconds', () => {
     expect(parseRaceTargetSeconds('Sous 6h')).toBe(21600);
     expect(parseRaceTargetSeconds('Sub 5h00')).toBe(18000);
     expect(parseRaceTargetSeconds('42:15')).toBe(2535);
+    expect(parseRaceTargetSeconds('Sub 5h30')).toBe(19800);
+    expect(parseRaceTargetSeconds('5:28:00')).toBe(19680);
+    expect(parseRaceTargetSeconds("5h28'30")).toBe(19710);
+    expect(parseRaceTargetSeconds('50 min')).toBe(3000);
+    expect(parseRaceTargetSeconds('Terminer')).toBeNull();
   });
 });
 
