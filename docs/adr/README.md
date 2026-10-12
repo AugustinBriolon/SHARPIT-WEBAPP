@@ -81,6 +81,7 @@
 | [ADR-076](./ADR-076-a-quick-add-is-scored-from-its-own-macros.md)                       | A quick add is scored on read from its own macros, so every logged food has a score                              | Accepted                          |
 | [ADR-077](./ADR-077-extended-coach-volume-is-pro-and-counted-in-questions.md)           | Extended coach volume is Pro: the token budget stays, the athlete reads it in questions                          | Accepted                          |
 | [ADR-078](./ADR-078-one-race-one-activity-multisport-unification-and-goal-link.md)      | One race, one activity: multisport rows unified under a parent, absorbed rows hidden, activities linked to goals | Accepted                          |
+| [ADR-079](./ADR-079-sharpit-native-energy-bank-and-bevel-gap-scores.md)                 | SharpIt-native Energy Bank + Bevel-gap day scores (stress, target strain, sleep needed)                          | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

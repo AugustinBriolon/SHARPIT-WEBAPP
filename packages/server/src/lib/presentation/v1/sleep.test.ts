@@ -34,6 +34,8 @@ function source(over: Partial<V1SleepSource> = {}): V1SleepSource {
       recommendedBedtimeMin: 1350,
       recommendedDurationMin: 495,
       targetDurationMin: 480,
+      sleepNeededMin: 495,
+      sleepNeededContributors: { debtBoostMin: 15, strainBoostMin: 0, efficiencyBoostMin: 0 },
       debt7Min: 96,
       debt14Min: 150,
       insights: [{ tone: 'moderate', title: 'Dette légère', detail: 'Couche-toi plus tôt.' }],

@@ -176,6 +176,9 @@ export function sleepLoadingShell() {
       recommendedBedtimeMin: null,
       recommendedDurationMin: 0,
       targetDurationMin: 0,
+      // ADR-079. Callers: sleep loading shell. API: SleepCoachView. User: Bevel gaps plan.
+      sleepNeededMin: 0,
+      sleepNeededContributors: { debtBoostMin: 0, strainBoostMin: 0, efficiencyBoostMin: 0 },
       debt7Min: null,
       debt14Min: null,
       insights: [],

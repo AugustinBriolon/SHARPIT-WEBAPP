@@ -71,6 +71,8 @@ Intelligence      Scientific inference models (packages/core/src/inference/)
   ├── Recovery v1    readiness · sleep · HRV · accumulation
   ├── Fatigue v1     load · neuromuscular · metabolic · cumulative · psychological
   ├── Adaptation v1  load progression · neuromuscular efficiency · autonomic · recovery quality
+  ├── Energy Bank v1 SharpIt-native day battery (readiness · debt · strain · stress) — ADR-079
+  ├── Target strain  daily low–high band from readiness + 14d load baseline — ADR-079
   └── Reasoning v1   cross-model synthesis — OverallVerdict, conflicts, opportunities (reads Digital Twin)
       │
 Digital Twin      Persistent athlete state — updated after each inference (packages/core/src/digital-twin/)

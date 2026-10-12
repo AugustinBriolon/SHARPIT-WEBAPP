@@ -2,6 +2,9 @@ import { format, parseISO, subDays } from 'date-fns';
 import type { EffortViewModel } from '@sharpit/app/presentation/effort-view-model';
 import { mapFatigueDimensionIntensity } from '@sharpit/app/lib/today/dashboard/today-mapping';
 import { toneFromClass, type V1RecoveryTone } from '@sharpit/server/lib/presentation/v1/recovery';
+import type { V1TodayTargetBand } from '@sharpit/server/lib/presentation/v1/day-scores';
+// Callers: handlers/v1/effort/handler.ts, effort.test.ts. API: GET /api/v1/effort (+targetBand).
+// Schema: none. User: "Implement the plan as specified… Don't stop until you have completed all the to-dos."
 
 export type V1EffortSource = Omit<
   EffortViewModel,
@@ -51,6 +54,8 @@ export type V1EffortResponse = {
   weeklyTss: Array<{ label: string; tss: number }>;
   confidencePct: number | null;
   completenessLabel: string;
+  /** Today's target strain band (ADR-079); null when inputs are insufficient. */
+  targetBand: V1TodayTargetBand | null;
 };
 
 const DIMENSIONS: ReadonlyArray<{ key: V1EffortDimensionKey; label: string; description: string }> =
@@ -107,7 +112,11 @@ function projectPmc(
 }
 
 /** Canonical Effort payload for native clients — a projection, no new domain logic. */
-export function projectV1Effort(source: V1EffortSource, trainingDayId: string): V1EffortResponse {
+export function projectV1Effort(
+  source: V1EffortSource,
+  trainingDayId: string,
+  extras: { targetBand?: V1TodayTargetBand | null } = {},
+): V1EffortResponse {
   return {
     apiVersion: 1,
     trainingDayId,
@@ -150,5 +159,6 @@ export function projectV1Effort(source: V1EffortSource, trainingDayId: string): 
     weeklyTss: source.weeklyTss.map((week) => ({ label: week.week, tss: week.tss })),
     confidencePct: source.emptyState ? null : source.confidencePct,
     completenessLabel: source.completenessLabel,
+    targetBand: extras.targetBand ?? null,
   };
 }

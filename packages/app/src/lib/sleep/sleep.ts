@@ -83,6 +83,13 @@ export interface SleepCoachView {
   targetDurationMin: number;
   debt7Min: number | null;
   debt14Min: number | null;
+  /** Same as recommendedDurationMin — Bevel-style “sleep needed” label (ADR-079). */
+  sleepNeededMin: number;
+  sleepNeededContributors: {
+    debtBoostMin: number;
+    strainBoostMin: number;
+    efficiencyBoostMin: number;
+  };
   insights: SleepInsight[];
 }
 
@@ -587,29 +594,65 @@ function emptySleepCoachView(targetDuration: number): SleepCoachView {
     targetDurationMin: targetDuration,
     debt7Min: null,
     debt14Min: null,
+    sleepNeededMin: targetDuration,
+    sleepNeededContributors: { debtBoostMin: 0, strainBoostMin: 0, efficiencyBoostMin: 0 },
     insights: [],
   };
+}
+
+const MAX_STRAIN_SLEEP_BOOST_MIN = 45;
+const MAX_EFFICIENCY_SLEEP_BOOST_MIN = 30;
+
+export type SleepNeededOptions = {
+  /** Recent day strain on SharpIt’s 0–21 scale. */
+  recentStrainScore?: number | null;
+  /** Sleep efficiency percent 0–100 when known. */
+  sleepEfficiencyPercent?: number | null;
+};
+
+function strainSleepBoost(strainScore: number | null | undefined): number {
+  if (!isSet(strainScore) || strainScore < 8) {
+    return 0;
+  }
+  return Math.min(Math.round(((strainScore - 8) / 13) * MAX_STRAIN_SLEEP_BOOST_MIN), MAX_STRAIN_SLEEP_BOOST_MIN);
+}
+
+function efficiencySleepBoost(efficiencyPercent: number | null | undefined): number {
+  if (!isSet(efficiencyPercent) || efficiencyPercent >= 85) {
+    return 0;
+  }
+  return Math.min(Math.round(((85 - efficiencyPercent) / 25) * MAX_EFFICIENCY_SLEEP_BOOST_MIN), MAX_EFFICIENCY_SLEEP_BOOST_MIN);
 }
 
 function computeDebtAndRecommendedDuration(
   recent7: SleepEntryInput[],
   nights: SleepEntryInput[],
   targetDuration: number,
+  options: SleepNeededOptions = {},
 ): {
   debt7Min: number | null;
   debt14Min: number | null;
   recommendedDurationMin: number;
+  sleepNeededContributors: {
+    debtBoostMin: number;
+    strainBoostMin: number;
+    efficiencyBoostMin: number;
+  };
 } {
   const debt7Min = computeCumulativeDebt(recent7, targetDuration);
   const debt14Min = computeCumulativeDebt(nights, targetDuration);
-  const recoveryBoost =
+  const debtBoostMin =
     isSet(debt7Min) && debt7Min > 30
       ? Math.min(Math.ceil(debt7Min / RECENT_WINDOW_NIGHTS), MAX_RECOVERY_BOOST_MIN)
       : 0;
+  const strainBoostMin = strainSleepBoost(options.recentStrainScore);
+  const efficiencyBoostMin = efficiencySleepBoost(options.sleepEfficiencyPercent);
+  // shortcut: no time-to-fall-asleep until SharpIt measures latency, then add a latency term
   return {
     debt7Min,
     debt14Min,
-    recommendedDurationMin: targetDuration + recoveryBoost,
+    recommendedDurationMin: targetDuration + debtBoostMin + strainBoostMin + efficiencyBoostMin,
+    sleepNeededContributors: { debtBoostMin, strainBoostMin, efficiencyBoostMin },
   };
 }
 
@@ -692,6 +735,7 @@ function buildSleepCoachResult(input: {
   targetDuration: number;
   debt7Min: number | null;
   debt14Min: number | null;
+  sleepNeededContributors: SleepCoachView['sleepNeededContributors'];
 }): SleepCoachView {
   return {
     hasData: true,
@@ -710,11 +754,17 @@ function buildSleepCoachResult(input: {
     targetDurationMin: input.targetDuration,
     debt7Min: roundNullable(input.debt7Min),
     debt14Min: roundNullable(input.debt14Min),
+    sleepNeededMin: input.recommendedDurationMin,
+    sleepNeededContributors: input.sleepNeededContributors,
     insights: input.insights,
   };
 }
 
-export function analyzeSleep(entries: SleepEntryInput[], goals?: SleepGoals): SleepCoachView {
+export function analyzeSleep(
+  entries: SleepEntryInput[],
+  goals?: SleepGoals,
+  options: SleepNeededOptions = {},
+): SleepCoachView {
   const targetDuration = goals?.targetDurationMin ?? TARGET_DURATION_MIN;
   const sorted = [...entries].sort(
     (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
@@ -725,11 +775,8 @@ export function analyzeSleep(entries: SleepEntryInput[], goals?: SleepGoals): Sl
   }
 
   const recent7 = nights.slice(0, RECENT_WINDOW_NIGHTS);
-  const { debt7Min, debt14Min, recommendedDurationMin } = computeDebtAndRecommendedDuration(
-    recent7,
-    nights,
-    targetDuration,
-  );
+  const { debt7Min, debt14Min, recommendedDurationMin, sleepNeededContributors } =
+    computeDebtAndRecommendedDuration(recent7, nights, targetDuration, options);
   const { avgScore, avgDuration, avgDeepPct, avgRemPct, avgStress } =
     computeRecentNightAverages(recent7);
   const { regularity, avgBedtime, recommendedBedtime } = computeBedtimeStats(
@@ -770,5 +817,6 @@ export function analyzeSleep(entries: SleepEntryInput[], goals?: SleepGoals): Sl
     targetDuration,
     debt7Min,
     debt14Min,
+    sleepNeededContributors,
   });
 }

@@ -61,6 +61,7 @@ function source(over: Partial<V1EffortSource> = {}): V1EffortSource {
 describe('projectV1Effort', () => {
   it('lists every fatigue dimension in the web order, missing ones included', () => {
     const response = projectV1Effort(source(), '2026-10-04');
+    expect(response.targetBand).toBeNull();
     expect(response.dimensions.map((d) => d.key)).toEqual([
       'load',
       'neuromuscular',

@@ -63,6 +63,13 @@ export type V1SleepResponse = {
   regularityMin: number | null;
   recommendedBedtimeMin: number | null;
   recommendedDurationMin: number | null;
+  /** Enriched “sleep needed” tonight (ADR-079). Callers: sleep handler, SleepTests. API: GET /api/v1/sleep. */
+  sleepNeededMin: number | null;
+  sleepNeededContributors: {
+    debtBoostMin: number;
+    strainBoostMin: number;
+    efficiencyBoostMin: number;
+  } | null;
   debt7Min: number | null;
   debt14Min: number | null;
   recoveryNote: string | null;
@@ -133,6 +140,8 @@ export function projectV1Sleep(source: V1SleepSource, trainingDayId: string): V1
     regularityMin: coachView.regularityMin,
     recommendedBedtimeMin: coachView.recommendedBedtimeMin,
     recommendedDurationMin: coachView.hasData ? coachView.recommendedDurationMin : null,
+    sleepNeededMin: coachView.hasData ? coachView.sleepNeededMin : null,
+    sleepNeededContributors: coachView.hasData ? coachView.sleepNeededContributors : null,
     debt7Min: coachView.debt7Min,
     debt14Min: coachView.debt14Min,
     recoveryNote: source.recoveryNote,

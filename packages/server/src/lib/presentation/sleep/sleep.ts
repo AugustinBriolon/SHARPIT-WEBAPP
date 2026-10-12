@@ -14,8 +14,10 @@ type DailyHealthRow = Awaited<ReturnType<typeof getHealthEntries>>[number];
 import { analyzeSleep, toSleepEntryInputs } from '@sharpit/app/lib/sleep/sleep';
 import {
   buildSleepScoreBreakdown,
+  computeSleepEfficiencyPct,
   mapSleepScoreToAdequacy,
 } from '@sharpit/app/lib/sleep/sleep-scoring';
+// Callers: v1/sleep handler, presentation sleep. API: GET /api/v1/sleep. User: implement Bevel gaps plan.
 import { SLEEP_TARGET_MIN } from '@sharpit/core/sleep/targets';
 import {
   mapRecoveryToSignal,
@@ -66,6 +68,8 @@ function emptySleepViewModel(): SleepViewModel {
       recommendedBedtimeMin: null,
       recommendedDurationMin: 0,
       targetDurationMin: 0,
+      sleepNeededMin: 0,
+      sleepNeededContributors: { debtBoostMin: 0, strainBoostMin: 0, efficiencyBoostMin: 0 },
       debt7Min: null,
       debt14Min: null,
       insights: [],
@@ -216,6 +220,8 @@ async function assembleSleepNightSnapshot(input: {
   healthEntries: Awaited<ReturnType<typeof getHealthEntries>>;
   athleteProfile: Awaited<ReturnType<typeof getAthleteProfile>>;
   recovery: NonNullable<Awaited<ReturnType<typeof getOrBuildAthleteSnapshot>>['recovery']>;
+  /** Recent day strain 0–21 for Sleep Needed (ADR-079). */
+  recentStrainScore?: number | null;
 }) {
   const sleepGoals = {
     targetDurationMin: input.athleteProfile?.sleepTargetMinutes ?? null,
@@ -227,6 +233,12 @@ async function assembleSleepNightSnapshot(input: {
   const awakeMin = computeAwakeMinutes({ ...phases, todayEntry });
   const sleepTargetMin = input.athleteProfile?.sleepTargetMinutes ?? SLEEP_TARGET_MIN;
   const nightStatus = resolveSleepNightStatus(input.trainingDayId, phases.totalSleepMin);
+  const sleepEfficiencyPercent = computeSleepEfficiencyPct({
+    totalSleepMin: phases.totalSleepMin,
+    awakeMin,
+    bedtimeMin: todayEntry?.sleepBedtimeMin ?? null,
+    wakeMin: todayEntry?.sleepWakeMin ?? null,
+  });
 
   return {
     refDate: input.refDate,
@@ -238,7 +250,14 @@ async function assembleSleepNightSnapshot(input: {
     sleepTargetMin,
     nightStatus,
     nightPresent: nightStatus === 'present',
-    coachView: analyzeSleep(toSleepEntryInputs(input.healthEntries), { ...sleepGoals }),
+    coachView: analyzeSleep(
+      toSleepEntryInputs(input.healthEntries),
+      { ...sleepGoals },
+      {
+        recentStrainScore: input.recentStrainScore ?? null,
+        sleepEfficiencyPercent,
+      },
+    ),
     recovery: input.recovery,
   };
 }
@@ -247,6 +266,7 @@ async function loadSleepNightData(input: {
   athleteId: string;
   trainingDayId: string;
   recovery: NonNullable<Awaited<ReturnType<typeof getOrBuildAthleteSnapshot>>['recovery']>;
+  recentStrainScore?: number | null;
 }) {
   const refDate = parseISO(input.trainingDayId);
   const [healthEntries, athleteProfile] = await Promise.all([
@@ -259,6 +279,7 @@ async function loadSleepNightData(input: {
     healthEntries,
     athleteProfile,
     recovery: input.recovery,
+    recentStrainScore: input.recentStrainScore,
   });
 }
 
@@ -367,6 +388,11 @@ export async function buildSleepViewModel(
     return emptySleepViewModel();
   }
 
-  const night = await loadSleepNightData({ athleteId, trainingDayId, recovery });
+  const night = await loadSleepNightData({
+    athleteId,
+    trainingDayId,
+    recovery,
+    recentStrainScore: snapshot.dailyStrain?.strainScore ?? null,
+  });
   return buildPopulatedSleepViewModel({ snapshot, night });
 }

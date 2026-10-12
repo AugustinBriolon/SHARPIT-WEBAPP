@@ -6,8 +6,14 @@ import { activityTypeLabels } from '@sharpit/app/lib/format';
 import { morningIntensityLabel } from '@sharpit/app/lib/morning-recalibration/sport-intensity-labels';
 import { CONNECT_GARMIN_PATH } from '@sharpit/app/lib/integrations/garmin/garmin-connect-handoff';
 import type { RaceMoment } from '@sharpit/app/lib/goals/race-moment';
+import type {
+  V1TodayEnergyBank,
+  V1TodayStress,
+  V1TodayTargetBand,
+} from '@sharpit/server/lib/presentation/v1/day-scores';
 
 export type V1TodayPackTier = 'FULL' | 'PARTIAL' | 'LOW' | 'INSUFFICIENT';
+export type { V1TodayEnergyBank, V1TodayStress, V1TodayTargetBand };
 
 export type V1TodaySource = {
   hasContent: boolean;
@@ -146,7 +152,7 @@ export type V1TodayResponse = {
     brickTransitionsSec?: Array<number | null> | null;
   }>;
   signals: Array<{
-    key: 'sleep' | 'recovery' | 'effort' | 'adaptation';
+    key: 'sleep' | 'recovery' | 'effort' | 'adaptation' | 'stress';
     score: string;
     caption: string | null;
   }>;
@@ -159,6 +165,12 @@ export type V1TodayResponse = {
   morningProposal: V1TodayMorningProposal | null;
   /** Race day, or the race result up to three days after (`selectRaceMoment`); null otherwise. */
   race: V1TodayRace | null;
+  /** Garmin daily stress 0–100 (ADR-079); absent on older clients / when unknown. */
+  stress?: V1TodayStress | null;
+  /** SharpIt-native Energy Bank 0–100 (ADR-079); absent when readiness is missing. */
+  energyBank?: V1TodayEnergyBank | null;
+  /** Today's target strain band 0–21 (ADR-079). */
+  targetBand?: V1TodayTargetBand | null;
 };
 
 export type V1TodayRace = RaceMoment;
@@ -330,7 +342,39 @@ export type V1TodayProjectionInput = {
   garminConnected?: boolean;
   /** Whether the morning check-in is done; unknown reads as done (no invitation). */
   morningCheckInDone?: boolean;
+  /** ADR-079 day scores — computed outside the Today view model. */
+  stress?: V1TodayStress | null;
+  energyBank?: V1TodayEnergyBank | null;
+  targetBand?: V1TodayTargetBand | null;
 };
+
+function stressCaption(value: number): string {
+  if (value >= 75) {
+    return 'Élevé';
+  }
+  if (value >= 50) {
+    return 'Modéré';
+  }
+  return 'Calme';
+}
+
+function projectSignals(
+  previews: V1TodaySource['hero']['signalPreviews'],
+  stress: V1TodayStress | null | undefined,
+): V1TodayResponse['signals'] {
+  const overnight = projectOvernightSignals(previews);
+  if (!stress) {
+    return overnight;
+  }
+  return [
+    ...overnight,
+    {
+      key: 'stress',
+      score: String(Math.round(stress.value)),
+      caption: stressCaption(stress.value),
+    },
+  ];
+}
 
 export function projectV1Today(
   source: V1TodaySource,
@@ -344,13 +388,16 @@ export function projectV1Today(
     verdict: projectVerdict(source.hero, empty),
     weather: source.header.weather,
     sessions: projectSessions(source.actionRow.daySummaryLines),
-    signals: projectOvernightSignals(source.hero.signalPreviews),
+    signals: projectSignals(source.hero.signalPreviews, input.stress),
     consistency: input.consistency ?? null,
     morningProposal: projectMorningProposal(
       source.actionRow.morningRecalibration ?? null,
       input.morningCheckInDone ?? true,
     ),
     race: source.race ?? null,
+    stress: input.stress ?? null,
+    energyBank: input.energyBank ?? null,
+    targetBand: input.targetBand ?? null,
   };
 }
 

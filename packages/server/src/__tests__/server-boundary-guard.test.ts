@@ -81,6 +81,17 @@ const ALLOWED_LIB_TO_INFERENCE: ReadonlyMap<string, ReadonlySet<string>> = new M
       '@sharpit/core/inference/environment/snapshot',
     ]),
   ],
+  [
+    'src/lib/presentation/v1/day-scores.ts',
+    new Set([
+      '@sharpit/core/inference/energy-bank/model',
+      '@sharpit/core/inference/target-strain/model',
+    ]),
+  ],
+  [
+    'src/lib/coach/context/coach-context-assembly.ts',
+    new Set(['@sharpit/core/inference/energy-bank/model']),
+  ],
 ]);
 
 function isSkippableDir(name: string): boolean {

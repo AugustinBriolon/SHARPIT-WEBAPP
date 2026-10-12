@@ -94,6 +94,32 @@ describe('projectV1Today', () => {
     expect(JSON.stringify(json)).not.toMatch(/href|bgClass|rounded-/);
   });
 
+  // Callers: vitest. API: projectV1Today. User: implement Bevel gaps plan.
+  it('adds a stress signal and day-score fields when provided (ADR-079)', () => {
+    const json = projectV1Today(source(), {
+      trainingDayId: '2026-09-15',
+      webOrigin: origin,
+      stress: { value: 62, asOf: '2026-09-15' },
+      energyBank: {
+        algorithmVersion: 'energy-bank-v1',
+        value: 71,
+        typicalBaseline: 68,
+        asOfMinuteOfDay: 720,
+        series: [{ minuteOfDay: 720, value: 71 }],
+      },
+      targetBand: {
+        algorithmVersion: 'target-strain-v1',
+        low: 6,
+        high: 11,
+        status: 'within',
+      },
+    });
+    expect(json.signals.map((s) => s.key)).toEqual(['sleep', 'recovery', 'stress']);
+    expect(json.stress?.value).toBe(62);
+    expect(json.energyBank?.value).toBe(71);
+    expect(json.targetBand?.status).toBe('within');
+  });
+
   it('offers the Garmin handoff when the day is empty and Garmin is not connected', () => {
     const json = projectV1Today(
       source({
