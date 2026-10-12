@@ -8,6 +8,7 @@ export const NATIVE_V1_SURFACES = [
   { path: 'activities', methods: ['GET', 'POST'] },
   { path: 'activities/[id]', methods: ['GET', 'PATCH', 'DELETE'] },
   { path: 'activities/[id]/streams', methods: ['GET'] },
+  { path: 'activities/[id]/multisport-streams', methods: ['GET'] },
   { path: 'activities/[id]/narrative', methods: ['POST'] },
   { path: 'training-plans', methods: ['GET', 'POST'] },
   { path: 'training-plans/[id]', methods: ['DELETE'] },
