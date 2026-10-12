@@ -2,6 +2,7 @@ import { cacheLife } from 'next/cache';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type { ClientActivityDetail } from '@sharpit/app/lib/query/types';
+import type { ActivityDetailPayload } from '@sharpit/app/lib/web/payloads';
 import type { ActivityStreamPayload } from '@sharpit/app/lib/streams/stream-types';
 import type { ActivityNarrative, SessionAnalysis } from '@sharpit/app/lib/validators/coach';
 import {
@@ -26,6 +27,7 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
+import { RaceFigures, RaceLegs } from '@/components/carnet/carnet-race';
 import { streamProfile } from '@/components/carnet/carnet-stream';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -106,14 +108,14 @@ export default async function CarnetSessionPage({ params }: PageProps) {
 async function SessionReading({ id }: { id: string }) {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
-  const path = `/api/v1/activities/${encodeURIComponent(id)}`;
-  const [activity, streams] = await Promise.all([
-    readSection<ClientActivityDetail>(path, true),
-    readSection<ActivityStreamPayload>(`${path}/streams`),
+  const encodedId = encodeURIComponent(id);
+  const [detail, streams] = await Promise.all([
+    readSection<ActivityDetailPayload>(`/api/web/activity-detail/${encodedId}`, true),
+    readSection<ActivityStreamPayload>(`/api/v1/activities/${encodedId}/streams`),
   ]);
 
   // A private cache cannot answer « not found »: a session that cannot be read says so.
-  if (!activity) {
+  if (!detail) {
     return (
       <CarnetPage back={SESSIONS} kicker="Les séances" title="Cette séance">
         <Unreadable what="Cette séance" />
@@ -121,6 +123,7 @@ async function SessionReading({ id }: { id: string }) {
     );
   }
 
+  const { activity, goal, multisportLegs } = detail;
   const narrative = isNarrative(activity.narrativeAnalysis) ? activity.narrativeAnalysis : null;
   const planned = activity.plannedSession;
   const analysis = planned && isAnalysis(planned.analysis) ? planned.analysis : null;
@@ -136,6 +139,18 @@ async function SessionReading({ id }: { id: string }) {
         lead={narrative?.headline}
         title={activity.title ?? sport}
       >
+        {goal ? (
+          <CarnetSection label="La course" title={goal.title}>
+            <RaceFigures
+              durationSec={activity.duration}
+              raceFormat={goal.raceFormat}
+              targetPerformance={goal.targetPerformance}
+            />
+          </CarnetSection>
+        ) : null}
+
+        {multisportLegs?.length ? <RaceLegs legs={multisportLegs} /> : null}
+
         <CarnetSection label="Les chiffres">
           <KeyFigures activity={activity} stats={streams?.stats ?? null} />
           {activity.notes ? <Quiet>{activity.notes}</Quiet> : null}

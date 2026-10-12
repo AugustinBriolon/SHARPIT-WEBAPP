@@ -17,6 +17,8 @@ import {
   Reasons,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
+import { CarnetEmptyDay } from '@/components/carnet/carnet-empty-day';
+import { RaceBand } from '@/components/carnet/carnet-race';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
 export const instant = true;
@@ -132,14 +134,13 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
 
   if (!vm.hasContent && vm.emptyState) {
     return (
-      <CarnetPage
+      <CarnetEmptyDay
         aside={<DayPager day={day} today={today} />}
+        description={vm.emptyState.description}
         kicker={kicker}
-        lead={vm.emptyState.description}
+        race={vm.race}
         title={vm.emptyState.title}
-      >
-        <InApp>Relier une source</InApp>
-      </CarnetPage>
+      />
     );
   }
 
@@ -156,6 +157,8 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
       lead={hero.subline}
       title={hero.headline}
     >
+      <RaceBand race={vm.race} />
+
       <CarnetSection label="Le verdict" title={hero.postureLabel}>
         {vm.statusMessage ? <Quiet>{vm.statusMessage}</Quiet> : null}
         <Reasons items={reasons} />
