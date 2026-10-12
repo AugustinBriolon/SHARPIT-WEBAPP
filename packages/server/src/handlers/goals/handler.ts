@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { enrichGoalsWithProgress } from '@sharpit/server/lib/goals/goal-achievements';
+import {
+  enrichGoalsWithProgress,
+  withRaceStanding,
+} from '@sharpit/server/lib/goals/goal-achievements';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { createGoal, getGoals } from '@sharpit/server/lib/queries';
 import { createGoalSchema } from '@sharpit/server/lib/validators/goal';
@@ -30,7 +33,8 @@ export async function POST(request: NextRequest) {
     }
 
     const goal = await createGoal(athleteId, parsed.data as Parameters<typeof createGoal>[1]);
-    return NextResponse.json(goal, { status: 201 });
+    const [standing] = await withRaceStanding(athleteId, [goal]);
+    return NextResponse.json(standing, { status: 201 });
   } catch (error) {
     console.error('[goals/POST]', error);
     const message = error instanceof Error ? error.message : "Impossible de créer l'objectif";

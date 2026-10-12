@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   getRecentGoalAchievements,
   recordRaceResult,
+  withRaceStanding,
 } from '@sharpit/server/lib/goals/goal-achievements';
 import { prisma } from '@sharpit/db/client';
 
@@ -12,6 +13,8 @@ vi.mock('@sharpit/db/client', () => ({
       findUnique: vi.fn(),
       upsert: vi.fn(),
     },
+    goal: { updateMany: vi.fn() },
+    activity: { findMany: vi.fn() },
   },
 }));
 
@@ -67,5 +70,54 @@ describe('recordRaceResult', () => {
     await recordRaceResult({ id: 'g', kind: 'METRIC' }, activity, 'manual');
 
     expect(prisma.goalAchievement.upsert).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('recordRaceResult — reaching the race', () => {
+  const activity = { id: 'tri', duration: 20403 };
+
+  beforeEach(() => {
+    vi.mocked(prisma.goal.updateMany).mockClear();
+    vi.mocked(prisma.goalAchievement.findUnique).mockResolvedValue(null);
+  });
+
+  it('marks a race reached once its day has come, never touching one already reached', async () => {
+    const past = { id: 'goal-1', kind: 'RACE', targetDate: new Date('2026-01-11T00:00:00Z') };
+
+    await recordRaceResult(past, activity, 'auto');
+
+    expect(prisma.goal.updateMany).toHaveBeenCalledWith({
+      where: { id: 'goal-1', achieved: false },
+      data: { achieved: true },
+    });
+  });
+
+  it('leaves a race ahead in progress when a session is linked to it', async () => {
+    const ahead = { id: 'goal-1', kind: 'RACE', targetDate: new Date('2999-01-01T00:00:00Z') };
+
+    await recordRaceResult(ahead, activity, 'manual');
+
+    expect(prisma.goal.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('withRaceStanding', () => {
+  it('reads a past race with a linked activity as done, with its time', async () => {
+    vi.mocked(prisma.activity.findMany).mockResolvedValue([
+      { id: 'tri', title: 'Half', duration: 20403, goalId: 'goal-1' },
+    ] as never);
+    const goal = {
+      id: 'goal-1',
+      kind: 'RACE',
+      targetDate: new Date('2026-01-11T00:00:00Z'),
+      achieved: false,
+    };
+
+    const [standing] = await withRaceStanding('athlete', [goal as never]);
+
+    expect(standing).toMatchObject({
+      status: 'done',
+      result: { activityId: 'tri', durationSec: 20403 },
+    });
   });
 });

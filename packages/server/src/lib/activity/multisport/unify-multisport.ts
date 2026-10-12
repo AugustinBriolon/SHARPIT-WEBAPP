@@ -54,6 +54,8 @@ export type UnifyRaceGoal = {
   kind: GoalKind;
   title: string;
   raceFormat: string | null;
+  /** Read when the link is made: a race whose day has come is reached (`recordRaceResult`). */
+  targetDate: Date | null;
 };
 
 export type MultisportDayPlan = {

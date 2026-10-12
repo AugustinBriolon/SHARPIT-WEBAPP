@@ -123,3 +123,41 @@ export function selectRaceMoment(
   });
   return moments[0] ?? null;
 }
+
+export type RaceGoalStatus = 'upcoming' | 'raceDay' | 'done' | 'awaitingResult';
+export type RaceGoalResult = { activityId: string; durationSec: number | null };
+export type RaceGoalStanding = { status: RaceGoalStatus | null; result: RaceGoalResult | null };
+
+/** Whether the race's day has come on `trainingDayId`; an undated race is whenever it is run. */
+export function isRaceDayReached(
+  targetDate: Date | string | null,
+  trainingDayId: string,
+): boolean {
+  return !targetDate || daysBetween(raceDayKey(targetDate), trainingDayId) >= 0;
+}
+
+/**
+ * Where a goal stands on `trainingDayId` (null status for a figure goal). A race is done once
+ * validated, or once its day has come with an activity linked; past its day with neither, it
+ * awaits its result. The result is the race-moment one: the longest linked activity.
+ */
+export function raceGoalStanding(
+  goal: Pick<RaceGoalLike, 'id' | 'kind' | 'targetDate'> & { achieved: boolean },
+  activities: readonly RaceActivityLike[],
+  trainingDayId: string,
+): RaceGoalStanding {
+  if (goal.kind !== 'RACE') {
+    return { status: null, result: null };
+  }
+  const linked = linkedActivity(goal.id, activities);
+  const result = linked ? { activityId: linked.id, durationSec: linked.durationSec } : null;
+  const reached = isRaceDayReached(goal.targetDate, trainingDayId);
+  if (goal.achieved || (linked && reached)) {
+    return { status: 'done', result };
+  }
+  if (!goal.targetDate || !reached) {
+    return { status: 'upcoming', result };
+  }
+  const isToday = raceDayKey(goal.targetDate) === trainingDayId;
+  return { status: isToday ? 'raceDay' : 'awaitingResult', result };
+}

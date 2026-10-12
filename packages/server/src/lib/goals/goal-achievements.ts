@@ -9,6 +9,13 @@ import {
   type PerformanceMetricConfig,
 } from '@sharpit/app/lib/goals/goal-metric-config';
 import { prisma } from '@sharpit/db/client';
+import { computeTrainingDayId } from '@sharpit/core/training/training-day';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
+import {
+  isRaceDayReached,
+  raceGoalStanding,
+  type RaceGoalStanding,
+} from '@sharpit/app/lib/goals/race-moment';
 import {
   computeMetricCurrentValue,
   computePerformanceBest,
@@ -66,18 +73,34 @@ export async function recordGoalAchievement(params: {
 }
 
 /**
+ * A race is reached once its day has come and an activity is linked to it. `achieved` is
+ * sticky: unlinking never resets it, since the athlete may have validated the race by hand —
+ * only an explicit PATCH `achieved: false` puts it back in progress.
+ */
+async function achieveRunRace(goal: { id: string; targetDate?: Date | null }): Promise<void> {
+  if (!isRaceDayReached(goal.targetDate ?? null, computeTrainingDayId(new Date()))) {
+    return;
+  }
+  await prisma.goal.updateMany({
+    where: { id: goal.id, achieved: false },
+    data: { achieved: true },
+  });
+}
+
+/**
  * A race goal's result is the activity done for it, refreshed when that activity changes
  * (its duration once every leg is in). A manual link replaces the previous result; an
  * automatic one never takes over a result standing on another activity.
  */
 export async function recordRaceResult(
-  goal: { id: string; kind: string },
+  goal: { id: string; kind: string; targetDate?: Date | null },
   activity: { id: string; duration: number | null },
   source: 'auto' | 'manual',
 ): Promise<void> {
   if (goal.kind !== 'RACE') {
     return;
   }
+  await achieveRunRace(goal);
   const where = { goalId_periodKey: { goalId: goal.id, periodKey: PERFORMANCE_PERIOD_KEY } };
   if (source === 'auto') {
     const existing = await prisma.goalAchievement.findUnique({
@@ -294,10 +317,27 @@ async function enrichSingleGoal<T extends Goal>(
   };
 }
 
+/** Each goal with where its race stands (`status`, `result`) — null for a figure goal. */
+export async function withRaceStanding<T extends Goal>(
+  athleteId: string,
+  goals: T[],
+): Promise<(T & RaceGoalStanding)[]> {
+  const raceIds = goals.filter((goal) => goal.kind === 'RACE').map((goal) => goal.id);
+  const linked =
+    raceIds.length === 0
+      ? []
+      : await prisma.activity.findMany({
+          where: { athleteId, goalId: { in: raceIds }, ...visibleActivityWhere },
+          select: { id: true, title: true, duration: true, goalId: true },
+        });
+  const today = computeTrainingDayId(new Date());
+  return goals.map((goal) => ({ ...goal, ...raceGoalStanding(goal, linked, today) }));
+}
+
 export async function enrichGoalsWithProgress<T extends Goal>(
   athleteId: string,
   goals: T[],
-): Promise<EnrichedGoal<T>[]> {
+): Promise<(EnrichedGoal<T> & RaceGoalStanding)[]> {
   const hasPerformance = goals.some((goal) => {
     const cfg = parseGoalMetricConfig(goal.metricKey);
     return cfg?.template === 'performance';
@@ -311,7 +351,8 @@ export async function enrichGoalsWithProgress<T extends Goal>(
   ]);
 
   const ref = new Date();
-  return Promise.all(
+  const enriched = await Promise.all(
     goals.map((goal) => enrichSingleGoal(goal, periodActivities, performanceActivities, ref)),
   );
+  return withRaceStanding(athleteId, enriched);
 }

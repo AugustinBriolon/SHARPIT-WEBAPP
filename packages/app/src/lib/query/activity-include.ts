@@ -36,6 +36,7 @@ export const activityGoalSelect = {
   raceFormat: true,
   targetPerformance: true,
   targetDate: true,
+  achieved: true,
 } satisfies Prisma.GoalSelect;
 
 export const activityDetailInclude = {

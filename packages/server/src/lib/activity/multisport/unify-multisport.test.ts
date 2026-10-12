@@ -9,7 +9,7 @@ const prismaMock = vi.hoisted(() => {
       update: vi.fn(),
       updateMany: vi.fn(),
     },
-    goal: { findMany: vi.fn() },
+    goal: { findMany: vi.fn(), updateMany: vi.fn() },
     goalAchievement: { upsert: vi.fn(), findUnique: vi.fn() },
     plannedSession: { findFirst: vi.fn(), findMany: vi.fn(), update: vi.fn() },
     observation: { deleteMany: vi.fn(), findMany: vi.fn().mockResolvedValue([]) },
@@ -84,6 +84,7 @@ const goal: UnifyRaceGoal = {
   kind: GoalKind.RACE,
   title: 'Triathlon de Paris',
   raceFormat: 'S',
+  targetDate: null,
 };
 
 describe('planMultisportDay', () => {
@@ -277,6 +278,11 @@ describe('unifyMultisportDay', () => {
         }),
       }),
     );
+    // The race's day has come with its activity linked: it is reached.
+    expect(prismaMock.goal.updateMany).toHaveBeenCalledWith({
+      where: { id: 'goal-1', achieved: false },
+      data: { achieved: true },
+    });
   });
 
   it('writes nothing on a day already unified', async () => {

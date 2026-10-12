@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { raceDayKey, selectRaceMoment } from '@sharpit/app/lib/goals/race-moment';
+import {
+  isRaceDayReached,
+  raceDayKey,
+  raceGoalStanding,
+  selectRaceMoment,
+} from '@sharpit/app/lib/goals/race-moment';
 
 const race = {
   id: 'goal-1',
@@ -84,5 +89,46 @@ describe('raceDayKey', () => {
   it('reads a bare day and a local midnight with offset as the same race day', () => {
     expect(raceDayKey('2026-10-11T00:00:00.000Z')).toBe('2026-10-11');
     expect(raceDayKey('2026-10-11T00:00:00+02:00')).toBe('2026-10-11');
+  });
+});
+
+describe('raceGoalStanding', () => {
+  const goal = { id: 'goal-1', kind: 'RACE', targetDate: race.targetDate, achieved: false };
+
+  it('reads upcoming before the day, raceDay on it', () => {
+    expect(raceGoalStanding(goal, [], '2026-10-10').status).toBe('upcoming');
+    expect(raceGoalStanding(goal, [], '2026-10-11').status).toBe('raceDay');
+  });
+
+  it('is done once the day has come with a linked activity, carrying its time', () => {
+    expect(raceGoalStanding(goal, [result], '2026-10-11')).toEqual({
+      status: 'done',
+      result: { activityId: 'tri-1', durationSec: 8700 },
+    });
+    expect(raceGoalStanding(goal, [result], '2026-10-12').status).toBe('done');
+  });
+
+  it('awaits its result once past without a link, unless validated by hand', () => {
+    expect(raceGoalStanding(goal, [], '2026-10-12')).toEqual({
+      status: 'awaitingResult',
+      result: null,
+    });
+    expect(raceGoalStanding({ ...goal, achieved: true }, [], '2026-10-12').status).toBe('done');
+  });
+
+  it('keeps a session linked ahead of the race upcoming, and says nothing for a figure goal', () => {
+    expect(raceGoalStanding(goal, [result], '2026-10-01').status).toBe('upcoming');
+    expect(raceGoalStanding({ ...goal, kind: 'METRIC' }, [], '2026-10-12')).toEqual({
+      status: null,
+      result: null,
+    });
+  });
+});
+
+describe('isRaceDayReached', () => {
+  it('holds from the race day on, and always for an undated race', () => {
+    expect(isRaceDayReached(race.targetDate, '2026-10-10')).toBe(false);
+    expect(isRaceDayReached(race.targetDate, '2026-10-11')).toBe(true);
+    expect(isRaceDayReached(null, '2026-10-01')).toBe(true);
   });
 });

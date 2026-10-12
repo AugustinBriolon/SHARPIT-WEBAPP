@@ -6,7 +6,10 @@ import {
   updateGoal,
 } from '@sharpit/server/lib/queries';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
-import { recordManualGoalAchievement } from '@sharpit/server/lib/goals/goal-achievements';
+import {
+  recordManualGoalAchievement,
+  withRaceStanding,
+} from '@sharpit/server/lib/goals/goal-achievements';
 import { updateGoalSchema } from '@sharpit/server/lib/validators/goal';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -19,7 +22,8 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!goal) {
       return NextResponse.json({ error: 'Objectif introuvable' }, { status: 404 });
     }
-    return NextResponse.json({ ...goal, activities: await getGoalActivities(athleteId, id) });
+    const [standing] = await withRaceStanding(athleteId, [goal]);
+    return NextResponse.json({ ...standing, activities: await getGoalActivities(athleteId, id) });
   } catch (error) {
     console.error('[goals/GET]', error);
     return NextResponse.json({ error: "Impossible de charger l'objectif" }, { status: 500 });
@@ -54,7 +58,8 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       await recordManualGoalAchievement({ ...existing, ...goal });
     }
 
-    return NextResponse.json(goal);
+    const [standing] = await withRaceStanding(athleteId, [goal]);
+    return NextResponse.json(standing);
   } catch (error) {
     console.error('[goals/PATCH]', error);
     const message =

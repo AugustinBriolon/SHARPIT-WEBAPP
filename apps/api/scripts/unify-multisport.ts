@@ -1,6 +1,7 @@
 /**
  * Unifies past multisport races: Strava / Apple Health legs become one triathlon (or are
- * absorbed into Garmin's), titled after the race goal and linked to it. Dry-run by default.
+ * absorbed into Garmin's), titled after the race goal and linked to it. A race goal whose day has
+ * come with an activity linked, never marked reached, is marked reached. Dry-run by default.
  *
  * Usage :
  *   yarn db:unify:multisport --athlete <id> [--days 90]     # dry-run, one athlete
@@ -15,6 +16,7 @@ import {
   unifyMultisportDay,
   type MultisportDayPlan,
 } from '@sharpit/server/lib/activity/multisport/unify-multisport';
+import { withRaceStanding } from '@sharpit/server/lib/goals/goal-achievements';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const FLAGS_WITH_VALUE = new Set(['--athlete', '--days']);
@@ -92,7 +94,25 @@ async function candidateDays(athleteId: string, since: Date): Promise<string[]> 
   return [...new Set(keys)].sort();
 }
 
-type Totals = { days: number; create: number; hide: number; link: number };
+type Totals = { days: number; create: number; hide: number; link: number; achieve: number };
+
+/** Races already run (day come, activity linked) still waiting to be marked reached. */
+async function runRacesToAchieve(athleteId: string) {
+  const goals = await prisma.goal.findMany({
+    where: { athleteId, kind: GoalKind.RACE, achieved: false },
+  });
+  return (await withRaceStanding(athleteId, goals)).filter((goal) => goal.status === 'done');
+}
+
+async function achieveRunRaces(athleteId: string, apply: boolean, totals: Totals): Promise<void> {
+  for (const goal of await runRacesToAchieve(athleteId)) {
+    totals.achieve += 1;
+    console.log(`  achieve goal "${goal.title}" (${goal.id}) · result ${goal.result?.activityId}`);
+    if (apply) {
+      await prisma.goal.update({ where: { id: goal.id }, data: { achieved: true } });
+    }
+  }
+}
 
 function describe(dayKey: string, plan: MultisportDayPlan): string {
   const target =
@@ -117,7 +137,7 @@ function count(totals: Totals, plan: MultisportDayPlan): void {
 }
 
 async function planAll(athleteIds: string[], since: Date, apply: boolean): Promise<Totals> {
-  const totals: Totals = { days: 0, create: 0, hide: 0, link: 0 };
+  const totals: Totals = { days: 0, create: 0, hide: 0, link: 0, achieve: 0 };
   for (const athleteId of athleteIds) {
     console.log(`Athlete ${athleteId}`);
     for (const dayKey of await candidateDays(athleteId, since)) {
@@ -127,12 +147,13 @@ async function planAll(athleteIds: string[], since: Date, apply: boolean): Promi
         console.log(describe(dayKey, plan));
       }
     }
+    await achieveRunRaces(athleteId, apply, totals);
   }
   return totals;
 }
 
 function summary(totals: Totals): string {
-  return `${totals.days} journée(s) · ${totals.create} triathlon(s) à créer · ${totals.hide} ligne(s) à masquer · ${totals.link} lien(s) objectif`;
+  return `${totals.days} journée(s) · ${totals.create} triathlon(s) à créer · ${totals.hide} ligne(s) à masquer · ${totals.link} lien(s) objectif · ${totals.achieve} course(s) à marquer atteinte(s)`;
 }
 
 async function main() {
