@@ -12,15 +12,19 @@ import { hasProAccess } from '@sharpit/app/lib/access/tier';
 import type { CoachDiscussMetadata } from '@sharpit/app/lib/coach/chat/discuss/coach-discuss-context';
 import { lastCoachDiscussMetadata } from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-metadata-parse';
 import {
+  loadMorningBriefDiscussBlock,
+  loadTodayDiscussBlock,
+} from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-day-scores';
+import {
   formatNutritionDiscussBlock,
   formatPlanningDiscussBlock,
-  formatTodayDiscussBlock,
   loadActivityDiscussBlock,
   loadGoalDiscussBlock,
   loadPhysicalConditionDiscussBlock,
   loadPlannedSessionDiscussBlock,
   loadRecordDiscussBlock,
 } from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-target-blocks';
+import { format } from 'date-fns';
 import {
   JOURNAL_ANALYSES_PRO_REQUIRED_ERROR,
   loadJournalAnalysesCoachBlock,
@@ -51,7 +55,14 @@ async function requireJournalAnalysesPro(athleteId: string): Promise<string | nu
 }
 
 const DISCUSS_HANDLERS: { [K in DiscussKind]: DiscussHandler<K> } = {
-  today: { loadBlock: async () => formatTodayDiscussBlock() },
+  today: {
+    loadBlock: (athleteId, _metadata, now) =>
+      loadTodayDiscussBlock(athleteId, format(now, 'yyyy-MM-dd'), now),
+  },
+  'morning-brief': {
+    loadBlock: (athleteId, metadata, now) =>
+      loadMorningBriefDiscussBlock(athleteId, metadata.trainingDayId, now),
+  },
   planning: {
     loadBlock: async (_, metadata, now) => formatPlanningDiscussBlock(metadata.horizonDays, now),
   },

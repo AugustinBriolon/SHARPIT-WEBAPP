@@ -28,6 +28,9 @@ describe('coachDiscussHref', () => {
 describe('describeCoachDiscussContext', () => {
   it('names the attachment in plain language', () => {
     expect(describeCoachDiscussContext({ kind: 'today' }).label).toBe('Ton état du jour');
+    expect(
+      describeCoachDiscussContext({ kind: 'morning-brief', trainingDayId: '2026-10-12' }).label,
+    ).toBe('Brief du matin');
     expect(describeCoachDiscussContext({ kind: 'goal', goalId: 'g' }, 'Half IronMan').label).toBe(
       'Objectif · Half IronMan',
     );
@@ -71,6 +74,10 @@ describe('describeCoachDiscussContext', () => {
 describe('coachDiscussMetadata', () => {
   it.each([
     [{ kind: 'today' }, { discussKind: 'today' }],
+    [
+      { kind: 'morning-brief', trainingDayId: '2026-10-12' },
+      { discussKind: 'morning-brief', trainingDayId: '2026-10-12' },
+    ],
     [
       { kind: 'planned-session', sessionId: 's-1' },
       { discussKind: 'planned-session', sessionId: 's-1' },

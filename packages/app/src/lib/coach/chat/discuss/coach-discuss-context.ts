@@ -49,6 +49,10 @@ function discussChipCopy(target: CoachDiscussTarget, named: string | null): Disc
     ) => DiscussChipCopy;
   } = {
     today: () => ({ label: 'Ton état du jour', sourceHref: '/' }),
+    'morning-brief': () => ({
+      label: 'Brief du matin',
+      sourceHref: '/',
+    }),
     'planned-session': (_, n) => ({
       label: n ? `Séance prévue · ${n}` : 'Une séance prévue',
       sourceHref: '/plan/semaine',

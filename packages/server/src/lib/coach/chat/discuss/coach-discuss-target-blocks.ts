@@ -60,13 +60,16 @@ function truncateProse(text: string | null | undefined): string | null {
   return trimmed.length > PROSE_MAX_CHARS ? `${trimmed.slice(0, PROSE_MAX_CHARS)}…` : trimmed;
 }
 
-// ── Today & planning: the data is already in the coach context ─────────────
+// ── Today & planning ───────────────────────────────────────────────────────
 
+/** Sync fallback; live discuss uses `loadTodayDiscussBlock` (ADR-079 scores). */
 export function formatTodayDiscussBlock(): string {
   return block("## Conversation ouverte depuis Aujourd'hui", [
     "L'athlète parle de son état du jour. Appuie-toi d'abord sur la décision du jour, l'état de forme, la santé et la séance prévue aujourd'hui, déjà présents dans le contexte ci-dessus : ne les recharge pas par outil.",
   ]);
 }
+
+export { loadTodayDiscussBlock } from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-day-scores';
 
 /** The day's plate is in the context (« Nutrition du jour ») for today; another day is named. */
 export function formatNutritionDiscussBlock(trainingDayId: string, today: Date): string {

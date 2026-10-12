@@ -6,8 +6,12 @@ vi.mock('@sharpit/server/lib/queries', () => ({
   getAthleteProfile: vi.fn(),
 }));
 
+vi.mock('@sharpit/server/lib/coach/chat/discuss/coach-discuss-day-scores', () => ({
+  loadTodayDiscussBlock: vi.fn().mockResolvedValue('TODAY BLOCK'),
+  loadMorningBriefDiscussBlock: vi.fn().mockResolvedValue('MORNING BRIEF BLOCK'),
+}));
+
 vi.mock('@sharpit/server/lib/coach/chat/discuss/coach-discuss-target-blocks', () => ({
-  formatTodayDiscussBlock: vi.fn(() => 'TODAY BLOCK'),
   formatPlanningDiscussBlock: vi.fn(() => 'PLANNING BLOCK'),
   loadPlannedSessionDiscussBlock: vi.fn().mockResolvedValue('SESSION BLOCK'),
   loadActivityDiscussBlock: vi.fn().mockResolvedValue('ACTIVITY BLOCK'),
@@ -61,6 +65,7 @@ describe('resolveCoachDiscussServerContext', () => {
 
   it.each([
     [{ discussKind: 'today' }, 'TODAY BLOCK'],
+    [{ discussKind: 'morning-brief', trainingDayId: '2026-09-10' }, 'MORNING BRIEF BLOCK'],
     [{ discussKind: 'planning', horizonDays: 7 }, 'PLANNING BLOCK'],
     [{ discussKind: 'planned-session', sessionId: 's-1' }, 'SESSION BLOCK'],
     [{ discussKind: 'activity', activityId: 'a-1' }, 'ACTIVITY BLOCK'],

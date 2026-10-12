@@ -16,6 +16,9 @@ import {
   ensureMorningRecalibration,
   type MorningRecalibrationPresentation,
 } from '@sharpit/server/lib/morning-recalibration/service';
+import { coachDiscussHref } from '@sharpit/app/lib/coach/chat/discuss/coach-discuss-href';
+import { formatDayScoresPushBits } from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-day-scores';
+import { loadV1DayScores, type V1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores';
 
 export type MorningPushPayload = {
   title: string;
@@ -49,11 +52,13 @@ const DEFAULT_CONCURRENCY = 5;
 /**
  * Builds the minimal, silenceable morning push notification payload (Moment 1 - Wake).
  * Meets the athlete with a single honest verdict + briefing excerpt before they open the app.
+ * Deep-links into the coach morning-brief conversation (not only Today).
  */
 export function buildMorningPushPayload(
   snapshot: AthleteSnapshot,
   origin = appOrigin('https://sharpit.app'),
   proposal: MorningRecalibrationPresentation | null = null,
+  dayScores: V1DayScores | null = null,
 ): MorningPushPayload {
   const verdict = (snapshot.todaysDecision ??
     snapshot.decision?.overallVerdict ??
@@ -73,9 +78,16 @@ export function buildMorningPushPayload(
     snapshot.insufficientDataMessage ||
     'Ta lecture du jour t’attend dans SharpIt.';
 
+  const scoresBits = formatDayScoresPushBits(dayScores);
+  const withScores = scoresBits ? `${rawBody} · ${scoresBits}` : rawBody;
   // Cap length cleanly for lock screen presentation
-  const body = rawBody.length > 140 ? `${rawBody.slice(0, 137).trim()}…` : rawBody;
-  const url = `${origin.replace(/\/+$/, '')}/today`;
+  const body = withScores.length > 140 ? `${withScores.slice(0, 137).trim()}…` : withScores;
+  const base = origin.replace(/\/+$/, '');
+  const coachPath = coachDiscussHref({
+    kind: 'morning-brief',
+    trainingDayId: snapshot.trainingDayId,
+  });
+  const url = `${base}${coachPath}`;
 
   return {
     title,
@@ -115,6 +127,7 @@ export function toApnsPayload(morning: MorningPushPayload): ApnsPayload {
     url: morning.url,
     trainingDayId: morning.trainingDayId,
     verdict: morning.verdict,
+    openCoachBrief: true,
   };
 }
 
@@ -262,7 +275,11 @@ export async function sendMorningPushForAthlete(
       console.error('[morning-push] proposal', athleteId, error);
       return null;
     });
-  const morningPayload = buildMorningPushPayload(snapshot, options?.origin, proposal);
+  const dayScores = await loadV1DayScores(athleteId, dayId).catch((error) => {
+    console.error('[morning-push] day scores', athleteId, error);
+    return null;
+  });
+  const morningPayload = buildMorningPushPayload(snapshot, options?.origin, proposal, dayScores);
   const apnsPayload = toApnsPayload(morningPayload);
 
   const { sent, failed, deactivated } = await sendPushToDevices(athlete.deviceTokens, apnsPayload);

@@ -11,6 +11,7 @@ import {
 
 const EVERY_TARGET: CoachDiscussTarget[] = [
   { kind: 'today' },
+  { kind: 'morning-brief', trainingDayId: '2026-10-12' },
   { kind: 'planned-session', sessionId: 'cmsession01' },
   { kind: 'activity', activityId: 'cmactivity01' },
   { kind: 'planning', horizonDays: 14 },
@@ -43,6 +44,10 @@ describe('parseCoachDiscussMetadata', () => {
     ['null', null],
     ['an array', [{ discussKind: 'today' }]],
     ['an unknown kind', { discussKind: 'sleep' }],
+    [
+      'a morning-brief day that is not a date',
+      { discussKind: 'morning-brief', trainingDayId: 'today' },
+    ],
     ['a nutrition day that is not a date', { discussKind: 'nutrition', trainingDayId: 'today' }],
     ['an inherited property name', { discussKind: 'toString' }],
     ['a missing id', { discussKind: 'goal' }],

@@ -31,6 +31,10 @@ function targetIdParser(kind: DiscussKind, field: string): MetadataParser {
 
 const PARSERS: Record<DiscussKind, MetadataParser> = {
   today: () => ({ discussKind: 'today' }),
+  'morning-brief': (raw) =>
+    typeof raw.trainingDayId === 'string' && TRAINING_DAY_PATTERN.test(raw.trainingDayId)
+      ? { discussKind: 'morning-brief', trainingDayId: raw.trainingDayId }
+      : null,
   'journal-analyses': () => ({ discussKind: 'journal-analyses' }),
   planning: (raw) =>
     PLANNING_HORIZONS.has(raw.horizonDays)

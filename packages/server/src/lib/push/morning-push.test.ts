@@ -60,9 +60,26 @@ describe('morning-push', () => {
       const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app');
       expect(payload.title).toBe('Entraîne-toi fort');
       expect(payload.body).toBe('Super forme ce matin — séance clé au programme.');
-      expect(payload.url).toBe('https://sharpit.app/today');
+      expect(payload.url).toBe('https://sharpit.app/coach?discuss=morning-brief&day=2026-09-24');
       expect(payload.verdict).toBe('TRAIN_HARD');
       expect(payload.trainingDayId).toBe('2026-09-24');
+    });
+
+    it('appends day scores bits to the body when available', () => {
+      const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app', null, {
+        stress: { value: 30, asOf: '2026-09-24' },
+        energyBank: {
+          algorithmVersion: 'v1',
+          value: 68,
+          typicalBaseline: null,
+          asOfMinuteOfDay: 480,
+          series: [],
+        },
+        targetBand: null,
+      });
+      expect(payload.body).toContain('Réserve 68');
+      expect(payload.body).toContain('Stress 30');
+      expect(payload.body.length).toBeLessThanOrEqual(140);
     });
 
     it('maps RECOVER verdict correctly', () => {
@@ -99,8 +116,9 @@ describe('morning-push', () => {
       expect(apns.aps.sound).toBe('default');
       expect(apns.aps.badge).toBe(1);
       expect(apns.aps.category).toBe('MORNING_VERDICT');
-      expect(apns.url).toBe('https://sharpit.app/today');
+      expect(apns.url).toBe('https://sharpit.app/coach?discuss=morning-brief&day=2026-09-24');
       expect(apns.trainingDayId).toBe('2026-09-24');
+      expect(apns.openCoachBrief).toBe(true);
     });
   });
 

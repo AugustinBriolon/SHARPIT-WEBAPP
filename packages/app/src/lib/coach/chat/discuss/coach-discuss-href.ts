@@ -10,6 +10,7 @@
 
 export type CoachDiscussTarget =
   | { kind: 'today' }
+  | { kind: 'morning-brief'; trainingDayId: string }
   | { kind: 'planned-session'; sessionId: string }
   | { kind: 'activity'; activityId: string }
   | { kind: 'planning'; horizonDays: 1 | 3 | 7 | 14 }
@@ -25,6 +26,8 @@ type HrefBuilders = {
 
 const HREF_BUILDERS: HrefBuilders = {
   today: () => '/coach?discussToday=1',
+  'morning-brief': (t) =>
+    `/coach?discuss=morning-brief&day=${encodeURIComponent(t.trainingDayId)}`,
   'planned-session': (t) => `/coach?discuss=${encodeURIComponent(t.sessionId)}`,
   activity: (t) => `/coach?discussActivity=${encodeURIComponent(t.activityId)}`,
   planning: (t) => `/coach?discussPlanning=${t.horizonDays}`,
