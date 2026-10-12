@@ -435,7 +435,9 @@ async function cachedLegStream(
 ): Promise<ActivityStreamPayload | null> {
   if (leg.sourceActivityId) {
     const own = await getCachedActivityStreams(athleteId, leg.sourceActivityId);
-    if (own?.available && (own.has.hr || !leg.garminActivityId)) {
+    // An Apple Health leg row carries heart rate but no route or distance samples: it only wins
+    // over the Garmin leg when it can draw the map and the splits too.
+    if (own?.available && (!leg.garminActivityId || (own.path?.length && own.has.distance))) {
       return own;
     }
   }

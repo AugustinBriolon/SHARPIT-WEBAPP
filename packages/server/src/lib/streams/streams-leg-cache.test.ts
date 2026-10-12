@@ -98,13 +98,22 @@ describe('buildMultisportLegStream — provider calls', () => {
     expect(garmin.fetchGarminActivityStreams).not.toHaveBeenCalled();
   });
 
-  it("prefers the leg row's own stored stream when it has heart rate", async () => {
+  it("prefers the leg row's own stored stream when it has a route and distance", async () => {
+    const withRoute = {
+      ...raw,
+      latlng: [
+        [48.8, 2.1],
+        [48.81, 2.11],
+        [48.82, 2.12],
+        [48.83, 2.13],
+      ],
+    };
     prismaMock.activity.findFirst.mockResolvedValue({
       id: 'a-run',
       type: 'RUN',
       duration: 180,
       bikeMetrics: null,
-      stream: { available: true, data: raw },
+      stream: { available: true, data: withRoute },
     });
 
     const stream = await buildMultisportLegStream(
@@ -115,6 +124,39 @@ describe('buildMultisportLegStream — provider calls', () => {
 
     expect(stream?.stream.has.hr).toBe(true);
     expect(prismaMock.activityStream.findUnique).not.toHaveBeenCalled();
+    expect(garmin.fetchGarminActivityStreams).not.toHaveBeenCalled();
+  });
+
+  it('takes the cached Garmin leg over an Apple leg row that has heart rate but no route', async () => {
+    prismaMock.activity.findFirst.mockResolvedValue({
+      id: 'a-run',
+      type: 'RUN',
+      duration: 180,
+      bikeMetrics: null,
+      stream: { available: true, data: { ...raw, distance: [] } },
+    });
+    const garminRun = {
+      ...raw,
+      latlng: [
+        [48.8, 2.1],
+        [48.81, 2.11],
+        [48.82, 2.12],
+        [48.83, 2.13],
+      ],
+    };
+    prismaMock.activityStream.findUnique.mockResolvedValue({
+      available: true,
+      data: { garminLegs: { 'g-run': garminRun } },
+    });
+
+    const stream = await buildMultisportLegStream(
+      'athlete-1',
+      runLeg({ sourceActivityId: 'a-run' }),
+      options,
+    );
+
+    expect(stream?.stream.path?.length).toBeGreaterThan(0);
+    expect(stream?.stream.has.distance).toBe(true);
     expect(garmin.fetchGarminActivityStreams).not.toHaveBeenCalled();
   });
 
