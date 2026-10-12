@@ -32,6 +32,7 @@ import {
 } from '@sharpit/app/lib/exercises';
 import { mapWithConcurrency } from '@sharpit/server/lib/async/map-with-concurrency';
 import { prisma } from '@sharpit/db/client';
+import { unifyMultisportAfterSync } from '@sharpit/server/lib/activity/multisport/unify-multisport';
 import { removeManualActivityObservations } from '@sharpit/server/lib/observation/manual-observation-sync';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import {
@@ -285,7 +286,10 @@ async function mergeGarminActivityMatch(
   if (!match.garminId) {
     await removeManualActivityObservations(athleteId, match.id);
   }
-  await ingestGarminActivity(athleteId, activity, evaluation, new Date());
+  // An absorbed leg's load is counted by its parent (unification dropped its observation).
+  if (!match.mergedIntoId) {
+    await ingestGarminActivity(athleteId, activity, evaluation, new Date());
+  }
   return {
     ...EMPTY_OUTCOME,
     merged: 1,
@@ -670,5 +674,10 @@ export async function syncGarminActivities(
     };
   }
 
-  return runGarminCall(athleteId, () => runGarminActivitySync(athleteId, options));
+  const result = await runGarminCall(athleteId, () => runGarminActivitySync(athleteId, options));
+  await unifyMultisportAfterSync(athleteId, [
+    ...result.importedActivityIds,
+    ...result.changedActivityIds,
+  ]);
+  return result;
 }

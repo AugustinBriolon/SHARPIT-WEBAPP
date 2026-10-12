@@ -14,6 +14,7 @@ import { isIndoorActivitySession } from '@sharpit/app/lib/activity/location/indo
 import { runActivityNarrativeAnalysis } from '@sharpit/server/lib/activity/narrative/activity-narrative';
 import { fetchForecastPredictions } from '@sharpit/server/lib/planned-session/forecast/forecast-fetch';
 import { computeTrainingDayId } from '@sharpit/core/training/training-day';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 export { isActivityToday } from '@sharpit/app/lib/activity/list/activity-day';
 
@@ -349,6 +350,7 @@ export async function enrichTodayActivitiesContext(
   const activities = await prisma.activity.findMany({
     where: {
       athleteId,
+      ...visibleActivityWhere,
       date: { gte: today, lt: addDays(today, 1) },
       type: { in: [...OUTDOOR_TYPES] },
     },

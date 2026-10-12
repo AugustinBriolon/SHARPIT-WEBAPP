@@ -8,6 +8,7 @@ import {
 import {
   plannedSessionCoachSelect,
   plannedSessionInclude,
+  visibleActivityWhere,
 } from '@sharpit/app/lib/query/activity-include';
 import type { BrickEvaluationFields } from '@sharpit/app/lib/validators/brick-evaluation';
 import { chainBrickLegStartTimes } from '@sharpit/server/lib/planned-session/brick/brick-schedule';
@@ -51,8 +52,9 @@ export async function linkPlannedSessionActivity(
   activityId: string | null,
 ) {
   if (activityId) {
+    // An absorbed multisport leg cannot take a plan link: it is hidden behind its parent.
     const owned = await prisma.activity.findFirst({
-      where: { id: activityId, athleteId },
+      where: { id: activityId, athleteId, ...visibleActivityWhere },
       select: { id: true },
     });
     if (!owned) {

@@ -16,6 +16,7 @@ import {
   type PeriodMeasure,
 } from '@sharpit/app/lib/goals/goal-metric-config';
 import { prisma } from '@sharpit/db/client';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 const WEEK_OPTS = { weekStartsOn: 1 as const };
 const PERFORMANCE_DISTANCE_TOLERANCE = 0.03;
@@ -227,7 +228,7 @@ export function computeMetricCurrentValue(
 export async function loadActivitiesForGoals(athleteId: string): Promise<ActivityRow[]> {
   const yearStart = startOfYear(new Date());
   return prisma.activity.findMany({
-    where: { athleteId, date: { gte: yearStart } },
+    where: { athleteId, ...visibleActivityWhere, date: { gte: yearStart } },
     select: activitySelect,
     orderBy: { date: 'desc' },
   });
@@ -235,7 +236,7 @@ export async function loadActivitiesForGoals(athleteId: string): Promise<Activit
 
 export async function loadAllActivitiesForPerformance(athleteId: string): Promise<ActivityRow[]> {
   return prisma.activity.findMany({
-    where: { athleteId },
+    where: { athleteId, ...visibleActivityWhere },
     select: activitySelect,
     orderBy: { date: 'desc' },
   });

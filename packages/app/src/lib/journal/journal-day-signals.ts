@@ -16,6 +16,7 @@ import {
   approximateTrainingDayUtcRange,
 } from '@sharpit/core/training/training-day';
 import { toUtcDateOnly } from '@sharpit/app/lib/travel-context/calendar-date';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 export type JournalNutritionSummary = {
   calories: number;
@@ -140,6 +141,7 @@ export async function buildJournalDaySignals(
     prisma.activity.findMany({
       where: {
         athleteId,
+        ...visibleActivityWhere,
         date: { gte: activityRange.gte, lte: activityRange.lte },
       },
       select: { type: true, duration: true, date: true },

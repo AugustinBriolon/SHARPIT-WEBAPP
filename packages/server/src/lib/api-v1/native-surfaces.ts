@@ -21,7 +21,7 @@ export const NATIVE_V1_SURFACES = [
   { path: 'coach-memory', methods: ['GET', 'POST'] },
   { path: 'coach-memory/[id]', methods: ['DELETE'] },
   { path: 'goals', methods: ['GET', 'POST'] },
-  { path: 'goals/[id]', methods: ['PATCH', 'DELETE'] },
+  { path: 'goals/[id]', methods: ['GET', 'PATCH', 'DELETE'] },
   { path: 'goals/achievements', methods: ['GET'] },
   { path: 'records', methods: ['GET'] },
   { path: 'daily-strain', methods: ['GET'] },

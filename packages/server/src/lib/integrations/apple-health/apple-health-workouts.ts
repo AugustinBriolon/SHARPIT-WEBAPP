@@ -8,6 +8,7 @@ import {
 import { fillMissingActivityUpdate } from '@sharpit/server/lib/activity/list/activity-fill-missing';
 import { loadActivityFillSnapshot } from '@sharpit/server/lib/activity/list/load-activity-fill-snapshot';
 import { prisma } from '@sharpit/db/client';
+import { unifyMultisportAfterSync } from '@sharpit/server/lib/activity/multisport/unify-multisport';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import { storedActivityToSession } from '@sharpit/server/lib/observation/activity-to-session';
 import { persistStream } from '@sharpit/server/lib/streams/streams';
@@ -51,7 +52,7 @@ const streamSchema = z.object({
 export const appleHealthWorkoutSchema = z.object({
   /** HealthKit's workout UUID — stored as `Activity.appleHealthId` for stable rematch. */
   id: z.string().min(1).max(64),
-  type: z.enum(['RUN', 'BIKE', 'SWIM', 'STRENGTH', 'HIKE', 'OTHER']),
+  type: z.enum(['RUN', 'BIKE', 'SWIM', 'STRENGTH', 'HIKE', 'TRIATHLON', 'OTHER']),
   title: z.string().max(120).nullish(),
   start: z.string().datetime({ offset: true }),
   durationSec: z.number().int().min(1).max(86_400),
@@ -354,5 +355,6 @@ export async function importAppleHealthWorkouts(
       result.skipped += 1;
     }
   }
+  await unifyMultisportAfterSync(athleteId, result.activityIds);
   return result;
 }

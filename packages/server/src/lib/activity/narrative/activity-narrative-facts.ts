@@ -33,6 +33,7 @@ import {
   loadAthletePmcAnchor,
   loadDailyTrainingStressEntries,
 } from '@sharpit/server/lib/training/pmc/pmc-server';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 const TYPE_FR: Record<string, string> = {
   RUN: 'Course à pied',
@@ -391,6 +392,7 @@ export async function buildActivityNarrativeFacts(
     prisma.activity.findMany({
       where: {
         athleteId,
+        ...visibleActivityWhere,
         type: activity.type,
         date: { gte: since30, lt: activity.date },
         id: { not: activity.id },

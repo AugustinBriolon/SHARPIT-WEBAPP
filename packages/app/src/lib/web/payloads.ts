@@ -32,6 +32,8 @@ export type WebViewer = {
 
 export type ActivityDetailPayload = {
   activity: ClientActivityDetail;
+  /** The goal the activity was done for (same as `activity.goal`), for the race header. */
+  goal: ClientActivityDetail['goal'];
   multisportLegs: MultisportLeg[] | null;
   goalValidations: Prisma.GoalAchievementGetPayload<{
     include: {

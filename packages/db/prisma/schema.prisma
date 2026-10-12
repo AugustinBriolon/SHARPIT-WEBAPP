@@ -192,6 +192,15 @@ model Activity {
   /// Jambes et transitions d'un multisport Garmin (natation, T1, vélo, T2, course…)
   multisportLegs Json?
 
+  /// Set when this row was absorbed into a multisport parent (e.g. a Strava triathlon leg). Hidden from reads.
+  mergedIntoId String?
+  mergedInto   Activity?  @relation("ActivityMerge", fields: [mergedIntoId], references: [id], onDelete: SetNull)
+  mergedLegs   Activity[] @relation("ActivityMerge")
+
+  /// Goal this activity was done for (race result). Several activities may share a goal.
+  goalId String?
+  goal   Goal?   @relation(fields: [goalId], references: [id], onDelete: SetNull)
+
   runMetrics            RunMetrics?
   bikeMetrics           BikeMetrics?
   swimMetrics           SwimMetrics?
@@ -220,6 +229,8 @@ model Activity {
   @@index([type])
   @@index([hikeTripId])
   @@index([athleteId])
+  @@index([athleteId, mergedIntoId])
+  @@index([goalId])
 }
 
 enum AccessTier {
@@ -1021,6 +1032,7 @@ model Goal {
   plannedSessions PlannedSession[]
   trainingPlans   TrainingPlan[]
   achievements    GoalAchievement[]
+  activities      Activity[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -6,12 +6,39 @@ import {
   removeManualActivityObservations,
   syncManualActivityObservations,
 } from '@sharpit/server/lib/observation/manual-observation-sync';
-import { deleteActivity, getActivityById, updateActivity } from '@sharpit/server/lib/queries';
+import {
+  deleteActivity,
+  getActivityById,
+  getGoalById,
+  updateActivity,
+} from '@sharpit/server/lib/queries';
+import { clearRaceResult, recordRaceResult } from '@sharpit/server/lib/goals/goal-achievements';
 import { updateRecordsForTypesSafe } from '@sharpit/server/lib/training/records/records';
 import { computeTrainingDayId } from '@sharpit/core/training/training-day';
 import { updateActivitySchema } from '@sharpit/app/lib/validators/activity';
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+/**
+ * A relinked race result follows the activity: the old goal loses it, the new one records it.
+ * The link itself is saved already — a failure here costs the result, not the request.
+ */
+async function syncRaceResult(
+  before: { id: string; goalId: string | null },
+  updated: { id: string; duration: number | null },
+  goal: Awaited<ReturnType<typeof getGoalById>>,
+): Promise<void> {
+  try {
+    if (before.goalId && before.goalId !== goal?.id) {
+      await clearRaceResult(before.goalId, before.id);
+    }
+    if (goal) {
+      await recordRaceResult(goal, updated, 'manual');
+    }
+  } catch (error) {
+    console.error('[activities/PATCH] race result', error);
+  }
+}
 
 export async function GET(_request: NextRequest, context: RouteContext) {
   try {
@@ -45,8 +72,13 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     }
 
     const existing = await getActivityById(athleteId, id);
-    if (!existing) {
+    // An absorbed leg is read-only: edits and links belong to its multisport parent.
+    if (!existing || existing.mergedIntoId) {
       return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
+    }
+    const goal = parsed.data.goalId ? await getGoalById(athleteId, parsed.data.goalId) : null;
+    if (parsed.data.goalId && !goal) {
+      return NextResponse.json({ error: 'Objectif introuvable' }, { status: 404 });
     }
 
     const newType = parsed.data.type ?? existing.type;
@@ -59,6 +91,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
     );
     if (!activity) {
       return NextResponse.json({ error: 'Séance introuvable' }, { status: 404 });
+    }
+
+    if (parsed.data.goalId !== undefined) {
+      await syncRaceResult(existing, activity, goal);
     }
 
     const touchesSubjective = parsed.data.feeling !== undefined || parsed.data.rpe !== undefined;
@@ -89,8 +125,10 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const athleteId = await getCurrentAthleteId();
     const existing = await getActivityById(athleteId, id);
-    await deleteActivity(athleteId, id);
-    await removeManualActivityObservations(athleteId, id);
+    const deleted = await deleteActivity(athleteId, id);
+    for (const deletedId of [id, ...(deleted?.mergedLegIds ?? [])]) {
+      await removeManualActivityObservations(athleteId, deletedId);
+    }
     if (existing) {
       await updateRecordsForTypesSafe(athleteId, [existing.type]);
     }

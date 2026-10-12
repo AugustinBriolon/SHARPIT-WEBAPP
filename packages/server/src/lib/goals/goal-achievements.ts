@@ -65,6 +65,44 @@ export async function recordGoalAchievement(params: {
   });
 }
 
+/**
+ * A race goal's result is the activity done for it, refreshed when that activity changes
+ * (its duration once every leg is in). A manual link replaces the previous result; an
+ * automatic one never takes over a result standing on another activity.
+ */
+export async function recordRaceResult(
+  goal: { id: string; kind: string },
+  activity: { id: string; duration: number | null },
+  source: 'auto' | 'manual',
+): Promise<void> {
+  if (goal.kind !== 'RACE') {
+    return;
+  }
+  const where = { goalId_periodKey: { goalId: goal.id, periodKey: PERFORMANCE_PERIOD_KEY } };
+  if (source === 'auto') {
+    const existing = await prisma.goalAchievement.findUnique({
+      where,
+      select: { activityId: true },
+    });
+    if (existing && existing.activityId !== activity.id) {
+      return;
+    }
+  }
+  const result = { source, value: activity.duration, activityId: activity.id };
+  await prisma.goalAchievement.upsert({
+    where,
+    create: { goalId: goal.id, periodKey: PERFORMANCE_PERIOD_KEY, ...result },
+    update: result,
+  });
+}
+
+/** Unlinking the activity withdraws the result it stood for. */
+export async function clearRaceResult(goalId: string, activityId: string): Promise<void> {
+  await prisma.goalAchievement.deleteMany({
+    where: { goalId, periodKey: PERFORMANCE_PERIOD_KEY, activityId },
+  });
+}
+
 type SyncAchievementParams = {
   goal: Goal;
   config: GoalMetricConfig;

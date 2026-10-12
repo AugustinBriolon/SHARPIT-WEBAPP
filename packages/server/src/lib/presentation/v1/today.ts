@@ -5,6 +5,7 @@ import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model'
 import { activityTypeLabels } from '@sharpit/app/lib/format';
 import { morningIntensityLabel } from '@sharpit/app/lib/morning-recalibration/sport-intensity-labels';
 import { CONNECT_GARMIN_PATH } from '@sharpit/app/lib/integrations/garmin/garmin-connect-handoff';
+import type { RaceMoment } from '@sharpit/app/lib/goals/race-moment';
 
 export type V1TodayPackTier = 'FULL' | 'PARTIAL' | 'LOW' | 'INSUFFICIENT';
 
@@ -54,6 +55,7 @@ export type V1TodaySource = {
     }>;
     morningRecalibration?: TodayViewModel['actionRow']['morningRecalibration'];
   };
+  race?: RaceMoment | null;
 };
 
 /** A leg as the view model holds it: the planned leg, and what it was once done. */
@@ -155,7 +157,11 @@ export type V1TodayResponse = {
    * for the athlete's answer (`/api/v1/morning-recalibration/action`); null otherwise.
    */
   morningProposal: V1TodayMorningProposal | null;
+  /** Race day, or the race result up to three days after (`selectRaceMoment`); null otherwise. */
+  race: V1TodayRace | null;
 };
+
+export type V1TodayRace = RaceMoment;
 
 export type V1TodayMorningSide = {
   intensityLabel: string | null;
@@ -344,6 +350,7 @@ export function projectV1Today(
       source.actionRow.morningRecalibration ?? null,
       input.morningCheckInDone ?? true,
     ),
+    race: source.race ?? null,
   };
 }
 
@@ -430,6 +437,7 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
       })),
       morningRecalibration: vm.actionRow.morningRecalibration,
     },
+    race: vm.race ?? null,
   };
 }
 

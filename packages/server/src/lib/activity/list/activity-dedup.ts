@@ -1,6 +1,7 @@
 import { ActivityType, type Prisma } from '@prisma/client';
 import { addHours, subHours } from 'date-fns';
 import { prisma } from '@sharpit/db/client';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 /** Écart max sur l'heure de début (Garmin vs Strava / Apple Santé peuvent diverger légèrement). */
 const TIME_TOLERANCE_MS = 12 * 60 * 1000;
@@ -47,6 +48,8 @@ export interface MatchedActivity {
   source: string;
   rpe: number | null;
   feeling: string | null;
+  /** Set on an absorbed multisport leg: its own Core observation must not come back. */
+  mergedIntoId: string | null;
 }
 
 /**
@@ -225,6 +228,7 @@ function toMatchedActivity(row: {
   source: string;
   rpe: number | null;
   feeling: string | null;
+  mergedIntoId: string | null;
 }): MatchedActivity {
   return {
     id: row.id,
@@ -237,6 +241,7 @@ function toMatchedActivity(row: {
     source: row.source,
     rpe: row.rpe,
     feeling: row.feeling,
+    mergedIntoId: row.mergedIntoId,
   };
 }
 
@@ -294,9 +299,12 @@ export async function findMatchingActivity(
     }
   }
 
+  // Absorbed multisport legs never match by fingerprint (the external-id lookups above
+  // still find them, so a re-synced leg stays hidden instead of resurrecting).
   const nearby = await prisma.activity.findMany({
     where: {
       athleteId,
+      ...visibleActivityWhere,
       type: candidate.type,
       date: {
         gte: subHours(candidate.date, 12),
@@ -331,6 +339,7 @@ const matchSelect = {
   source: true,
   rpe: true,
   feeling: true,
+  mergedIntoId: true,
   runMetrics: { select: { distanceM: true } },
   bikeMetrics: { select: { distanceM: true } },
   swimMetrics: { select: { distanceM: true } },

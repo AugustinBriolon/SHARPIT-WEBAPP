@@ -9,6 +9,7 @@ import {
   activityListSelect,
   activityCoachSelect,
   activityPmcSelect,
+  visibleActivityWhere,
 } from '@sharpit/app/lib/query/activity-include';
 import { physicalNoteInclude, planWeekInclude } from '@sharpit/app/lib/query/activity-include';
 import { linkPlannedSessionActivity } from '@sharpit/server/lib/queries/planned-sessions';
@@ -48,7 +49,7 @@ export async function getActivities(
   params?: { type?: ActivityType; limit?: number },
 ) {
   return prisma.activity.findMany({
-    where: params?.type ? { athleteId, type: params.type } : { athleteId },
+    where: { athleteId, ...visibleActivityWhere, ...(params?.type ? { type: params.type } : {}) },
     include: activityInclude,
     orderBy: { date: 'desc' },
     take: params?.limit,
@@ -63,7 +64,7 @@ export async function getActivitiesList(
     sinceDays?: number;
   },
 ) {
-  const where: Prisma.ActivityWhereInput = { athleteId };
+  const where: Prisma.ActivityWhereInput = { athleteId, ...visibleActivityWhere };
   if (params?.type) {
     where.type = params.type;
   }
@@ -83,7 +84,7 @@ export async function getActivitiesForCoach(
   athleteId: string,
   params?: { limit?: number; sinceDays?: number },
 ) {
-  const where: Prisma.ActivityWhereInput = { athleteId };
+  const where: Prisma.ActivityWhereInput = { athleteId, ...visibleActivityWhere };
   if (params?.sinceDays) {
     where.date = { gte: startOfDay(addDays(new Date(), -params.sinceDays)) };
   }
@@ -104,7 +105,7 @@ export async function getActivitiesForCoach(
  */
 export async function getActivitiesForPmc(athleteId: string) {
   return prisma.activity.findMany({
-    where: { athleteId },
+    where: { athleteId, ...visibleActivityWhere },
     select: activityPmcSelect,
     orderBy: { date: 'asc' },
   });
@@ -116,7 +117,7 @@ export async function getActivitiesForPmc(athleteId: string) {
  */
 export async function getActivitiesForSnapshotPhase(athleteId: string, limit = 40) {
   return prisma.activity.findMany({
-    where: { athleteId },
+    where: { athleteId, ...visibleActivityWhere },
     select: {
       id: true,
       date: true,
@@ -249,22 +250,36 @@ export async function updateActivity(
   });
 }
 
+/**
+ * Deletes an activity and, for a multisport parent, the legs it absorbed — else `onDelete:
+ * SetNull` would surface them again as duplicates. Same semantics as any deletion: a provider
+ * may re-import them on its next sync, and unification then rebuilds the race.
+ */
 export async function deleteActivity(athleteId: string, id: string) {
   const owned = await prisma.activity.findFirst({ where: { id, athleteId }, select: { id: true } });
   if (!owned) {
     return null;
   }
+  const legs = await prisma.activity.findMany({
+    where: { athleteId, mergedIntoId: id },
+    select: { id: true },
+  });
+  const mergedLegIds = legs.map((leg) => leg.id);
 
   // Prisma onDelete:SetNull only clears activityId — completed/analysis stay.
   // Reuse the full unlink path so the planned session returns to "planned".
-  const linked = await prisma.plannedSession.findFirst({
-    where: { activityId: id, athleteId },
+  const linked = await prisma.plannedSession.findMany({
+    where: { activityId: { in: [id, ...mergedLegIds] }, athleteId },
     select: { id: true },
   });
-  if (linked) {
-    await linkPlannedSessionActivity(athleteId, linked.id, null);
+  for (const session of linked) {
+    await linkPlannedSessionActivity(athleteId, session.id, null);
   }
-  return prisma.activity.delete({ where: { id } });
+  if (mergedLegIds.length > 0) {
+    await prisma.activity.deleteMany({ where: { athleteId, id: { in: mergedLegIds } } });
+  }
+  const deleted = await prisma.activity.delete({ where: { id } });
+  return { ...deleted, mergedLegIds };
 }
 
 export async function getDashboardData(athleteId: string) {
@@ -273,12 +288,12 @@ export async function getDashboardData(athleteId: string) {
 
   const [todayActivities, recentActivities, todayHealth, primaryGoal] = await Promise.all([
     prisma.activity.findMany({
-      where: { athleteId, date: { gte: today, lt: addDays(today, 1) } },
+      where: { athleteId, ...visibleActivityWhere, date: { gte: today, lt: addDays(today, 1) } },
       include: activityInclude,
       orderBy: { date: 'asc' },
     }),
     prisma.activity.findMany({
-      where: { athleteId, date: { gte: weekAgo } },
+      where: { athleteId, ...visibleActivityWhere, date: { gte: weekAgo } },
       select: { load: true, date: true },
       orderBy: { date: 'desc' },
     }),
@@ -306,7 +321,7 @@ export async function getDashboardData(athleteId: string) {
 
 export async function getAnalyticsActivities(athleteId: string) {
   return prisma.activity.findMany({
-    where: { athleteId },
+    where: { athleteId, ...visibleActivityWhere },
     select: {
       date: true,
       type: true,
@@ -327,6 +342,15 @@ export async function getGoals(athleteId: string) {
 
 export async function getGoalById(athleteId: string, id: string) {
   return prisma.goal.findFirst({ where: { id, athleteId } });
+}
+
+/** Visible activities done for a goal, latest first (race results). */
+export async function getGoalActivities(athleteId: string, goalId: string) {
+  return prisma.activity.findMany({
+    where: { athleteId, goalId, ...visibleActivityWhere },
+    select: { id: true, title: true, type: true, date: true, duration: true },
+    orderBy: { date: 'desc' },
+  });
 }
 
 export async function createGoal(athleteId: string, data: Prisma.GoalUncheckedCreateInput) {
@@ -380,7 +404,11 @@ export async function getHealthEntries(athleteId: string, days = 90, refDate: Da
 /** Start instants only — callers map them to training days. */
 export async function getActivityDatesInRange(athleteId: string, from: Date, to: Date) {
   const rows = await prisma.activity.findMany({
-    where: { athleteId, date: { gte: startOfDay(from), lte: endOfDay(to) } },
+    where: {
+      athleteId,
+      ...visibleActivityWhere,
+      date: { gte: startOfDay(from), lte: endOfDay(to) },
+    },
     select: { date: true },
   });
   return rows.map((row) => row.date);

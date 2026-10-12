@@ -14,6 +14,8 @@ export interface MultisportLeg {
   garminActivityId: string | null;
   /** 1 ou 2 pour les transitions T1 / T2 */
   transitionIndex: number | null;
+  /** Hidden leg row a Strava/Apple-built triathlon was assembled from; absent on Garmin legs and old JSON. */
+  sourceActivityId?: string | null;
 }
 
 export function isMultisportLegArray(value: unknown): value is MultisportLeg[] {

@@ -28,6 +28,7 @@ import { buildTodayHeroReliability } from '@sharpit/server/lib/science/reliabili
 import { buildTodayDaySummary } from '@sharpit/app/lib/today/dashboard/today-day-summary';
 import { findSessionPurposesByPlannedSessionIds } from '@sharpit/server/lib/decision-memory/repository';
 import { prisma } from '@sharpit/db/client';
+import { selectRaceMoment } from '@sharpit/app/lib/goals/race-moment';
 import { addDays } from 'date-fns';
 import {
   findSessionLinkSuggestions,
@@ -899,7 +900,10 @@ function assembleTodayViewModel(
  * No I/O — callers (routes) ensure morning recalibration before loading.
  */
 export function buildTodayViewModelFromInputs(inputs: TodayPresentationInputs): TodayViewModel {
-  return assembleTodayViewModel(prepareTodayViewModelContext(inputs));
+  return {
+    ...assembleTodayViewModel(prepareTodayViewModelContext(inputs)),
+    race: selectRaceMoment(inputs.goals, inputs.activities, inputs.trainingDayId),
+  };
 }
 
 export type BuildTodayPresentationOptions = {

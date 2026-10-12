@@ -9,6 +9,7 @@ import type {
   PresentationSection,
 } from '@sharpit/app/presentation/types';
 import type { BrickLegSummary } from '@sharpit/app/lib/planned-session/brick/brick-sessions';
+import type { RaceMoment } from '@sharpit/app/lib/goals/race-moment';
 
 export type TodayViewModel = {
   /** Indique si la page peut être rendue (données suffisantes). */
@@ -332,6 +333,8 @@ export type TodayViewModel = {
 
   hierarchy: PresentationHierarchy;
   sections: PresentationSection[];
+  /** Race day, or the race result for a few days after; null otherwise. Optional for older fixtures. */
+  race?: RaceMoment | null;
 };
 
 // Alias de nommage demandé (Presentation Layer naming).

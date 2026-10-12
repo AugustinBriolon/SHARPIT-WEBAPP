@@ -35,7 +35,7 @@ type SessionLike = {
   completed?: boolean | null;
 };
 
-function activityStartMs(activity: ActivityLike): number {
+function activityStartMs(activity: Pick<ActivityLike, 'date'>): number {
   return new Date(activity.date).getTime();
 }
 
@@ -163,13 +163,16 @@ function orderedBrickLegs(legs: SessionLike[]): SessionLike[] {
   return [...legs].sort((a, b) => (a.brickOrder ?? 0) - (b.brickOrder ?? 0));
 }
 
-function brickGapSec(prev: ActivityLike, curr: ActivityLike): number {
+export function brickGapSec(
+  prev: Pick<ActivityLike, 'date' | 'duration'>,
+  curr: Pick<ActivityLike, 'date'>,
+): number {
   return Math.round(
     (activityStartMs(curr) - (activityStartMs(prev) + (prev.duration ?? 0) * 1000)) / 1000,
   );
 }
 
-function isValidBrickGap(gapSec: number): boolean {
+export function isValidBrickGap(gapSec: number): boolean {
   return gapSec >= 30 && gapSec <= 20 * 60;
 }
 

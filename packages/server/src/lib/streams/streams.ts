@@ -395,8 +395,11 @@ async function buildMultisportLegStream(
   profile: Awaited<ReturnType<typeof getAthleteProfile>>,
 ): Promise<MultisportLegStream | null> {
   const type = legKindToActivityType(leg.kind);
-  if (!type || !leg.garminActivityId) {
+  if (!type) {
     return null;
+  }
+  if (!leg.garminActivityId) {
+    return legRowStream(athleteId, leg, type);
   }
 
   const raw = await fetchGarminLegRaw(athleteId, leg.garminActivityId);
@@ -409,6 +412,19 @@ async function buildMultisportLegStream(
     type,
     stream: buildLegStreamPayload(raw, type, leg.durationSec, profile),
   };
+}
+
+/** A leg assembled from its own row (Strava / Apple Health): that row's streams. */
+async function legRowStream(
+  athleteId: string,
+  leg: MultisportLeg,
+  type: ActivityType,
+): Promise<MultisportLegStream | null> {
+  if (!leg.sourceActivityId) {
+    return null;
+  }
+  const stream = await getActivityStreams(athleteId, leg.sourceActivityId);
+  return stream?.available ? { leg, type, stream } : null;
 }
 
 /** Streams Garmin par jambe sportive d'un triathlon (natation, vélo, course). */

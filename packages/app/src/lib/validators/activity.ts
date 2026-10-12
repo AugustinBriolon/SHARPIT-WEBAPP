@@ -88,6 +88,8 @@ export const createActivitySchema = baseActivitySchema.extend({
 export const updateActivitySchema = createActivitySchema.partial().extend({
   type: activityTypeSchema.optional(),
   date: z.coerce.date().optional(),
+  /** Link to the goal the activity was done for; null unlinks. Ownership is checked by the route. */
+  goalId: z.string().min(1).max(64).nullable().optional(),
 });
 
 export type CreateActivityInput = z.infer<typeof createActivitySchema>;

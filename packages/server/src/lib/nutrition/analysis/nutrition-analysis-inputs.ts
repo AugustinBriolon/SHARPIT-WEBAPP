@@ -10,6 +10,7 @@ import { getAthleteProfile } from '@sharpit/server/lib/queries';
 import { prisma } from '@sharpit/db/client';
 import { pickNutritionRow } from '@sharpit/app/lib/nutrition/food-log/nutrition-source';
 import type { NutritionAnalysisInput } from './nutrition-analysis-facts';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 /** Nutrition days are stored at UTC midnight. */
 export function nutritionDayDate(trainingDayId: string): Date {
@@ -27,7 +28,11 @@ async function loadNutritionRow(athleteId: string, trainingDayId: string) {
 async function loadDaySessions(athleteId: string, trainingDayId: string) {
   const day = parseISO(trainingDayId);
   const rows = await prisma.activity.findMany({
-    where: { athleteId, date: { gte: startOfDay(day), lte: endOfDay(day) } },
+    where: {
+      athleteId,
+      ...visibleActivityWhere,
+      date: { gte: startOfDay(day), lte: endOfDay(day) },
+    },
     select: { type: true, duration: true, load: true },
     orderBy: { date: 'asc' },
   });

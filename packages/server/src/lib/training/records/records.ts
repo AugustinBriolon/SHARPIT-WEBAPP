@@ -52,6 +52,7 @@ import type {
   RunBestCategory,
   RunEffort,
 } from '@sharpit/app/lib/training/records/record-types';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 // ---------------------------------------------------------------------------
 // Formatage
@@ -691,6 +692,8 @@ const RANKED_RECORDS_METRIC_SELECT = {
 } as const;
 
 /** Calcule l'intégralité des records (top 5) — sans écrire en base. */
+// Records deliberately include absorbed multisport legs (mergedIntoId set): a hidden Strava
+// swim/bike/run leg is the only per-sport row of that race, never a duplicate of a visible one.
 export async function computeRankedRecords(athleteId: string): Promise<RecordsPayload> {
   const [metricActivities, streamActivities, totalActivities, streamsAnalyzed] = await Promise.all([
     prisma.activity.findMany({
@@ -711,7 +714,7 @@ export async function computeRankedRecords(athleteId: string): Promise<RecordsPa
         stream: { select: { data: true } },
       },
     }),
-    prisma.activity.count({ where: { athleteId } }),
+    prisma.activity.count({ where: { athleteId, ...visibleActivityWhere } }),
     prisma.activityStream.count({ where: { available: true, activity: { athleteId } } }),
   ]);
 
@@ -1444,7 +1447,7 @@ export async function getStoredRecords(athleteId: string): Promise<RecordsPayloa
     orderBy: [{ category: 'asc' }, { rank: 'asc' }],
   });
   const [totalActivities, streamsAnalyzed] = await Promise.all([
-    prisma.activity.count({ where: { athleteId } }),
+    prisma.activity.count({ where: { athleteId, ...visibleActivityWhere } }),
     prisma.activityStream.count({ where: { available: true, activity: { athleteId } } }),
   ]);
 

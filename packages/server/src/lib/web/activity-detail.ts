@@ -37,6 +37,7 @@ export async function loadActivityDetail(
   ]);
   return {
     activity,
+    goal: activity.goal,
     multisportLegs,
     goalValidations,
     performanceRecords,

@@ -95,11 +95,16 @@ export function buildActivityCreateData(input: CreateActivityInput) {
 }
 
 export function buildActivityUpdateData(input: UpdateActivityInput) {
-  const { runMetrics, bikeMetrics, swimMetrics, hikeMetrics, strengthSets, type, ...base } = input;
+  const { runMetrics, bikeMetrics, swimMetrics, hikeMetrics, strengthSets, type, goalId, ...base } =
+    input;
 
   const data: Record<string, unknown> = { ...base };
   if (type) {
     data.type = type;
+  }
+  // Relation form: Prisma rejects a raw foreign key next to nested metric writes.
+  if (goalId !== undefined) {
+    data.goal = goalId ? { connect: { id: goalId } } : { disconnect: true };
   }
 
   applyMetricUpdates(data, { runMetrics, bikeMetrics, swimMetrics, hikeMetrics });

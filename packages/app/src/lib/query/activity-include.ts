@@ -16,6 +16,9 @@ export const plannedSessionSummarySelect = {
   brickOrder: true,
 } satisfies Prisma.PlannedSessionSelect;
 
+/** Rows absorbed into a multisport parent (mergedIntoId set) stay in DB but never surface in reads. */
+export const visibleActivityWhere = { mergedIntoId: null } satisfies Prisma.ActivityWhereInput;
+
 export const activityInclude = {
   runMetrics: true,
   bikeMetrics: true,
@@ -26,9 +29,19 @@ export const activityInclude = {
 };
 
 /** Detail-only relation: GPS streams are intentionally excluded from list reads. */
+/** The goal an activity was done for, as its detail shows it (race header). */
+export const activityGoalSelect = {
+  id: true,
+  title: true,
+  raceFormat: true,
+  targetPerformance: true,
+  targetDate: true,
+} satisfies Prisma.GoalSelect;
+
 export const activityDetailInclude = {
   ...activityInclude,
   stream: true,
+  goal: { select: activityGoalSelect },
 };
 
 /**
@@ -58,6 +71,7 @@ export const activityListSelect = {
   strengthSets: { select: { exercise: true }, orderBy: { order: 'asc' as const } },
   plannedSession: { select: plannedSessionSummarySelect },
   multisportLegs: true,
+  goalId: true,
 } satisfies Prisma.ActivitySelect;
 
 /**

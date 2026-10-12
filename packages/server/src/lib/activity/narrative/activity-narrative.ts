@@ -21,6 +21,7 @@ import {
   COACH_COPY_DASH_RULE,
   sanitizeCoachCopy,
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 /** Parallel LLM narratives after multi-activity import — keep low to avoid gateway bursts. */
 const NARRATIVE_CONCURRENCY = 3;
@@ -197,6 +198,7 @@ export async function backfillActivityNarratives(athleteId: string): Promise<{
   const activities = await prisma.activity.findMany({
     where: {
       athleteId,
+      ...visibleActivityWhere,
       narrativeAnalyzedAt: null,
       date: { gte: NARRATIVE_ANALYSIS_SINCE },
       type: { in: [ActivityType.RUN, ActivityType.BIKE, ActivityType.SWIM] },

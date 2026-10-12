@@ -9,6 +9,7 @@ import {
   DEFAULT_TRAINING_DAY_START_HOUR,
   DEFAULT_TRAINING_DAY_TIMEZONE,
 } from '@sharpit/core/training/training-day';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 function isValidTrainingDayId(trainingDayId: string | null): trainingDayId is string {
   return Boolean(trainingDayId && /^\d{4}-\d{2}-\d{2}$/.test(trainingDayId));
@@ -52,6 +53,7 @@ async function loadDailyStrainData(athleteId: string, trainingDayId: string) {
     prisma.activity.findMany({
       where: {
         athleteId,
+        ...visibleActivityWhere,
         date: approximateTrainingDayUtcRange(trainingDayId),
       },
       include: {

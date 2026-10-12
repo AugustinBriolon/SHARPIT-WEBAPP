@@ -8,6 +8,7 @@ import {
 import { fillMissingActivityUpdate } from '@sharpit/server/lib/activity/list/activity-fill-missing';
 import { loadActivityFillSnapshot } from '@sharpit/server/lib/activity/list/load-activity-fill-snapshot';
 import { prisma } from '@sharpit/db/client';
+import { unifyMultisportAfterSync } from '@sharpit/server/lib/activity/multisport/unify-multisport';
 import { syncSinceFromLastSync } from '@sharpit/server/lib/integrations/shared/sync-since';
 import { resolveOAuthAccessToken } from '@sharpit/server/lib/integrations/shared/oauth-access-token';
 import {
@@ -350,7 +351,8 @@ async function mergeStravaIntoMatch(input: MergeStravaMatchInput): Promise<Strav
     } else if (!match.garminId) {
       // Patch empty and no Core ingest needed beyond claim — still count as merged when we ingest.
     }
-    if (!match.garminId) {
+    // An absorbed leg's load is counted by its parent (unification dropped its observation).
+    if (!match.garminId && !match.mergedIntoId) {
       // AH (and any manual SESSION) wrote Core without a provider id — remove before Strava.
       await removeManualActivityObservations(athleteId, match.id);
       await ingestStravaActivity(athleteId, strava);
@@ -549,6 +551,7 @@ export async function syncStravaActivities(athleteId: string): Promise<SyncResul
     where: { athleteId },
     data: { lastSyncAt: new Date() },
   });
+  await unifyMultisportAfterSync(athleteId, counters.importedActivityIds);
 
   return {
     fetched,

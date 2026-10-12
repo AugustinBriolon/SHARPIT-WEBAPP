@@ -34,6 +34,7 @@ import type {
   TodayState,
 } from '@sharpit/app/athlete-state/today-state';
 import { prisma } from '@sharpit/db/client';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 function readStateComputedAt(state: unknown): Date | null {
   if (!state || typeof state !== 'object') {
@@ -288,6 +289,8 @@ async function fetchDailyStrainDependencies(athleteId: string, trainingDayId: st
     featureEngine.getDayFeatures(athleteId, trainingDayId),
     prisma.activity.findMany({
       where: {
+        athleteId,
+        ...visibleActivityWhere,
         date: approximateTrainingDayUtcRange(trainingDayId),
       },
       include: {

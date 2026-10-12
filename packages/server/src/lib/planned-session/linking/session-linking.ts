@@ -8,6 +8,7 @@ import {
 } from '@sharpit/server/lib/queries/planned-sessions';
 import { prisma } from '@sharpit/db/client';
 import { withAnalysisRun } from '@sharpit/server/lib/analysis/analysis-run-store';
+import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 
 export { scorePlannedActivityMatch } from '@sharpit/app/lib/planned-session/linking/session-link-match-score';
 
@@ -91,7 +92,12 @@ export async function autoLinkActivities(
 export async function autoLinkActivitiesOfDay(athleteId: string, day: Date): Promise<string[]> {
   const start = startOfDay(day);
   const unlinked = await prisma.activity.findMany({
-    where: { athleteId, date: { gte: start, lt: addDays(start, 1) }, plannedSession: { is: null } },
+    where: {
+      athleteId,
+      ...visibleActivityWhere,
+      date: { gte: start, lt: addDays(start, 1) },
+      plannedSession: { is: null },
+    },
     select: { id: true },
   });
   if (unlinked.length === 0) {
