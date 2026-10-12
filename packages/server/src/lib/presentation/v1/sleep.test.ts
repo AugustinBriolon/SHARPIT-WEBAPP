@@ -69,6 +69,14 @@ describe('projectV1Sleep', () => {
     expect(JSON.stringify(payload)).not.toContain('var(--');
   });
 
+  // Callers: vitest. API: projectV1Sleep windDownStartMin. User: "fix all".
+  it('places wind-down 45 minutes before the recommended bedtime', () => {
+    const payload = projectV1Sleep(source(), '2026-09-21');
+    // 1350 − 45 = 1305 (21:45).
+    expect(payload.windDownStartMin).toBe(1305);
+    expect(payload.recommendedBedtimeMin).toBe(1350);
+  });
+
   it('reads a pending night as pending, whatever the score says', () => {
     const payload = projectV1Sleep(
       source({ nightStatus: 'pending', sleepScore: null }),

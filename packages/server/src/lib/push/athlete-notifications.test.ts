@@ -22,18 +22,24 @@ vi.mock('@sharpit/server/lib/planned-session/adherence/plan-adherence-service', 
   loadWeekProgress,
 }));
 
+vi.mock('@sharpit/server/lib/presentation/v1/day-scores', () => ({
+  loadV1DayScores: vi.fn(),
+}));
+
 const {
   activityPath,
   CATCH_UP_PATH,
   notifyMissedSessions,
   notifySessionsDone,
   notifySourcesToReconnect,
+  notifyTargetStrainReached,
   notifyWeeklyReviewReady,
   reconnectAlert,
   reconnectableSources,
   SOURCES_PATH,
   WEEKLY_REVIEW_PATH,
 } = await import('./athlete-notifications');
+const { loadV1DayScores } = await import('@sharpit/server/lib/presentation/v1/day-scores');
 
 const profile = (prefs: object | null = null) => ({ notificationPrefs: prefs, deletedAt: null });
 
@@ -219,6 +225,69 @@ describe('notifyMissedSessions', () => {
     findUnique.mockResolvedValue(profile({ version: 1, missedSession: false }));
     await notifyMissedSessions('a1', '2026-10-02');
     expect(findMany).not.toHaveBeenCalled();
+  });
+});
+
+describe('notifyTargetStrainReached', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.spyOn(console, 'info').mockImplementation(() => {});
+    findUnique.mockResolvedValue(profile());
+    set.mockResolvedValue('OK');
+    vi.mocked(loadV1DayScores).mockReset();
+    sendPushToAthlete.mockResolvedValue({ sent: 1, failed: 0, deactivated: 0 });
+  });
+
+  it('pushes once when today’s strain is within the target band', async () => {
+    vi.mocked(loadV1DayScores).mockResolvedValue({
+      stress: null,
+      energyBank: null,
+      targetBand: {
+        algorithmVersion: 'target-strain-v1',
+        low: 6,
+        high: 11,
+        status: 'within',
+      },
+      strainPerformance: null,
+    });
+
+    await notifyTargetStrainReached('a1', '2026-10-12');
+
+    expect(sendPushToAthlete).toHaveBeenCalledWith(
+      'a1',
+      expect.objectContaining({
+        url: '/today',
+        trainingDayId: '2026-10-12',
+        aps: expect.objectContaining({
+          category: 'TARGET_STRAIN',
+          alert: expect.objectContaining({ title: 'Cible du jour atteinte' }),
+        }),
+      }),
+    );
+  });
+
+  it('stays quiet while strain is still below the band', async () => {
+    vi.mocked(loadV1DayScores).mockResolvedValue({
+      stress: null,
+      energyBank: null,
+      targetBand: {
+        algorithmVersion: 'target-strain-v1',
+        low: 6,
+        high: 11,
+        status: 'below',
+      },
+      strainPerformance: null,
+    });
+
+    await notifyTargetStrainReached('a1', '2026-10-12');
+    expect(sendPushToAthlete).not.toHaveBeenCalled();
+  });
+
+  it('respects the targetStrain opt-out', async () => {
+    findUnique.mockResolvedValue(profile({ version: 1, targetStrain: false }));
+    await notifyTargetStrainReached('a1', '2026-10-12');
+    expect(loadV1DayScores).not.toHaveBeenCalled();
+    expect(sendPushToAthlete).not.toHaveBeenCalled();
   });
 });
 

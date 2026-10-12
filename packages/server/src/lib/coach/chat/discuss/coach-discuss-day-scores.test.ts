@@ -22,6 +22,8 @@ const SCORES: V1DayScores = {
     high: 12,
     status: 'within',
   },
+  // Callers: formatDayScores*. API: V1DayScores. User: push + testflight.
+  strainPerformance: null,
 };
 
 describe('formatDayScoresPushBits', () => {
@@ -35,13 +37,19 @@ describe('formatDayScoresPushBits', () => {
         stress: null,
         energyBank: null,
         targetBand: SCORES.targetBand,
+        strainPerformance: null,
       }),
     ).toBe('Cible 8–12');
   });
 
   it('returns null when nothing is available', () => {
     expect(
-      formatDayScoresPushBits({ stress: null, energyBank: null, targetBand: null }),
+      formatDayScoresPushBits({
+        stress: null,
+        energyBank: null,
+        targetBand: null,
+        strainPerformance: null,
+      }),
     ).toBeNull();
   });
 });

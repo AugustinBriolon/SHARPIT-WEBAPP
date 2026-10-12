@@ -32,7 +32,10 @@ export async function GET(request: NextRequest) {
       }),
     ]);
     return NextResponse.json(
-      projectV1Effort(viewModel, trainingDayId, { targetBand: dayScores.targetBand }),
+      projectV1Effort(viewModel, trainingDayId, {
+        targetBand: dayScores.targetBand,
+        strainPerformance: 'strainPerformance' in dayScores ? dayScores.strainPerformance : null,
+      }),
     );
   } catch (error) {
     console.error('[api/v1/effort]', error);

@@ -76,6 +76,7 @@ describe('morning-push', () => {
           series: [],
         },
         targetBand: null,
+        strainPerformance: null,
       });
       expect(payload.body).toContain('Réserve 68');
       expect(payload.body).toContain('Stress 30');

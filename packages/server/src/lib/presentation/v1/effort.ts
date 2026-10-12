@@ -2,9 +2,13 @@ import { format, parseISO, subDays } from 'date-fns';
 import type { EffortViewModel } from '@sharpit/app/presentation/effort-view-model';
 import { mapFatigueDimensionIntensity } from '@sharpit/app/lib/today/dashboard/today-mapping';
 import { toneFromClass, type V1RecoveryTone } from '@sharpit/server/lib/presentation/v1/recovery';
-import type { V1TodayTargetBand } from '@sharpit/server/lib/presentation/v1/day-scores';
-// Callers: handlers/v1/effort/handler.ts, effort.test.ts. API: GET /api/v1/effort (+targetBand).
-// Schema: none. User: "Implement the plan as specified… Don't stop until you have completed all the to-dos."
+import type {
+  V1StrainPerformance,
+  V1TodayTargetBand,
+} from '@sharpit/server/lib/presentation/v1/day-scores';
+// Callers: handlers/v1/effort/handler.ts, effort.test.ts.
+// API: GET /api/v1/effort (+targetBand, cardioLoad, active/passive strain, strainPerformance).
+// Schema: none. User: "fix all" — go-all Bevel parity (passive strain, cardio vs strain, strain perf).
 
 export type V1EffortSource = Omit<
   EffortViewModel,
@@ -56,6 +60,17 @@ export type V1EffortResponse = {
   completenessLabel: string;
   /** Today's target strain band (ADR-079); null when inputs are insufficient. */
   targetBand: V1TodayTargetBand | null;
+  /**
+   * Cardio Load from the PMC window (CTL/ATL/TSB) — chronic fitness vocabulary,
+   * distinct from the day's Strain score (0–21).
+   */
+  cardioLoad: { ctl: number; atl: number; tsb: number; label: string } | null;
+  /** Structured + cardiovascular contributions (sessions / HR stress). */
+  activeStrain: { score: number | null; label: string } | null;
+  /** Non-workout movement contribution (steps / NEAT) — SharpIt “effort passif”. */
+  passiveStrain: { score: number | null; label: string } | null;
+  /** Rolling Strain Performance vs target band history. */
+  strainPerformance: V1StrainPerformance | null;
 };
 
 const DIMENSIONS: ReadonlyArray<{ key: V1EffortDimensionKey; label: string; description: string }> =
@@ -111,12 +126,71 @@ function projectPmc(
   }));
 }
 
+function contributorScore(
+  composition: EffortViewModel['strainComposition'],
+  key: 'training' | 'cardiovascular' | 'movement',
+): number | null {
+  const row = composition.contributors.find((contributor) => contributor.key === key);
+  if (!row?.available) {
+    return null;
+  }
+  return row.score ?? null;
+}
+
+function sumScores(...scores: Array<number | null>): number | null {
+  const known = scores.filter((score): score is number => score !== null);
+  if (known.length === 0) {
+    return null;
+  }
+  return Math.round(known.reduce((sum, score) => sum + score, 0) * 10) / 10;
+}
+
+function projectCardioLoad(pmc: V1EffortResponse['pmc']): V1EffortResponse['cardioLoad'] {
+  const last = pmc.at(-1);
+  if (!last) {
+    return null;
+  }
+  return { ctl: last.ctl, atl: last.atl, tsb: last.tsb, label: 'Cardio Load' };
+}
+
+function projectActiveStrain(
+  composition: EffortViewModel['strainComposition'],
+): V1EffortResponse['activeStrain'] {
+  if (!composition.available) {
+    return null;
+  }
+  return {
+    score: sumScores(
+      contributorScore(composition, 'training'),
+      contributorScore(composition, 'cardiovascular'),
+    ),
+    label: 'Effort actif',
+  };
+}
+
+function projectPassiveStrain(
+  composition: EffortViewModel['strainComposition'],
+): V1EffortResponse['passiveStrain'] {
+  if (!composition.available) {
+    return null;
+  }
+  const score = contributorScore(composition, 'movement');
+  if (score === null) {
+    return { score: null, label: 'Effort passif' };
+  }
+  return { score, label: 'Effort passif' };
+}
+
 /** Canonical Effort payload for native clients — a projection, no new domain logic. */
 export function projectV1Effort(
   source: V1EffortSource,
   trainingDayId: string,
-  extras: { targetBand?: V1TodayTargetBand | null } = {},
+  extras: {
+    targetBand?: V1TodayTargetBand | null;
+    strainPerformance?: V1StrainPerformance | null;
+  } = {},
 ): V1EffortResponse {
+  const pmc = projectPmc(source.pmcSeries, trainingDayId);
   return {
     apiVersion: 1,
     trainingDayId,
@@ -155,10 +229,14 @@ export function projectV1Effort(
       ? { label: source.overreaching.label, tone: toneFromClass(source.overreaching.colorClass) }
       : null,
     composition: source.strainComposition,
-    pmc: projectPmc(source.pmcSeries, trainingDayId),
+    pmc,
     weeklyTss: source.weeklyTss.map((week) => ({ label: week.week, tss: week.tss })),
     confidencePct: source.emptyState ? null : source.confidencePct,
     completenessLabel: source.completenessLabel,
     targetBand: extras.targetBand ?? null,
+    cardioLoad: projectCardioLoad(pmc),
+    activeStrain: projectActiveStrain(source.strainComposition),
+    passiveStrain: projectPassiveStrain(source.strainComposition),
+    strainPerformance: extras.strainPerformance ?? null,
   };
 }

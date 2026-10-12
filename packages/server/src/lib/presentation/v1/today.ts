@@ -11,9 +11,11 @@ import type {
   V1TodayStress,
   V1TodayTargetBand,
 } from '@sharpit/server/lib/presentation/v1/day-scores';
+import type { V1DayTimelineEvent } from '@sharpit/server/lib/presentation/v1/day-timeline';
 
 export type V1TodayPackTier = 'FULL' | 'PARTIAL' | 'LOW' | 'INSUFFICIENT';
 export type { V1TodayEnergyBank, V1TodayStress, V1TodayTargetBand };
+export type { V1DayTimelineEvent };
 
 export type V1TodaySource = {
   hasContent: boolean;
@@ -171,6 +173,8 @@ export type V1TodayResponse = {
   energyBank?: V1TodayEnergyBank | null;
   /** Today's target strain band 0–21 (ADR-079). */
   targetBand?: V1TodayTargetBand | null;
+  /** Chronological day events (sleep, sessions, meals, stress, check-ins). */
+  timeline?: V1DayTimelineEvent[];
 };
 
 export type V1TodayRace = RaceMoment;
@@ -346,6 +350,8 @@ export type V1TodayProjectionInput = {
   stress?: V1TodayStress | null;
   energyBank?: V1TodayEnergyBank | null;
   targetBand?: V1TodayTargetBand | null;
+  /** Day timeline — computed outside the Today view model. */
+  timeline?: V1DayTimelineEvent[];
 };
 
 function stressCaption(value: number): string {
@@ -398,6 +404,7 @@ export function projectV1Today(
     stress: input.stress ?? null,
     energyBank: input.energyBank ?? null,
     targetBand: input.targetBand ?? null,
+    timeline: input.timeline ?? [],
   };
 }
 

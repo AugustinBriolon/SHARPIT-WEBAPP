@@ -16,6 +16,8 @@ const SCORES: V1DayScores = {
     series: [],
   },
   targetBand: { algorithmVersion: 'v1', low: 7, high: 11, status: 'within' },
+  // Callers: formatExplain*. API: V1DayScores. User: push + testflight.
+  strainPerformance: null,
 };
 
 describe('formatExplainDayScoresMarkdown', () => {

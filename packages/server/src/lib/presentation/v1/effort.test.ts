@@ -87,6 +87,20 @@ describe('projectV1Effort', () => {
     expect(response.weeklyTss.at(-1)).toEqual({ label: 'Cette sem.', tss: 210 });
   });
 
+  // Callers: vitest. API: projectV1Effort cardioLoad/active/passive. User: "fix all".
+  it('surfaces Cardio Load from the last PMC point and empty active/passive splits', () => {
+    const response = projectV1Effort(source(), '2026-10-04');
+    expect(response.cardioLoad).toEqual({
+      ctl: 51,
+      atl: 64,
+      tsb: -13,
+      label: 'Cardio Load',
+    });
+    expect(response.activeStrain).toEqual({ score: null, label: 'Effort actif' });
+    expect(response.passiveStrain).toEqual({ score: null, label: 'Effort passif' });
+    expect(response.strainPerformance).toBeNull();
+  });
+
   it('turns the web classes into tones', () => {
     const response = projectV1Effort(source(), '2026-10-04');
     expect(response.strain.tone).toBe('elevated');

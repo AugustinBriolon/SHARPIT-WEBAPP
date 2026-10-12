@@ -44,12 +44,12 @@ const CONTRIBUTOR_META: Record<
   cardiovascular: {
     label: 'Cardiovasculaire',
     emptyDescription: 'Stress et Body Battery non disponibles',
-    availableDescription: 'Stress et Body Battery Garmin',
+    availableDescription: 'Stress et Body Battery — charge cardio du jour',
   },
   movement: {
-    label: 'Mouvement',
+    label: 'Effort passif',
     emptyDescription: 'Pas quotidiens non disponibles',
-    availableDescription: 'Pas quotidiens',
+    availableDescription: 'Mouvement hors séance (pas / NEAT)',
   },
 };
 

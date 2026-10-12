@@ -22,6 +22,12 @@ export type NotificationPrefs = {
   syncAlerts: boolean;
   /** « Cible du jour atteinte » when today’s strain enters the target band (ADR-079). */
   targetStrain: boolean;
+  /**
+   * Local check-in reminders (hydratation / humeur / caféine) scheduled on-device.
+   * Callers: SettingsPages, DayCheckInReminders. API: athlete-profile notificationPrefs.
+   * User: "fix all" — go-all P2 scheduled check-ins.
+   */
+  dayCheckIns: boolean;
 };
 
 export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
@@ -34,6 +40,7 @@ export const DEFAULT_NOTIFICATION_PREFS: NotificationPrefs = {
   missedSession: true,
   syncAlerts: true,
   targetStrain: true,
+  dayCheckIns: true,
 };
 
 const morningTime = z
@@ -53,6 +60,7 @@ export const notificationPrefsPatchSchema = z
     missedSession: z.boolean(),
     syncAlerts: z.boolean(),
     targetStrain: z.boolean(),
+    dayCheckIns: z.boolean(),
   })
   .partial()
   .strict();

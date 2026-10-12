@@ -2,14 +2,16 @@
  * SharpIt day scores for V1 Today / Effort (ADR-079): stress surface, Energy Bank, target band.
  * Computed on read from dailyHealth + snapshot — no new persistence table in v1.
  *
- * Callers: handlers/v1/today/handler.ts, handlers/v1/effort/handler.ts (targetBand).
- * API: GET /api/v1/today optional stress|energyBank|targetBand; GET /api/v1/effort targetBand.
+ * Callers: handlers/v1/today/handler.ts, handlers/v1/effort/handler.ts (targetBand / strainPerformance),
+ * morning-push, coach tools, athlete-notifications.
+ * API: GET /api/v1/today optional stress|energyBank|targetBand|timeline; GET /api/v1/effort extras.
  * Schema: no new Prisma tables — reads dailyHealth + athlete snapshot.
- * User: "Implement the plan as specified… Don't stop until you have completed all the to-dos."
+ * User: "fix all" — complete go-all Bevel parity sprints (stress samples → timeline → strain perf + bedtime).
  */
 
 import { format } from 'date-fns';
 import {
+  buildDiurnalStressSamples,
   runEnergyBankModel,
   typicalEnergyBaseline,
   type EnergyBankResult,
@@ -44,10 +46,27 @@ export type V1TodayTargetBand = {
   status: 'below' | 'within' | 'above' | null;
 };
 
+export type V1StrainPerformanceDay = {
+  date: string;
+  strain: number | null;
+  low: number;
+  high: number;
+  status: 'below' | 'within' | 'above' | null;
+};
+
+/** Rolling Strain Performance vs target band (last ~14 scored days). */
+export type V1StrainPerformance = {
+  withinCount: number;
+  dayCount: number;
+  withinPct: number | null;
+  history: V1StrainPerformanceDay[];
+};
+
 export type V1DayScores = {
   stress: V1TodayStress | null;
   energyBank: V1TodayEnergyBank | null;
   targetBand: V1TodayTargetBand | null;
+  strainPerformance: V1StrainPerformance | null;
 };
 
 function trainingDayKey(date: Date): string {
@@ -78,8 +97,128 @@ function projectTargetBand(band: TargetStrainBand): V1TodayTargetBand {
   };
 }
 
+function projectStrainPerformance(history: V1StrainPerformanceDay[]): V1StrainPerformance | null {
+  if (history.length === 0) {
+    return null;
+  }
+  const scored = history.filter((day) => day.status !== null);
+  const withinCount = scored.filter((day) => day.status === 'within').length;
+  return {
+    withinCount,
+    dayCount: scored.length,
+    withinPct: scored.length > 0 ? Math.round((withinCount / scored.length) * 100) : null,
+    history,
+  };
+}
+
+function recentEnergyCloses(
+  healthEntries: Awaited<ReturnType<typeof getHealthEntries>>,
+  trainingDayId: string,
+  sleepDebtMin: number | null,
+): Array<number | null> {
+  const closes: Array<number | null> = [];
+  for (const entry of [...healthEntries].reverse()) {
+    const dayId = trainingDayKey(entry.date);
+    if (dayId >= trainingDayId) {
+      continue;
+    }
+    closes.push(
+      runEnergyBankModel({
+        readinessScore: entry.recoveryScore ?? null,
+        sleepDebtMin,
+        strainScore: null,
+        stress: entry.stress ?? null,
+        previousClose: closes.at(-1) ?? null,
+        hourOfDay: 22,
+        stressSamples: buildDiurnalStressSamples(entry.stress ?? null, 22),
+      }).value,
+    );
+  }
+  return closes;
+}
+
+function projectEnergyBankOrNull(input: {
+  readiness: number | null;
+  sleepDebtMin: number | null;
+  strainScore: number | null;
+  stressValue: number | null;
+  recentCloses: Array<number | null>;
+  hourOfDay: number;
+}): V1TodayEnergyBank | null {
+  const energyResult = runEnergyBankModel({
+    readinessScore: input.readiness,
+    sleepDebtMin: input.sleepDebtMin,
+    strainScore: input.strainScore,
+    stress: input.stressValue,
+    previousClose: input.recentCloses.at(-1) ?? null,
+    hourOfDay: input.hourOfDay,
+    stressSamples: buildDiurnalStressSamples(input.stressValue, input.hourOfDay),
+  });
+  if (!isSet(energyResult.value) && energyResult.series.length === 0) {
+    return null;
+  }
+  return projectEnergyBank({
+    ...energyResult,
+    typicalBaseline: typicalEnergyBaseline(input.recentCloses),
+  });
+}
+
+function strainWindowMaps(
+  dailyStress: Awaited<ReturnType<typeof loadDailyTrainingStressEntries>>,
+  refDate: Date,
+): { stressByDay: Map<string, number>; recentStrainScores: number[] } {
+  const cutoff = new Date(refDate);
+  cutoff.setDate(cutoff.getDate() - 14);
+  const stressByDay = new Map(
+    dailyStress
+      .filter((row) => row.date >= cutoff && row.date <= refDate)
+      .map((row) => [trainingDayKey(row.date), tssToStrainProxy(row.load)] as const),
+  );
+  const recentStrainScores = dailyStress
+    .filter((row) => row.date >= cutoff && row.date < refDate)
+    .map((row) => tssToStrainProxy(row.load));
+  return { stressByDay, recentStrainScores };
+}
+
+function buildStrainPerformanceHistory(input: {
+  trainingDayId: string;
+  strainScore: number | null;
+  readiness: number | null;
+  stressByDay: Map<string, number>;
+  byDay: Map<string, Awaited<ReturnType<typeof getHealthEntries>>[number]>;
+}): V1StrainPerformanceDay[] {
+  const historyDays = [...input.stressByDay.keys()].sort();
+  const history: V1StrainPerformanceDay[] = [];
+  for (let index = 0; index < historyDays.length; index += 1) {
+    const dayId = historyDays[index]!;
+    const dayStrain =
+      dayId === input.trainingDayId ? input.strainScore : (input.stressByDay.get(dayId) ?? null);
+    const prior = historyDays
+      .slice(Math.max(0, index - 14), index)
+      .map((id) => input.stressByDay.get(id) ?? null);
+    const dayHealth = input.byDay.get(dayId);
+    const dayBand = computeTargetStrainBand({
+      readinessScore:
+        dayHealth?.recoveryScore ?? (dayId === input.trainingDayId ? input.readiness : null),
+      recentStrainScores: prior,
+      todayStrainScore: dayStrain,
+    });
+    if (!dayBand) {
+      continue;
+    }
+    history.push({
+      date: dayId,
+      strain: dayStrain,
+      low: dayBand.low,
+      high: dayBand.high,
+      status: dayBand.status,
+    });
+  }
+  return history;
+}
+
 /**
- * Loads stress, Energy Bank and target strain band for a training day.
+ * Loads stress, Energy Bank, target strain band and Strain Performance for a training day.
  * shortcut: double-fetches snapshot vs Today VM; merge loaders when Today is refactored.
  */
 export async function loadV1DayScores(
@@ -98,7 +237,6 @@ export async function loadV1DayScores(
   const todayHealth = byDay.get(trainingDayId);
   const stressValue =
     todayHealth?.stress ?? snapshot.dailyStrain?.trace?.cardiovascularSignals?.stress ?? null;
-
   const stress: V1TodayStress | null = isSet(stressValue)
     ? { value: stressValue, asOf: trainingDayId }
     : null;
@@ -109,52 +247,34 @@ export async function loadV1DayScores(
   const readiness = snapshot.readiness ?? todayHealth?.recoveryScore ?? null;
   const strainScore = snapshot.dailyStrain?.strainScore ?? null;
   const hourOfDay = trainingDayKey(now) === trainingDayId ? now.getHours() : 22;
-
-  const recentCloses: Array<number | null> = [];
-  for (const entry of [...healthEntries].reverse()) {
-    const dayId = trainingDayKey(entry.date);
-    if (dayId >= trainingDayId) {
-      continue;
-    }
-    const close = runEnergyBankModel({
-      readinessScore: entry.recoveryScore ?? null,
-      sleepDebtMin: sleepCoach.debt7Min,
-      strainScore: null,
-      stress: entry.stress ?? null,
-      previousClose: recentCloses.at(-1) ?? null,
-      hourOfDay: 22,
-    }).value;
-    recentCloses.push(close);
-  }
-
-  const energyResult = runEnergyBankModel({
-    readinessScore: readiness,
+  const recentCloses = recentEnergyCloses(healthEntries, trainingDayId, sleepCoach.debt7Min);
+  const energyBank = projectEnergyBankOrNull({
+    readiness,
     sleepDebtMin: sleepCoach.debt7Min,
     strainScore,
-    stress: stressValue,
-    previousClose: recentCloses.at(-1) ?? null,
+    stressValue,
+    recentCloses,
     hourOfDay,
   });
-  const energyBank =
-    isSet(energyResult.value) || energyResult.series.length > 0
-      ? projectEnergyBank({
-          ...energyResult,
-          typicalBaseline: typicalEnergyBaseline(recentCloses),
-        })
-      : null;
-
-  const cutoff = new Date(refDate);
-  cutoff.setDate(cutoff.getDate() - 14);
-  const recentStrainScores = dailyStress
-    .filter((row) => row.date >= cutoff && row.date < refDate)
-    .map((row) => tssToStrainProxy(row.load));
-
+  const { stressByDay, recentStrainScores } = strainWindowMaps(dailyStress, refDate);
   const band = computeTargetStrainBand({
     readinessScore: readiness,
     recentStrainScores,
     todayStrainScore: strainScore,
   });
-  const targetBand = band ? projectTargetBand(band) : null;
 
-  return { stress, energyBank, targetBand };
+  return {
+    stress,
+    energyBank,
+    targetBand: band ? projectTargetBand(band) : null,
+    strainPerformance: projectStrainPerformance(
+      buildStrainPerformanceHistory({
+        trainingDayId,
+        strainScore,
+        readiness,
+        stressByDay,
+        byDay,
+      }),
+    ),
+  };
 }

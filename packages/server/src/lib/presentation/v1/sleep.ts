@@ -62,6 +62,11 @@ export type V1SleepResponse = {
   };
   regularityMin: number | null;
   recommendedBedtimeMin: number | null;
+  /**
+   * Wind-down start: 45 min before recommended bedtime (minutes after midnight).
+   * Callers: SleepView. API: GET /api/v1/sleep. User: "fix all" bedtime/wind-down sprint.
+   */
+  windDownStartMin: number | null;
   recommendedDurationMin: number | null;
   /** Enriched “sleep needed” tonight (ADR-079). Callers: sleep handler, SleepTests. API: GET /api/v1/sleep. */
   sleepNeededMin: number | null;
@@ -139,6 +144,10 @@ export function projectV1Sleep(source: V1SleepSource, trainingDayId: string): V1
     averages: projectAverages(coachView),
     regularityMin: coachView.regularityMin,
     recommendedBedtimeMin: coachView.recommendedBedtimeMin,
+    windDownStartMin:
+      coachView.recommendedBedtimeMin !== null
+        ? (coachView.recommendedBedtimeMin - 45 + 24 * 60) % (24 * 60)
+        : null,
     recommendedDurationMin: coachView.hasData ? coachView.recommendedDurationMin : null,
     sleepNeededMin: coachView.hasData ? coachView.sleepNeededMin : null,
     sleepNeededContributors: coachView.hasData ? coachView.sleepNeededContributors : null,

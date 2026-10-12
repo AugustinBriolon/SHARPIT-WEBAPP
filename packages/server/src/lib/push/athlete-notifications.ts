@@ -292,14 +292,6 @@ export async function notifyTargetStrainReached(
   if (!(await wants(athleteId, 'targetStrain'))) {
     return;
   }
-  if (
-    !(await firstTime(
-      `push:target-strain:${athleteId}:${trainingDayId}`,
-      TARGET_STRAIN_ALERT_TTL_SECONDS,
-    ))
-  ) {
-    return;
-  }
 
   const { loadV1DayScores } = await import('@sharpit/server/lib/presentation/v1/day-scores');
   const scores = await loadV1DayScores(athleteId, trainingDayId).catch((error) => {
@@ -308,6 +300,15 @@ export async function notifyTargetStrainReached(
   });
   const band = scores?.targetBand;
   if (!band || (band.status !== 'within' && band.status !== 'above')) {
+    return;
+  }
+  // Claim only after the band is reached — otherwise a below day would burn the slot.
+  if (
+    !(await firstTime(
+      `push:target-strain:${athleteId}:${trainingDayId}`,
+      TARGET_STRAIN_ALERT_TTL_SECONDS,
+    ))
+  ) {
     return;
   }
 

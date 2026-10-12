@@ -16,6 +16,7 @@ import {
 import { buildTodayPresentationViewModel } from '@sharpit/server/lib/presentation/today/today';
 import { projectV1Consistency } from '@sharpit/server/lib/presentation/v1/consistency';
 import { loadV1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores';
+import { loadV1DayTimeline } from '@sharpit/server/lib/presentation/v1/day-timeline';
 import { projectV1TodayFromViewModel } from '@sharpit/server/lib/presentation/v1/today';
 
 function isValidTrainingDayId(value: string): boolean {
@@ -109,21 +110,37 @@ export async function GET(request: NextRequest) {
       getGarminAccount(athleteId),
       loadV1DayScores(athleteId, trainingDayId).catch((error) => {
         console.error('[api/v1/today/day-scores]', error);
-        return { stress: null, energyBank: null, targetBand: null };
+        return {
+          stress: null,
+          energyBank: null,
+          targetBand: null,
+          strainPerformance: null,
+        };
       }),
     ]);
-    return NextResponse.json(
-      projectV1TodayFromViewModel(viewModel, {
-        trainingDayId,
-        webOrigin: appOrigin(request.nextUrl.origin),
-        garminConnected: Boolean(garminAccount),
-        consistency: await loadConsistency(athleteId, trainingDayId),
-        morningCheckInDone: morning.checkInDone,
-        stress: dayScores.stress,
-        energyBank: dayScores.energyBank,
-        targetBand: dayScores.targetBand,
-      }),
-    );
+    const projected = projectV1TodayFromViewModel(viewModel, {
+      trainingDayId,
+      webOrigin: appOrigin(request.nextUrl.origin),
+      garminConnected: Boolean(garminAccount),
+      consistency: await loadConsistency(athleteId, trainingDayId),
+      morningCheckInDone: morning.checkInDone,
+      stress: dayScores.stress,
+      energyBank: dayScores.energyBank,
+      targetBand: dayScores.targetBand,
+    });
+    const timeline = await loadV1DayTimeline(athleteId, trainingDayId, {
+      sessions: projected.sessions.map((session) => ({
+        title: session.title,
+        kind: session.kind,
+        minuteOfDay: null,
+      })),
+      stress: dayScores.stress,
+      energyBank: dayScores.energyBank,
+    }).catch((error) => {
+      console.error('[api/v1/today/timeline]', error);
+      return [];
+    });
+    return NextResponse.json({ ...projected, timeline });
   } catch (error) {
     console.error('[api/v1/today]', error);
     return NextResponse.json({ error: 'Impossible de produire la vue Today' }, { status: 500 });
