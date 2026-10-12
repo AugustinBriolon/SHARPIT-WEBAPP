@@ -1,3 +1,11 @@
 npx lint-staged
 yarn typecheck
-yarn test
+
+# Only the tests that depend on the staged files — CI runs every package's full suite on push.
+root=$(git rev-parse --show-toplevel)
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.ts' '*.tsx' | sed "s#^#$root/#")
+[ -z "$staged" ] && exit 0
+for pkg in "$root"/apps/* "$root"/packages/*; do
+  grep -q '"test": "vitest' "$pkg/package.json" 2>/dev/null || continue
+  (cd "$pkg" && npx vitest related --run --passWithNoTests $staged) || exit 1
+done
