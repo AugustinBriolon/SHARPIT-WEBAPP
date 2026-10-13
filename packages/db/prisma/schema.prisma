@@ -1028,6 +1028,23 @@ model Goal {
   priority           GoalPriority? // importance A/B/C dans la périodisation
   raceFormat         String? // format / distance (ex. "Half Ironman", "10 km", "Marathon")
   targetPerformance  String? // objectif visé (ex. "Sub 5h00", "Top 10", "Terminer")
+  /// Structured race (ADR-082) — catalog in packages/app/src/lib/goals/race-formats.ts.
+  /// raceFormat / targetPerformance above are derived from these on write.
+  discipline         RaceDiscipline?
+  /// Catalog key ("RUN_10K", "TRI_L", "DUA_S"…) or a discipline's "*_CUSTOM".
+  formatKey          String?
+  swimM              Int?
+  bikeM              Int?
+  /// DUATHLON: the first run.
+  runM               Int?
+  /// DUATHLON: the second run.
+  run2M              Int?
+  /// SWIMRUN: swim/run alternations.
+  segments           Int?
+  bikeElevationM     Int?
+  runElevationM      Int?
+  openWater          Boolean?
+  targetSeconds      Int?
   /// Finish projection frozen from the eve of the race (RaceProjection JSON) — the « Prévu » after it.
   frozenProjection   Json?
   frozenProjectionAt DateTime?
@@ -1044,6 +1061,16 @@ model Goal {
   @@index([kind])
   @@index([targetDate])
   @@index([athleteId])
+}
+
+enum RaceDiscipline {
+  RUN
+  TRAIL
+  BIKE
+  SWIM
+  TRIATHLON
+  DUATHLON
+  SWIMRUN
 }
 
 model GoalAchievement {

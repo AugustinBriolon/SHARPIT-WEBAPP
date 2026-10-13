@@ -4,6 +4,8 @@ import {
   buildRaceProjection,
   parseRaceTargetSeconds,
   projectionAsOf,
+  projectionVerdict,
+  structuredRaceFromText,
   resolveRunRaceMeters,
   shouldFreezeProjection,
   type RaceProjectionInputs,
@@ -474,5 +476,117 @@ describe('projection freeze', () => {
     expect(projectionAsOf('2026-10-11T00:00:00Z', now)).toEqual(RACE_DAY);
     expect(projectionAsOf('2026-12-01T00:00:00Z', now)).toEqual(now);
     expect(projectionAsOf(null, now)).toEqual(now);
+  });
+});
+
+describe('buildRaceProjection — structured races (ADR-082)', () => {
+  const NO_TEXT = { raceFormat: null, title: null, targetPerformance: null, targetDate: RACE_DAY };
+  const evidence = inputs({
+    rides: [ride(10), ride(20), ride(30)],
+    profile: { ...inputs().profile, swimCssSecPer100m: 110, runThresholdPaceSecPerKm: 300 },
+  });
+  const finish = (fields: Record<string, unknown>) =>
+    buildRaceProjection({ ...NO_TEXT, ...fields }, evidence)!;
+
+  it('projects a fixed format exactly as its free text did', () => {
+    expect(finish({ discipline: 'TRIATHLON', formatKey: 'TRI_L', targetSeconds: 21_600 })).toEqual(
+      buildRaceProjection({ ...HALF, targetDate: RACE_DAY }, evidence),
+    );
+    expect(finish({ discipline: 'RUN', formatKey: 'RUN_SEMI' })).toEqual(
+      buildRaceProjection({ ...NO_TEXT, raceFormat: 'Semi' }, evidence),
+    );
+  });
+
+  it('runs a trail as its flat-equivalent distance (100 m D+ ≈ 1 km)', () => {
+    const trail = finish({
+      discipline: 'TRAIL',
+      formatKey: 'TRAIL_CUSTOM',
+      runM: 30_000,
+      runElevationM: 1500,
+    });
+    expect(trail.finishSec).toBe(
+      finish({ discipline: 'RUN', formatKey: 'RUN_CUSTOM', runM: 45_000 }).finishSec,
+    );
+  });
+
+  it('slows the bike by 15 flat km per 1000 m D+', () => {
+    const flat = finish({
+      discipline: 'BIKE',
+      formatKey: 'BIKE_CUSTOM',
+      bikeM: 100_000,
+      bikeElevationM: 0,
+    });
+    const hilly = finish({
+      discipline: 'BIKE',
+      formatKey: 'BIKE_CUSTOM',
+      bikeM: 100_000,
+      bikeElevationM: 2000,
+    });
+    expect(flat.legs.map((l) => l.kind)).toEqual(['bike']);
+    expect(hilly.finishSec / flat.finishSec).toBeCloseTo(1.3, 2);
+  });
+
+  it('prices a swim race from CSS by distance and water', () => {
+    const pool = finish({ discipline: 'SWIM', formatKey: 'SWIM_1_5K', openWater: false });
+    const open = finish({ discipline: 'SWIM', formatKey: 'SWIM_1_5K', openWater: true });
+    const long = finish({ discipline: 'SWIM', formatKey: 'SWIM_10K', openWater: false });
+    expect(pool.finishSec).toBe(15 * 110);
+    expect(open.finishSec / pool.finishSec).toBeCloseTo(1.03, 2);
+    expect(long.finishSec / 100).toBeGreaterThan(pool.finishSec / 15);
+  });
+
+  it('splits a duathlon into run, bike and a slower second run', () => {
+    const duathlon = finish({ discipline: 'DUATHLON', formatKey: 'DUA_M' });
+    expect(duathlon.legs.map((l) => l.kind)).toEqual(['run', 't1', 'bike', 't2', 'run']);
+    const [run1, , , , run2] = duathlon.legs;
+    expect(run2!.sec / 5000).toBeGreaterThan(run1!.sec / 10_000);
+  });
+
+  it('projects a swimrun as swim (with entries and exits) and run', () => {
+    const swimrun = finish({
+      discipline: 'SWIMRUN',
+      formatKey: 'SWIMRUN_CUSTOM',
+      swimM: 4000,
+      runM: 20_000,
+      segments: 10,
+    });
+    expect(swimrun.legs.map((l) => l.kind)).toEqual(['swim', 'run']);
+    expect(swimrun.legs[0]!.sec).toBe(Math.round(40 * 110 * 1.1 + 10 * 30));
+  });
+
+  it('falls back to the free text when the structured race is unknown', () => {
+    const fallback = finish({ discipline: 'TRIATHLON', formatKey: 'NOPE', raceFormat: 'Marathon' });
+    expect(fallback.legs.map((l) => l.kind)).toEqual(['run']);
+  });
+});
+
+describe('projectionVerdict', () => {
+  const range = { lowSec: 10_000, highSec: 11_000 };
+  it('reads a target against the race-day range', () => {
+    expect(projectionVerdict(range, 9600)).toBe('ambitious');
+    expect(projectionVerdict(range, 9800)).toBe('realistic');
+    expect(projectionVerdict(range, 11_000)).toBe('realistic');
+    expect(projectionVerdict(range, 11_001)).toBe('cautious');
+    expect(projectionVerdict(range, null)).toBeNull();
+  });
+});
+
+describe('structuredRaceFromText', () => {
+  it('maps the formats the projection recognised', () => {
+    expect(structuredRaceFromText(HALF)).toEqual({
+      discipline: 'TRIATHLON',
+      formatKey: 'TRI_L',
+      targetSeconds: 21_600,
+    });
+    expect(
+      structuredRaceFromText({
+        raceFormat: 'Marathon',
+        title: null,
+        targetPerformance: 'Terminer',
+      }),
+    ).toEqual({ discipline: 'RUN', formatKey: 'RUN_MARATHON', targetSeconds: null });
+    expect(
+      structuredRaceFromText({ raceFormat: 'Trail 30 km', title: null, targetPerformance: null }),
+    ).toBeNull();
   });
 });

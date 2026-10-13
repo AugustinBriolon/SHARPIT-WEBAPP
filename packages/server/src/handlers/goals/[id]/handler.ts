@@ -11,7 +11,7 @@ import {
   withRaceStanding,
 } from '@sharpit/server/lib/goals/goal-achievements';
 import { withRaceProjection } from '@sharpit/server/lib/goals/race-projection';
-import { updateGoalSchema } from '@sharpit/server/lib/validators/goal';
+import { settleStructuredRace, updateGoalSchema } from '@sharpit/server/lib/validators/goal';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -53,7 +53,15 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Objectif introuvable' }, { status: 404 });
     }
 
-    const goal = await updateGoal(athleteId, id, parsed.data as Parameters<typeof updateGoal>[2]);
+    const race = settleStructuredRace(parsed.data, existing);
+    if (!race.ok) {
+      return NextResponse.json(race.body, { status: 422 });
+    }
+
+    const goal = await updateGoal(athleteId, id, {
+      ...parsed.data,
+      ...race.data,
+    } as Parameters<typeof updateGoal>[2]);
     if (!goal) {
       return NextResponse.json({ error: 'Objectif introuvable' }, { status: 404 });
     }

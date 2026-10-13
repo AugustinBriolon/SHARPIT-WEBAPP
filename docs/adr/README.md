@@ -84,6 +84,7 @@
 | [ADR-079](./ADR-079-sharpit-native-energy-bank-and-bevel-gap-scores.md)                 | SharpIt-native Energy Bank + Bevel-gap day scores (stress, target strain, sleep needed)                          | Accepted                          |
 | [ADR-080](./ADR-080-coach-memory-durable-types.md)                                      | Coach Memory durable types (INJURY / PREFERENCE / NOTE — Files-light)                                            | Accepted                          |
 | [ADR-081](./ADR-081-race-finish-projection-v2.md)                                       | Race finish projection v2 — one server model in goal payloads, frozen on race eve                                | Accepted                          |
+| [ADR-082](./ADR-082-a-race-goal-is-entered-as-structured-values.md)                     | A race goal is entered as structured values (discipline, format, distances, D+), bounded by a server catalog     | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

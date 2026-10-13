@@ -6,7 +6,7 @@ import {
 import { withRaceProjection } from '@sharpit/server/lib/goals/race-projection';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { createGoal, getGoals } from '@sharpit/server/lib/queries';
-import { createGoalSchema } from '@sharpit/server/lib/validators/goal';
+import { createGoalSchema, settleStructuredRace } from '@sharpit/server/lib/validators/goal';
 
 export async function GET() {
   try {
@@ -33,7 +33,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const goal = await createGoal(athleteId, parsed.data as Parameters<typeof createGoal>[1]);
+    const race = settleStructuredRace(parsed.data, null);
+    if (!race.ok) {
+      return NextResponse.json(race.body, { status: 422 });
+    }
+
+    const goal = await createGoal(athleteId, {
+      ...parsed.data,
+      ...race.data,
+    } as Parameters<typeof createGoal>[1]);
     const [projected] = await withRaceProjection(
       athleteId,
       await withRaceStanding(athleteId, [goal]),

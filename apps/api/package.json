@@ -17,6 +17,7 @@
     "db:clean:activities": "tsx scripts/clean-activities.ts",
     "db:backfill:narratives": "tsx scripts/backfill-activity-narratives.ts",
     "db:unify:multisport": "tsx scripts/unify-multisport.ts",
+    "db:backfill:structured-goals": "tsx scripts/backfill-structured-goals.ts",
     "db:backfill:session-observations": "tsx scripts/backfill-session-observations.ts",
     "db:backfill:body-composition-observations": "tsx scripts/backfill-body-composition-observations.ts",
     "db:recompute:fuel-features": "tsx scripts/recompute-fuel-features.ts",

@@ -160,6 +160,29 @@ export async function loadRaceProjectionEvidence(
   return { profile, runEfforts, rides, pastRaces, ...regularity };
 }
 
+/**
+ * Projection of a race not saved yet (the goal form, ADR-082): live evidence, never stored —
+ * no snapshot, no freeze.
+ */
+export async function previewRaceProjection(
+  athleteId: string,
+  race: Omit<
+    Parameters<typeof buildRaceProjection>[0],
+    'raceFormat' | 'title' | 'targetPerformance'
+  >,
+  now = new Date(),
+): Promise<RaceProjection | null> {
+  const asOf = projectionAsOf(race.targetDate ?? null, now);
+  const evidence = await loadRaceProjectionEvidence(
+    athleteId,
+    new Date(asOf.getTime() - CAPACITY_WINDOW_DAYS * DAY_MS),
+  );
+  return buildRaceProjection(
+    { ...race, raceFormat: null, title: null, targetPerformance: null },
+    { ...evidence, asOf },
+  );
+}
+
 function frozenProjection(goal: Goal): RaceProjection | null {
   if (!goal.frozenProjection || !goal.frozenProjectionAt) {
     return null;

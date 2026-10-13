@@ -1,3 +1,5 @@
+import { TRIATHLON_LETTER_DISTANCES } from '@sharpit/app/lib/goals/race-formats';
+
 // XL (between L and the full distance) has no single reference distance, so none is drawn here.
 export type TriathlonDistanceFormat = 'XS' | 'S' | 'M' | 'L' | 'XXL';
 
@@ -7,19 +9,18 @@ export type TriathlonLegDistancesM = {
   run: number | null;
 };
 
-/** French federation reference distances (km): swim / bike / run. */
+/** French federation reference distances (km): swim / bike / run, from the race-format catalog. */
 const FORMATS: ReadonlyArray<{
   format: TriathlonDistanceFormat;
   swim: number;
   bike: number;
   run: number;
-}> = [
-  { format: 'XS', swim: 0.4, bike: 10, run: 2.5 },
-  { format: 'S', swim: 0.75, bike: 20, run: 5 },
-  { format: 'M', swim: 1.5, bike: 40, run: 10 },
-  { format: 'L', swim: 1.9, bike: 90, run: 21.1 },
-  { format: 'XXL', swim: 3.8, bike: 180, run: 42.2 },
-];
+}> = TRIATHLON_LETTER_DISTANCES.map((ref) => ({
+  format: ref.letter,
+  swim: ref.swimM / 1000,
+  bike: ref.bikeM / 1000,
+  run: ref.runM / 1000,
+}));
 
 /** Mean |log ratio| above which no format is close enough (≈ ×1.5 off on average). */
 const MAX_MEAN_LOG_RATIO = Math.log(1.5);

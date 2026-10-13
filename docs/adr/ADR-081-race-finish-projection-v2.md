@@ -61,6 +61,10 @@ richer server model (`buildRaceFinishProjection`) sat unused. Backtest on the Ve
   the projection, computed with evidence cut at race-day start; payloads then serve it (the
   « Prévu ») with `frozenAt`.
 
+- Structured race goals ([ADR-082](./ADR-082-a-race-goal-is-entered-as-structured-values.md)):
+  when a goal carries its discipline and distances, the projection reads them instead of the
+  free text, and covers trail, bike, swim, duathlon and swimrun.
+
 ## Rationale
 
 Prod backtest of the first v2 (Versailles Half): 6:12:30 for 5:40:02 — run +20 min, because the

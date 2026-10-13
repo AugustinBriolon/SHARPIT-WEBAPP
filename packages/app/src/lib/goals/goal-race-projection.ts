@@ -27,7 +27,17 @@ import {
   resolveTriathlonFormat,
   triathlonDistances,
   type FormatSpec,
+  type TriathlonFormat,
 } from '@sharpit/app/lib/training/periodization/triathlon-performance-predictor';
+import {
+  BIKE_FLAT_M_PER_CLIMB_M,
+  RACE_DISCIPLINES,
+  RUN_FLAT_M_PER_CLIMB_M,
+  RUN_RACE_METERS,
+  missingLegs,
+  resolveStructuredRace,
+  type StructuredRace,
+} from '@sharpit/app/lib/goals/race-formats';
 
 const RUN_RACE_TARGETS: readonly {
   meters: number;
@@ -36,17 +46,17 @@ const RUN_RACE_TARGETS: readonly {
   patterns: readonly RegExp[];
 }[] = [
   {
-    meters: 5000,
+    meters: RUN_RACE_METERS.k5,
     hrFactor: 1.02,
     patterns: [/\b5\s*k(?:m)?\b/i, /\b5000\s*m\b/i],
   },
   {
-    meters: 10000,
+    meters: RUN_RACE_METERS.k10,
     hrFactor: 1.0,
     patterns: [/\b10\s*k(?:m)?\b/i, /\b10000\s*m\b/i],
   },
   {
-    meters: 21097,
+    meters: RUN_RACE_METERS.semi,
     hrFactor: 0.95,
     patterns: [
       /\bsemi[- ]?marathon\b/i,
@@ -56,14 +66,14 @@ const RUN_RACE_TARGETS: readonly {
     ],
   },
   {
-    meters: 42195,
+    meters: RUN_RACE_METERS.marathon,
     hrFactor: 0.9,
     patterns: [/\bmarathon\b/i, /\b42(?:[.,]2)?\s*k(?:m)?\b/i],
   },
 ];
 
 const MULTISPORT_BLOCK =
-  /\b(?:half\s*)?iron(?:man)?\b|\btriathlon\b|\bolympique\b|\bolympic\b|\b70\.3\b|\bim\b/i;
+  /\b(?:half\s*)?iron(?:man)?\b|\btriathlon\b|\bduathlon\b|\bswimrun\b|\bolympique\b|\bolympic\b|\b70\.3\b|\bim\b/i;
 
 /** Resolve a supported run race distance from format / title, or null. */
 export function resolveRunRaceMeters(
@@ -88,6 +98,38 @@ function resolveRunRace(raceFormat: string | null, title: string | null) {
     }
   }
   return null;
+}
+
+const TRIATHLON_FORMAT_KEYS: Record<TriathlonFormat, string> = {
+  sprint: 'TRI_S',
+  olympic: 'TRI_M',
+  half: 'TRI_L',
+  full: 'TRI_XXL',
+};
+
+const RUN_FORMAT_KEYS: Record<number, string> = {
+  [RUN_RACE_METERS.k5]: 'RUN_5K',
+  [RUN_RACE_METERS.k10]: 'RUN_10K',
+  [RUN_RACE_METERS.semi]: 'RUN_SEMI',
+  [RUN_RACE_METERS.marathon]: 'RUN_MARATHON',
+};
+
+/**
+ * Best-effort structured race read from a goal's free text (backfill of goals made before
+ * ADR-082): the triathlon or road format the projection already recognised, and the target.
+ */
+export function structuredRaceFromText(
+  goal: Pick<RaceGoalFields, 'raceFormat' | 'title' | 'targetPerformance'>,
+): (Pick<StructuredRace, 'discipline' | 'formatKey'> & { targetSeconds: number | null }) | null {
+  const targetSeconds = parseRaceTargetSeconds(goal.targetPerformance);
+  const triathlon = resolveTriathlonFormat(goal.raceFormat, goal.title);
+  if (triathlon) {
+    return { discipline: 'TRIATHLON', formatKey: TRIATHLON_FORMAT_KEYS[triathlon], targetSeconds };
+  }
+  const runMeters = resolveRunRaceMeters(goal.raceFormat, goal.title);
+  return runMeters === null
+    ? null
+    : { discipline: 'RUN', formatKey: RUN_FORMAT_KEYS[runMeters]!, targetSeconds };
 }
 
 /** Parse "1h30", "6h", "5h00", "5h28'30" style durations after Sub/Sous stripping. */
@@ -205,7 +247,14 @@ export type RaceProjectionInputs = RegularityInputs & {
   pastRaces: readonly { date: Date | string; multisportLegs: unknown }[];
 };
 
-type RaceGoalFields = {
+/** Structured race fields (ADR-082); when complete they replace the free-text guessing. */
+type StructuredGoalFields = Partial<Omit<StructuredRace, 'discipline' | 'formatKey'>> & {
+  discipline?: string | null;
+  formatKey?: string | null;
+  targetSeconds?: number | null;
+};
+
+type RaceGoalFields = StructuredGoalFields & {
   targetDate?: Date | string | null;
   raceFormat: string | null;
   title: string | null;
@@ -230,6 +279,19 @@ const MIN_RIDES = 3;
 const LONG_RIDE_SHARE = 0.35;
 /** Wetsuit open water: slightly faster than pool CSS for most age-groupers. */
 const OPEN_WATER_FACTOR = 0.98;
+/** Swim-only open water: no wetsuit assumed, sighting, no push-offs — slower than pool CSS. */
+const SWIM_RACE_OPEN_WATER_FACTOR = 1.03;
+/** CSS ≈ the pace an athlete holds over 1500 m; Riegel prices the other swim distances from it. */
+const CSS_REFERENCE_METERS = 1500;
+/** Swimrun: swimming in shoes (with paddles / pull-buoy) ≈ CSS × 1.1. */
+const SWIMRUN_SWIM_FACTOR = 1.1;
+/** Swimrun run: wet shoes on trails and rocks, ≈ 10 % slower than the flat-equivalent run. */
+const SWIMRUN_RUN_FACTOR = 1.1;
+/** Swimrun: one water entry or exit per segment, folded into the swim leg. */
+const SWIMRUN_TRANSITION_SEC = 30;
+/** Duathlon transitions: no wetsuit, so shorter than a triathlon's (amateur defaults). */
+const DUATHLON_T1_SEC = 75;
+const DUATHLON_T2_SEC = 60;
 /** Threshold pace ≈ a 1 h effort ≈ 15 km for an amateur (as estimateRunThresholdPace). */
 const THRESHOLD_PROXY_METERS = 15_000;
 /** Shortest reference Riegel may extrapolate from: short bests over-promise long races. */
@@ -390,24 +452,31 @@ function raceSwimPaceSecPer100m(legs: readonly MultisportLeg[]): number | null {
   return pace !== null && pace >= 60 && pace <= 300 ? pace : null;
 }
 
+/** Swim time at the profile CSS (else the amateur default) × `factor`. */
+function cssSwimLeg(swimM: number, factor: number, inputs: RaceProjectionInputs): LegEstimate {
+  const css = inputs.profile.swimCssSecPer100m;
+  if (css && css > 0) {
+    return { sec: (swimM / 100) * css * factor, source: 'profile' };
+  }
+  return {
+    sec: (swimM / 100) * DEFAULT_CSS_SEC_PER_100M * factor,
+    source: 'default',
+    missing: MISSING.swimDefault,
+  };
+}
+
+/** Triathlon swim: past race pace, else CSS (× 0.98 in open water, × 1 in a pool). */
 export function projectSwimLeg(
   swimM: number,
   inputs: RaceProjectionInputs,
   pastRaceLegs: readonly MultisportLeg[][],
+  openWater = true,
 ): LegEstimate {
   const racePace = medianOrNull(pastRaceLegs.flatMap((legs) => raceSwimPaceSecPer100m(legs) ?? []));
   if (racePace !== null) {
     return { sec: (swimM / 100) * racePace, source: 'history' };
   }
-  const css = inputs.profile.swimCssSecPer100m;
-  if (css && css > 0) {
-    return { sec: (swimM / 100) * css * OPEN_WATER_FACTOR, source: 'profile' };
-  }
-  return {
-    sec: (swimM / 100) * DEFAULT_CSS_SEC_PER_100M * OPEN_WATER_FACTOR,
-    source: 'default',
-    missing: MISSING.swimDefault,
-  };
+  return cssSwimLeg(swimM, openWater ? OPEN_WATER_FACTOR : 1, inputs);
 }
 
 function longRideSpeeds(spec: FormatSpec, inputs: RaceProjectionInputs, recentOnly: boolean) {
@@ -502,26 +571,158 @@ function pastRaceLegsBefore(inputs: RaceProjectionInputs): MultisportLeg[][] {
 
 type KindedEstimate = LegEstimate & { kind: RaceProjectionLegKind };
 
-function triathlonLegs(spec: FormatSpec, inputs: RaceProjectionInputs): KindedEstimate[] {
+type Course = Pick<StructuredRace, 'openWater' | 'bikeElevationM' | 'runElevationM'>;
+
+function triathlonLegs(
+  spec: FormatSpec,
+  inputs: RaceProjectionInputs,
+  course: Course = {},
+): KindedEstimate[] {
   const pastRaceLegs = pastRaceLegsBefore(inputs);
+  const runM = runEffortMeters(spec.runM, course.runElevationM);
   return [
-    { kind: 'swim', ...projectSwimLeg(spec.swimM, inputs, pastRaceLegs) },
+    {
+      kind: 'swim',
+      ...projectSwimLeg(spec.swimM, inputs, pastRaceLegs, course.openWater !== false),
+    },
     { kind: 't1', ...projectTransitionLeg(1, spec.defaultT1Sec, pastRaceLegs) },
-    { kind: 'bike', ...projectBikeLeg(spec, inputs) },
+    { kind: 'bike', ...climbingBikeLeg(spec, course.bikeElevationM, inputs) },
     { kind: 't2', ...projectTransitionLeg(2, spec.defaultT2Sec, pastRaceLegs) },
-    { kind: 'run', ...projectRunLeg(spec.runM, spec.brickRunFactor, spec.runHrFactor, inputs) },
+    { kind: 'run', ...projectRunLeg(runM, spec.brickRunFactor, spec.runHrFactor, inputs) },
   ];
 }
 
-/** Whether the model knows the race's format (a triathlon or a road running distance). */
-export function isProjectableRace(goal: Pick<RaceGoalFields, 'raceFormat' | 'title'>): boolean {
+/*
+ * Structured races (ADR-082): the race's own distances and climbing. Climbing turns into
+ * flat-equivalent distance — on foot 100 m D+ ≈ 1 km, on a bike 1000 m D+ ≈ 15 km
+ * (race-formats.ts) — so a road race without D+ projects exactly as v2.
+ */
+
+function runEffortMeters(meters: number, climbM: number | null | undefined): number {
+  return meters + RUN_FLAT_M_PER_CLIMB_M * (climbM ?? 0);
+}
+
+function climbingBikeLeg(
+  spec: FormatSpec,
+  climbM: number | null | undefined,
+  inputs: RaceProjectionInputs,
+): LegEstimate {
+  const leg = projectBikeLeg(spec, inputs);
+  return { ...leg, sec: leg.sec * (1 + (BIKE_FLAT_M_PER_CLIMB_M * (climbM ?? 0)) / spec.bikeM) };
+}
+
+/** Race HR factor of the closest road distance (5 km … marathon) to `meters`. */
+function nearestRunHrFactor(meters: number): number {
+  const gap = (target: number) => Math.abs(Math.log(meters / target));
+  return RUN_RACE_TARGETS.reduce((best, target) =>
+    gap(target.meters) < gap(best.meters) ? target : best,
+  ).hrFactor;
+}
+
+const TRIATHLON_SPECS = (['sprint', 'olympic', 'half', 'full'] as const).map(triathlonDistances);
+
+/**
+ * Race defaults (transitions, bike IF, brick and HR factors) of the triathlon format nearest
+ * to the given legs by mean |log ratio|, carrying the race's own distances.
+ */
+function nearestSpec(legs: Pick<StructuredRace, 'swimM' | 'bikeM' | 'runM'>): FormatSpec {
+  const given = (['swimM', 'bikeM', 'runM'] as const).filter((leg) => (legs[leg] ?? 0) > 0);
+  const score = (spec: FormatSpec) =>
+    given.reduce((sum, leg) => sum + Math.abs(Math.log(legs[leg]! / spec[leg])), 0);
+  const nearest = TRIATHLON_SPECS.reduce((best, spec) => (score(spec) < score(best) ? spec : best));
+  return { ...nearest, swimM: legs.swimM ?? 0, bikeM: legs.bikeM ?? 0, runM: legs.runM ?? 0 };
+}
+
+function runRaceLegs(race: StructuredRace, inputs: RaceProjectionInputs): KindedEstimate[] {
+  const meters = runEffortMeters(race.runM!, race.runElevationM);
+  return [{ kind: 'run', ...projectRunLeg(meters, 1, nearestRunHrFactor(meters), inputs) }];
+}
+
+/** Swim-only race: CSS priced by Riegel from 1500 m, × 1.03 in open water. */
+function swimRaceLegs(race: StructuredRace, inputs: RaceProjectionInputs): KindedEstimate[] {
+  const distanceFactor = (race.swimM! / CSS_REFERENCE_METERS) ** (RIEGEL_EXPONENT - 1);
+  const waterFactor = race.openWater === false ? 1 : SWIM_RACE_OPEN_WATER_FACTOR;
+  return [{ kind: 'swim', ...cssSwimLeg(race.swimM!, distanceFactor * waterFactor, inputs) }];
+}
+
+/**
+ * Duathlon: both runs priced as one effort over their total distance (so the first run is not a
+ * standalone race), split by distance; the second × the brick factor of the nearest format.
+ */
+function duathlonLegs(race: StructuredRace, inputs: RaceProjectionInputs): KindedEstimate[] {
+  const spec = nearestSpec({ bikeM: race.bikeM });
+  const pastRaceLegs = pastRaceLegsBefore(inputs);
+  const totalRunM = race.runM! + race.run2M!;
+  const run = projectRunLeg(
+    runEffortMeters(totalRunM, race.runElevationM),
+    1,
+    spec.runHrFactor,
+    inputs,
+  );
+  return [
+    { kind: 'run', ...run, sec: (run.sec * race.runM!) / totalRunM },
+    { kind: 't1', sec: DUATHLON_T1_SEC, source: 'default' },
+    { kind: 'bike', ...climbingBikeLeg(spec, race.bikeElevationM, inputs) },
+    { kind: 't2', ...projectTransitionLeg(2, DUATHLON_T2_SEC, pastRaceLegs) },
+    { kind: 'run', ...run, sec: ((run.sec * race.run2M!) / totalRunM) * spec.brickRunFactor },
+  ];
+}
+
+/** Swimrun: CSS × 1.1 plus 30 s per segment; the run as a trail × 1.1. */
+function swimrunLegs(race: StructuredRace, inputs: RaceProjectionInputs): KindedEstimate[] {
+  const swim = cssSwimLeg(race.swimM!, SWIMRUN_SWIM_FACTOR, inputs);
+  const runM = runEffortMeters(race.runM!, race.runElevationM);
+  const run = projectRunLeg(runM, SWIMRUN_RUN_FACTOR, nearestRunHrFactor(runM), inputs);
+  return [
+    { kind: 'swim', ...swim, sec: swim.sec + (race.segments ?? 0) * SWIMRUN_TRANSITION_SEC },
+    { kind: 'run', ...run },
+  ];
+}
+
+function structuredLegs(race: StructuredRace, inputs: RaceProjectionInputs): KindedEstimate[] {
+  switch (race.discipline) {
+    case 'RUN':
+    case 'TRAIL':
+      return runRaceLegs(race, inputs);
+    case 'BIKE':
+      return [{ kind: 'bike', ...climbingBikeLeg(nearestSpec(race), race.bikeElevationM, inputs) }];
+    case 'SWIM':
+      return swimRaceLegs(race, inputs);
+    case 'TRIATHLON':
+      return triathlonLegs(nearestSpec(race), inputs, race);
+    case 'DUATHLON':
+      return duathlonLegs(race, inputs);
+    case 'SWIMRUN':
+      return swimrunLegs(race, inputs);
+  }
+}
+
+/** The goal's structured race when complete enough to project, else null (free text then). */
+function structuredRace(goal: StructuredGoalFields): StructuredRace | null {
+  const discipline = RACE_DISCIPLINES.find((d) => d === goal.discipline);
+  if (!discipline || !goal.formatKey) {
+    return null;
+  }
+  const race = resolveStructuredRace({ ...goal, discipline, formatKey: goal.formatKey });
+  return race && missingLegs(race).length === 0 ? race : null;
+}
+
+/** Whether the model knows the race: structured fields, else a triathlon or road distance in the text. */
+export function isProjectableRace(
+  goal: Pick<RaceGoalFields, 'raceFormat' | 'title'> & StructuredGoalFields,
+): boolean {
   return (
+    structuredRace(goal) !== null ||
     resolveTriathlonFormat(goal.raceFormat, goal.title) !== null ||
     resolveRunRaceMeters(goal.raceFormat, goal.title) !== null
   );
 }
 
 function projectLegs(goal: RaceGoalFields, inputs: RaceProjectionInputs): KindedEstimate[] | null {
+  const structured = structuredRace(goal);
+  if (structured) {
+    return structuredLegs(structured, inputs);
+  }
   const format = resolveTriathlonFormat(goal.raceFormat, goal.title);
   if (format) {
     return triathlonLegs(triathlonDistances(format), inputs);
@@ -571,7 +772,7 @@ export function buildRaceProjection(
   const spread = Math.round(
     finishSec * SPREAD_BY_CONFIDENCE[confidence] * (1 + IRREGULARITY_SPREAD * irregularity),
   );
-  const targetSec = parseRaceTargetSeconds(goal.targetPerformance);
+  const targetSec = goal.targetSeconds ?? parseRaceTargetSeconds(goal.targetPerformance);
   return {
     finishSec,
     todaySec,
@@ -637,4 +838,29 @@ export function shouldFreezeProjection(
   }
   const eve = new Date(Date.parse(`${trainingDayId}T00:00:00Z`) + DAY_MS);
   return isRaceDayReached(goal.targetDate, eve.toISOString().slice(0, 10));
+}
+
+export type ProjectionVerdict = 'ambitious' | 'realistic' | 'cautious';
+
+/** A target up to 3 % under the range's fast end still reads as realistic. */
+const AMBITION_MARGIN = 0.03;
+
+export const PROJECTION_VERDICT_LABELS: Record<ProjectionVerdict, string> = {
+  ambitious: 'Ambitieux au vu de ta forme actuelle',
+  realistic: 'Réaliste',
+  cautious: 'Prudent : tu as de la marge',
+};
+
+/** A target against the race-day range: faster than low − 3 % is ambitious, slower than high cautious. */
+export function projectionVerdict(
+  projection: Pick<RaceProjection, 'lowSec' | 'highSec'>,
+  targetSec: number | null,
+): ProjectionVerdict | null {
+  if (targetSec === null) {
+    return null;
+  }
+  if (targetSec < projection.lowSec * (1 - AMBITION_MARGIN)) {
+    return 'ambitious';
+  }
+  return targetSec > projection.highSec ? 'cautious' : 'realistic';
 }

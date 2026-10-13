@@ -29,6 +29,7 @@
     "vitest.config.mts",
     "src/**/*.ts",
     "scripts/backtest-race-projection.ts",
+    "scripts/backfill-structured-goals.ts",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts"
   ],
