@@ -40,8 +40,8 @@ and the iOS Résumé payload carried no goal at all, so race day looked like any
 - **Goal link.** `Activity.goalId` (many activities per goal), set automatically on the race day
   (single-sport races only when distance is within ±15 % of the race distance) and editable via
   `PATCH /api/v1/activities/[id]`. The linked activity feeds the `_performance` achievement.
-- **Race moment.** `selectRaceMoment` exposes `race` (`raceDay` on the goal date, `postRace` up to
-  3 days after when a linked activity exists) on the iOS and web Today payloads.
+- **Race moment.** `selectRaceMoment` exposes `race` (`raceDay` on the goal date, `postRace` the day
+  after only, when a linked activity exists — first 3 days, cut to 1 on 2026-10-13) on the iOS and web Today payloads.
 - **Deletion.** Deleting a parent deletes its absorbed legs too (no tombstone exists; a provider
   re-import rebuilds the race).
 - **Athlete model.** Core SESSION observations of absorbed rows the parent doesn't stand on are
