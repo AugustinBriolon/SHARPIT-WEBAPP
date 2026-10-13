@@ -56,9 +56,17 @@ export function readConnectState(
  * When a Clerk session is present on the callback host (same posture as Garmin SSO),
  * the signed state must name that athlete — blocks account-linking CSRF. When there is
  * no session (`api.` host, ADR-048), the signed state alone is the authority.
+ *
+ * OAuth callbacks skip `clerkMiddleware` (`isSelfAuthenticatedPath`): `auth()` then throws
+ * instead of returning a null session — treat that as "no session", never 500 the browser.
  */
 export async function connectStateMatchesSession(state: ConnectState): Promise<boolean> {
-  const { userId } = await auth();
+  let userId: string | null | undefined;
+  try {
+    ({ userId } = await auth());
+  } catch {
+    return true;
+  }
   if (!userId) {
     return true;
   }

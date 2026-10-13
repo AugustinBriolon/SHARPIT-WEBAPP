@@ -11,11 +11,16 @@ describe('appleAppSiteAssociation', () => {
     expect(aasa.webcredentials.apps).toEqual(['ABCDE12345.app.sharpit.ios']);
   });
 
-  it('opens only the handoff callback in the app', () => {
+  it('opens only the handoff callbacks in the app', () => {
     const paths = appleAppSiteAssociation('ABCDE12345').applinks.details[0].components.map(
       (component) => component['/'],
     );
-    expect(paths).toEqual(['/connect/garmin/callback*']);
+    expect(paths).toEqual([
+      '/connect/garmin/callback*',
+      '/connect/strava/callback*',
+      '/connect/google/callback*',
+      '/connect/withings/callback*',
+    ]);
   });
 
   it('serves a marked placeholder rather than a guessed Team ID', () => {

@@ -70,6 +70,14 @@ describe('connectStateMatchesSession', () => {
     expect(getCurrentAthleteId).not.toHaveBeenCalled();
   });
 
+  it('accepts the signed state when auth() throws without clerkMiddleware (api. callbacks)', async () => {
+    vi.mocked(auth).mockRejectedValue(
+      new Error("Clerk: auth() was called but Clerk can't detect usage of clerkMiddleware()"),
+    );
+    await expect(connectStateMatchesSession(state)).resolves.toBe(true);
+    expect(getCurrentAthleteId).not.toHaveBeenCalled();
+  });
+
   it('requires the session athlete to match the signed state', async () => {
     vi.mocked(auth).mockResolvedValue({ userId: 'user-1' } as never);
     vi.mocked(getCurrentAthleteId).mockResolvedValue('ath-1');

@@ -4,14 +4,16 @@ import { afterAuthPath } from '@sharpit/app/lib/auth/after-auth-redirect';
 import { recoverFromHandshakeFailure } from '@sharpit/app/lib/auth/handshake-recovery';
 
 /**
- * The apex needs a session for the Garmin handoff only (ADR-047): its entry, start and
- * authorize steps. Every other hub path is public, and every non-hub path is redirected to the
- * web by `next.config.ts`.
+ * The apex needs a session for native handoffs (ADR-047): Garmin SSO steps and the OAuth
+ * provider start routes. Callbacks stay public so the iOS session always closes with an outcome.
  */
 const needsSession = createRouteMatcher([
   '/connect/garmin',
   '/connect/garmin/start',
   '/connect/garmin/authorize',
+  '/connect/strava/start',
+  '/connect/google/start',
+  '/connect/withings/start',
 ]);
 
 /**
@@ -64,6 +66,9 @@ export const config = {
     '/connect/garmin',
     '/connect/garmin/start',
     '/connect/garmin/authorize',
+    '/connect/strava/start',
+    '/connect/google/start',
+    '/connect/withings/start',
     '/sign-in/:path*',
     '/__clerk/:path*',
   ],

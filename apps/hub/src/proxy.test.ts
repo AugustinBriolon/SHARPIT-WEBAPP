@@ -51,8 +51,16 @@ describe('hub proxy (sharpit.app)', () => {
     expect(state.protect).toHaveBeenCalledTimes(3);
   });
 
+  it('asks a stranger to sign in before starting a native OAuth handoff', async () => {
+    await run('https://sharpit.app/connect/strava/start');
+    await run('https://sharpit.app/connect/google/start');
+    await run('https://sharpit.app/connect/withings/start');
+    expect(state.protect).toHaveBeenCalledTimes(3);
+  });
+
   it('keeps the callback, the legal pages and the sign-in public', async () => {
     await run('https://sharpit.app/connect/garmin/callback?garmin=connected');
+    await run('https://sharpit.app/connect/strava/callback?strava=connected');
     await run('https://sharpit.app/privacy');
     await run('https://sharpit.app/terms');
     await run('https://sharpit.app/sign-in');
@@ -72,6 +80,9 @@ describe('hub proxy (sharpit.app)', () => {
       '/connect/garmin',
       '/connect/garmin/start',
       '/connect/garmin/authorize',
+      '/connect/strava/start',
+      '/connect/google/start',
+      '/connect/withings/start',
       '/sign-in/:path*',
       '/__clerk/:path*',
     ]);
