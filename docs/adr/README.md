@@ -83,6 +83,7 @@
 | [ADR-078](./ADR-078-one-race-one-activity-multisport-unification-and-goal-link.md)      | One race, one activity: multisport rows unified under a parent, absorbed rows hidden, activities linked to goals | Accepted                          |
 | [ADR-079](./ADR-079-sharpit-native-energy-bank-and-bevel-gap-scores.md)                 | SharpIt-native Energy Bank + Bevel-gap day scores (stress, target strain, sleep needed)                          | Accepted                          |
 | [ADR-080](./ADR-080-coach-memory-durable-types.md)                                      | Coach Memory durable types (INJURY / PREFERENCE / NOTE — Files-light)                                            | Accepted                          |
+| [ADR-081](./ADR-081-race-finish-projection-v2.md)                                       | Race finish projection v2 — one server model in goal payloads, frozen on race eve                                | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
