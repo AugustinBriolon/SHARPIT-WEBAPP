@@ -1,4 +1,5 @@
-export type TriathlonDistanceFormat = 'XS' | 'S' | 'M' | 'L' | 'XL';
+// XL (between L and the full distance) has no single reference distance, so none is drawn here.
+export type TriathlonDistanceFormat = 'XS' | 'S' | 'M' | 'L' | 'XXL';
 
 export type TriathlonLegDistancesM = {
   swim: number | null;
@@ -17,7 +18,7 @@ const FORMATS: ReadonlyArray<{
   { format: 'S', swim: 0.75, bike: 20, run: 5 },
   { format: 'M', swim: 1.5, bike: 40, run: 10 },
   { format: 'L', swim: 1.9, bike: 90, run: 21.1 },
-  { format: 'XL', swim: 3.8, bike: 180, run: 42.2 },
+  { format: 'XXL', swim: 3.8, bike: 180, run: 42.2 },
 ];
 
 /** Mean |log ratio| above which no format is close enough (≈ ×1.5 off on average). */

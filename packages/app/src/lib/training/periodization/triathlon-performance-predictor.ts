@@ -90,7 +90,19 @@ function matchesSprint(haystack: string): boolean {
   );
 }
 
-/** Resolve Half / 70.3 / Olympic / Ironman / Sprint from free-text format or title. */
+/** French federation letters (the app's own « Triathlon L » titles): S, M, L, XXL (the full distance). XS and XL have no spec. */
+const LETTER_FORMATS: Record<string, TriathlonFormat> = { s: 'sprint', m: 'olympic', l: 'half', xxl: 'full' };
+
+function matchesLetterFormat(raceFormat: string | null, haystack: string): TriathlonFormat | null {
+  const alone = raceFormat?.trim().toLowerCase() ?? '';
+  const letter =
+    (alone in LETTER_FORMATS ? alone : null) ??
+    /\b(?:triathlon|tri|format|distance)\s+(xxl|xl|l|m|s)\b/.exec(haystack)?.[1] ??
+    null;
+  return letter ? (LETTER_FORMATS[letter] ?? null) : null;
+}
+
+/** Resolve Half / 70.3 / Olympic / Ironman / Sprint / S–XXL from free-text format or title. */
 export function resolveTriathlonFormat(
   raceFormat: string | null,
   title: string | null,
@@ -98,6 +110,10 @@ export function resolveTriathlonFormat(
   const haystack = [raceFormat, title].filter(Boolean).join(' · ').toLowerCase();
   if (!haystack.trim()) {
     return null;
+  }
+  const lettered = matchesLetterFormat(raceFormat, haystack);
+  if (lettered) {
+    return lettered;
   }
   if (matchesHalfIron(haystack)) {
     return 'half';

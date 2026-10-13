@@ -25,3 +25,20 @@ describe('estimateBikeSpeedMsFromPower', () => {
     expect(fast).toBeGreaterThan(slow);
   });
 });
+
+describe('resolveTriathlonFormat with French letter formats', () => {
+  it('reads S, M, L and XXL as sprint, olympic, half and full', () => {
+    expect(resolveTriathlonFormat('Triathlon L', null)).toBe('half');
+    expect(resolveTriathlonFormat('L', 'Triathlon de Deauville')).toBe('half');
+    expect(resolveTriathlonFormat(null, 'Triathlon M de Paris')).toBe('olympic');
+    expect(resolveTriathlonFormat('XXL', null)).toBe('full');
+    expect(resolveTriathlonFormat('Triathlon XXL', 'Ironman Nice')).toBe('full');
+    expect(resolveTriathlonFormat('Triathlon S', null)).toBe('sprint');
+  });
+
+  it('leaves XS, XL and unrelated letters alone', () => {
+    expect(resolveTriathlonFormat('Triathlon XS', null)).toBeNull();
+    expect(resolveTriathlonFormat('Triathlon XL', null)).toBeNull();
+    expect(resolveTriathlonFormat(null, 'Semi de Lyon')).toBeNull();
+  });
+});

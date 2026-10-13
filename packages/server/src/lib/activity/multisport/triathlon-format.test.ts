@@ -10,7 +10,7 @@ describe('nearestTriathlonFormat', () => {
     [{ swim: 780, bike: 21_000, run: 5100 }, 'S'],
     [{ swim: 1500, bike: 39_000, run: 10_200 }, 'M'],
     [{ swim: 1900, bike: 88_000, run: 21_000 }, 'L'],
-    [{ swim: 3900, bike: 180_000, run: 42_195 }, 'XL'],
+    [{ swim: 3900, bike: 180_000, run: 42_195 }, 'XXL'],
   ] as const)('classifies %o as %s', (distances, format) => {
     expect(nearestTriathlonFormat(distances)).toBe(format);
   });

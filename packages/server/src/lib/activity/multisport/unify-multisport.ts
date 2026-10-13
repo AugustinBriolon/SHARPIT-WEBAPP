@@ -77,7 +77,7 @@ export type MultisportDayPlan = {
 /**
  * Titles a provider writes on its own — safe to replace with the race's name. Anything
  * else is treated as the athlete's and kept. Deliberately narrow: blank, our generated
- * "Triathlon [XS|S|M|L|XL]", Apple's generic "Séance", and a provider sport label that ends
+ * "Triathlon [XS|S|M|L|XXL]" (and the earlier "XL"), Apple's generic "Séance", and a provider sport label that ends
  * in triathlon / multisport (Garmin names a session "<Place> Triathlon").
  */
 export function isProviderDefaultTitle(title: string | null): boolean {
@@ -93,7 +93,7 @@ export function isProviderDefaultTitle(title: string | null): boolean {
 }
 
 function isGenericTriathlonTitle(normalized: string): boolean {
-  return /^(triathlon( (xs|s|m|l|xl))?|multisport|multi-sport)$/.test(normalized);
+  return /^(triathlon( (xs|s|m|l|xl|xxl))?|multisport|multi-sport)$/.test(normalized);
 }
 
 /**
