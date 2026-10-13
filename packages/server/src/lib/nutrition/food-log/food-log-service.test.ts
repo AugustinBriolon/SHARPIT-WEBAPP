@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@sharpit/db/client', () => ({
   prisma: {
+    $transaction: vi.fn((writes: Promise<unknown>[]) => Promise.all(writes)),
     foodLogEntry: {
       groupBy: vi.fn(),
       findMany: vi.fn(),
@@ -147,6 +148,45 @@ describe('food log service', () => {
         entryCount: 1,
       }),
     );
+  });
+
+  it('logs several entries in one transaction, in order, and rebuilds the day once', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodProduct.findFirst).mockResolvedValue(SKYR as never);
+    vi.mocked(prisma.foodProduct.findUnique).mockResolvedValue(SKYR as never);
+    vi.mocked(prisma.foodLogEntry.create)
+      .mockResolvedValueOnce(storedEntry({ id: 'e1' }) as never)
+      .mockResolvedValueOnce(storedEntry({ id: 'e2', productId: null, name: 'Frites' }) as never);
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([storedEntry()] as never);
+
+    const entries = await service.addFoodLogEntries('athlete-1', [
+      { trainingDayId: '2026-10-01', meal: 'LUNCH', grams: 150, productId: 'p-skyr' },
+      {
+        trainingDayId: '2026-10-01',
+        meal: 'LUNCH',
+        grams: 200,
+        quick: { name: 'Frites', kcal: 600, protein: 6, carbs: 70, fat: 30 },
+      },
+    ]);
+
+    expect(entries.map((entry) => entry.id)).toEqual(['e1', 'e2']);
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.foodLogEntry.create).toHaveBeenCalledTimes(2);
+    expect(prisma.dailyNutrition.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('writes nothing of a batch when one food is not the athlete’s', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodProduct.findFirst).mockResolvedValue(null);
+
+    await expect(
+      service.addFoodLogEntries('athlete-1', [
+        { trainingDayId: '2026-10-01', meal: 'LUNCH', grams: 100, quick: { name: 'Riz', kcal: 130, protein: 0, carbs: 0, fat: 0 } },
+        { trainingDayId: '2026-10-01', meal: 'LUNCH', grams: 100, productId: 'someone-elses' },
+      ]),
+    ).rejects.toBeInstanceOf(service.FoodLogNotFoundError);
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(prisma.foodLogEntry.create).not.toHaveBeenCalled();
   });
 
   it("never logs another athlete's own food", async () => {

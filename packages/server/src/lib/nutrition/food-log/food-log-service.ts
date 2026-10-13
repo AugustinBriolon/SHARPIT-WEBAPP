@@ -368,6 +368,27 @@ export async function addFoodLogEntry(
   return servedEntry(entry, diets);
 }
 
+/**
+ * Logs several entries in one transaction: all or none. Every food is resolved (and owned)
+ * before anything is written; each day touched is rebuilt once. Answers the entries in order.
+ */
+export async function addFoodLogEntries(
+  athleteId: string,
+  inputs: FoodLogEntryCreateInput[],
+  diets: DeclaredDiets = NO_DIETS,
+) {
+  const rows = await Promise.all(
+    inputs.map((input) => resolveFoodLogEntryCreateData(athleteId, input)),
+  );
+  const entries = await prisma.$transaction(
+    rows.map((data) => prisma.foodLogEntry.create({ data })),
+  );
+  for (const dayId of new Set(inputs.map((input) => input.trainingDayId))) {
+    await recomputeFoodLogDay(athleteId, dayId);
+  }
+  return Promise.all(entries.map((entry) => servedEntry(entry, diets)));
+}
+
 async function productEntryFields(athleteId: string, productId: string, grams: number) {
   const product = await productForEntry(athleteId, productId);
   return {

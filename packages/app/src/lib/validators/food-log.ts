@@ -30,6 +30,11 @@ export const foodLogEntryCreateSchema = z
     message: 'Un aliment ou une saisie rapide, pas les deux.',
   });
 
+/** Several new entries at once — a described meal validated whole — written together. */
+export const foodLogEntryBatchCreateSchema = z.object({
+  entries: z.array(foodLogEntryCreateSchema).min(1).max(30),
+});
+
 export const foodLogEntryUpdateSchema = z
   .object({ grams: grams.optional(), meal: z.enum(FOOD_MEALS).optional() })
   .refine((value) => value.grams !== undefined || value.meal !== undefined, {
@@ -142,6 +147,7 @@ export const nutritionTargetsSchema = z
   });
 
 export type FoodLogEntryCreateInput = z.infer<typeof foodLogEntryCreateSchema>;
+export type FoodLogEntryBatchCreateInput = z.infer<typeof foodLogEntryBatchCreateSchema>;
 export type FoodLogEntryUpdateInput = z.infer<typeof foodLogEntryUpdateSchema>;
 export type CustomFoodInput = z.infer<typeof customFoodSchema>;
 export type CustomFoodUpdateInput = z.infer<typeof customFoodUpdateSchema>;

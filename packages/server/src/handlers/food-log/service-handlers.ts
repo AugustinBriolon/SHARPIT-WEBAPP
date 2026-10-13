@@ -3,6 +3,7 @@ import type { ZodType } from 'zod';
 import {
   customFoodSchema,
   customFoodUpdateSchema,
+  foodLogEntryBatchCreateSchema,
   foodLogEntryCreateSchema,
   foodLogEntryUpdateSchema,
   nutritionTargetsSchema,
@@ -11,6 +12,7 @@ import { isBarcode } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
 import { foodLogDayHealth } from '@sharpit/app/lib/nutrition/food-log/meal-health-score';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import {
+  addFoodLogEntries,
   addFoodLogEntry,
   cacheGenericFoods,
   cacheSearchResults,
@@ -113,6 +115,27 @@ export async function addEntry(request: NextRequest) {
     );
   } catch (error) {
     return failure('add', error);
+  }
+}
+
+/**
+ * `POST /api/v1/food-log/entries/batch` — several entries in one transaction (a described meal
+ * validated whole), each checked as `POST /food-log` checks one; answers them in order.
+ */
+export async function addEntries(request: NextRequest) {
+  try {
+    const athleteId = await getCurrentAthleteId();
+    const body = await parseBody(request, foodLogEntryBatchCreateSchema);
+    if (!body.ok) {
+      return body.response;
+    }
+    const diets = await loadDeclaredDiet(athleteId);
+    return NextResponse.json(
+      { entries: await addFoodLogEntries(athleteId, body.data.entries, diets) },
+      { status: 201 },
+    );
+  } catch (error) {
+    return failure('add batch', error);
   }
 }
 

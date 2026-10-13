@@ -23,6 +23,7 @@ vi.mock('@sharpit/server/lib/nutrition/food-log/food-log-service', () => {
   class FoodLogNotFoundError extends Error {}
   return {
     FoodLogNotFoundError,
+    addFoodLogEntries: vi.fn(),
     addFoodLogEntry: vi.fn(),
     cacheGenericFoods: vi.fn(async () => [{ id: 'banana' }]),
     cacheSearchResults: vi.fn(),
@@ -115,6 +116,30 @@ describe('/api/food-log', () => {
     );
 
     expect(response.status).toBe(404);
+  });
+
+  it('logs a batch in one call, in order, and refuses it whole when one item is invalid', async () => {
+    const { POST } = await import('./entries/batch/handler');
+    const log = await service();
+    vi.mocked(log.addFoodLogEntries).mockResolvedValue([{ id: 'e1' }, { id: 'e2' }] as never);
+    const item = { trainingDayId: '2026-10-01', meal: 'LUNCH', grams: 120, productId: 'p1' };
+
+    const created = await POST(json('POST', '/entries/batch', { entries: [item, { ...item, grams: 80 }] }));
+    expect(created.status).toBe(201);
+    expect(await created.json()).toEqual({ entries: [{ id: 'e1' }, { id: 'e2' }] });
+    expect(log.addFoodLogEntries).toHaveBeenCalledWith(
+      'athlete-1',
+      [item, { ...item, grams: 80 }],
+      expect.anything(),
+    );
+
+    const refused = await POST(
+      json('POST', '/entries/batch', { entries: [item, { trainingDayId: '2026-10-01', meal: 'LUNCH' }] }),
+    );
+    expect(refused.status).toBe(400);
+    const empty = await POST(json('POST', '/entries/batch', { entries: [] }));
+    expect(empty.status).toBe(400);
+    expect(log.addFoodLogEntries).toHaveBeenCalledTimes(1);
   });
 
   it('deletes an entry', async () => {
