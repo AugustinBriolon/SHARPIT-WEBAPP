@@ -10,6 +10,7 @@ import {
   recordManualGoalAchievement,
   withRaceStanding,
 } from '@sharpit/server/lib/goals/goal-achievements';
+import { withRaceProjection } from '@sharpit/server/lib/goals/race-projection';
 import { updateGoalSchema } from '@sharpit/server/lib/validators/goal';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -22,8 +23,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!goal) {
       return NextResponse.json({ error: 'Objectif introuvable' }, { status: 404 });
     }
-    const [standing] = await withRaceStanding(athleteId, [goal]);
-    return NextResponse.json({ ...standing, activities: await getGoalActivities(athleteId, id) });
+    const [[projected], activities] = await Promise.all([
+      withRaceStanding(athleteId, [goal]).then((goals) => withRaceProjection(athleteId, goals)),
+      getGoalActivities(athleteId, id),
+    ]);
+    return NextResponse.json({ ...projected, activities });
   } catch (error) {
     console.error('[goals/GET]', error);
     return NextResponse.json({ error: "Impossible de charger l'objectif" }, { status: 500 });
@@ -58,8 +62,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       await recordManualGoalAchievement({ ...existing, ...goal });
     }
 
-    const [standing] = await withRaceStanding(athleteId, [goal]);
-    return NextResponse.json(standing);
+    const [projected] = await withRaceProjection(
+      athleteId,
+      await withRaceStanding(athleteId, [goal]),
+    );
+    return NextResponse.json(projected);
   } catch (error) {
     console.error('[goals/PATCH]', error);
     const message =

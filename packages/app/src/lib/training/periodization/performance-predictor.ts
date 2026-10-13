@@ -15,7 +15,7 @@ import type {
  */
 
 /** Exposant de la loi d'endurance de Riegel : T2 = T1 · (D2/D1)^1.06. */
-const RIEGEL_EXPONENT = 1.06;
+export const RIEGEL_EXPONENT = 1.06;
 
 /** Distances cibles standard pour les prédictions de course (mètres). */
 const RACE_TARGETS: { meters: number; label: string }[] = [

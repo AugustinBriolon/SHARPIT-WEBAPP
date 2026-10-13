@@ -24,9 +24,14 @@ export type OutcomeReport = {
   share: number | null;
 };
 
-const sessionFields = { date: true, completed: true, brickGroupId: true, isKey: true } as const;
+export const sessionFields = {
+  date: true,
+  completed: true,
+  brickGroupId: true,
+  isKey: true,
+} as const;
 
-function toAdherenceSession(session: {
+export function toAdherenceSession(session: {
   date: Date;
   completed: boolean;
   brickGroupId: string | null;

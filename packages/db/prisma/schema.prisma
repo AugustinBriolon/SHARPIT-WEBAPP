@@ -183,9 +183,9 @@ model Activity {
   athleteId String
   athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
 
-  source   String  @default("manual") // manual | garmin | strava | apple-health | both | garmin+strava+apple-health | strava+apple-health | …
-  stravaId String? @unique
-  garminId String? @unique
+  source        String  @default("manual") // manual | garmin | strava | apple-health | both | garmin+strava+apple-health | strava+apple-health | …
+  stravaId      String? @unique
+  garminId      String? @unique
   /// HealthKit workout UUID — stable match when fingerprint is weak (STRENGTH).
   appleHealthId String? @unique
 
@@ -262,36 +262,36 @@ enum AthleteSex {
 }
 
 model AthleteProfile {
-  id                       String     @id @default(cuid())
-  clerkUserId              String     @unique
+  id                        String              @id @default(cuid())
+  clerkUserId               String              @unique
   /// Palier d'accès — dérivé des abonnements (`Subscription`, ADR-044) : jamais écrit
   /// ailleurs que par `recomputeAthleteTier`. La bascule /admin passe par un abonnement `manual`.
-  tier                     AccessTier @default(FREE)
+  tier                      AccessTier          @default(FREE)
   /// UUID stable remis à StoreKit (`appAccountToken`) : relie un achat Apple à ce compte.
-  appAccountToken          String?    @unique
-  heightCm                 Int? // taille (cm) — comparaisons composition (IMC, etc.)
+  appAccountToken           String?             @unique
+  heightCm                  Int? // taille (cm) — comparaisons composition (IMC, etc.)
   /// Optional body-weight target (kg) — read by the nutrition day analysis, never by Core.
-  targetWeightKg           Float?
+  targetWeightKg            Float?
   /// The athlete's own daily intake targets for the in-app food log (ADR-061). Null = not set.
-  nutritionTargetKcal      Int?
-  nutritionTargetProteinG  Float?
-  nutritionTargetCarbsG    Float?
-  nutritionTargetFatG      Float?
+  nutritionTargetKcal       Int?
+  nutritionTargetProteinG   Float?
+  nutritionTargetCarbsG     Float?
+  nutritionTargetFatG       Float?
   /// PERCENT: the macro targets split `nutritionTargetKcal`; the grams above follow the split.
-  nutritionTargetMode      NutritionTargetMode @default(GRAMS)
+  nutritionTargetMode       NutritionTargetMode @default(GRAMS)
   nutritionTargetProteinPct Int?
-  nutritionTargetCarbsPct  Int?
-  nutritionTargetFatPct    Int?
-  birthDate                DateTime?  @db.Date // date de naissance — âge calculé dynamiquement
-  sex                      AthleteSex?
-  ftpW                     Int? // FTP vélo (W)
-  maxHr                    Int? // FC max (bpm)
-  lthr                     Int? // FC seuil lactique (bpm)
-  runThresholdPaceSecPerKm Float? // allure seuil (s/km)
-  swimCssSecPer100m        Float? // vitesse critique natation (s/100m)
-  vo2maxRunning            Int? // VO2max course
-  vo2maxCycling            Int? // VO2max vélo
-  thresholdsSyncedAt       DateTime? // dernier import depuis Garmin
+  nutritionTargetCarbsPct   Int?
+  nutritionTargetFatPct     Int?
+  birthDate                 DateTime?           @db.Date // date de naissance — âge calculé dynamiquement
+  sex                       AthleteSex?
+  ftpW                      Int? // FTP vélo (W)
+  maxHr                     Int? // FC max (bpm)
+  lthr                      Int? // FC seuil lactique (bpm)
+  runThresholdPaceSecPerKm  Float? // allure seuil (s/km)
+  swimCssSecPer100m         Float? // vitesse critique natation (s/100m)
+  vo2maxRunning             Int? // VO2max course
+  vo2maxCycling             Int? // VO2max vélo
+  thresholdsSyncedAt        DateTime? // dernier import depuis Garmin
 
   context String? @db.Text // contexte libre éditable (dispos, contraintes pro, préférences) injecté dans le coach IA
 
@@ -343,7 +343,7 @@ model AthleteProfile {
   aiProcessingConsentAt    DateTime?
   unofficialProvidersAckAt DateTime?
   /// Soft-delete marker. Hard purge after PRIVACY_PURGE_DELAY_DAYS (see src/lib/privacy).
-  deletedAt DateTime?
+  deletedAt                DateTime?
 
   /// Per data-class source preferences: primary + enabled providers (ADR-027).
   /// Shape: { version: 1, classes: { activities: { primary, enabled }, ... } }
@@ -351,12 +351,12 @@ model AthleteProfile {
 
   /// Which pushes the athlete wants. Shape: NotificationPrefs v1 — see
   /// src/lib/notifications/notification-prefs.ts. Null = server defaults.
-  notificationPrefs Json?
+  notificationPrefs     Json?
   /// Which parts of SharpIt the athlete uses (pages, Résumé cards, widgets). Shape:
   /// FeaturePrefs v1 — see packages/server/src/lib/features/feature-prefs.ts. Null = all on.
-  featurePrefs Json?
+  featurePrefs          Json?
   /// Apple Health linked from the iPhone app — its « connection », there being no account (ADR-054).
-  appleHealthLinkedAt DateTime?
+  appleHealthLinkedAt   DateTime?
   /// Apple Calendar linked from the iPhone app — EventKit peer to Google Agenda (no OAuth account).
   appleCalendarLinkedAt DateTime?
 
@@ -483,19 +483,19 @@ model AthleteFeedback {
 }
 
 model DeviceToken {
-  id         String         @id @default(cuid())
-  athleteId  String
-  athlete    AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  token      String         @unique
-  platform   String         @default("ios")
-  bundleId   String         @default("app.sharpit.ios")
+  id          String         @id @default(cuid())
+  athleteId   String
+  athlete     AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  token       String         @unique
+  platform    String         @default("ios")
+  bundleId    String         @default("app.sharpit.ios")
   /// APNs environment the token belongs to: `production` (TestFlight, App Store) or `sandbox`
   /// (a build run from Xcode). Apple refuses a token sent to the other one.
-  environment String        @default("production")
-  enabled    Boolean        @default(true)
-  lastUsedAt DateTime?
-  createdAt  DateTime       @default(now())
-  updatedAt  DateTime       @updatedAt
+  environment String         @default("production")
+  enabled     Boolean        @default(true)
+  lastUsedAt  DateTime?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   @@index([athleteId])
   @@index([token])
@@ -663,32 +663,32 @@ enum NutritionAnalysisStatus {
 /// `barcode` set, shared by every athlete) or an athlete's own food (`source: CUSTOM`, `ownerId`).
 /// Nutrients are per 100 g; a serving, when known, says how many grams one portion weighs.
 model FoodProduct {
-  id             String            @id @default(cuid())
-  source         FoodProductSource
-  barcode        String?           @unique
+  id                  String            @id @default(cuid())
+  source              FoodProductSource
+  barcode             String?           @unique
   /// ANSES Ciqual food code, for a generic food (ADR-065).
-  ciqualCode     Int?              @unique
-  ownerId        String?
-  owner          AthleteProfile?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  name           String
-  brand          String?
-  kcalPer100g    Float
-  proteinPer100g Float
-  carbsPer100g   Float
-  fatPer100g     Float
-  fiberPer100g         Float?
-  sugarPer100g         Float?
-  saltPer100g          Float?
-  saturatedFatPer100g  Float?
-  servingGrams         Float?
-  servingLabel         String?
+  ciqualCode          Int?              @unique
+  ownerId             String?
+  owner               AthleteProfile?   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  name                String
+  brand               String?
+  kcalPer100g         Float
+  proteinPer100g      Float
+  carbsPer100g        Float
+  fatPer100g          Float
+  fiberPer100g        Float?
+  sugarPer100g        Float?
+  saltPer100g         Float?
+  saturatedFatPer100g Float?
+  servingGrams        Float?
+  servingLabel        String?
   /// Sharpit health score snapshot (`FoodHealthAssessment`); null when not yet computed.
-  health               Json?
+  health              Json?
   /// Open Food Facts only: why the product is trusted beyond the crowd (ADR-069); null when not.
-  verification         FoodVerification?
+  verification        FoodVerification?
   /// An own food made of other foods (ADR-071): `{ ingredients: [{ productId, name, grams }], cookedGrams, servings }`.
-  recipe               Json?
-  fetchedAt            DateTime          @default(now())
+  recipe              Json?
+  fetchedAt           DateTime          @default(now())
 
   createdAt DateTime       @default(now())
   updatedAt DateTime       @updatedAt
@@ -1025,14 +1025,18 @@ model Goal {
   notes         String?
 
   // Détails spécifiques aux courses (kind = RACE) — tous optionnels :
-  priority          GoalPriority? // importance A/B/C dans la périodisation
-  raceFormat        String? // format / distance (ex. "Half Ironman", "10 km", "Marathon")
-  targetPerformance String? // objectif visé (ex. "Sub 5h00", "Top 10", "Terminer")
+  priority           GoalPriority? // importance A/B/C dans la périodisation
+  raceFormat         String? // format / distance (ex. "Half Ironman", "10 km", "Marathon")
+  targetPerformance  String? // objectif visé (ex. "Sub 5h00", "Top 10", "Terminer")
+  /// Finish projection frozen from the eve of the race (RaceProjection JSON) — the « Prévu » after it.
+  frozenProjection   Json?
+  frozenProjectionAt DateTime?
 
-  plannedSessions PlannedSession[]
-  trainingPlans   TrainingPlan[]
-  achievements    GoalAchievement[]
-  activities      Activity[]
+  plannedSessions     PlannedSession[]
+  trainingPlans       TrainingPlan[]
+  achievements        GoalAchievement[]
+  activities          Activity[]
+  projectionSnapshots GoalProjectionSnapshot[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -1103,17 +1107,17 @@ model PlanWeek {
 }
 
 model PhysicalNote {
-  id              String           @id @default(cuid())
-  athleteId       String
-  athlete         AthleteProfile   @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  category        PhysicalCategory @default(PAIN)
-  status          PhysicalStatus   @default(ACTIVE)
-  title           String // ex: "Tendinite genou droit"
-  bodyPart        String? // ex: "Genou", "Bassin", "Pied"
-  side            BodySide         @default(NA)
-  severity        Int? // 0-10 (sévérité actuelle)
-  description     String?
-  affectsTraining Boolean          @default(true) // injecté dans le contexte coach
+  id               String            @id @default(cuid())
+  athleteId        String
+  athlete          AthleteProfile    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  category         PhysicalCategory  @default(PAIN)
+  status           PhysicalStatus    @default(ACTIVE)
+  title            String // ex: "Tendinite genou droit"
+  bodyPart         String? // ex: "Genou", "Bassin", "Pied"
+  side             BodySide          @default(NA)
+  severity         Int? // 0-10 (sévérité actuelle)
+  description      String?
+  affectsTraining  Boolean           @default(true) // injecté dans le contexte coach
   /// What the athlete can still do, as last declared — drives the training strategy (ADR-068).
   functionalImpact FunctionalImpact?
 
@@ -1134,13 +1138,13 @@ model PhysicalCheckin {
   noteId String
   note   PhysicalNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
 
-  date     DateTime @default(now())
-  severity Int? // 0-10 au moment du point de contrôle
-  comment  String?
+  date             DateTime          @default(now())
+  severity         Int? // 0-10 au moment du point de contrôle
+  comment          String?
   /// What the athlete could still do at this point.
   functionalImpact FunctionalImpact?
   /// Set when this point records a status change (resolved, reopened…); null for a plain follow-up.
-  status   PhysicalStatus?
+  status           PhysicalStatus?
 
   createdAt DateTime @default(now())
 
@@ -1652,6 +1656,20 @@ model Conversation {
   @@index([athleteId])
 }
 
+/// One race-day finish projection per ISO week and race goal — the projection's history, written on read.
+model GoalProjectionSnapshot {
+  id        String   @id @default(cuid())
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  /// ISO week, e.g. "2026-W42".
+  weekKey   String
+  finishSec Int
+  todaySec  Int
+  createdAt DateTime @default(now())
+
+  @@unique([goalId, weekKey])
+}
+
 model PlannedSession {
   id                    String            @id @default(cuid())
   athleteId             String
@@ -1785,20 +1803,20 @@ model AthleteTravelContext {
 /// Subjective day journal (signals, mood chip, hydration, caffeine) — one row per athlete training day.
 /// App-layer persistence for future stats; not Core Gate input yet.
 model AthleteDayJournal {
-  id            String         @id @default(cuid())
-  athleteId     String
-  athlete       AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  id             String         @id @default(cuid())
+  athleteId      String
+  athlete        AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
   /// YYYY-MM-DD in athlete timezone (training day id).
-  trainingDayId String
+  trainingDayId  String
   /// Factor map: { coffee?: 'yes'|'no'|'unset', sick?: ..., ... }
-  factors       Json           @default("{}")
-  moodLabel     String?
-  hydrationMl   Int?
-  caffeineMg    Int?
+  factors        Json           @default("{}")
+  moodLabel      String?
+  hydrationMl    Int?
+  caffeineMg     Int?
   /// Minutes spent driving that day — sitting still, often tense; the coach reads it.
   drivingMinutes Int?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 
   @@unique([athleteId, trainingDayId])
   @@index([athleteId, trainingDayId])
@@ -1897,13 +1915,13 @@ model BrickEvaluation {
 /// Makes background work visible: the client learns an analysis is running, and
 /// gets told when it is ready, from any page. Never read by Core.
 model AnalysisRun {
-  id        String              @id @default(cuid())
+  id        String            @id @default(cuid())
   athleteId String
-  athlete   AthleteProfile      @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  athlete   AthleteProfile    @relation(fields: [athleteId], references: [id], onDelete: Cascade)
   kind      AnalysisKind
   /// Activity id, planned-session id, brick group id, or the week start (yyyy-MM-dd).
   targetId  String
-  status    AnalysisRunStatus   @default(RUNNING)
+  status    AnalysisRunStatus @default(RUNNING)
 
   startedAt  DateTime  @default(now())
   finishedAt DateTime?

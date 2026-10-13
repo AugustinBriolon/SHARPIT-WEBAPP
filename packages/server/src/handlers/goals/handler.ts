@@ -3,6 +3,7 @@ import {
   enrichGoalsWithProgress,
   withRaceStanding,
 } from '@sharpit/server/lib/goals/goal-achievements';
+import { withRaceProjection } from '@sharpit/server/lib/goals/race-projection';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { createGoal, getGoals } from '@sharpit/server/lib/queries';
 import { createGoalSchema } from '@sharpit/server/lib/validators/goal';
@@ -12,7 +13,7 @@ export async function GET() {
     const athleteId = await getCurrentAthleteId();
     const goals = await getGoals(athleteId);
     const enriched = await enrichGoalsWithProgress(athleteId, goals);
-    return NextResponse.json(enriched);
+    return NextResponse.json(await withRaceProjection(athleteId, enriched));
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Impossible de charger les objectifs' }, { status: 500 });
@@ -33,8 +34,11 @@ export async function POST(request: NextRequest) {
     }
 
     const goal = await createGoal(athleteId, parsed.data as Parameters<typeof createGoal>[1]);
-    const [standing] = await withRaceStanding(athleteId, [goal]);
-    return NextResponse.json(standing, { status: 201 });
+    const [projected] = await withRaceProjection(
+      athleteId,
+      await withRaceStanding(athleteId, [goal]),
+    );
+    return NextResponse.json(projected, { status: 201 });
   } catch (error) {
     console.error('[goals/POST]', error);
     const message = error instanceof Error ? error.message : "Impossible de créer l'objectif";
