@@ -62,9 +62,9 @@ describe('selectRaceMoment', () => {
     });
   });
 
-  it('shows the result for three days after the race, only with a linked activity', () => {
-    expect(selectRaceMoment([race], [result], '2026-10-14')?.phase).toBe('postRace');
-    expect(selectRaceMoment([race], [result], '2026-10-15')).toBeNull();
+  it('shows the result the day after the race only, and only with a linked activity', () => {
+    expect(selectRaceMoment([race], [result], '2026-10-12')?.phase).toBe('postRace');
+    expect(selectRaceMoment([race], [result], '2026-10-13')).toBeNull();
     expect(selectRaceMoment([race], [], '2026-10-12')).toBeNull();
   });
 

@@ -1,8 +1,8 @@
 import { isMultisportLegArray, type MultisportLeg } from '@sharpit/app/lib/activity/multisport';
 import { dayKeyFromDate } from '@sharpit/app/lib/date/day-key';
 
-/** Days after the race the result stays on Today (needs a linked activity). */
-export const POST_RACE_DAYS = 3;
+/** Days after the race the result stays on Today (needs a linked activity): the day after only. */
+export const POST_RACE_DAYS = 1;
 
 const HALF_DAY_MS = 12 * 60 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
