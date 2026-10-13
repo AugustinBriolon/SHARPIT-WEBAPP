@@ -1,5 +1,12 @@
 import type { PlanPhase } from '@prisma/client';
-import { addWeeks, differenceInCalendarWeeks, format, startOfDay, startOfWeek } from 'date-fns';
+import {
+  addDays,
+  addWeeks,
+  differenceInCalendarWeeks,
+  format,
+  startOfDay,
+  startOfWeek,
+} from 'date-fns';
 
 const WEEK_OPTS = { weekStartsOn: 1 as const };
 
@@ -161,6 +168,10 @@ const PHASE_FOCUS: Record<PlanPhase, string> = {
   RACE: 'Repos actif, activation légère, course',
 };
 
+function hoursForLoad(load: number): number {
+  return Number((load / 55).toFixed(1));
+}
+
 function taperFactor(weekInTaper: number, totalTaper: number): number {
   if (totalTaper <= 1) {
     return 0.55;
@@ -239,7 +250,7 @@ function buildMacroWeekDraft(input: {
       weekIndex: input.weekIndex,
       phase: block.phase,
       targetLoad,
-      targetHours: Number((targetLoad / 55).toFixed(1)),
+      targetHours: hoursForLoad(targetLoad),
       focus: isDeload
         ? 'Semaine de récupération — volume réduit, maintien léger'
         : PHASE_FOCUS[block.phase],
@@ -254,6 +265,8 @@ export function generateMacroPlan(params: {
   raceDate: Date;
   startDate?: Date;
   baselineCtl: number;
+  /** B/C races before the target (ADR-084). */
+  stepRaces?: StepRace[];
 }): MacroPlanDraft {
   const startDate = startOfWeek(startOfDay(params.startDate ?? new Date()), WEEK_OPTS);
   const raceWeek = startOfWeek(startOfDay(params.raceDate), WEEK_OPTS);
@@ -300,7 +313,11 @@ export function generateMacroPlan(params: {
     .map((b) => `${b.weeks} sem. ${phaseLabels[b.phase].toLowerCase()}`)
     .join(' → ');
 
-  const summary = `Macro-plan ${totalWeeks} semaines jusqu'au ${format(params.raceDate, 'd/MM/yyyy')} : ${phaseSummary}. Charge de référence CTL ${baselineCtl} (≈${baseWeeklyLoad} TSS/sem).`;
+  const stepRaces = params.stepRaces ?? [];
+  const stepSummary = stepRaces.length
+    ? ` Courses intermédiaires : ${stepRaces.map(stepRaceLabel).join(', ')}.`
+    : '';
+  const summary = `Macro-plan ${totalWeeks} semaines jusqu'au ${format(params.raceDate, 'd/MM/yyyy')} : ${phaseSummary}. Charge de référence CTL ${baselineCtl} (≈${baseWeeklyLoad} TSS/sem).${stepSummary}`;
 
   return {
     raceDate: params.raceDate,
@@ -308,8 +325,109 @@ export function generateMacroPlan(params: {
     totalWeeks,
     baselineCtl,
     summary,
-    weeks,
+    weeks: applyStepRaces(weeks, stepRaces),
   };
+}
+
+/** A B or C race inside the plan horizon — the plan still builds toward its A race. */
+export type StepRace = { title: string; date: Date; priority: 'B' | 'C' };
+
+/** B race: load −35 % over the days before (Mujika & Padilla 2003, short taper). */
+export const B_RACE_TAPER_DAYS = 5;
+export const B_RACE_TAPER_LOAD_FACTOR = 0.65;
+/** B race: easy days after, before the build resumes. */
+export const B_RACE_RECOVERY_DAYS = 3;
+export const B_RACE_RECOVERY_LOAD_FACTOR = 0.4;
+
+export type StepRaceDayKind = 'MINI_TAPER' | 'STEP_RACE' | 'RECOVERY' | 'HARD_SESSION';
+export type StepRaceDay = { date: Date; kind: StepRaceDayKind; loadFactor: number };
+
+/** Day-by-day load factors around a step race; a C race is only a hard session, no taper. */
+export function stepRaceDayModifiers(race: StepRace): StepRaceDay[] {
+  const day = startOfDay(race.date);
+  if (race.priority === 'C') {
+    return [{ date: day, kind: 'HARD_SESSION', loadFactor: 1 }];
+  }
+  const span = (count: number, offset: number, kind: StepRaceDayKind, loadFactor: number) =>
+    Array.from({ length: count }, (_, i) => ({ date: addDays(day, offset + i), kind, loadFactor }));
+  return [
+    ...span(B_RACE_TAPER_DAYS, -B_RACE_TAPER_DAYS, 'MINI_TAPER', B_RACE_TAPER_LOAD_FACTOR),
+    { date: day, kind: 'STEP_RACE', loadFactor: 1 },
+    ...span(B_RACE_RECOVERY_DAYS, 1, 'RECOVERY', B_RACE_RECOVERY_LOAD_FACTOR),
+  ];
+}
+
+function stepRaceLabel(race: StepRace): string {
+  return `${race.title} (${race.priority}) le ${format(race.date, 'd/MM')}`;
+}
+
+function stepRaceFocus(race: StepRace): string {
+  return race.priority === 'B'
+    ? `Course étape ${stepRaceLabel(race)} : mini-affûtage ${B_RACE_TAPER_DAYS} j avant, ${B_RACE_RECOVERY_DAYS} j de récupération après`
+    : `Course d'entraînement ${stepRaceLabel(race)} : sans affûtage, compte comme la séance dure`;
+}
+
+function inWeek(date: Date, weekStart: Date): boolean {
+  return date >= weekStart && date < addDays(weekStart, 7);
+}
+
+/**
+ * Lowers each week's load by the days its step races take away, and names them in its focus.
+ * The A race's own taper and race weeks are left as they are.
+ */
+export function applyStepRaces(weeks: MacroWeekDraft[], races: StepRace[]): MacroWeekDraft[] {
+  const days = races.flatMap(stepRaceDayModifiers);
+  return weeks.map((week) => {
+    if (week.phase === 'TAPER' || week.phase === 'RACE') {
+      return week;
+    }
+    const lostDays = days
+      .filter((d) => inWeek(d.date, week.weekStart))
+      .reduce((sum, d) => sum + (1 - d.loadFactor), 0);
+    const notes = races
+      .filter((r) => inWeek(startOfDay(r.date), week.weekStart))
+      .map(stepRaceFocus);
+    if (lostDays === 0 && notes.length === 0) {
+      return week;
+    }
+    const targetLoad = Math.round(week.targetLoad * (1 - lostDays / 7));
+    return {
+      ...week,
+      targetLoad,
+      targetHours: hoursForLoad(targetLoad),
+      focus: [week.focus, ...notes].join(' · '),
+    };
+  });
+}
+
+/** Constraints the week generator must honour for step races touching [start, start + days). */
+export function stepRaceConstraintLines(races: StepRace[], start: Date, days: number): string[] {
+  const end = addDays(startOfDay(start), days);
+  return races.flatMap((race) => {
+    const touching = stepRaceDayModifiers(race).filter(
+      (d) => d.date >= startOfDay(start) && d.date < end,
+    );
+    if (touching.length === 0) {
+      return [];
+    }
+    const dates = (kind: StepRaceDayKind) =>
+      touching
+        .filter((d) => d.kind === kind)
+        .map((d) => format(d.date, 'd/MM'))
+        .join(', ');
+    const parts = [
+      dates('MINI_TAPER') &&
+        `mini-affûtage (charge −${Math.round((1 - B_RACE_TAPER_LOAD_FACTOR) * 100)} %, intensité courte conservée) les ${dates('MINI_TAPER')}`,
+      dates('STEP_RACE') && `la course le ${dates('STEP_RACE')} (aucune autre séance ce jour-là)`,
+      dates('RECOVERY') &&
+        `récupération (endurance facile ou repos, aucune séance dure) les ${dates('RECOVERY')}`,
+      dates('HARD_SESSION') &&
+        `la course le ${dates('HARD_SESSION')} compte comme la séance dure de la semaine, pas d'affûtage`,
+    ].filter(Boolean);
+    return [
+      `${race.priority === 'B' ? 'Course étape (B)' : "Course d'entraînement (C)"} « ${race.title} » : ${parts.join(' ; ')}.`,
+    ];
+  });
 }
 
 /** Retrouve la semaine du plan correspondant à une date. */

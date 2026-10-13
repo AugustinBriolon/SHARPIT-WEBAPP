@@ -85,6 +85,8 @@
 | [ADR-080](./ADR-080-coach-memory-durable-types.md)                                      | Coach Memory durable types (INJURY / PREFERENCE / NOTE — Files-light)                                            | Accepted                          |
 | [ADR-081](./ADR-081-race-finish-projection-v2.md)                                       | Race finish projection v2 — one server model in goal payloads, frozen on race eve                                | Accepted                          |
 | [ADR-082](./ADR-082-a-race-goal-is-entered-as-structured-values.md)                     | A race goal is entered as structured values (discipline, format, distances, D+), bounded by a server catalog     | Accepted                          |
+| [ADR-083](./ADR-083-periodization-qualities-and-absence-playbooks.md)                   | Periodization qualities + absence/pain playbooks in coach knowledge (no sixth PlanPhase)                         | Accepted                          |
+| [ADR-084](./ADR-084-race-priority-drives-the-plan.md)                                   | Race priority A/B/C drives the plan: A target, B mini-taper + recovery, C hard session                           | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

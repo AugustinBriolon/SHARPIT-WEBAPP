@@ -117,12 +117,6 @@ export const priorityLabels: Record<GoalPriority, string> = {
   C: 'Objectif C',
 };
 
-export const priorityDescriptions: Record<GoalPriority, string> = {
-  A: 'Course principale — affûtage complet',
-  B: 'Course intermédiaire — affûtage léger',
-  C: "Test / entraînement — pas d'affûtage",
-};
-
 export const priorityOrder: GoalPriority[] = [GoalPriority.A, GoalPriority.B, GoalPriority.C];
 
 /** Instrument annotation classes — A uses primary ink; never risk/caution fills. */

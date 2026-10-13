@@ -21,6 +21,7 @@ const FAILURE_LABEL: Record<string, string> = {
   'tool-deletePlannedSession': 'Séance non supprimée',
   'tool-setTravelContext': 'Contexte voyage non enregistré',
   'tool-setTrainingConstraint': 'Contrainte non enregistrée',
+  'tool-proposePlaybookAction': 'Action playbook non enregistrée',
   'tool-logFoods': 'Aliments non ajoutés',
 };
 
@@ -31,6 +32,7 @@ const SUCCESS_DETAIL_GENERIC: Record<string, string> = {
   'tool-deletePlannedSession': "Cette séance n'a pas pu être supprimée",
   'tool-setTravelContext': "Ce contexte voyage n'a pas pu être enregistré",
   'tool-setTrainingConstraint': "Cette contrainte n'a pas pu être enregistrée",
+  'tool-proposePlaybookAction': "Cette action playbook n'a pas pu être enregistrée",
   'tool-logFoods': "Ces aliments n'ont pas pu être ajoutés au journal",
 };
 

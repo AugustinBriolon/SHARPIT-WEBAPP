@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server';
 const queries = vi.hoisted(() => ({
   getGoalById: vi.fn(),
   getGoalActivities: vi.fn(),
+  getGoals: vi.fn(),
   updateGoal: vi.fn(),
   deleteGoal: vi.fn(),
 }));
@@ -40,6 +41,7 @@ const context = { params: Promise.resolve({ id: 'goal-1' }) };
 describe('GET /api/v1/goals/[id] — race projection contract', () => {
   beforeEach(() => {
     queries.getGoalActivities.mockResolvedValue([]);
+    queries.getGoals.mockResolvedValue([]);
     queries.getGoalById.mockResolvedValue({
       id: 'goal-1',
       kind: 'RACE',
@@ -79,5 +81,19 @@ describe('GET /api/v1/goals/[id] — race projection contract', () => {
     });
     expect(body).not.toHaveProperty('frozenProjection');
     expect(body).toMatchObject({ status: 'upcoming', activities: [] });
+  });
+
+  it('adds the priority role, consequence and season conflict (ADR-084)', async () => {
+    const base = await queries.getGoalById();
+    queries.getGoalById.mockResolvedValue({ ...base, priority: 'B', achieved: false });
+    const response = await GET(new NextRequest('http://localhost/api/v1/goals/goal-1'), context);
+    const body = await response.json();
+
+    expect(body).toMatchObject({
+      priorityRole: 'Course étape',
+      priorityConsequence: expect.stringContaining('Mini-affûtage'),
+      seasonConflict: null,
+      suggestedPriority: null,
+    });
   });
 });

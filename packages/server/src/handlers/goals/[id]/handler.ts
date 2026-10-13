@@ -3,6 +3,7 @@ import {
   deleteGoal,
   getGoalActivities,
   getGoalById,
+  getGoals,
   updateGoal,
 } from '@sharpit/server/lib/queries';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
@@ -11,6 +12,7 @@ import {
   withRaceStanding,
 } from '@sharpit/server/lib/goals/goal-achievements';
 import { withRaceProjection } from '@sharpit/server/lib/goals/race-projection';
+import { goalPriorityFields } from '@sharpit/app/lib/goals/goal-priority';
 import { settleStructuredRace, updateGoalSchema } from '@sharpit/server/lib/validators/goal';
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -23,11 +25,16 @@ export async function GET(_request: NextRequest, context: RouteContext) {
     if (!goal) {
       return NextResponse.json({ error: 'Objectif introuvable' }, { status: 404 });
     }
-    const [[projected], activities] = await Promise.all([
+    const [[projected], activities, goals] = await Promise.all([
       withRaceStanding(athleteId, [goal]).then((goals) => withRaceProjection(athleteId, goals)),
       getGoalActivities(athleteId, id),
+      getGoals(athleteId),
     ]);
-    return NextResponse.json({ ...projected, activities });
+    return NextResponse.json({
+      ...projected,
+      ...goalPriorityFields(projected, goals),
+      activities,
+    });
   } catch (error) {
     console.error('[goals/GET]', error);
     return NextResponse.json({ error: "Impossible de charger l'objectif" }, { status: 500 });
@@ -70,11 +77,11 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
       await recordManualGoalAchievement({ ...existing, ...goal });
     }
 
-    const [projected] = await withRaceProjection(
-      athleteId,
-      await withRaceStanding(athleteId, [goal]),
-    );
-    return NextResponse.json(projected);
+    const [[projected], goals] = await Promise.all([
+      withRaceStanding(athleteId, [goal]).then((goals) => withRaceProjection(athleteId, goals)),
+      getGoals(athleteId),
+    ]);
+    return NextResponse.json({ ...projected, ...goalPriorityFields(projected, goals) });
   } catch (error) {
     console.error('[goals/PATCH]', error);
     const message =

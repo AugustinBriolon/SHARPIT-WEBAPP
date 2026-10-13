@@ -26,8 +26,7 @@ type HrefBuilders = {
 
 const HREF_BUILDERS: HrefBuilders = {
   today: () => '/coach?discussToday=1',
-  'morning-brief': (t) =>
-    `/coach?discuss=morning-brief&day=${encodeURIComponent(t.trainingDayId)}`,
+  'morning-brief': (t) => `/coach?discuss=morning-brief&day=${encodeURIComponent(t.trainingDayId)}`,
   'planned-session': (t) => `/coach?discuss=${encodeURIComponent(t.sessionId)}`,
   activity: (t) => `/coach?discussActivity=${encodeURIComponent(t.activityId)}`,
   planning: (t) => `/coach?discussPlanning=${t.horizonDays}`,

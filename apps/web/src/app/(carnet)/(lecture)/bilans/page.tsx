@@ -114,9 +114,15 @@ export default async function CarnetReviewsPage() {
           >
             {review.stats ? <ReviewFigures stats={review.stats} /> : null}
             <CarnetMarkdown content={review.content} />
+            <Quiet>
+              Dans l&apos;app : régénère la semaine à partir de ce bilan, ou ouvre le coach avec «
+              Discute de mon bilan de la semaine du{' '}
+              {weekLabel(dayOf(review.weekStart.slice(0, 10)))} ».
+            </Quiet>
           </CarnetSection>
         ))
       )}
+      <InApp>Régénérer une semaine · Discuter du bilan avec le coach</InApp>
     </CarnetPage>
   );
 }

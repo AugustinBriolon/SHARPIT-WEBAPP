@@ -1,6 +1,11 @@
 import { format, startOfWeek } from 'date-fns';
 import type { PlanPhase } from '@prisma/client';
 import { phaseLabels } from '@sharpit/app/lib/training/periodization';
+import {
+  deriveWeekQuality,
+  weekQualityLabelFr,
+  type WeekQualityCode,
+} from '@sharpit/app/lib/training/periodization/week-quality';
 import type {
   PlanPhaseSource,
   PlanPhaseSourceWeek,
@@ -19,6 +24,9 @@ export type MacroPhaseRail = {
   weekInRun: number;
   focus: string | null;
   isDeload: boolean;
+  /** Athlete-facing week quality derived from focus/phase (ADR-083). */
+  quality: WeekQualityCode;
+  qualityLabel: string;
 };
 
 function mondayKey(value: Date | string): string {
@@ -73,6 +81,11 @@ export function buildMacroPhaseRail(
   }
 
   const weekInRun = currentRun.findIndex((week) => mondayKey(week.weekStart) === currentKey) + 1;
+  const quality = deriveWeekQuality({
+    focus: current.focus,
+    planPhase: current.phase,
+    isDeload: current.isDeload,
+  });
 
   return {
     runs: runs.map((run) => ({
@@ -83,5 +96,7 @@ export function buildMacroPhaseRail(
     weekInRun,
     focus: current.focus,
     isDeload: current.isDeload,
+    quality,
+    qualityLabel: weekQualityLabelFr(quality),
   };
 }

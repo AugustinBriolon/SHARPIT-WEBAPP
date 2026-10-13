@@ -1,7 +1,12 @@
 import { startOfDay } from 'date-fns';
 import { NextResponse } from 'next/server';
 import { loadAthletePmcAnchor } from '@sharpit/server/lib/training/pmc/pmc-server';
-import { generateMacroPlan } from '@sharpit/app/lib/training/periodization';
+import { generateMacroPlan, type StepRace } from '@sharpit/app/lib/training/periodization';
+import {
+  planStepRaces,
+  planTargetRace,
+  toPrioritizedRaces,
+} from '@sharpit/app/lib/goals/goal-priority';
 import { prisma } from '@sharpit/db/client';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import {
@@ -9,6 +14,7 @@ import {
   createTrainingPlan,
   getActiveTrainingPlan,
   getGoalById,
+  getGoals,
 } from '@sharpit/server/lib/queries';
 import { listTravelContexts } from '@sharpit/server/lib/travel-context/service';
 import { applyTravelConstraintsToMacroWeeks } from '@sharpit/app/lib/travel-context/training-constraint';
@@ -18,8 +24,13 @@ const createPlanSchema = z.object({
   goalId: z.string().min(1),
 });
 
-async function buildTravelAdjustedPlan(athleteId: string, raceDate: Date, baselineCtl: number) {
-  const draft = generateMacroPlan({ raceDate, baselineCtl });
+async function buildTravelAdjustedPlan(
+  athleteId: string,
+  raceDate: Date,
+  baselineCtl: number,
+  stepRaces: StepRace[],
+) {
+  const draft = generateMacroPlan({ raceDate, baselineCtl, stepRaces });
   const travels = await listTravelContexts(prisma, athleteId);
   const weeks = applyTravelConstraintsToMacroWeeks(
     draft.weeks,
@@ -60,15 +71,25 @@ export async function POST(request: Request) {
     }
 
     const athleteId = await getCurrentAthleteId();
-    const goal = await getGoalById(athleteId, parsed.data.goalId);
-    if (!goal?.targetDate) {
+    const [requested, goals] = await Promise.all([
+      getGoalById(athleteId, parsed.data.goalId),
+      getGoals(athleteId),
+    ]);
+    if (!requested?.targetDate) {
       return NextResponse.json(
         { error: 'Objectif introuvable ou sans date cible' },
         { status: 400 },
       );
     }
 
-    const raceDate = startOfDay(goal.targetDate);
+    // ADR-084: a plan asked for a B/C race builds toward its A race, the B/C races become steps.
+    const races = toPrioritizedRaces(goals);
+    const requestedRace = races.find((r) => r.id === requested.id);
+    const target = requestedRace ? planTargetRace(requestedRace, races) : null;
+    const goal = goals.find((g) => g.id === target?.id && g.targetDate) ?? requested;
+    const raceDate = startOfDay(goal.targetDate ?? requested.targetDate);
+    const stepRaces = target ? planStepRaces(target, races, startOfDay(new Date())) : [];
+
     if (raceDate < startOfDay(new Date())) {
       return NextResponse.json({ error: 'La date de course est passée' }, { status: 400 });
     }
@@ -82,6 +103,7 @@ export async function POST(request: Request) {
       athleteId,
       raceDate,
       baselineCtl,
+      stepRaces,
     );
 
     await archiveActiveTrainingPlans(athleteId);

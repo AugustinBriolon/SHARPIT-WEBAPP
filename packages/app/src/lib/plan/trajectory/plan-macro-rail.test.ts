@@ -27,7 +27,7 @@ describe('buildMacroPhaseRail', () => {
 
   it('collapses consecutive weeks into phase runs and marks the current one', () => {
     const rail = buildMacroPhaseRail(PLAN, new Date(2026, 8, 4));
-    expect(rail).toEqual({
+    expect(rail).toMatchObject({
       runs: [
         { phase: 'BASE', label: 'Base', current: false },
         { phase: 'BUILD', label: 'Développement', current: false },
@@ -37,6 +37,8 @@ describe('buildMacroPhaseRail', () => {
       weekInRun: 1,
       focus: 'Spécificité course',
       isDeload: false,
+      quality: 'RACE_PACE',
+      qualityLabel: 'Allure spécifique',
     });
   });
 
@@ -45,5 +47,7 @@ describe('buildMacroPhaseRail', () => {
     expect(rail?.weekInRun).toBe(2);
     expect(rail?.isDeload).toBe(true);
     expect(rail?.focus).toBe('Récupération');
+    expect(rail?.quality).toBe('DELOAD');
+    expect(rail?.qualityLabel).toBe('Semaine facile');
   });
 });

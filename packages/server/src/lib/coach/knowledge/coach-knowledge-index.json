@@ -1,5 +1,35 @@
 [
   {
+    "id": "absence-and-pain-playbooks--intro",
+    "title": "Absence and Pain Playbooks",
+    "source": "knowledge/absence-and-pain-playbooks.md",
+    "text": "Absence and Pain Playbooks. Decision trees for missed weeks, planned absence, and active pain/injury. Used by coach chat, plan generation, and session analysis — not medical advice. ---"
+  },
+  {
+    "id": "absence-and-pain-playbooks--principles",
+    "title": "Absence and Pain Playbooks — Principles",
+    "source": "knowledge/absence-and-pain-playbooks.md#principles",
+    "text": "Principles. Protect the athlete first — when in doubt, reduce load or pause the goal. Name the choice — continue / postpone / restart / cancel / lighten. Vague encouragement is not a playbook. Progressive return — after gaps, rebuild volume before intensity; after pain, reassess zones before hard sessions. Persist the chosen path as a durable memory note or training constraint so later weeks stay coherent. ---"
+  },
+  {
+    "id": "absence-and-pain-playbooks--missed-training-absence",
+    "title": "Absence and Pain Playbooks — Missed training (absence)",
+    "source": "knowledge/absence-and-pain-playbooks.md#missed-training-absence",
+    "text": "Missed training (absence). Situation Preferred action Athlete message angle 1–3 days missed, no pain Continue with lighten of next hard session Each session still counts; adapt next intensity Several weeks missed, goal still realistic Postpone race date or reduce weekly volume Reporting the goal is wiser than grinding catch-up Several weeks missed, catch-up would spike load Restart goal with progressive plan New progressive sessions feel better than compressed load Continue is high injury risk Cancel or plan a new lighter goal Continuing is very risky — recommend cancel or new goal Background / no-race goal stalled Restart with progressive sessions Relancer is more pleasant than forcing the old block Ramp rules after absence. First return week: ≤60–70% of prior weekly load; no VO2 / race-pace blocks. Second week: add volume before intensity. Reintroduce threshold only when twin recovery …"
+  },
+  {
+    "id": "absence-and-pain-playbooks--pain-and-injury",
+    "title": "Absence and Pain Playbooks — Pain and injury",
+    "source": "knowledge/absence-and-pain-playbooks.md#pain-and-injury",
+    "text": "Pain and injury. Signal Action Mild residual ache, known zone, improving Continue with zone strategy / protect the area; ask reassessment after next session Pain increases during or after the session Stop hard work; lighten or pause; open physical note New sharp pain or red-flag pattern Pause goal intensity; urge professional care; do not invent diagnoses Return from injury Treat as RETURN quality week; short progressive exposures; confidence gate Use session-analysis physicalReassessments when an active note’s zone was loaded. Prefer setTrainingConstraint / injury memory over silent plan mutation. ---"
+  },
+  {
+    "id": "absence-and-pain-playbooks--coach-outputs-typed-proposals",
+    "title": "Absence and Pain Playbooks — Coach outputs (typed proposals)",
+    "source": "knowledge/absence-and-pain-playbooks.md#coach-outputs-typed-proposals",
+    "text": "Coach outputs (typed proposals). When absence or pain is detected, propose one primary action among: CONTINUE — keep goal, maybe lighten LIGHTEN — same dates, cut volume/intensity POSTPONE — shift goal date RESTART — rebuild progressive plan PAUSE — stop hard training until clearance Always explain why in one short sentence tied to load or pain evidence."
+  },
+  {
     "id": "confidence-scoring--intro",
     "title": "Confidence Scoring",
     "source": "knowledge/confidence-scoring.md",
@@ -478,6 +508,36 @@
     "title": "Nutrition — Limitations",
     "source": "knowledge/nutrition.md#limitations",
     "text": "Limitations. No nutritional data: all nutritional recommendations are hypothesis-level, not data-driven. No food logging integration: this would require significant product investment. Indirect inference only: nutrition signals are confounded by sleep, stress, overtraining, and illness. Lab values unavailable: ferritin, transferrin, B12, Vitamin D, testosterone, cortisol — all relevant, none available."
+  },
+  {
+    "id": "periodization-qualities--intro",
+    "title": "Periodization Qualities",
+    "source": "knowledge/periodization-qualities.md",
+    "text": "Periodization Qualities. How Sharpit maps training qualities (what the week develops) onto PlanPhase, planFocus, and twin signals. Complements macro phases BASE→BUILD→PEAK→TAPER→RACE — it does not replace them. ---"
+  },
+  {
+    "id": "periodization-qualities--why-qualities",
+    "title": "Periodization Qualities — Why qualities",
+    "source": "knowledge/periodization-qualities.md#why-qualities",
+    "text": "Why qualities. Athletes understand « semaine seuil » better than « BUILD week 3 ». Campus-style cycle themes (VMA, seuil, force, affûtage…) are mono-quality blocks. Sharpit keeps physiological periodization (PlanPhase) and surfaces a week quality derived from planFocus so the athlete and the coach share the same vocabulary. ---"
+  },
+  {
+    "id": "periodization-qualities--mapping-quality-planphase",
+    "title": "Periodization Qualities — Mapping quality → PlanPhase",
+    "source": "knowledge/periodization-qualities.md#mapping-quality-planphase",
+    "text": "Mapping quality → PlanPhase. Quality code Athlete label (FR) Typical PlanPhase planFocus keywords Twin cues AEROBICBASE Volume aérobie / Z2 BASE volume, endurance fondamentale, zone 2 low ATL spike, CTL build THRESHOLD Seuil BUILD seuil, tempo, LT2, sweetspot moderate–high ATL VO2 / VMA VMA / VO2max BUILD–PEAK VMA, VO2, intervals courts high ATL, short sessions RACEPACE Allure spécifique PEAK allure course, spécificité, simulation race-specific intensity STRENGTHHILLS Force / côtes BASE–BUILD force, côtes, PPG, pré-fatigue strength load + eccentric MAINTENANCE Maintien BASE or between blocks maintien, volume stable steady CTL DELOAD Semaine facile any + isDeload récupération, deload, easy week ATL drop priority TAPER Affûtage TAPER affûtage, taper, fraîcheur volume cut, intensity short RACE Course RACE compétition, race day minimal load RETURN Reprise BASE (constrained) reprise, retour b…"
+  },
+  {
+    "id": "periodization-qualities--coaching-rules",
+    "title": "Periodization Qualities — Coaching rules",
+    "source": "knowledge/periodization-qualities.md#coaching-rules",
+    "text": "Coaching rules. One primary quality per week when generating a plan — secondary quality only as a small dose (e.g. one VO2 session inside a threshold week). Prefer matching quality to PlanPhase: do not place heavy VMA in TAPER; do not place race-pace blocks in early BASE without justification. When twin verdict is RECOVER or limiting factor is fatigue/injury, force quality toward DELOAD or RETURN regardless of calendar phase. Trail / hills: prefer STRENGTHHILLS or race-pace with elevation; encode in focus text so RAG and UI stay aligned. Expose the quality label in athlete-facing UI (macro rail, week header) — never invent a sixth Prisma PlanPhase. ---"
+  },
+  {
+    "id": "periodization-qualities--prompt-injection-hints",
+    "title": "Periodization Qualities — Prompt injection hints",
+    "source": "knowledge/periodization-qualities.md#prompt-injection-hints",
+    "text": "Prompt injection hints. When building plan/adapt knowledge queries, include: phase name, quality label or focus string, practiced sports. Example: phase BUILD seuil tempo RUN recuperation fatigue charge."
   },
   {
     "id": "physiology--intro",

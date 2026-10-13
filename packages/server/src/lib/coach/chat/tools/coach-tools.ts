@@ -5,6 +5,7 @@ import {
 import { buildContextCoachTools } from './coach-tools-context';
 import { buildFoodLogCoachTools } from './coach-tools-food-log';
 import { buildMemoryCoachTools } from './coach-tools-memory';
+import { buildPlaybookCoachTools } from './coach-tools-playbook';
 import { buildQueryCoachTools } from './coach-tools-query';
 import { buildSessionCoachTools } from './coach-tools-sessions';
 import { coachTypeEnumForSports, travelDisciplineEnumForSports } from './coach-tools-shared';
@@ -18,6 +19,7 @@ const COACH_WRITE_TOOLS: ReadonlySet<string> = new Set([
   'deletePlannedSession',
   'setTravelContext',
   'setTrainingConstraint',
+  'proposePlaybookAction',
   'upsertCoachMemoryNote',
   'archiveCoachMemoryNote',
   'logFoods',
@@ -40,6 +42,7 @@ export function createCoachTools(
       ...buildQueryCoachTools(athleteId),
       ...buildSessionCoachTools(athleteId, practicedSports, proposalTypeEnum),
       ...buildContextCoachTools(athleteId, proposalTravelEnum),
+      ...buildPlaybookCoachTools(athleteId),
       ...buildMemoryCoachTools(athleteId),
       ...buildFoodLogCoachTools(athleteId),
     },

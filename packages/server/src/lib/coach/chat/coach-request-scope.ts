@@ -26,6 +26,8 @@ export type CoachToolName =
   | 'updatePlannedSession'
   | 'deletePlannedSession'
   | 'setTravelContext'
+  | 'setTrainingConstraint'
+  | 'proposePlaybookAction'
   | 'logFoods'
   | 'listCoachMemory'
   | 'upsertCoachMemoryNote'
@@ -101,7 +103,12 @@ const SCOPES: Record<CoachIntent, Omit<CoachRequestScope, 'intent'>> = {
   recovery: {
     sections: new Set([...CORE, 'fatigue', 'adaptation', 'recent', 'realized', 'upcoming']),
     readsAgenda: false,
-    tools: READ_ONLY_TOOLS,
+    tools: [
+      ...READ_ONLY_TOOLS,
+      'setTrainingConstraint',
+      'proposePlaybookAction',
+      'upsertCoachMemoryNote',
+    ],
     reasoning: COACH_REASONING_LEVEL.answer,
   },
 };
@@ -183,6 +190,16 @@ const KEYWORDS: ReadonlyArray<[CoachIntent, readonly string[]]> = [
       'forme du jour',
       'frais',
       'epuis',
+      'douleur',
+      'blessure',
+      'blessé',
+      'blesse',
+      'absence',
+      'manque',
+      'pause',
+      'reprise',
+      'tendinite',
+      'inflammation',
     ],
   ],
   [

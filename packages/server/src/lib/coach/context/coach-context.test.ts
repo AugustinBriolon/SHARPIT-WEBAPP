@@ -438,3 +438,27 @@ describe('formatCoachContext bricks', () => {
     expect(formatCoachContext(minimalContext())).not.toContain('Les jambes d’un même brick');
   });
 });
+
+describe('formatCoachContext race roles (ADR-084)', () => {
+  it('names the A race as the target and B races as steps, with their dates', () => {
+    const race = (title: string, date: string, priority: 'A' | 'B', daysToGo: number) => ({
+      title,
+      date: new Date(date),
+      location: null,
+      priority,
+      raceFormat: null,
+      targetPerformance: null,
+      daysToGo,
+    });
+    const ironman = race('Ironman', '2027-10-10T00:00:00', 'A', 362);
+    const triL = race('Triathlon L', '2027-04-18T00:00:00', 'B', 187);
+    const text = formatCoachContext(
+      minimalContext({ primaryRace: ironman, races: [triL, ironman] }),
+    );
+
+    expect(text).toContain('Course principale : Ironman le 10 octobre 2027');
+    expect(text).toContain('Objectif principal (A), cible du plan');
+    expect(text).toContain('Course étape (B) : Triathlon L le 18 avril 2027');
+    expect(text).toContain('Mini-affûtage');
+  });
+});

@@ -52,8 +52,18 @@ import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/
 import { formatZoneTrainingRules } from '@sharpit/app/lib/physical-health/zone-training-rules';
 import { buildCoachKnowledgeQuery } from '@sharpit/server/lib/coach/knowledge/build-query';
 import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/format-knowledge-rag-block';
+import {
+  resolveCoachKnowledgeQuality,
+  resolveCoachKnowledgeSituation,
+} from '@sharpit/server/lib/coach/knowledge/knowledge-cues-from-context';
+import { detectCoachPlaybookSituation } from '@sharpit/server/lib/coach/playbooks/detect-playbook-situation';
 import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
+import {
+  deriveWeekQuality,
+  weekQualityLabelFr,
+} from '@sharpit/app/lib/training/periodization/week-quality';
+import { stepRaceConstraintLines } from '@sharpit/app/lib/training/periodization/periodization';
 import {
   formatTravelConstraintPromptRule,
   resolvePlanTargetUnderTravel,
@@ -112,6 +122,19 @@ ${bits}
 Périodise IMPÉRATIVEMENT ce bloc en fonction de cette échéance (base → spécifique → affûtage selon les semaines restantes). Oriente le contenu des séances vers les exigences de cet objectif.`;
 }
 
+/** ADR-084: B/C races touching the generated days are hard constraints, not context. */
+function buildStepRaceBlock(races: CoachContext['races'], start: Date, days: number) {
+  const stepRaces = races.flatMap((r) =>
+    r.priority === 'B' || r.priority === 'C'
+      ? [{ title: r.title, date: new Date(r.date), priority: r.priority }]
+      : [],
+  );
+  const lines = stepRaceConstraintLines(stepRaces, start, days);
+  return lines.length
+    ? `\n\n## Courses intermédiaires (contraintes impératives)\n${lines.join('\n')}`
+    : '';
+}
+
 function appendTravelConstraintRule(
   macroBlock: string,
   travelResolved: ReturnType<typeof resolvePlanTargetUnderTravel>,
@@ -135,8 +158,13 @@ function buildMacroBlock(input: {
   if (effectiveTargetLoad === null && !planPhase && !effectivePlanFocus) {
     return '';
   }
+  const quality = deriveWeekQuality({
+    focus: effectivePlanFocus,
+    planPhase: planPhase ?? null,
+  });
   const bits = [
     planPhase ? `Phase du macro-plan : ${planPhase}` : null,
+    `Qualité de la semaine : ${weekQualityLabelFr(quality)} (${quality})`,
     effectiveTargetLoad !== null
       ? `Charge hebdomadaire cible : ${effectiveTargetLoad} TSS (répartis sur les séances du bloc)`
       : null,
@@ -144,7 +172,7 @@ function buildMacroBlock(input: {
   ].filter(Boolean);
   const macroBlock = `\n\n## Macro-plan de la semaine
 ${bits.join('\n')}
-Calibre le volume et l'intensité des séances pour approcher cette charge cible sans la dépasser de plus de 10 %.`;
+Une qualité primaire par semaine (voir référentiel qualités Sharpit). Calibre le volume et l'intensité des séances pour approcher cette charge cible sans la dépasser de plus de 10 %.`;
   return appendTravelConstraintRule(macroBlock, travelResolved);
 }
 
@@ -252,7 +280,8 @@ async function preparePlanGeneration(
   const { ctx, busySummary, goal, days, focus, goalId, travelResolved, planPhase } =
     await buildPlanGenerationContext(athleteId, parsed, start);
 
-  const goalBlock = goal ? buildGoalBlock(goal, start) : '';
+  const goalBlock =
+    (goal ? buildGoalBlock(goal, start) : '') + buildStepRaceBlock(ctx.races ?? [], start, days);
   const macroBlock = buildMacroBlock({
     effectiveTargetLoad: travelResolved.targetLoad,
     planPhase: planPhase ?? undefined,
@@ -266,6 +295,18 @@ async function preparePlanGeneration(
     verdict: ctx.decision?.verdict ?? null,
     limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
     planPhase: planPhase ?? null,
+    quality: resolveCoachKnowledgeQuality({
+      focus: travelResolved.planFocus ?? focus,
+      planPhase: planPhase ?? null,
+    }),
+    situation:
+      detectCoachPlaybookSituation(ctx) ??
+      resolveCoachKnowledgeSituation({
+        focus,
+        verdict: ctx.decision?.verdict ?? null,
+        limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
+        hasActivePain: (ctx.physical?.length ?? 0) > 0,
+      }),
   };
   const [memoryBlock, knowledgeBlock] = await Promise.all([
     loadLearningMemoryBlock(athleteId, start),

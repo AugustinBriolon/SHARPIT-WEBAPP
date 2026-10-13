@@ -40,6 +40,7 @@ export async function buildAthleteExportJson(athleteId: string) {
       maxHr: true,
       lthr: true,
       runThresholdPaceSecPerKm: true,
+      runEasyPaceSecPerKm: true,
       swimCssSecPer100m: true,
       vo2maxRunning: true,
       vo2maxCycling: true,

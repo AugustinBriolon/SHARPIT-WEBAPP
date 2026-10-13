@@ -22,6 +22,7 @@ import {
 } from '@sharpit/server/lib/queries';
 import { describeBrickEvaluation } from '@sharpit/server/lib/coach/plan/brick-evaluation-prompt';
 import { intensityLabels } from '@sharpit/app/lib/planned-session/sessions';
+import { resolveZone2PaceSecPerKm } from '@sharpit/app/lib/training/reference-paces';
 import {
   applyStrengthScoringGuards,
   computeStrengthCompliance,
@@ -312,6 +313,9 @@ Compare-les et produis une analyse exploitable :
 - complianceScore : 0-100 (100 = exécution parfaite de la consigne).
 - verdict : conforme / plus dur / plus facile / plus court / plus long / différent.
 - Remarques pertinentes et factuelles (intensité, durée, allure/puissance, dérive cardiaque, exécution des intervalles). Appuie-toi sur les chiffres.
+- strengths : 1 à 3 points forts concrets de la réalisation.
+- improvements : 1 à 3 axes d'amélioration actionnables (pas de moralisme).
+- scoreTags : 1 à 3 tags parmi PACING, INTENSITY, VOLUME, EXECUTION, RECOVERY, TECHNIQUE, FUELING, CONSISTENCY.
 - Une recommandation concrète à retenir.
 
 RÈGLES D'ÉVALUATION IMPORTANTES :
@@ -410,12 +414,19 @@ function formatAthleteThresholdsLine(
   if (!profile) {
     return '';
   }
+  const zone2 = resolveZone2PaceSecPerKm({
+    easyPaceSecPerKm: profile.runEasyPaceSecPerKm,
+    thresholdPaceSecPerKm: profile.runThresholdPaceSecPerKm,
+  });
   const parts = [
     isSet(profile.ftpW) ? `FTP ${profile.ftpW} W` : null,
     isSet(profile.lthr) ? `LTHR ${profile.lthr} bpm` : null,
     isSet(profile.maxHr) ? `FC max ${profile.maxHr} bpm` : null,
     fmtPace(profile.runThresholdPaceSecPerKm)
       ? `allure seuil ${fmtPace(profile.runThresholdPaceSecPerKm)}`
+      : null,
+    zone2.paceSecPerKm && fmtPace(zone2.paceSecPerKm)
+      ? `allure Z2 ${fmtPace(zone2.paceSecPerKm)}${zone2.source === 'derived' ? ' (dérivée)' : ''}`
       : null,
   ].filter(Boolean);
   return parts.length > 0 ? `Seuils de l'athlète : ${parts.join(', ')}.\n\n` : '';
@@ -553,6 +564,9 @@ function sanitizeSessionAnalysisCopy(analysis: SessionAnalysis): SessionAnalysis
     ...analysis,
     summary: sanitizeCoachCopy(analysis.summary),
     remarks: analysis.remarks.map(sanitizeCoachCopy),
+    strengths: (analysis.strengths ?? []).map(sanitizeCoachCopy).filter(Boolean).slice(0, 4),
+    improvements: (analysis.improvements ?? []).map(sanitizeCoachCopy).filter(Boolean).slice(0, 4),
+    scoreTags: (analysis.scoreTags ?? []).slice(0, 4),
     recommendation: sanitizeCoachCopy(analysis.recommendation),
     physicalReassessments: analysis.physicalReassessments?.map((item) => ({
       ...item,

@@ -5,6 +5,8 @@ import type { ClientActivityDetail } from '@sharpit/app/lib/query/types';
 import type { ActivityDetailPayload } from '@sharpit/app/lib/web/payloads';
 import type { ActivityStreamPayload } from '@sharpit/app/lib/streams/stream-types';
 import type { ActivityNarrative, SessionAnalysis } from '@sharpit/app/lib/validators/coach';
+import { SESSION_ANALYSIS_SCORE_TAG_LABELS_FR } from '@sharpit/app/lib/coach/session-analysis-labels';
+import { sessionAnalysisNeedsFeelingGate } from '@sharpit/app/lib/coach/session-feeling-gate';
 import {
   activityTypeLabels,
   formatDistance,
@@ -105,6 +107,92 @@ export default async function CarnetSessionPage({ params }: PageProps) {
   return <SessionReading id={id} />;
 }
 
+function PlanDebrief({
+  analysis,
+  activity,
+  plannedDurationMin,
+}: {
+  analysis: SessionAnalysis;
+  activity: Pick<ClientActivityDetail, 'rpe' | 'notes'>;
+  plannedDurationMin: number | null | undefined;
+}) {
+  if (
+    sessionAnalysisNeedsFeelingGate({
+      rpe: activity.rpe,
+      notes: activity.notes,
+      hasAnalysis: true,
+    })
+  ) {
+    return (
+      <Quiet>
+        Ajoute ton effort ressenti (RPE) ou une note dans l&apos;app pour débloquer le debrief
+        complet (forces, axes, tags).
+      </Quiet>
+    );
+  }
+
+  const reassessments = (analysis.physicalReassessments ?? []).map((item) => {
+    const severity =
+      item.suggestedSeverity !== null && item.suggestedSeverity !== undefined
+        ? ` (sévérité suggérée ${item.suggestedSeverity}/10)`
+        : '';
+    return `${item.noteTitle} — ${item.question}${severity}`;
+  });
+
+  return (
+    <>
+      <Figures>
+        <Figure label="Conformité" unit="/100" value={analysis.complianceScore} />
+        {plannedDurationMin ? (
+          <Figure label="Durée prévue" value={formatDuration(plannedDurationMin * 60)} />
+        ) : null}
+      </Figures>
+      <p className="max-w-prose leading-relaxed">{analysis.summary}</p>
+      {(analysis.strengths?.length ?? 0) > 0 ? (
+        <>
+          <Quiet>
+            <span className="text-foreground font-medium">Forces.</span>
+          </Quiet>
+          <Reasons items={analysis.strengths ?? []} />
+        </>
+      ) : null}
+      {(analysis.improvements?.length ?? 0) > 0 ? (
+        <>
+          <Quiet>
+            <span className="text-foreground font-medium">À travailler.</span>
+          </Quiet>
+          <Reasons items={analysis.improvements ?? []} />
+        </>
+      ) : null}
+      {(analysis.scoreTags?.length ?? 0) > 0 ? (
+        <Quiet>
+          {(analysis.scoreTags ?? [])
+            .map((tag) => SESSION_ANALYSIS_SCORE_TAG_LABELS_FR[tag] ?? tag)
+            .join(' · ')}
+        </Quiet>
+      ) : null}
+      <Reasons items={analysis.remarks} />
+      {analysis.recommendation ? (
+        <Quiet>
+          <span className="text-foreground font-medium">À retenir.</span> {analysis.recommendation}
+        </Quiet>
+      ) : null}
+      {reassessments.length > 0 ? (
+        <>
+          <Quiet>
+            <span className="text-foreground font-medium">Zones à réévaluer.</span>
+          </Quiet>
+          <Reasons items={reassessments} />
+          <Quiet>
+            Dans l&apos;app : ouvre le coach pour choisir Continuer / Alléger / Reporter / Pause
+            selon le playbook douleur.
+          </Quiet>
+        </>
+      ) : null}
+    </>
+  );
+}
+
 async function SessionReading({ id }: { id: string }) {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
@@ -195,22 +283,11 @@ async function SessionReading({ id }: { id: string }) {
             title={analysis ? VERDICT_LABEL[analysis.verdict] : (planned.title ?? 'Séance prévue')}
           >
             {analysis ? (
-              <>
-                <Figures>
-                  <Figure label="Conformité" unit="/100" value={analysis.complianceScore} />
-                  {planned.durationMin ? (
-                    <Figure label="Durée prévue" value={formatDuration(planned.durationMin * 60)} />
-                  ) : null}
-                </Figures>
-                <p className="max-w-prose leading-relaxed">{analysis.summary}</p>
-                <Reasons items={analysis.remarks} />
-                {analysis.recommendation ? (
-                  <Quiet>
-                    <span className="text-foreground font-medium">À retenir.</span>{' '}
-                    {analysis.recommendation}
-                  </Quiet>
-                ) : null}
-              </>
+              <PlanDebrief
+                activity={activity}
+                analysis={analysis}
+                plannedDurationMin={planned.durationMin}
+              />
             ) : (
               <Quiet>La comparaison avec la séance prévue n&apos;est pas encore faite.</Quiet>
             )}

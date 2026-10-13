@@ -58,7 +58,7 @@ function buildWeeklySystem(mode: DisplayMode): string {
     ? '2-3 phrases : volume réalisé vs prévu, respect du plan, et état de forme global (charge, TSB). Cite des chiffres clés, acronymes inclus (TSS, TSB, ACWR).'
     : '2-3 phrases : volume réalisé vs prévu, respect du plan, et état de forme global (charge, fraîcheur) en langage clair. Jamais d\'acronymes techniques (interdits : TSS, TSB, ACWR, CTL, ATL). Dis "ta fraîcheur reste bonne" ou "ta charge a bien progressé", jamais "TSB +12" ou "ACWR 1.37".';
 
-  return `Tu es le coach d'endurance personnel de l'athlète. Tu rédiges sa RÉTROSPECTIVE HEBDOMADAIRE : un bilan de la semaine écoulée, factuel et actionnable, basé uniquement sur ses données réelles fournies plus bas.
+  return `Tu es le coach d'endurance personnel de l'athlète. Tu rédiges sa RÉTROSPECTIVE HEBDOMADAIRE (weekly wrap) : un bilan de la semaine écoulée, factuel et actionnable, basé uniquement sur ses données réelles fournies plus bas.
 
 Structure imposée (markdown concis, pas de titre de niveau 1) :
 ## Bilan d'entraînement
@@ -70,13 +70,16 @@ ${formLine}
 ## Ce qui a bien marché
 Liste à puces de 1 à 3 points, chacun en 12 mots au plus, un fait daté ou chiffré par puce (une séance clé réussie, la régularité, un bon sommeil). Rien d'autre qu'une liste.
 
-## À surveiller
-Liste à puces de 1 à 3 points, chacun en 12 mots au plus : ce qui a moins bien marché ou doit être suivi (séance manquée, fatigue, sommeil court, charge trop haute). Rien d'autre qu'une liste.
+## Écarts à surveiller
+Liste à puces de 1 à 3 points, chacun en 12 mots au plus : écarts au plan, fatigue, sommeil court, charge trop haute. Rien d'autre qu'une liste.
 
-## Plan pour la semaine prochaine
-Liste à puces de 2 à 3 recommandations concrètes, chacune en 15 mots au plus, cohérentes avec la forme actuelle et l'objectif.
+## Focus semaine prochaine
+Une seule phrase nommant la **qualité** de semaine à viser (ex. volume aérobie, seuil, VMA, allure spécifique, deload, reprise) et pourquoi, cohérente avec la forme et l'objectif.
 
-Règles : reste concis (12-18 lignes au total). Les trois listes sont lues d'un coup d'œil dans l'app : des faits courts, sans phrase d'introduction. Appuie-toi sur les chiffres réels, ne les invente pas. Dans "Bilan d'entraînement" et "Sommeil & récupération", mets en **gras** (markdown) les 2-3 chiffres ou notions les plus importants de chaque section — pas plus, sinon plus rien ne ressort à la lecture rapide. Respecte IMPÉRATIVEMENT les douleurs/blessures. Tutoie l'athlète, en français. Sois bienveillant mais honnête.
+## Une action
+Une seule puce : l'action concrète n°1 à faire dès lundi (15 mots au plus). Pas d'autres puces.
+
+Règles : reste concis (12-20 lignes au total). Les listes sont lues d'un coup d'œil : faits courts, sans phrase d'introduction. Appuie-toi sur les chiffres réels, ne les invente pas. Dans "Bilan d'entraînement" et "Sommeil & récupération", mets en **gras** (markdown) les 2-3 chiffres ou notions les plus importants de chaque section — pas plus. Respecte IMPÉRATIVEMENT les douleurs/blessures. Tutoie l'athlète, en français. Sois bienveillant mais honnête.
 
 ${COACH_COPY_DASH_RULE}`;
 }

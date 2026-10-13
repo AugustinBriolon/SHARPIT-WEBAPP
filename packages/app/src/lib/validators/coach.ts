@@ -203,6 +203,20 @@ export const coachPlanRequestSchema = z.object({
   planFocus: z.string().optional().nullable(),
 });
 
+/** Tags bornés pour le debrief séance (inspiré feedback Campus, ADR-083 roadmap). */
+export const sessionAnalysisScoreTagSchema = z.enum([
+  'PACING',
+  'INTENSITY',
+  'VOLUME',
+  'EXECUTION',
+  'RECOVERY',
+  'TECHNIQUE',
+  'FUELING',
+  'CONSISTENCY',
+]);
+
+export type SessionAnalysisScoreTag = z.infer<typeof sessionAnalysisScoreTagSchema>;
+
 /** Analyse d'une séance réalisée vs prévue. */
 export const sessionAnalysisSchema = z.object({
   complianceScore: z
@@ -221,6 +235,23 @@ export const sessionAnalysisSchema = z.object({
     .array(z.string())
     .max(5)
     .describe('Remarques pertinentes et exploitables (3 max idéalement).'),
+  strengths: z
+    .array(z.string())
+    .max(4)
+    .optional()
+    .describe('Points forts concrets de la réalisation (1-3 idéalement).'),
+  improvements: z
+    .array(z.string())
+    .max(4)
+    .optional()
+    .describe("Axes d'amélioration actionnables (1-3 idéalement)."),
+  scoreTags: z
+    .array(sessionAnalysisScoreTagSchema)
+    .max(4)
+    .optional()
+    .describe(
+      'Tags thématiques bornés (PACING, INTENSITY, VOLUME, EXECUTION, RECOVERY, TECHNIQUE, FUELING, CONSISTENCY).',
+    ),
   recommendation: z.string().describe('Conseil concret à retenir pour la suite.'),
   physicalReassessments: z
     .array(

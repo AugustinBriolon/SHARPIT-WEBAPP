@@ -21,6 +21,7 @@ describe('classifyCoachIntent', () => {
   it('reads nutrition, recovery and session questions', () => {
     expect(classify('Est-ce que je mange assez de glucides ?')).toBe('nutrition');
     expect(classify("J'ai mal dormi, je fais quoi ?")).toBe('recovery');
+    expect(classify("J'ai une douleur au genou, on fait quoi ?")).toBe('recovery');
     expect(classify('Analyse ma sortie de ce matin')).toBe('session');
   });
 
@@ -76,6 +77,13 @@ describe('coachRequestScope', () => {
     expect(scope.tools).toContain('logFoods');
     expect(scope.tools).not.toContain('createPlannedSession');
     expect(scope.readsAgenda).toBe(false);
+  });
+
+  it('lets recovery propose playbook / constraint writes without full calendar tools', () => {
+    const scope = coachRequestScope('recovery');
+    expect(scope.tools).toContain('proposePlaybookAction');
+    expect(scope.tools).toContain('setTrainingConstraint');
+    expect(scope.tools).not.toContain('createPlannedSession');
   });
 });
 

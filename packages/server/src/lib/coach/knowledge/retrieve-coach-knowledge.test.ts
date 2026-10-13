@@ -47,8 +47,23 @@ describe('coach knowledge RAG', () => {
         verdict: 'RECOVER',
         limitingFactor: 'FATIGUE',
         sports: ['RUN'],
+        quality: 'THRESHOLD Seuil',
+        situation: 'pain',
       }),
     ).toContain('alléger la semaine');
+    expect(
+      buildCoachKnowledgeQuery({
+        focus: 'alléger la semaine',
+        quality: 'THRESHOLD Seuil',
+        situation: 'pain',
+      }),
+    ).toMatch(/qualite THRESHOLD/i);
+    expect(
+      buildCoachKnowledgeQuery({
+        focus: 'alléger la semaine',
+        situation: 'pain',
+      }),
+    ).toMatch(/douleur/i);
     expect(buildCoachKnowledgeQuery({ focus: null })).toMatch(/recuperation/i);
   });
 
@@ -58,10 +73,32 @@ describe('coach knowledge RAG', () => {
       verdict: 'RECOVER',
       limitingFactor: 'FATIGUE',
       sports: ['RUN'],
+      quality: 'VO2 VMA',
+      situation: 'absence',
     });
     expect(rewritten).not.toMatch(/xyzzy/i);
     expect(rewritten).toMatch(/recuperation/i);
     expect(rewritten).toContain('RECOVER');
+    expect(rewritten).toMatch(/qualite VO2/i);
+    expect(rewritten).toMatch(/absence/i);
+  });
+
+  it('retrieves periodization and absence playbook chunks', () => {
+    const qualityHits = retrieveCoachKnowledge(
+      'qualite seuil phase BUILD periodization mono-quality',
+    );
+    expect(qualityHits).not.toBeNull();
+    expect(qualityHits!.some((h) => /periodization-qualities/i.test(h.source + h.title))).toBe(
+      true,
+    );
+
+    const absenceHits = retrieveCoachKnowledge(
+      'absence semaines manque reprise progressive reporter annuler douleur',
+    );
+    expect(absenceHits).not.toBeNull();
+    expect(absenceHits!.some((h) => /absence-and-pain-playbooks/i.test(h.source + h.title))).toBe(
+      true,
+    );
   });
 
   it('corrects a nonsense primary query using Twin cues on retry', () => {

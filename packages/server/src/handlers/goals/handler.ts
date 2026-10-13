@@ -4,6 +4,7 @@ import {
   withRaceStanding,
 } from '@sharpit/server/lib/goals/goal-achievements';
 import { withRaceProjection } from '@sharpit/server/lib/goals/race-projection';
+import { goalPriorityFields } from '@sharpit/app/lib/goals/goal-priority';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { createGoal, getGoals } from '@sharpit/server/lib/queries';
 import { createGoalSchema, settleStructuredRace } from '@sharpit/server/lib/validators/goal';
@@ -13,7 +14,8 @@ export async function GET() {
     const athleteId = await getCurrentAthleteId();
     const goals = await getGoals(athleteId);
     const enriched = await enrichGoalsWithProgress(athleteId, goals);
-    return NextResponse.json(await withRaceProjection(athleteId, enriched));
+    const projected = await withRaceProjection(athleteId, enriched);
+    return NextResponse.json(projected.map((g) => ({ ...g, ...goalPriorityFields(g, goals) })));
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: 'Impossible de charger les objectifs' }, { status: 500 });
@@ -42,11 +44,14 @@ export async function POST(request: NextRequest) {
       ...parsed.data,
       ...race.data,
     } as Parameters<typeof createGoal>[1]);
-    const [projected] = await withRaceProjection(
-      athleteId,
-      await withRaceStanding(athleteId, [goal]),
+    const [[projected], goals] = await Promise.all([
+      withRaceStanding(athleteId, [goal]).then((goals) => withRaceProjection(athleteId, goals)),
+      getGoals(athleteId),
+    ]);
+    return NextResponse.json(
+      { ...projected, ...goalPriorityFields(projected, goals) },
+      { status: 201 },
     );
-    return NextResponse.json(projected, { status: 201 });
   } catch (error) {
     console.error('[goals/POST]', error);
     const message = error instanceof Error ? error.message : "Impossible de créer l'objectif";

@@ -1,6 +1,13 @@
-import { addWeeks } from 'date-fns';
+import { addDays, addWeeks } from 'date-fns';
 import { describe, expect, it } from 'vitest';
-import { findPlanWeekForDate, generateMacroPlan } from './periodization';
+import {
+  B_RACE_RECOVERY_DAYS,
+  B_RACE_TAPER_DAYS,
+  findPlanWeekForDate,
+  generateMacroPlan,
+  stepRaceConstraintLines,
+  stepRaceDayModifiers,
+} from './periodization';
 
 const START = new Date('2026-01-05T00:00:00'); // un lundi
 
@@ -71,5 +78,49 @@ describe('findPlanWeekForDate', () => {
       baselineCtl: 50,
     });
     expect(findPlanWeekForDate(plan.weeks, addWeeks(START, 40))).toBeUndefined();
+  });
+});
+
+describe('step races (B/C)', () => {
+  const raceDate = addWeeks(START, 23);
+  const bRace = { title: 'Triathlon L', date: addDays(START, 7 * 8 + 6), priority: 'B' as const };
+  const cRace = { title: '10 km', date: addDays(START, 7 * 4 + 5), priority: 'C' as const };
+
+  it('gives a B race a mini-taper before and recovery after', () => {
+    const days = stepRaceDayModifiers(bRace);
+    expect(days.filter((d) => d.kind === 'MINI_TAPER')).toHaveLength(B_RACE_TAPER_DAYS);
+    expect(days.filter((d) => d.kind === 'RECOVERY')).toHaveLength(B_RACE_RECOVERY_DAYS);
+    for (const d of days.filter((day) => day.kind === 'MINI_TAPER')) {
+      expect(d.loadFactor).toBeGreaterThanOrEqual(0.6);
+      expect(d.loadFactor).toBeLessThanOrEqual(0.7);
+    }
+  });
+
+  it('gives a C race no taper — it is the hard session', () => {
+    expect(stepRaceDayModifiers(cRace).map((d) => d.kind)).toEqual(['HARD_SESSION']);
+  });
+
+  it('lowers the B race week and the next, keeps the A target and leaves C load alone', () => {
+    const plain = generateMacroPlan({ raceDate, startDate: START, baselineCtl: 50 });
+    const stepped = generateMacroPlan({
+      raceDate,
+      startDate: START,
+      baselineCtl: 50,
+      stepRaces: [bRace, cRace],
+    });
+    expect(stepped.weeks).toHaveLength(plain.weeks.length);
+    expect(stepped.weeks[8].targetLoad).toBeLessThan(plain.weeks[8].targetLoad);
+    expect(stepped.weeks[9].targetLoad).toBeLessThan(plain.weeks[9].targetLoad);
+    expect(stepped.weeks[8].focus).toContain('Course étape');
+    expect(stepped.weeks[4].targetLoad).toBe(plain.weeks[4].targetLoad);
+    expect(stepped.weeks[4].focus).toContain("Course d'entraînement");
+    expect(stepped.weeks.at(-1)).toEqual(plain.weeks.at(-1));
+    expect(stepped.summary).toContain('Triathlon L');
+  });
+
+  it('writes the generator constraints for the days in the window', () => {
+    const lines = stepRaceConstraintLines([bRace, cRace], addDays(bRace.date, -3), 7);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatch(/mini-affûtage.*course le.*récupération/);
   });
 });

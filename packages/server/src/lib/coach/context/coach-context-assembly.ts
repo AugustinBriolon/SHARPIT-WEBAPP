@@ -48,6 +48,7 @@ import {
 } from '@sharpit/app/lib/health/activity-status';
 import { normalizeAthleteEquipment } from '@sharpit/app/lib/equipment/parse';
 import { normalizeAthletePracticedSports } from '@sharpit/app/lib/practiced-sports';
+import { resolveZone2PaceSecPerKm } from '@sharpit/app/lib/training/reference-paces';
 import { normalizeTrainingAvailability } from '@sharpit/server/lib/training-availability/parse';
 import { WEEKDAY_LABELS_FR } from '@sharpit/app/lib/training-availability/types';
 import { dayKeyFromDate, toLocalCalendarDate } from '@sharpit/app/lib/date/day-key';
@@ -151,6 +152,7 @@ function activityDetailParts(a: CoachActivity): string[] {
 export function mapActivityForCoachRecent(a: CoachActivity, today: Date) {
   return {
     date: format(a.date, 'EEE d MMM', { locale: fr }),
+    dateIso: dayKeyFromDate(a.date),
     relativeDay: relativeActivityDay(a.date, today),
     type: TYPE_FR[a.type] ?? a.type,
     title: a.title ?? '',
@@ -588,11 +590,18 @@ function buildCoachProfile(profile: Awaited<ReturnType<typeof getAthleteProfile>
   if (!profile) {
     return null;
   }
+  const zone2 = resolveZone2PaceSecPerKm({
+    easyPaceSecPerKm: profile.runEasyPaceSecPerKm,
+    thresholdPaceSecPerKm: profile.runThresholdPaceSecPerKm,
+  });
   return {
     ftpW: profile.ftpW,
     maxHr: profile.maxHr,
     lthr: profile.lthr,
     thresholdPace: formatPace(profile.runThresholdPaceSecPerKm),
+    /** Z2 / endurance — declared or derived from seuil (~+15%). */
+    easyPace: formatPace(zone2.paceSecPerKm),
+    easyPaceSource: zone2.source,
     vo2maxRunning: profile.vo2maxRunning,
     vo2maxCycling: profile.vo2maxCycling,
   };

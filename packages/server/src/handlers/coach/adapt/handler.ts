@@ -25,6 +25,11 @@ import {
 } from '@sharpit/server/lib/coach/context/coach-context';
 import { buildCoachKnowledgeQuery } from '@sharpit/server/lib/coach/knowledge/build-query';
 import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/format-knowledge-rag-block';
+import {
+  resolveCoachKnowledgeQuality,
+  resolveCoachKnowledgeSituation,
+} from '@sharpit/server/lib/coach/knowledge/knowledge-cues-from-context';
+import { detectCoachPlaybookSituation } from '@sharpit/server/lib/coach/playbooks/detect-playbook-situation';
 import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import {
@@ -420,6 +425,15 @@ export async function POST(req: Request) {
       sports: ctx.practicedSports,
       verdict: ctx.decision?.verdict ?? null,
       limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
+      quality: resolveCoachKnowledgeQuality({ focus }),
+      situation:
+        detectCoachPlaybookSituation(ctx) ??
+        resolveCoachKnowledgeSituation({
+          focus,
+          verdict: ctx.decision?.verdict ?? null,
+          limitingFactor: ctx.decision?.limitingFactorDomain ?? null,
+          hasActivePain: (ctx.physical?.length ?? 0) > 0,
+        }),
     };
     const [memoryBlock, knowledgeBlock] = await Promise.all([
       loadLearningMemoryBlock(athleteId, today),

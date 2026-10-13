@@ -288,6 +288,7 @@ model AthleteProfile {
   maxHr                     Int? // FC max (bpm)
   lthr                      Int? // FC seuil lactique (bpm)
   runThresholdPaceSecPerKm  Float? // allure seuil (s/km)
+  runEasyPaceSecPerKm       Float? // allure Z2 / endurance (s/km) — editable; else derived from seuil
   swimCssSecPer100m         Float? // vitesse critique natation (s/100m)
   vo2maxRunning             Int? // VO2max course
   vo2maxCycling             Int? // VO2max vélo

@@ -24,6 +24,7 @@ describe('coachChatGenerationSettings', () => {
       'createPlannedSession',
       'deletePlannedSession',
       'logFoods',
+      'proposePlaybookAction',
       'setTrainingConstraint',
       'setTravelContext',
       'updatePlannedSession',

@@ -10,6 +10,7 @@ export type AthleteProfileFormData = {
   maxHr: number | null;
   lthr: number | null;
   runThresholdPaceSecPerKm: number | null;
+  runEasyPaceSecPerKm: number | null;
   swimCssSecPer100m: number | null;
   defaultPoolLengthM: number | null;
   vo2maxRunning: number | null;
@@ -27,6 +28,7 @@ type ProfileRow = {
   maxHr?: number | null;
   lthr?: number | null;
   runThresholdPaceSecPerKm?: number | null;
+  runEasyPaceSecPerKm?: number | null;
   swimCssSecPer100m?: number | null;
   defaultPoolLengthM?: number | null;
   vo2maxRunning?: number | null;
@@ -65,6 +67,7 @@ export function mapAthleteProfileToFormData(
     maxHr: asNull(profile.maxHr),
     lthr: asNull(profile.lthr),
     runThresholdPaceSecPerKm: asNull(profile.runThresholdPaceSecPerKm),
+    runEasyPaceSecPerKm: asNull(profile.runEasyPaceSecPerKm),
     swimCssSecPer100m: asNull(profile.swimCssSecPer100m),
     defaultPoolLengthM: asNull(profile.defaultPoolLengthM),
     vo2maxRunning: asNull(profile.vo2maxRunning),

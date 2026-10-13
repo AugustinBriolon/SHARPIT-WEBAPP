@@ -5,7 +5,11 @@ import {
   formatCoachContext,
 } from '@sharpit/server/lib/coach/context/coach-context';
 import { DAY_LOAD_VS_STATUS_COACH_LINE } from '@sharpit/server/lib/coach/context/coach-context-format';
+import { buildCoachKnowledgeQuery } from '@sharpit/server/lib/coach/knowledge/build-query';
+import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/format-knowledge-rag-block';
+import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
+import { detectCoachPlaybookSituation } from '@sharpit/server/lib/coach/playbooks/detect-playbook-situation';
 import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import type { CoachChatTiming } from '@sharpit/server/lib/coach/chat/coach-chat-timing';
 import type { CoachRequestScope } from '@sharpit/server/lib/coach/chat/coach-request-scope';
@@ -31,6 +35,8 @@ Tu ne te contentes pas de répondre : tu prends des décisions d'entraînement e
 - deletePlannedSession : supprime une séance (par id du contexte), seulement quand l'athlète ne veut plus la faire.
 - DÉPLACER / INVERSER des séances = un updatePlannedSession par séance (ou par brick), JAMAIS supprimer puis recréer : recréer perd les liens (agenda, montre, analyse) et demande plus de validations. Garde le contenu tel quel (titre, description, durée, charge) sauf si l'athlète demande de le changer ou si le nouveau jour l'impose ; dans ce cas, explique ce que tu changes.
 - setTravelContext : enregistre un NOUVEAU déplacement/vacances (ville + dates) pour pré-remplir les séances outdoor et calibrer la météo. Utilise-le seulement si aucun déplacement de « Déplacements / voyages » ne couvre déjà ces dates ; sinon le contexte existe : lis-le et applique ses sports, ne le recrée jamais. Cet outil met déjà à jour automatiquement le lieu des séances outdoor dans la période — ne rappelle PAS updatePlannedSession séance par séance sauf pour changer autre chose (date, intensité, titre…).
+- setTrainingConstraint : contrainte temporaire SANS lieu (maladie, charge pro, etc.).
+- proposePlaybookAction : face à une absence multi-jours ou une douleur active, propose UNE action typée CONTINUE | LIGHTEN | POSTPONE | RESTART | PAUSE (rationale courte liée aux preuves). Après Appliquer, si suggestRegenerateWeek, invite l'athlète à régénérer la semaine. Ne multiplie pas les propositions : une primaire.
 - createPlannedSession / updatePlannedSession acceptent exposureSetting (INDOOR/OUTDOOR), locationLabel et coordonnées. Pour une séance STRENGTH : renseigne OBLIGATOIREMENT strengthPrescription (exercices FR avec séries/reps/repos), sinon elle n'est pas envoyable à la montre. Pour RUN/BIKE/SWIM : omets-la.
 - logFoods : ajoute des aliments au journal SharpIt (un repas). Appelle-le SEULEMENT quand l'athlète demande clairement d'enregistrer / d'ajouter au journal (pas pour un conseil menu, une carte collée, ou « que prendre »). Si le message liste des options (ex. plusieurs brochettes au choix), ce n'est PAS le panier : conseille d'abord, ne loggue rien tant que le choix n'est pas tranché. Quand il dit d'ajouter seulement certains items (ex. « ajoute la soupe »), n'inclus QUE ces items — jamais le reste du menu. Une ligne = un aliment (nom FR + grammes + macros /100 g estimés). \`date\` = yyyy-MM-dd du jour du repas : calcule-la depuis la date ISO du contexte (« Profil athlète — … (yyyy-MM-dd) ») — « hier » = veille, « avant-hier » = J-2, une date citée = ce jour ; ne mets JAMAIS aujourd'hui si l'athlète parle d'un autre jour. \`meal\` : petit-déj → BREAKFAST, déjeuner → LUNCH, dîner/diner → DINNER, collation/snack → SNACKS (sinon selon l'heure). \`grams\` : si l'athlète donne une quantité (ex. 100 g), utilise EXACTEMENT cette valeur ; sinon estime. Nom = l'aliment qu'il décrit (pas un autre produit). Le serveur rapproche chaque nom du catalogue (déjà mangés, perso, Ciqual, OFF) ; les macros servent de repli. L'athlète peut encore changer le repas et les grammes sur la carte avant de valider (pas la date). Avant logFoods, écris toujours 1–3 phrases qui résument ce qui sera ajouté (pas une carte seule).
 
@@ -107,9 +113,24 @@ export async function buildCoachSystemPrompt(
     timed('memoryMs', loadLearningMemoryBlock(athleteId)),
   ]);
   const discussSection = discussBlock ? `\n\n${discussBlock}` : '';
+  const todayIso =
+    typeof ctx.today === 'string' ? ctx.today.match(/\((\d{4}-\d{2}-\d{2})\)/)?.[1] : undefined;
+  const playbookSituation = detectCoachPlaybookSituation(ctx, todayIso);
+  const playbookKnowledge =
+    playbookSituation === null
+      ? ''
+      : formatKnowledgeRagBlock(
+          retrieveCoachKnowledgeWithCorrection(
+            buildCoachKnowledgeQuery({ situation: playbookSituation }),
+            { situation: playbookSituation },
+          ),
+        );
+  const playbookHint = playbookSituation
+    ? `\n\n## Situation playbook (${playbookSituation})\nAbsence multi-jours ou douleur/reprise détectée. Utilise proposePlaybookAction pour UNE action typée (CONTINUE / LIGHTEN / POSTPONE / RESTART / PAUSE) avec rationale courte. S'appuie sur les notes physiques et physicalReassessments si présents.`
+    : '';
   return {
     practicedSports: ctx.practicedSports,
-    system: `${SYSTEM_PROMPT}\n\n---\n${formatCoachContext(ctx, scope.sections ?? undefined)}${memoryBlock}${agendaSection(scope, busySummary)}${discussSection}`,
+    system: `${SYSTEM_PROMPT}\n\n---\n${formatCoachContext(ctx, scope.sections ?? undefined)}${memoryBlock}${playbookKnowledge}${playbookHint}${agendaSection(scope, busySummary)}${discussSection}`,
   };
 }
 

@@ -121,6 +121,7 @@ export const athleteProfileSchema = z
     maxHr: nullableInt,
     lthr: nullableInt,
     runThresholdPaceSecPerKm: nullablePace,
+    runEasyPaceSecPerKm: nullablePace,
     swimCssSecPer100m: nullablePace,
     defaultPoolLengthM: nullablePoolLengthM,
     sleepTargetMinutes: nullableSleepMinutes,

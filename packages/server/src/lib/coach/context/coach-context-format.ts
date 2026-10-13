@@ -2,6 +2,7 @@
  * The coach context written as the prompt's text, section by section.
  */
 import { isSet } from '@sharpit/shared/value';
+import { PRIORITY_CONSEQUENCES, PRIORITY_ROLES } from '@sharpit/app/lib/goals/goal-priority';
 import { travelTrainingConstraintLabel } from '@sharpit/app/lib/travel-context/training-constraint';
 import { travelDisciplineLabels } from '@sharpit/app/lib/travel-context/disciplines';
 import { resolve, resolveCode } from '@sharpit/app/lib/french';
@@ -183,11 +184,20 @@ const TRAINING_CAPACITY_FR: Record<string, string> = {
 };
 
 function profileThresholdParts(profile: NonNullable<CoachContext['profile']>): string[] {
+  let easySource: string | null = null;
+  if (profile.easyPaceSource === 'declared') {
+    easySource = 'déclarée';
+  } else if (profile.easyPaceSource === 'derived') {
+    easySource = 'dérivée du seuil';
+  }
   return [
     isSet(profile.ftpW) ? `FTP ${profile.ftpW} W` : null,
     isSet(profile.lthr) ? `LTHR ${profile.lthr} bpm` : null,
     isSet(profile.maxHr) ? `FC max ${profile.maxHr} bpm` : null,
     profile.thresholdPace ? `Allure seuil ${profile.thresholdPace}` : null,
+    profile.easyPace
+      ? `Allure Z2 / endurance ${profile.easyPace}${easySource ? ` (${easySource})` : ''}`
+      : null,
     isSet(profile.vo2maxRunning) ? `VO2max course ${profile.vo2maxRunning}` : null,
     isSet(profile.vo2maxCycling) ? `VO2max vélo ${profile.vo2maxCycling}` : null,
   ].filter(Boolean) as string[];
@@ -382,13 +392,26 @@ export function formatNutritionSection(nutrition: CoachContext['nutrition']): st
   ];
 }
 
+/** ADR-084: the role a race plays, so the coach treats the A as the target and B/C as steps. */
+function raceRole(race: CoachContext['races'][number]): string {
+  return race.priority ? `${PRIORITY_ROLES[race.priority]} (${race.priority})` : 'Course';
+}
+
+function raceDate(race: CoachContext['races'][number]): string {
+  return new Date(race.date).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
 function formatPrimaryRaceLine(primaryRace: NonNullable<CoachContext['primaryRace']>): string {
   const extras = [
-    primaryRace.priority ? `priorité ${primaryRace.priority}` : null,
+    primaryRace.priority ? `${raceRole(primaryRace)}, cible du plan` : null,
     primaryRace.raceFormat,
     primaryRace.targetPerformance ? `objectif visé : ${primaryRace.targetPerformance}` : null,
   ].filter(Boolean);
-  return `Course principale : ${primaryRace.title}${primaryRace.location ? ` (${primaryRace.location})` : ''} dans ${primaryRace.daysToGo} jours (~${Math.round(primaryRace.daysToGo / 7)} semaines)${extras.length ? ` — ${extras.join(', ')}` : ''}.`;
+  return `Course principale : ${primaryRace.title}${primaryRace.location ? ` (${primaryRace.location})` : ''} le ${raceDate(primaryRace)}, dans ${primaryRace.daysToGo} jours (~${Math.round(primaryRace.daysToGo / 7)} semaines)${extras.length ? ` — ${extras.join(', ')}` : ''}.`;
 }
 
 export function formatMetricGoalLine(goal: CoachContext['metricGoals'][number]): string {
@@ -408,11 +431,11 @@ function formatGoalsSection(ctx: CoachContext): string[] {
   }
   for (const race of ctx.races.filter((entry) => entry !== ctx.primaryRace)) {
     const extras = [
-      race.priority ? `prio ${race.priority}` : null,
+      race.priority && race.priority !== 'A' ? PRIORITY_CONSEQUENCES[race.priority] : null,
       race.targetPerformance ? `objectif : ${race.targetPerformance}` : null,
     ].filter(Boolean);
     lines.push(
-      `Autre course : ${race.title} dans ${race.daysToGo} j${extras.length ? ` (${extras.join(', ')})` : ''}.`,
+      `${raceRole(race)} : ${race.title} le ${raceDate(race)}, dans ${race.daysToGo} j${extras.length ? ` (${extras.join(' ; ')})` : ''}.`,
     );
   }
   lines.push(...ctx.metricGoals.map(formatMetricGoalLine));

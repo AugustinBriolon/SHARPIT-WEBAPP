@@ -29,9 +29,9 @@ Le coach a besoin du [consentement IA](/aide/confidentialite/consentements). San
     },
     {
       slug: 'valider-une-proposition',
-      title: 'Valider ou refuser une proposition du coach',
+      title: 'Appliquer, modifier ou ignorer une proposition du coach',
       summary:
-        'Quand le coach veut changer ton plan, il te montre une carte avec Valider et Refuser. Rien ne change sans ta réponse.',
+        'Quand le coach veut changer ton plan, il te montre une carte : Appliquer, Modifier ou Ignorer. Rien ne change sans ta réponse.',
       body: `
 ### La carte de proposition
 
