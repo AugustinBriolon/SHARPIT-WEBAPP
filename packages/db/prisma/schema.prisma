@@ -1658,14 +1658,18 @@ model Conversation {
 
 /// One race-day finish projection per ISO week and race goal — the projection's history, written on read.
 model GoalProjectionSnapshot {
-  id        String   @id @default(cuid())
-  goalId    String
-  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  goalId     String
+  goal       Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
   /// ISO week, e.g. "2026-W42".
-  weekKey   String
-  finishSec Int
-  todaySec  Int
-  createdAt DateTime @default(now())
+  weekKey    String
+  finishSec  Int
+  todaySec   Int
+  /// The whole live RaceProjection (without history), served for the rest of the week.
+  payload    Json?
+  /// When `payload` was computed; an activity or goal edit after it triggers a recompute.
+  computedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
 
   @@unique([goalId, weekKey])
 }

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "GoalProjectionSnapshot" ADD COLUMN "payload" JSONB,
+ADD COLUMN "computedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP;

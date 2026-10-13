@@ -7,6 +7,14 @@ import { parseChronoInput } from '@sharpit/app/lib/goals/goal-metric-config';
 import { isRaceDayReached, raceDayKey } from '@sharpit/app/lib/goals/race-moment';
 import { median } from '@sharpit/app/lib/journal/journal-habit-analysis';
 import {
+  decayedBest,
+  inCapacityWindow,
+  raceTargetHr,
+  smoothedWeekly,
+  paceAtHr,
+  type DatedValue,
+} from '@sharpit/app/lib/goals/goal-race-capacity';
+import {
   appliedWeeklyRate,
   legTrend,
   raceDayFactor,
@@ -21,17 +29,25 @@ import {
   type FormatSpec,
 } from '@sharpit/app/lib/training/periodization/triathlon-performance-predictor';
 
-const RUN_RACE_TARGETS: readonly { meters: number; patterns: readonly RegExp[] }[] = [
+const RUN_RACE_TARGETS: readonly {
+  meters: number;
+  /** Race HR as a share of LTHR (ADR-081). */
+  hrFactor: number;
+  patterns: readonly RegExp[];
+}[] = [
   {
     meters: 5000,
+    hrFactor: 1.02,
     patterns: [/\b5\s*k(?:m)?\b/i, /\b5000\s*m\b/i],
   },
   {
     meters: 10000,
+    hrFactor: 1.0,
     patterns: [/\b10\s*k(?:m)?\b/i, /\b10000\s*m\b/i],
   },
   {
     meters: 21097,
+    hrFactor: 0.95,
     patterns: [
       /\bsemi[- ]?marathon\b/i,
       /\bsemi\b/i,
@@ -41,6 +57,7 @@ const RUN_RACE_TARGETS: readonly { meters: number; patterns: readonly RegExp[] }
   },
   {
     meters: 42195,
+    hrFactor: 0.9,
     patterns: [/\bmarathon\b/i, /\b42(?:[.,]2)?\s*k(?:m)?\b/i],
   },
 ];
@@ -53,6 +70,10 @@ export function resolveRunRaceMeters(
   raceFormat: string | null,
   title: string | null,
 ): number | null {
+  return resolveRunRace(raceFormat, title)?.meters ?? null;
+}
+
+function resolveRunRace(raceFormat: string | null, title: string | null) {
   const haystack = [raceFormat, title].filter(Boolean).join(' · ');
   if (!haystack.trim()) {
     return null;
@@ -63,7 +84,7 @@ export function resolveRunRaceMeters(
 
   for (const target of RUN_RACE_TARGETS) {
     if (target.patterns.some((pattern) => pattern.test(haystack))) {
-      return target.meters;
+      return target;
     }
   }
   return null;
@@ -114,21 +135,25 @@ export function parseRaceTargetSeconds(raw: string | null | undefined): number |
 /*
  * Race finish projection (v2) — the one model behind the goal payloads, read as-is by iOS.
  *
- * Per leg, the most specific evidence wins: the athlete's past races ('history'), then the last
- * 12 weeks of training ('recent'), then the profile thresholds ('profile'), then amateur
- * defaults ('default'). Calibrated from past linked races: T1/T2 (their median) and the swim
- * pace per 100 m (a factor against today's CSS would reduce to that same pace). Backtested on
- * the Versailles Half (5:40:02): v2 lands within 10 min where the old iOS model said 6:05.
+ * Per leg, the most specific evidence wins: the athlete's past races ('history'), then recent
+ * training ('recent': run capacity from goal-race-capacity over 26 weeks, bike medians over 12),
+ * then the profile thresholds ('profile'), then amateur defaults ('default'). Calibrated from
+ * past linked races: T1/T2 (their median) and the swim pace per 100 m (a factor against today's
+ * CSS would reduce to that same pace).
  */
 
 export type RaceProjectionLegKind = 'swim' | 't1' | 'bike' | 't2' | 'run';
 export type RaceProjectionSource = 'history' | 'recent' | 'profile' | 'default';
 export type RaceProjectionConfidence = 'low' | 'medium' | 'high';
 
+/** How a run or bike leg was read: run HR curve, age-decayed best, median long ride, profile. */
+export type RaceProjectionMethod = 'hr-curve' | 'decayed-best' | 'median' | 'profile' | 'default';
+
 export type RaceProjectionLeg = {
   kind: RaceProjectionLegKind;
   sec: number;
   source: RaceProjectionSource;
+  method?: RaceProjectionMethod;
 };
 
 export type RaceProjectionHistoryPoint = { weekKey: string; date: string; finishSec: number };
@@ -165,9 +190,16 @@ export type RaceProjectionInputs = RegularityInputs & {
     runThresholdPaceSecPerKm: number | null;
     ftpW: number | null;
     weightKg: number | null;
+    lthr: number | null;
+    maxHr: number | null;
   };
-  /** Run references: whole runs and stream bests per distance, each dated. */
-  runEfforts: readonly { meters: number; seconds: number; date: Date | string }[];
+  /** Run references: whole runs (with their average HR) and stream bests per distance. */
+  runEfforts: readonly {
+    meters: number;
+    seconds: number;
+    date: Date | string;
+    avgHr?: number | null;
+  }[];
   rides: readonly { date: Date | string; distanceM: number; durationSec: number }[];
   /** Activities linked to race goals; only multisport ones calibrate. */
   pastRaces: readonly { date: Date | string; multisportLegs: unknown }[];
@@ -180,10 +212,11 @@ type RaceGoalFields = {
   targetPerformance: string | null;
 };
 
-type TrendPoint = { date: Date | string; sec: number };
+type TrendPoint = DatedValue;
 type LegEstimate = {
   sec: number;
   source: RaceProjectionSource;
+  method?: RaceProjectionMethod;
   missing?: string;
   /** Leg-equivalent times over the recent window, for the race-day trend. */
   trendPoints?: TrendPoint[];
@@ -205,6 +238,10 @@ const MIN_RUN_REF_SHARE = 0.2;
 const MAX_RUN_REF_MULTIPLE = 3;
 /** Faster than 2:30/km is a mislabelled activity, not a run. */
 const FASTEST_RUN_PACE_SEC_PER_KM = 150;
+/** Slower than 10:00/km is walking: no place on the pace–HR curve. */
+const SLOWEST_RUN_PACE_SEC_PER_KM = 600;
+/** The HR curve never beats the decayed best reference by more than 3 %. */
+const MAX_CURVE_GAIN = 0.97;
 const MIN_TRANSITION_SEC = 30;
 const MAX_TRANSITION_SEC = 20 * 60;
 /** Amateur fallbacks when the athlete gave nothing at all. */
@@ -249,8 +286,8 @@ function riegelSeconds(seconds: number, fromMeters: number, toMeters: number): n
   return seconds * (toMeters / fromMeters) ** RIEGEL_EXPONENT;
 }
 
-/** Riegel'd standalone times over `meters` from the last 12 weeks' references around it. */
-function recentRunPredictions(
+/** Riegel'd standalone times over `meters` from the 26-week references around it. */
+function runReferences(
   meters: number,
   efforts: RaceProjectionInputs['runEfforts'],
   asOf: Date,
@@ -259,7 +296,7 @@ function recentRunPredictions(
   return efforts
     .filter(
       (effort) =>
-        isRecent(effort.date, asOf) &&
+        inCapacityWindow(effort.date, asOf) &&
         effort.meters >= minMeters &&
         effort.meters <= MAX_RUN_REF_MULTIPLE * meters &&
         (effort.seconds / effort.meters) * 1000 >= FASTEST_RUN_PACE_SEC_PER_KM,
@@ -270,30 +307,25 @@ function recentRunPredictions(
     }));
 }
 
-/**
- * Standalone time over `meters` from the last 12 weeks: the fastest Riegel'd reference in a
- * band around the distance. The fastest, because easy long runs say little about race pace.
- */
-export function recentRunSeconds(
+/** Standalone time over `meters` at the race's target HR, from the 26-week pace–HR curve. */
+function hrCurveRunSeconds(
   meters: number,
-  efforts: RaceProjectionInputs['runEfforts'],
-  asOf: Date,
+  hrFactor: number,
+  inputs: RaceProjectionInputs,
 ): number | null {
-  const predictions = recentRunPredictions(meters, efforts, asOf).map((point) => point.sec);
-  return predictions.length > 0 ? Math.min(...predictions) : null;
-}
-
-/** The fastest reference of each week: easy runs mixed in would read as noise, not form. */
-function weeklyBests(points: readonly TrendPoint[], asOf: Date): TrendPoint[] {
-  const byWeek = new Map<number, TrendPoint>();
-  for (const point of points) {
-    const week = Math.floor((asOf.getTime() - timeMs(point.date)) / (7 * DAY_MS));
-    const best = byWeek.get(week);
-    if (!best || point.sec < best.sec) {
-      byWeek.set(week, point);
-    }
-  }
-  return [...byWeek.values()];
+  const points = inputs.runEfforts.flatMap((effort) => {
+    const pace = (effort.seconds / effort.meters) * 1000;
+    return effort.avgHr &&
+      effort.avgHr > 0 &&
+      inCapacityWindow(effort.date, inputs.asOf) &&
+      effort.meters >= MIN_RUN_REF_METERS &&
+      pace >= FASTEST_RUN_PACE_SEC_PER_KM &&
+      pace <= SLOWEST_RUN_PACE_SEC_PER_KM
+      ? [{ hr: effort.avgHr, value: pace }]
+      : [];
+  });
+  const pace = paceAtHr(points, raceTargetHr(inputs.profile, hrFactor));
+  return pace !== null && pace >= FASTEST_RUN_PACE_SEC_PER_KM ? (pace * meters) / 1000 : null;
 }
 
 function thresholdRunSeconds(thresholdSecPerKm: number, meters: number): number {
@@ -301,17 +333,36 @@ function thresholdRunSeconds(thresholdSecPerKm: number, meters: number): number 
   return riegelSeconds(proxySeconds, THRESHOLD_PROXY_METERS, meters);
 }
 
+/**
+ * Run capacity: the faster of the pace–HR curve at race HR (never under 0.97 × the best) and
+ * the age-decayed best reference, × the brick factor; the profile threshold only when neither exists.
+ */
 export function projectRunLeg(
   meters: number,
   brickFactor: number,
+  hrFactor: number,
   inputs: RaceProjectionInputs,
 ): LegEstimate {
-  const predictions = recentRunPredictions(meters, inputs.runEfforts, inputs.asOf);
-  if (predictions.length > 0) {
+  const references = runReferences(meters, inputs.runEfforts, inputs.asOf);
+  const best = decayedBest(references, inputs.asOf);
+  const curve = hrCurveRunSeconds(meters, hrFactor, inputs);
+  // The curve may beat the best reference, but by 3 % at most: past that it extrapolates.
+  const boundedCurve =
+    curve !== null && best !== null ? Math.max(curve, best * MAX_CURVE_GAIN) : curve;
+  const readings = (
+    [
+      { method: 'hr-curve', sec: boundedCurve },
+      { method: 'decayed-best', sec: best },
+    ] as const
+  ).flatMap((reading) => (reading.sec === null ? [] : [{ ...reading, sec: reading.sec }]));
+  if (readings.length > 0) {
+    const fastest = readings.reduce((best, reading) => (reading.sec < best.sec ? reading : best));
+    const recent = references.filter((reference) => isRecent(reference.date, inputs.asOf));
     return {
-      sec: Math.min(...predictions.map((point) => point.sec)) * brickFactor,
+      sec: fastest.sec * brickFactor,
       source: 'recent',
-      trendPoints: weeklyBests(predictions, inputs.asOf),
+      method: fastest.method,
+      trendPoints: smoothedWeekly(recent, inputs.asOf, (week) => Math.min(...week)),
     };
   }
   const threshold = inputs.profile.runThresholdPaceSecPerKm;
@@ -319,12 +370,14 @@ export function projectRunLeg(
     return {
       sec: thresholdRunSeconds(threshold, meters) * brickFactor,
       source: 'profile',
+      method: 'profile',
       missing: MISSING.runProfile,
     };
   }
   return {
     sec: thresholdRunSeconds(DEFAULT_RUN_THRESHOLD_SEC_PER_KM, meters) * brickFactor,
     source: 'default',
+    method: 'default',
     missing: MISSING.runDefault,
   };
 }
@@ -381,29 +434,45 @@ function ftpBikeSpeed(spec: FormatSpec, profile: RaceProjectionInputs['profile']
   return estimateBikeSpeedMsFromPower(profile.ftpW * spec.bikeIf, weight);
 }
 
+/**
+ * Bike: median long ride, else FTP. No HR curve: speed depends on terrain and wind, so an
+ * HR → speed fit does not transfer to race HR (prod backtest: 35 km/h for a real 27.4).
+ */
 export function projectBikeLeg(spec: FormatSpec, inputs: RaceProjectionInputs): LegEstimate {
   const recent = longRideSpeeds(spec, inputs, true);
+  const trendPoints = smoothedWeekly(
+    recent.map((ride) => ({ date: ride.date, sec: spec.bikeM / ride.speed })),
+    inputs.asOf,
+    median,
+  );
   if (recent.length >= MIN_RIDES) {
     return {
       sec: spec.bikeM / medianSpeed(recent),
       source: 'recent',
-      trendPoints: recent.map((ride) => ({ date: ride.date, sec: spec.bikeM / ride.speed })),
+      method: 'median',
+      trendPoints,
     };
   }
   const all = longRideSpeeds(spec, inputs, false);
   if (all.length >= MIN_RIDES) {
-    return { sec: spec.bikeM / medianSpeed(all), source: 'history' };
+    return { sec: spec.bikeM / medianSpeed(all), source: 'history', method: 'median' };
   }
   const ftpSpeed = ftpBikeSpeed(spec, inputs.profile);
   if (ftpSpeed !== null) {
-    return { sec: spec.bikeM / ftpSpeed, source: 'profile', missing: MISSING.bikeFtp };
+    return {
+      sec: spec.bikeM / ftpSpeed,
+      source: 'profile',
+      method: 'profile',
+      missing: MISSING.bikeFtp,
+    };
   }
   if (all.length > 0) {
-    return { sec: spec.bikeM / medianSpeed(all), source: 'history' };
+    return { sec: spec.bikeM / medianSpeed(all), source: 'history', method: 'median' };
   }
   return {
     sec: spec.bikeM / DEFAULT_BIKE_SPEED_MS,
     source: 'default',
+    method: 'default',
     missing: MISSING.bikeDefault,
   };
 }
@@ -440,7 +509,7 @@ function triathlonLegs(spec: FormatSpec, inputs: RaceProjectionInputs): KindedEs
     { kind: 't1', ...projectTransitionLeg(1, spec.defaultT1Sec, pastRaceLegs) },
     { kind: 'bike', ...projectBikeLeg(spec, inputs) },
     { kind: 't2', ...projectTransitionLeg(2, spec.defaultT2Sec, pastRaceLegs) },
-    { kind: 'run', ...projectRunLeg(spec.runM, spec.brickRunFactor, inputs) },
+    { kind: 'run', ...projectRunLeg(spec.runM, spec.brickRunFactor, spec.runHrFactor, inputs) },
   ];
 }
 
@@ -457,8 +526,10 @@ function projectLegs(goal: RaceGoalFields, inputs: RaceProjectionInputs): Kinded
   if (format) {
     return triathlonLegs(triathlonDistances(format), inputs);
   }
-  const meters = resolveRunRaceMeters(goal.raceFormat, goal.title);
-  return meters === null ? null : [{ kind: 'run', ...projectRunLeg(meters, 1, inputs) }];
+  const race = resolveRunRace(goal.raceFormat, goal.title);
+  return race === null
+    ? null
+    : [{ kind: 'run', ...projectRunLeg(race.meters, 1, race.hrFactor, inputs) }];
 }
 
 /** Share of legs standing on the athlete's own measured evidence. */
@@ -487,10 +558,11 @@ export function buildRaceProjection(
   const trends = estimates.map((estimate) =>
     estimate.trendPoints ? legTrend(estimate.trendPoints) : null,
   );
-  const legs = estimates.map(({ kind, sec, source }, i) => ({
+  const legs = estimates.map(({ kind, sec, source, method }, i) => ({
     kind,
     sec: Math.round(sec * raceDayFactor(trends[i], regularity, weeks)),
     source,
+    ...(method ? { method } : {}),
   }));
   const todaySec = estimates.reduce((sum, estimate) => sum + Math.round(estimate.sec), 0);
   const finishSec = legs.reduce((sum, leg) => sum + leg.sec, 0);

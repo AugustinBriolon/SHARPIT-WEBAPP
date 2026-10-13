@@ -3,6 +3,7 @@
  * Prints, leg by leg, the real race, the old iOS model (GoalAnalyticsEngine.computeTriathlonFinish)
  * and the server model v2 (buildRaceProjection) fed only with evidence from before race day.
  * Then replays v2 as of 8, 4 and 0 weeks before the race: today's level vs the race-day projection.
+ * « norm » scores model pace over the real leg distances (courses are rarely exact).
  * Usage: yarn tsx scripts/backtest-race-projection.ts --athlete <id> [--goal <goalId>]
  */
 import { ActivityType, GoalKind } from '@prisma/client';
@@ -13,6 +14,7 @@ import {
   projectionAsOf,
   type RaceProjection,
 } from '@sharpit/app/lib/goals/goal-race-projection';
+import { CAPACITY_WINDOW_DAYS } from '@sharpit/app/lib/goals/goal-race-capacity';
 import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 import { loadRaceProjectionEvidence } from '@sharpit/server/lib/goals/race-projection';
 
@@ -46,6 +48,28 @@ type Legs = { swim: number; t1: number; bike: number; t2: number; run: number };
 
 function total(legs: Legs): number {
   return legs.swim + legs.t1 + legs.bike + legs.t2 + legs.run;
+}
+
+type SportLeg = 'swim' | 'bike' | 'run';
+const FORMAT_METERS: Record<SportLeg, number> = {
+  swim: HALF.swimM,
+  bike: HALF.bikeM,
+  run: HALF.runM,
+};
+
+function actualMeters(legs: MultisportLeg[], kind: SportLeg): number {
+  return legs
+    .filter((leg) => leg.kind === kind)
+    .reduce((sum, leg) => sum + (leg.distanceM ?? 0), 0);
+}
+
+/** Model legs rescaled to the real distances (unchanged where a distance is unknown). */
+function normalised(model: Legs, legs: MultisportLeg[]): Legs {
+  const scale = (kind: SportLeg) => {
+    const meters = actualMeters(legs, kind);
+    return meters > 0 ? (model[kind] * meters) / FORMAT_METERS[kind] : model[kind];
+  };
+  return { ...model, swim: scale('swim'), bike: scale('bike'), run: scale('run') };
 }
 
 function actualLegs(legs: MultisportLeg[]): Legs {
@@ -140,7 +164,7 @@ async function main(): Promise<void> {
   const evidence = await loadRaceProjectionEvidence(
     athleteId,
     // Room for the replay 8 weeks back.
-    new Date(asOf.getTime() - (RECENT_DAYS + 56) * 86_400_000),
+    new Date(asOf.getTime() - (CAPACITY_WINDOW_DAYS + 56) * 86_400_000),
   );
   const raceDayProfile = {
     ...evidence.profile,
@@ -148,6 +172,8 @@ async function main(): Promise<void> {
   };
   const projection = buildRaceProjection(goal, { ...evidence, asOf, profile: raceDayProfile });
   const v2 = modelLegs(projection);
+  const raceLegs = race.multisportLegs;
+  const v2Norm = v2 && normalised(v2, raceLegs);
   const kmh = (speed: number | null) => (speed === null ? '—' : `${(speed * 3.6).toFixed(1)} km/h`);
 
   console.log(
@@ -167,7 +193,10 @@ async function main(): Promise<void> {
     iosError: clock(ios[leg] - actual[leg]),
     v2: clock(v2?.[leg] ?? null),
     v2Error: clock(v2 ? v2[leg] - actual[leg] : null),
+    v2Norm: clock(v2Norm?.[leg] ?? null),
+    v2NormError: clock(v2Norm ? v2Norm[leg] - actual[leg] : null),
     v2Source: projection?.legs.find((entry) => entry.kind === leg)?.source ?? '—',
+    v2Method: projection?.legs.find((entry) => entry.kind === leg)?.method ?? '—',
   }));
   rows.push({
     leg: 'total',
@@ -176,8 +205,14 @@ async function main(): Promise<void> {
     iosError: clock(total(ios) - total(actual)),
     v2: clock(v2 && total(v2)),
     v2Error: clock(v2 ? total(v2) - total(actual) : null),
+    v2Norm: clock(v2Norm && total(v2Norm)),
+    v2NormError: clock(v2Norm ? total(v2Norm) - total(actual) : null),
     v2Source: projection?.confidence ?? '—',
+    v2Method: '—',
   });
+  console.log(
+    `Real distances: swim ${actualMeters(raceLegs, 'swim')} m · bike ${actualMeters(raceLegs, 'bike')} m · run ${actualMeters(raceLegs, 'run')} m · profile LTHR ${evidence.profile.lthr ?? 'unset'} · max HR ${evidence.profile.maxHr ?? 'unset'}`,
+  );
   console.table(rows);
   console.log(
     `v2 as of ${asOf.toISOString()}: ${clock(projection?.finishSec ?? null)} (${clock(projection?.lowSec ?? null)}–${clock(projection?.highSec ?? null)}) · ${projection?.confidence ?? 'no projection'}`,
@@ -191,11 +226,15 @@ async function main(): Promise<void> {
     [8, 4, 0].map((weeksBefore) => {
       const at = new Date(raceStart - weeksBefore * 7 * 86_400_000);
       const replay = buildRaceProjection(goal, { ...evidence, profile: raceDayProfile, asOf: at });
+      const replayLegs = modelLegs(replay);
+      const replayNorm = replayLegs && normalised(replayLegs, raceLegs);
       return {
         asOf: at.toISOString().slice(0, 10),
         today: clock(replay?.todaySec ?? null),
         raceDay: clock(replay?.finishSec ?? null),
         raceDayError: clock(replay ? replay.finishSec - total(actual) : null),
+        // Race-day legs over the real distances.
+        raceDayNormError: clock(replayNorm ? total(replayNorm) - total(actual) : null),
         secPerWeek: replay?.trend.secPerWeek ?? '—',
         regularity: replay?.regularity ?? '—',
       };

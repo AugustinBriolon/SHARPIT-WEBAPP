@@ -19,6 +19,8 @@ export type FormatSpec = {
    * this is only the bike's fatigue: small on a sprint, growing with the ride (half ≈ 1.03–1.05).
    */
   readonly brickRunFactor: number;
+  /** Run leg race HR as a share of LTHR (ADR-081). */
+  readonly runHrFactor: number;
 };
 
 const FORMAT_SPECS: Record<TriathlonFormat, FormatSpec> = {
@@ -30,6 +32,7 @@ const FORMAT_SPECS: Record<TriathlonFormat, FormatSpec> = {
     defaultT2Sec: 120,
     bikeIf: 0.85,
     brickRunFactor: 1.02,
+    runHrFactor: 1.0,
   },
   olympic: {
     swimM: 1500,
@@ -39,15 +42,18 @@ const FORMAT_SPECS: Record<TriathlonFormat, FormatSpec> = {
     defaultT2Sec: 150,
     bikeIf: 0.8,
     brickRunFactor: 1.03,
+    runHrFactor: 0.97,
   },
   half: {
     swimM: 1900,
     bikeM: 90_000,
     runM: 21_097,
-    defaultT1Sec: 360,
-    defaultT2Sec: 240,
+    // Big-park amateur reality (long T1 run-through, wetsuit off).
+    defaultT1Sec: 420,
+    defaultT2Sec: 270,
     bikeIf: 0.75,
     brickRunFactor: 1.04,
+    runHrFactor: 0.93,
   },
   full: {
     swimM: 3800,
@@ -57,6 +63,7 @@ const FORMAT_SPECS: Record<TriathlonFormat, FormatSpec> = {
     defaultT2Sec: 300,
     bikeIf: 0.7,
     brickRunFactor: 1.06,
+    runHrFactor: 0.88,
   },
 };
 

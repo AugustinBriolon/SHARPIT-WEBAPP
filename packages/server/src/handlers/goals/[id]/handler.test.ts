@@ -27,7 +27,7 @@ vi.mock('@sharpit/db/client', () => ({
     plannedSession: { findMany: vi.fn().mockResolvedValue([]) },
     goalProjectionSnapshot: {
       findMany: vi.fn().mockResolvedValue([]),
-      createMany: vi.fn(),
+      upsert: vi.fn(),
     },
     goal: { update: vi.fn() },
   },
@@ -72,7 +72,7 @@ describe('GET /api/v1/goals/[id] — race projection contract', () => {
       highSec: expect.any(Number),
       targetSec: 6300,
       deltaSec: body.projection.finishSec - 6300,
-      legs: [{ kind: 'run', sec: body.projection.finishSec, source: 'default' }],
+      legs: [{ kind: 'run', sec: body.projection.finishSec, source: 'default', method: 'default' }],
       confidence: 'low',
       missing: [expect.stringContaining('allure seuil')],
       frozenAt: null,

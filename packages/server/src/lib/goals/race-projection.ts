@@ -10,6 +10,7 @@ import {
   type RaceProjectionHistoryPoint,
   type RaceProjectionInputs,
 } from '@sharpit/app/lib/goals/goal-race-projection';
+import { CAPACITY_WINDOW_DAYS } from '@sharpit/app/lib/goals/goal-race-capacity';
 import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 import { isoWeekKeyOf } from '@sharpit/app/lib/training/thread/build-thread';
 import {
@@ -18,7 +19,6 @@ import {
 } from '@sharpit/server/lib/planned-session/adherence/plan-adherence-service';
 
 const DAY_MS = 86_400_000;
-const RECENT_DAYS = 84;
 /** Shortest long ride of any format (0.35 × a sprint's 20 km); longer formats filter further. */
 const MIN_RIDE_M = 7000;
 // shortcut: caps an all-time ride history read on every live projection; raise if long rides stop fitting.
@@ -35,7 +35,13 @@ async function loadProfile(athleteId: string): Promise<Evidence['profile']> {
   const [thresholds, weighIn] = await Promise.all([
     prisma.athleteProfile.findUnique({
       where: { id: athleteId },
-      select: { swimCssSecPer100m: true, runThresholdPaceSecPerKm: true, ftpW: true },
+      select: {
+        swimCssSecPer100m: true,
+        runThresholdPaceSecPerKm: true,
+        ftpW: true,
+        lthr: true,
+        maxHr: true,
+      },
     }),
     prisma.bodyCompositionMeasurement.findFirst({
       where: { athleteId, weightKg: { not: null } },
@@ -48,6 +54,8 @@ async function loadProfile(athleteId: string): Promise<Evidence['profile']> {
     runThresholdPaceSecPerKm: thresholds?.runThresholdPaceSecPerKm ?? null,
     ftpW: thresholds?.ftpW ?? null,
     weightKg: weighIn?.weightKg ?? null,
+    lthr: thresholds?.lthr ?? null,
+    maxHr: thresholds?.maxHr ?? null,
   };
 }
 
@@ -56,7 +64,11 @@ async function loadRunEfforts(athleteId: string, since: Date): Promise<Evidence[
   const [runs, bests] = await Promise.all([
     prisma.activity.findMany({
       where: { athleteId, type: ActivityType.RUN, date: { gte: since }, ...visibleActivityWhere },
-      select: { date: true, duration: true, runMetrics: { select: { distanceM: true } } },
+      select: {
+        date: true,
+        duration: true,
+        runMetrics: { select: { distanceM: true, avgHr: true } },
+      },
     }),
     prisma.performanceRecord.findMany({
       where: { athleteId, group: 'run-best', activityDate: { gte: since } },
@@ -66,7 +78,14 @@ async function loadRunEfforts(athleteId: string, since: Date): Promise<Evidence[
   return [
     ...runs.flatMap((run) =>
       run.duration && run.runMetrics?.distanceM
-        ? [{ meters: run.runMetrics.distanceM, seconds: run.duration, date: run.date }]
+        ? [
+            {
+              meters: run.runMetrics.distanceM,
+              seconds: run.duration,
+              date: run.date,
+              avgHr: run.runMetrics.avgHr,
+            },
+          ]
         : [],
     ),
     ...bests.map((best) => ({
@@ -175,7 +194,7 @@ async function liveProjections(
   const earliest = Math.min(...[...asOf.values()].map((date) => date.getTime()));
   const evidence = await loadRaceProjectionEvidence(
     athleteId,
-    new Date(earliest - RECENT_DAYS * DAY_MS),
+    new Date(earliest - CAPACITY_WINDOW_DAYS * DAY_MS),
   );
   const today = computeTrainingDayId(now);
   await Promise.all(
@@ -192,7 +211,14 @@ async function liveProjections(
   return projections;
 }
 
-type Snapshot = { goalId: string; weekKey: string; finishSec: number; createdAt: Date };
+type Snapshot = {
+  goalId: string;
+  weekKey: string;
+  finishSec: number;
+  createdAt: Date;
+  payload: unknown;
+  computedAt: Date;
+};
 
 function historyPoint(snapshot: Snapshot): RaceProjectionHistoryPoint {
   return {
@@ -202,38 +228,101 @@ function historyPoint(snapshot: Snapshot): RaceProjectionHistoryPoint {
   };
 }
 
-/**
- * The last 16 weekly points per goal, oldest first — after writing this week's for every race
- * still ahead that has none yet (at most one write per goal and week, no cron).
- */
-async function loadHistory(
-  goalIds: readonly string[],
-  live: ReadonlyMap<string, RaceProjection>,
-  aheadIds: ReadonlySet<string>,
-  now: Date,
-): Promise<Map<string, RaceProjectionHistoryPoint[]>> {
-  const history = new Map<string, RaceProjectionHistoryPoint[]>();
+/** Every weekly snapshot of these goals, newest week first. */
+async function loadSnapshots(goalIds: readonly string[]): Promise<Snapshot[]> {
   if (goalIds.length === 0) {
-    return history;
+    return [];
   }
-  const weekKey = isoWeekKeyOf(now);
-  const snapshots: Snapshot[] = await prisma.goalProjectionSnapshot.findMany({
+  return prisma.goalProjectionSnapshot.findMany({
     where: { goalId: { in: [...goalIds] } },
     orderBy: { weekKey: 'desc' },
-    select: { goalId: true, weekKey: true, finishSec: true, createdAt: true },
+    select: {
+      goalId: true,
+      weekKey: true,
+      finishSec: true,
+      createdAt: true,
+      payload: true,
+      computedAt: true,
+    },
   });
-  const written = new Set(snapshots.filter((s) => s.weekKey === weekKey).map((s) => s.goalId));
-  const due = [...live].filter(([goalId]) => aheadIds.has(goalId) && !written.has(goalId));
-  if (due.length > 0) {
-    const fresh = due.map(([goalId, projection]) => ({
-      goalId,
-      weekKey,
-      finishSec: projection.finishSec,
-      todaySec: projection.todaySec,
-    }));
-    await prisma.goalProjectionSnapshot.createMany({ data: fresh, skipDuplicates: true });
-    snapshots.unshift(...fresh.map((point) => ({ ...point, createdAt: now })));
+}
+
+function isAhead(goal: Goal, now: Date): boolean {
+  return projectionAsOf(goal.targetDate, now).getTime() === now.getTime();
+}
+
+/**
+ * This week's stored projections still valid: computed after the goal's last edit and after the
+ * athlete's last activity change. Costs one tiny query, and only when a candidate exists.
+ */
+async function cachedProjections(
+  athleteId: string,
+  goals: readonly Goal[],
+  thisWeek: ReadonlyMap<string, Snapshot>,
+  now: Date,
+): Promise<Map<string, RaceProjection>> {
+  const today = computeTrainingDayId(now);
+  const candidates = goals.filter(
+    (goal) =>
+      isAhead(goal, now) &&
+      !shouldFreezeProjection(goal, today) &&
+      thisWeek.get(goal.id)?.payload &&
+      thisWeek.get(goal.id)!.computedAt >= goal.updatedAt,
+  );
+  if (candidates.length === 0) {
+    return new Map();
   }
+  const lastActivity = await prisma.activity.findFirst({
+    where: { athleteId },
+    orderBy: { updatedAt: 'desc' },
+    select: { updatedAt: true },
+  });
+  return new Map(
+    candidates.flatMap((goal) => {
+      const snapshot = thisWeek.get(goal.id)!;
+      const fresh = !lastActivity || snapshot.computedAt >= lastActivity.updatedAt;
+      return fresh ? [[goal.id, snapshot.payload as RaceProjection] as const] : [];
+    }),
+  );
+}
+
+/** Stores this week's projection of each race still ahead (one row per goal and week). */
+async function saveSnapshots(
+  goals: readonly Goal[],
+  computed: ReadonlyMap<string, RaceProjection>,
+  weekKey: string,
+  now: Date,
+): Promise<Snapshot[]> {
+  const saved = goals.flatMap((goal) => {
+    const projection = computed.get(goal.id);
+    return projection && isAhead(goal, now)
+      ? [
+          {
+            goalId: goal.id,
+            weekKey,
+            finishSec: projection.finishSec,
+            todaySec: projection.todaySec,
+            payload: projection,
+            computedAt: now,
+          },
+        ]
+      : [];
+  });
+  await Promise.all(
+    saved.map((row) =>
+      prisma.goalProjectionSnapshot.upsert({
+        where: { goalId_weekKey: { goalId: row.goalId, weekKey } },
+        create: row,
+        update: row,
+      }),
+    ),
+  );
+  return saved.map((row) => ({ ...row, createdAt: now }));
+}
+
+/** The last 16 weekly points per goal, oldest first. */
+function historyByGoal(snapshots: readonly Snapshot[]): Map<string, RaceProjectionHistoryPoint[]> {
+  const history = new Map<string, RaceProjectionHistoryPoint[]>();
   for (const snapshot of snapshots) {
     const points = history.get(snapshot.goalId) ?? [];
     if (points.length < HISTORY_WEEKS) {
@@ -257,7 +346,8 @@ function withoutFrozenColumns<T extends Goal>(goal: T): Omit<T, FrozenColumns> {
 
 /**
  * Each goal with its race finish `projection` (null for a figure goal or an unknown format):
- * the frozen pre-race one once it exists, else computed now — and frozen from the race's eve.
+ * the frozen pre-race one once it exists, else this week's stored one while nothing changed,
+ * else computed now — stored for the week, and frozen from the race's eve.
  */
 export async function withRaceProjection<T extends Goal>(
   athleteId: string,
@@ -267,26 +357,28 @@ export async function withRaceProjection<T extends Goal>(
   const live = goals.filter(
     (goal) => goal.kind === 'RACE' && !frozenProjection(goal) && isProjectableRace(goal),
   );
-  const computed = await liveProjections(athleteId, live, now);
-  const projected = goals.flatMap((goal) => {
-    const projection =
-      goal.kind === 'RACE' ? (frozenProjection(goal) ?? computed.get(goal.id)) : null;
-    return projection ? [{ goal, projection }] : [];
-  });
-  const ahead = new Set(
-    live
-      .filter((goal) => projectionAsOf(goal.targetDate, now).getTime() === now.getTime())
-      .map((goal) => goal.id),
+  const shown = goals.filter(
+    (goal) => goal.kind === 'RACE' && (frozenProjection(goal) || isProjectableRace(goal)),
   );
-  const history = await loadHistory(
-    projected.map(({ goal }) => goal.id),
-    computed,
-    ahead,
-    now,
+  const weekKey = isoWeekKeyOf(now);
+  const snapshots = await loadSnapshots(shown.map((goal) => goal.id));
+  const thisWeek = new Map(
+    snapshots.filter((snapshot) => snapshot.weekKey === weekKey).map((s) => [s.goalId, s]),
   );
-  const byGoal = new Map(projected.map(({ goal, projection }) => [goal.id, projection]));
+  const cached = await cachedProjections(athleteId, live, thisWeek, now);
+  const stale = live.filter((goal) => !cached.has(goal.id));
+  const computed = await liveProjections(athleteId, stale, now);
+  const saved = await saveSnapshots(stale, computed, weekKey, now);
+  const savedIds = new Set(saved.map((row) => row.goalId));
+  const history = historyByGoal([
+    ...saved,
+    ...snapshots.filter((s) => !(s.weekKey === weekKey && savedIds.has(s.goalId))),
+  ]);
   return goals.map((goal) => {
-    const projection = byGoal.get(goal.id);
+    const projection =
+      goal.kind === 'RACE'
+        ? (frozenProjection(goal) ?? cached.get(goal.id) ?? computed.get(goal.id) ?? null)
+        : null;
     return {
       ...withoutFrozenColumns(goal),
       projection: projection ? { ...projection, history: history.get(goal.id) ?? [] } : null,

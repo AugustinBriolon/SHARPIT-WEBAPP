@@ -57,6 +57,8 @@ function inputs(overrides: Partial<RaceProjectionInputs> = {}): RaceProjectionIn
       runThresholdPaceSecPerKm: null,
       ftpW: null,
       weightKg: null,
+      lthr: null,
+      maxHr: null,
     },
     runEfforts: [],
     rides: [],
@@ -103,11 +105,16 @@ describe('buildRaceProjection — run leg', () => {
         ],
       }),
     );
-    // 2760 × (21097/10000)^1.06 × 1.04
-    expect(legOf(projection, 'run')).toEqual({ kind: 'run', sec: 6333, source: 'recent' });
+    // 2760 × (21097/10000)^1.06 × 1.04, × 1.0036 for 20 days of age.
+    expect(legOf(projection, 'run')).toEqual({
+      kind: 'run',
+      sec: 6356,
+      source: 'recent',
+      method: 'decayed-best',
+    });
   });
 
-  it('ignores efforts older than 12 weeks or after the cut-off', () => {
+  it('ignores efforts older than 26 weeks or after the cut-off', () => {
     const projection = buildRaceProjection(
       HALF,
       inputs({
@@ -116,9 +123,11 @@ describe('buildRaceProjection — run leg', () => {
           runThresholdPaceSecPerKm: 334,
           ftpW: null,
           weightKg: null,
+          lthr: null,
+          maxHr: null,
         },
         runEfforts: [
-          { meters: 10_000, seconds: 2400, date: daysBefore(100) },
+          { meters: 10_000, seconds: 2400, date: daysBefore(200) },
           { meters: 21_100, seconds: 6000, date: RACE_DAY },
         ],
       }),
@@ -140,8 +149,10 @@ describe('buildRaceProjection — run leg', () => {
       { raceFormat: '10 km', title: '10 km Boulogne', targetPerformance: 'Sub 45:00' },
       inputs({ runEfforts: [{ meters: 10_000, seconds: 2400, date: daysBefore(7) }] }),
     );
-    expect(projection?.legs).toEqual([{ kind: 'run', sec: 2400, source: 'recent' }]);
-    expect(projection).toMatchObject({ targetSec: 2700, deltaSec: -300, confidence: 'high' });
+    expect(projection?.legs).toEqual([
+      { kind: 'run', sec: 2403, source: 'recent', method: 'decayed-best' },
+    ]);
+    expect(projection).toMatchObject({ targetSec: 2700, deltaSec: -297, confidence: 'high' });
   });
 });
 
@@ -151,6 +162,8 @@ describe('buildRaceProjection — swim leg', () => {
     runThresholdPaceSecPerKm: null,
     ftpW: null,
     weightKg: null,
+    lthr: null,
+    maxHr: null,
   };
 
   it('uses CSS × 0.98 open water over the format distance', () => {
@@ -185,6 +198,8 @@ describe('buildRaceProjection — bike leg', () => {
     runThresholdPaceSecPerKm: null,
     ftpW: 200,
     weightKg: 81.2,
+    lthr: null,
+    maxHr: null,
   };
 
   it('takes the median recent long-ride speed', () => {
@@ -193,6 +208,7 @@ describe('buildRaceProjection — bike leg', () => {
       kind: 'bike',
       sec: Math.round(90_000 / (27.2 / 3.6)),
       source: 'recent',
+      method: 'median',
     });
   });
 
@@ -217,7 +233,7 @@ describe('buildRaceProjection — transitions', () => {
       { raceFormat: 'Olympique', title: null, targetPerformance: null },
       inputs(),
     );
-    expect([legOf(half, 't1')?.sec, legOf(half, 't2')?.sec]).toEqual([360, 240]);
+    expect([legOf(half, 't1')?.sec, legOf(half, 't2')?.sec]).toEqual([420, 270]);
     expect([legOf(olympic, 't1')?.sec, legOf(olympic, 't2')?.sec]).toEqual([240, 150]);
   });
 
@@ -262,6 +278,8 @@ describe('buildRaceProjection — backtest on the Versailles Half (5:40:02)', ()
     runThresholdPaceSecPerKm: 334,
     ftpW: 200,
     weightKg: 81.2,
+    lthr: null,
+    maxHr: null,
   };
 
   it('lands within 10 min where the old iOS formula said ~6:05', () => {
@@ -286,6 +304,103 @@ describe('buildRaceProjection — backtest on the Versailles Half (5:40:02)', ()
     expect(projection).toMatchObject({ targetSec: 21_600, confidence: 'medium', missing: [] });
     expect(projection.deltaSec).toBe(projection.finishSec - 21_600);
     expect(projection.legs.map((entry) => entry.kind)).toEqual(['swim', 't1', 'bike', 't2', 'run']);
+  });
+});
+
+describe('buildRaceProjection — an athlete who trains easy (Versailles Half, 5:40:02)', () => {
+  // Real race: swim 1429 m in 25:22, T1 9:41, bike 87.8 km in 3:11:56 (HR 140), T2 5:58,
+  // run 21.24 km in 1:47:05 (5:02/km, HR 151). Assumed LTHR 165 (prod profile to confirm).
+  const actualSec = 5 * 3600 + 40 * 60 + 2;
+  const actual = { swim: 1522, swimM: 1429, bike: 11_516, bikeM: 87_800, run: 6425, runM: 21_240 };
+  const profile = {
+    swimCssSecPer100m: 108,
+    runThresholdPaceSecPerKm: 334,
+    ftpW: 200,
+    weightKg: 81.2,
+    lthr: 165,
+    maxHr: null,
+  };
+  // Easy runs every 3–4 days for 26 weeks: 3 s/km slower per bpm below ~153, slowly improving.
+  const runEfforts = Array.from({ length: 52 }, (_, i) => {
+    const daysAgo = 2 + i * 3.5;
+    const hr = 136 + (i % 5) * 3;
+    const pace = 290 + 3 * (153.5 - hr) + 0.04 * daysAgo + ((i * 7) % 5) - 2;
+    return { meters: 10_000, seconds: pace * 10, avgHr: hr, date: daysBefore(daysAgo) };
+  });
+
+  // Plus an 8 km tempo every 4 weeks near race HR.
+  const tempos = Array.from({ length: 6 }, (_, i) => ({
+    meters: 8000,
+    seconds: 291 * 8,
+    avgHr: 155,
+    date: daysBefore(5 + i * 28),
+  }));
+  // A weekly long ride, 60–100 km, around the 27.2 km/h median the athlete really rides.
+  const rides = Array.from({ length: 26 }, (_, i) =>
+    ride(3 + i * 7, 60 + (i % 5) * 10, 26.6 + (i % 4) * 0.4),
+  );
+  const evidence = { profile, runEfforts: [...runEfforts, ...tempos], rides };
+
+  /** Model pace over the real leg distances: the course was short on the swim and bike. */
+  function normalisedTotal(projection: NonNullable<ReturnType<typeof buildRaceProjection>>) {
+    const sec = (kind: string) => legOf(projection, kind)!.sec;
+    return (
+      (sec('swim') * actual.swimM) / 1900 +
+      sec('t1') +
+      (sec('bike') * actual.bikeM) / 90_000 +
+      sec('t2') +
+      (sec('run') * actual.runM) / 21_097
+    );
+  }
+
+  it('reads the run off the HR curve and the bike off the median ride, within 10 min normalised', () => {
+    const projection = buildRaceProjection(HALF, inputs(evidence))!;
+
+    expect(legOf(projection, 'run')?.method).toBe('hr-curve');
+    expect(legOf(projection, 'bike')?.method).toBe('median');
+    expect(Math.abs(normalisedTotal(projection) - actualSec)).toBeLessThanOrEqual(600);
+    expect(
+      Math.abs(legOf(projection, 'run')!.sec * (actual.runM / 21_097) - actual.run),
+    ).toBeLessThan(300);
+  });
+
+  it('never lets the HR curve beat the decayed best by more than 3 %', () => {
+    // A steep curve (8 s/km per bpm) extrapolated 15 bpm would promise ~2 min/km faster.
+    const steep = runEfforts.map((effort) => ({
+      ...effort,
+      seconds: (290 + 8 * (153.5 - effort.avgHr)) * 10,
+    }));
+    const projection = buildRaceProjection(HALF, inputs({ ...evidence, runEfforts: steep }))!;
+    const best = Math.min(...steep.map((effort) => effort.seconds)) * (21_097 / 10_000) ** 1.06;
+    const run = legOf(projection, 'run')!;
+
+    expect(run.method).toBe('hr-curve');
+    expect(run.sec).toBeGreaterThanOrEqual(Math.floor(best * 0.97 * 1.04));
+  });
+
+  it('falls back to the decayed best when HR barely explains pace', () => {
+    const flat = runEfforts.map((effort, i) => ({
+      ...effort,
+      seconds: (300 + ((i * 37) % 40)) * 10,
+    }));
+    const projection = buildRaceProjection(HALF, inputs({ ...evidence, runEfforts: flat }))!;
+    expect(legOf(projection, 'run')?.method).toBe('decayed-best');
+  });
+
+  it('moves smoothly as of 8, 4 and 0 weeks before the race', () => {
+    const raceGoal = { ...HALF, targetDate: RACE_DAY };
+    const finishes = [8, 4, 0].map((weeks) =>
+      buildRaceProjection(raceGoal, inputs({ ...evidence, asOf: daysBefore(weeks * 7) }))!,
+    );
+    for (const [before, after] of [
+      [finishes[0], finishes[1]],
+      [finishes[1], finishes[2]],
+    ]) {
+      expect(Math.abs(before.finishSec - after.finishSec)).toBeLessThan(5 * 60);
+    }
+    for (const projection of finishes) {
+      expect(Math.abs(projection.trend.secPerWeek ?? 0)).toBeLessThan(60);
+    }
   });
 });
 

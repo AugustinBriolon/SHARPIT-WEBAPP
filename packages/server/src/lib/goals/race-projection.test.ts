@@ -7,10 +7,10 @@ vi.mock('@sharpit/db/client', () => ({
   prisma: {
     athleteProfile: { findUnique: vi.fn() },
     bodyCompositionMeasurement: { findFirst: vi.fn() },
-    activity: { findMany: vi.fn() },
+    activity: { findMany: vi.fn(), findFirst: vi.fn() },
     performanceRecord: { findMany: vi.fn() },
     plannedSession: { findMany: vi.fn() },
-    goalProjectionSnapshot: { findMany: vi.fn(), createMany: vi.fn() },
+    goalProjectionSnapshot: { findMany: vi.fn(), upsert: vi.fn() },
     goal: { update: vi.fn() },
   },
 }));
@@ -25,10 +25,16 @@ function race(overrides: Partial<Goal> = {}): Goal {
     raceFormat: 'HALF IRON MAN',
     targetPerformance: 'Sub 6h',
     targetDate: new Date('2026-11-20T00:00:00Z'),
+    updatedAt: new Date('2026-10-01T00:00:00Z'),
     frozenProjection: null,
     frozenProjectionAt: null,
     ...overrides,
   } as Goal;
+}
+
+function snapshot(weekKey: string, finishSec: number, day: string) {
+  const at = new Date(`${day}T06:00:00Z`);
+  return { goalId: 'half', weekKey, finishSec, createdAt: at, payload: null, computedAt: at };
 }
 
 describe('withRaceProjection', () => {
@@ -48,17 +54,21 @@ describe('withRaceProjection', () => {
     vi.mocked(prisma.goalProjectionSnapshot.findMany).mockResolvedValue([]);
   });
 
-  it("writes this week's point once and returns the history oldest first", async () => {
+  it("stores this week's projection and returns the history oldest first", async () => {
     vi.mocked(prisma.goalProjectionSnapshot.findMany).mockResolvedValue([
-      { goalId: 'half', weekKey: '2026-W41', finishSec: 20_500, createdAt: new Date('2026-10-06') },
-      { goalId: 'half', weekKey: '2026-W40', finishSec: 21_000, createdAt: new Date('2026-09-29') },
+      snapshot('2026-W41', 20_500, '2026-10-06'),
+      snapshot('2026-W40', 21_000, '2026-09-29'),
     ] as never);
     const [goal] = await withRaceProjection('athlete', [race()], NOW);
 
-    expect(prisma.goalProjectionSnapshot.createMany).toHaveBeenCalledWith({
-      data: [expect.objectContaining({ goalId: 'half', weekKey: '2026-W42' })],
-      skipDuplicates: true,
-    });
+    expect(prisma.goalProjectionSnapshot.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { goalId_weekKey: { goalId: 'half', weekKey: '2026-W42' } },
+        create: expect.objectContaining({
+          payload: expect.objectContaining({ targetSec: 21_600 }),
+        }),
+      }),
+    );
     expect(goal.projection?.history.map((point) => point.weekKey)).toEqual([
       '2026-W40',
       '2026-W41',
@@ -67,13 +77,33 @@ describe('withRaceProjection', () => {
     expect(goal.projection).toMatchObject({ trend: { secPerWeek: null }, regularity: null });
   });
 
-  it('does not write again within the same week', async () => {
+  it("serves this week's stored projection while no activity changed since", async () => {
     vi.mocked(prisma.goalProjectionSnapshot.findMany).mockResolvedValue([
-      { goalId: 'half', weekKey: '2026-W42', finishSec: 20_500, createdAt: new Date('2026-10-12') },
+      { ...snapshot('2026-W42', 20_500, '2026-10-12'), payload: { finishSec: 20_500, legs: [] } },
     ] as never);
-    await withRaceProjection('athlete', [race()], NOW);
+    vi.mocked(prisma.activity.findFirst).mockResolvedValue({
+      updatedAt: new Date('2026-10-11T00:00:00Z'),
+    } as never);
+    const [goal] = await withRaceProjection('athlete', [race()], NOW);
 
-    expect(prisma.goalProjectionSnapshot.createMany).not.toHaveBeenCalled();
+    expect(goal.projection).toMatchObject({ finishSec: 20_500 });
+    expect(goal.projection?.history).toHaveLength(1);
+    expect(prisma.activity.findMany).not.toHaveBeenCalled();
+    expect(prisma.goalProjectionSnapshot.upsert).not.toHaveBeenCalled();
+  });
+
+  it('recomputes when an activity changed after the stored projection', async () => {
+    vi.mocked(prisma.goalProjectionSnapshot.findMany).mockResolvedValue([
+      { ...snapshot('2026-W42', 20_500, '2026-10-12'), payload: { finishSec: 20_500, legs: [] } },
+    ] as never);
+    vi.mocked(prisma.activity.findFirst).mockResolvedValue({
+      updatedAt: new Date('2026-10-13T07:00:00Z'),
+    } as never);
+    const [goal] = await withRaceProjection('athlete', [race()], NOW);
+
+    expect(goal.projection?.finishSec).not.toBe(20_500);
+    expect(prisma.goalProjectionSnapshot.upsert).toHaveBeenCalledTimes(1);
+    expect(goal.projection?.history).toHaveLength(1);
   });
 
   it('adds a live projection to an upcoming race, without exposing the stored columns', async () => {
