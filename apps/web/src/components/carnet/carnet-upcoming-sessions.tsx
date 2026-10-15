@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { SharpitDatePicker, SharpitTimePicker } from '@/components/ui/sharpit-datetime';
 import { toast } from '@/components/ui/toast';
 
 const fieldClass =
@@ -220,6 +221,14 @@ function SessionFields({
   editing: boolean;
   onChange: (next: Draft) => void;
 }) {
+  const [picker, setPicker] = useState<'date' | 'time' | null>(null);
+
+  useEffect(() => {
+    if (!editing) {
+      setPicker(null);
+    }
+  }, [editing]);
+
   return (
     <dl className="space-y-4">
       <Field
@@ -239,11 +248,11 @@ function SessionFields({
         label="Date"
         value={longDayLabel(dayId(session.date))}
         input={
-          <input
-            className={fieldClass}
-            type="date"
+          <SharpitDatePicker
+            open={picker === 'date'}
             value={draft.date}
-            onChange={(event) => onChange({ ...draft, date: event.target.value })}
+            onChange={(date) => onChange({ ...draft, date })}
+            onOpenChange={(open) => setPicker(open ? 'date' : null)}
           />
         }
       />
@@ -252,11 +261,11 @@ function SessionFields({
         label="Heure"
         value={session.startTime ?? '—'}
         input={
-          <input
-            className={fieldClass}
-            type="time"
+          <SharpitTimePicker
+            open={picker === 'time'}
             value={draft.startTime}
-            onChange={(event) => onChange({ ...draft, startTime: event.target.value })}
+            onChange={(startTime) => onChange({ ...draft, startTime })}
+            onOpenChange={(open) => setPicker(open ? 'time' : null)}
           />
         }
       />
