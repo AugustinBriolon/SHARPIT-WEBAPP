@@ -146,21 +146,42 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
 
   const { hero, actionRow } = vm;
   const trust = hero.twinTrustStrip;
-  const reasons = [hero.actionLine, hero.goalLine, ...hero.adaptationReminders].filter(
-    (line): line is string => Boolean(line),
-  );
+  // Prefer instruction; skip actionLine when it mirrors instruction (legacy fill).
+  const reasons = [
+    trust.instruction ? null : hero.actionLine,
+    hero.goalLine,
+    ...hero.adaptationReminders,
+  ].filter((line): line is string => Boolean(line));
+  const pageTitle = trust.showHeadline === false ? 'Ta journée' : hero.headline;
 
   return (
     <CarnetPage
       aside={<DayPager day={day} today={today} />}
       kicker={kicker}
       lead={hero.subline}
-      title={hero.headline}
+      title={pageTitle}
     >
       <RaceBand race={vm.race} />
 
-      <CarnetSection label="Le verdict" title={hero.postureLabel}>
+      <CarnetSection
+        label="Le verdict"
+        title={
+          hero.postureLabel || trust.vsYesterdayLabel ? (
+            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              {hero.postureLabel ? <span>{hero.postureLabel}</span> : null}
+              {trust.vsYesterdayLabel ? (
+                <span className="text-muted-foreground text-sm font-normal">
+                  {trust.vsYesterdayLabel}
+                </span>
+              ) : null}
+            </span>
+          ) : undefined
+        }
+      >
         {vm.statusMessage ? <Quiet>{vm.statusMessage}</Quiet> : null}
+        {trust.instruction ? (
+          <p className="text-sm leading-relaxed font-medium">{trust.instruction}</p>
+        ) : null}
         <Reasons items={reasons} />
         {actionRow.morningRecalibration?.status === 'PRESENTED' ? (
           <>

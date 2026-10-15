@@ -18,17 +18,20 @@ import {
   type CoachContextData,
 } from '@sharpit/server/lib/coach/context/coach-context-assembly';
 import { formatDurableMemoryBlock } from '@sharpit/server/lib/coach-memory/format-durable-memory-block';
+import {
+  DEFAULT_DISPLAY_MODE,
+  isExpertMode,
+  toDisplayMode,
+  type DisplayMode,
+} from '@sharpit/app/lib/preferences/display-mode';
+import {
+  VERDICT_INSTRUCTION,
+  VERDICT_TAG,
+  formatDisplayModeCoachLine,
+  type VerdictStateCode,
+} from '@sharpit/server/lib/verdict/verdict-copy';
 
 type CoachContext = CoachContextData;
-
-const VERDICT_FR: Record<string, string> = {
-  TRAIN_HARD: 'Entraîne-toi fort',
-  TRAIN_SMART: 'Entraîne-toi malin',
-  TRAIN_EASY: 'Entraîne-toi doucement',
-  RECOVER: 'Récupère',
-  RACE_READY: 'Pic de forme',
-  CAUTION: 'Prudence (conflits détectés)',
-};
 
 const CONSISTENCY_FR: Record<string, string> = {
   ALIGNED: 'Alignés',
@@ -59,17 +62,34 @@ export const DAY_LOAD_VS_STATUS_COACH_LINE =
  * observations (limiting factor, model consistency, conflicts, opportunities) are
  * still surfaced either way — only the prescriptive framing is gated.
  */
+function verdictTagForCoach(verdict: string | null | undefined): string {
+  if (!verdict) {
+    return '—';
+  }
+  return VERDICT_TAG[verdict as VerdictStateCode] ?? verdict;
+}
+
+function verdictInstructionForCoach(verdict: string | null | undefined): string | null {
+  if (!verdict || !(verdict in VERDICT_INSTRUCTION)) {
+    return null;
+  }
+  return VERDICT_INSTRUCTION[verdict as VerdictStateCode];
+}
+
 function formatPrescriptiveDecisionLines(d: NonNullable<CoachContext['decision']>): string[] {
   if (!d.prescriptiveAdviceAllowed) {
     return [
       "Hors fenêtre de conseil actionnable pour aujourd'hui (même règle que Today, qui n'affiche plus de décision à ce moment de la journée) : NE PRESCRIS AUCUNE action et NE MENTIONNE PAS le verdict précis. Tu peux discuter des observations factuelles ci-dessous (facteur limitant, cohérence inter-modèles, historique) si l'athlète pose une question, mais formule-les comme des observations, jamais comme une instruction d'entraînement.",
     ];
   }
+  // Same glossary as the Today card (R8) — tag + instruction, not a parallel VERDICT_FR.
+  const tag = verdictTagForCoach(d.verdict);
+  const instruction = verdictInstructionForCoach(d.verdict);
   const lines: string[] = [
-    `Verdict : ${VERDICT_FR[d.verdict] ?? d.verdict} · confiance ${Math.round((d.confidence ?? 0) * 100)}% (${d.confidenceTier ?? '—'}).`,
+    `Verdict : ${tag} (${d.verdict}) · confiance ${Math.round((d.confidence ?? 0) * 100)}% (${d.confidenceTier ?? '—'}).`,
   ];
-  if (d.headline) {
-    lines.push(`Message : ${d.headline}.`);
+  if (instruction) {
+    lines.push(`Instruction carte : ${instruction}`);
   }
   if (d.topAction) {
     lines.push(`Action prioritaire : ${d.topAction}${d.rationale ? `. ${d.rationale}` : ''}.`);
@@ -710,8 +730,10 @@ function collectCoachContextLines(
   ctx: CoachContext,
   sections?: ReadonlySet<CoachContextSection>,
 ): string[] {
+  const mode = toDisplayMode(ctx.displayMode ?? DEFAULT_DISPLAY_MODE);
   return [
     `# Profil athlète — ${ctx.today}`,
+    formatDisplayModeCoachLine(mode),
     ...coachContextSections(ctx)
       .filter(([section]) => !sections || sections.has(section))
       .flatMap(([, lines]) => lines),
@@ -725,3 +747,17 @@ export function formatCoachContext(
 ): string {
   return collectCoachContextLines(ctx, sections).join('\n');
 }
+
+/** @deprecated Use VERDICT_TAG from verdict-copy — kept for any stray import. */
+export const VERDICT_FR: Record<string, string> = {
+  TRAIN_HARD: VERDICT_TAG.TRAIN_HARD,
+  TRAIN_SMART: VERDICT_TAG.TRAIN_SMART,
+  TRAIN_EASY: VERDICT_TAG.TRAIN_EASY,
+  RECOVER: VERDICT_TAG.RECOVER,
+  RACE_READY: VERDICT_TAG.RACE_READY,
+  CAUTION: VERDICT_TAG.CAUTION,
+  INSUFFICIENT_DATA: VERDICT_TAG.INSUFFICIENT_DATA,
+};
+
+export { isExpertMode, toDisplayMode };
+export type { DisplayMode };

@@ -664,6 +664,8 @@ function assembleCoachProfileSections(
     note: coachProfileNote(profile),
     ...coachProfileInventories(profile),
     profile: buildCoachProfile(profile),
+    /** ADR-023 — written into the prompt; Coach must not use acronyms in essential. */
+    displayMode: profile?.displayMode === 'expert' ? ('expert' as const) : ('essential' as const),
     health,
     primaryRace,
     races,

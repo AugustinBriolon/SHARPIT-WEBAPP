@@ -32,6 +32,60 @@ export type V1TodaySource = {
       confidencePctRounded: number | null;
       limitingCauseText: string | null;
       confidenceLabel?: string | null;
+      /**
+       * Stable recovery frein signal code for the chip (= first of limiterSignals).
+       * Null when the frein is not a recovery primary limiter.
+       */
+      limiterSignal?:
+        | 'hrv_low'
+        | 'rhr_high'
+        | 'sleep_short'
+        | 'sleep_poor'
+        | 'subjective_low'
+        | 'load_elevated'
+        | null;
+      limiterSignals?: Array<
+        'hrv_low' | 'rhr_high' | 'sleep_short' | 'sleep_poor' | 'subjective_low' | 'load_elevated'
+      >;
+      /** « 2 signaux » — null below 2 freins. */
+      limiterCountLabel?: string | null;
+      /** Additive « Porté par » code (= first of supportSignals). */
+      supportSignal?:
+        | 'hrv_ok'
+        | 'rhr_ok'
+        | 'sleep_adequate'
+        | 'sleep_quality_ok'
+        | 'subjective_ok'
+        | 'load_managed'
+        | null;
+      supportSignals?: Array<
+        | 'hrv_ok'
+        | 'rhr_ok'
+        | 'sleep_adequate'
+        | 'sleep_quality_ok'
+        | 'subjective_ok'
+        | 'load_managed'
+      >;
+      supportCountLabel?: string | null;
+      /** Dual reading (ADR-023) — both variants; client picks. */
+      explanation?: { essential: string; expert: string } | null;
+      /** Short plain-text instruction (no Markdown/HTML) — impératif tutoyé. */
+      instruction?: string | null;
+      /** Stable machine verdict code. */
+      stateCode?:
+        | 'TRAIN_HARD'
+        | 'TRAIN_SMART'
+        | 'TRAIN_EASY'
+        | 'RECOVER'
+        | 'RACE_READY'
+        | 'CAUTION'
+        | 'INSUFFICIENT_DATA'
+        | null;
+      /** New clients hide headline so it does not repeat the tag. */
+      showHeadline?: false | null;
+      /** Compared to yesterday's verdict for this athlete only. */
+      vsYesterday?: 'same' | 'changed' | null;
+      vsYesterdayLabel?: string | null;
     };
     reliability?: {
       packTier: V1TodayPackTier;
@@ -116,6 +170,64 @@ export type V1TodayResponse = {
     posture: 'protect' | 'steady' | 'push' | 'uncertain';
     confidencePct: number | null;
     limitingCause: string | null;
+    /**
+     * Additive. Frein **code** only — chip labels are localized in the app.
+     * Equals `limiterSignals[0]` when present.
+     */
+    limiterSignal:
+      | 'hrv_low'
+      | 'rhr_high'
+      | 'sleep_short'
+      | 'sleep_poor'
+      | 'subjective_low'
+      | 'load_elevated'
+      | null;
+    /** Additive. Frein codes sorted by importance. */
+    limiterSignals: Array<
+      'hrv_low' | 'rhr_high' | 'sleep_short' | 'sleep_poor' | 'subjective_low' | 'load_elevated'
+    >;
+    /** Additive. « 2 signaux » — null below 2 freins. */
+    limiterCountLabel: string | null;
+    /**
+     * Additive. « Porté par » **code** only — equals `supportSignals[0]`.
+     */
+    supportSignal:
+      | 'hrv_ok'
+      | 'rhr_ok'
+      | 'sleep_adequate'
+      | 'sleep_quality_ok'
+      | 'subjective_ok'
+      | 'load_managed'
+      | null;
+    supportSignals: Array<
+      'hrv_ok' | 'rhr_ok' | 'sleep_adequate' | 'sleep_quality_ok' | 'subjective_ok' | 'load_managed'
+    >;
+    supportCountLabel: string | null;
+    /**
+     * Additive. Dual reading (ADR-023) — server never picks by displayMode.
+     * Never included in MORNING_VERDICT push body or logs.
+     */
+    explanation: { essential: string; expert: string } | null;
+    /** Additive. Short plain-text instruction (impératif tutoyé, no Markdown/HTML). */
+    instruction: string | null;
+    /** Additive. Stable machine verdict code. */
+    stateCode:
+      | 'TRAIN_HARD'
+      | 'TRAIN_SMART'
+      | 'TRAIN_EASY'
+      | 'RECOVER'
+      | 'RACE_READY'
+      | 'CAUTION'
+      | 'INSUFFICIENT_DATA'
+      | null;
+    /**
+     * Additive. New clients hide the headline (it used to repeat the tag).
+     * `headline` stays filled for legacy builds.
+     */
+    showHeadline: false;
+    /** Additive. Compared to yesterday's verdict for this session athlete only. */
+    vsYesterday: 'same' | 'changed' | null;
+    vsYesterdayLabel: string | null;
     statusLabel: string;
     actionLine: string | null;
     confidenceLabel: string | null;
@@ -242,6 +354,7 @@ function sportLabel(activityType: ActivityType | undefined): string | null {
   return activityTypeLabels[activityType] ?? null;
 }
 
+/** Always a string (old clients decode non-null). Prefer posture tag, else eyebrow. */
 function resolveStatusLabel(hero: V1TodaySource['hero']): string {
   const fromPosture = hero.postureLabel?.trim();
   if (fromPosture) {
@@ -262,20 +375,56 @@ function resolveActionLine(hero: V1TodaySource['hero']): string | null {
   return hero.subline || null;
 }
 
+function projectVerdictAdditive(strip: V1TodaySource['hero']['twinTrustStrip']) {
+  const limiterSignals = [...(strip.limiterSignals ?? [])];
+  if (limiterSignals.length === 0 && strip.limiterSignal) {
+    limiterSignals.push(strip.limiterSignal);
+  }
+  const supportSignals = [...(strip.supportSignals ?? [])];
+  if (supportSignals.length === 0 && strip.supportSignal) {
+    supportSignals.push(strip.supportSignal);
+  }
+  const limiterCountLabel =
+    strip.limiterCountLabel ??
+    (limiterSignals.length >= 2 ? `${limiterSignals.length} signaux` : null);
+  const supportCountLabel =
+    strip.supportCountLabel ??
+    (supportSignals.length >= 2 ? `${supportSignals.length} signaux` : null);
+  return {
+    limiterSignal: limiterSignals[0] ?? strip.limiterSignal ?? null,
+    limiterSignals,
+    limiterCountLabel,
+    supportSignal: supportSignals[0] ?? strip.supportSignal ?? null,
+    supportSignals,
+    supportCountLabel,
+    explanation: strip.explanation ?? null,
+    instruction: strip.instruction?.trim() || null,
+    stateCode: strip.stateCode ?? null,
+    showHeadline: false as const,
+    vsYesterday: strip.vsYesterday ?? null,
+    vsYesterdayLabel: strip.vsYesterdayLabel ?? null,
+  };
+}
+
 function projectVerdict(
   hero: V1TodaySource['hero'],
   empty: V1TodayResponse['empty'],
 ): V1TodayResponse['verdict'] {
+  const strip = hero.twinTrustStrip;
+  const additive = projectVerdictAdditive(strip);
+  // actionLine stays filled for TestFlight — prefer instruction, else legacy focus path.
+  const actionLine = additive.instruction ?? resolveActionLine(hero);
   return {
     eyebrow: hero.eyebrow,
     headline: empty ? empty.title : hero.headline,
     subline: hero.subline,
     posture: hero.posture,
-    confidencePct: hero.twinTrustStrip.confidencePctRounded,
-    limitingCause: hero.twinTrustStrip.limitingCauseText,
+    confidencePct: strip.confidencePctRounded,
+    limitingCause: strip.limitingCauseText,
+    ...additive,
     statusLabel: resolveStatusLabel(hero),
-    actionLine: resolveActionLine(hero),
-    confidenceLabel: hero.twinTrustStrip.confidenceLabel ?? null,
+    actionLine,
+    confidenceLabel: strip.confidenceLabel ?? null,
     packTier: hero.reliability?.packTier ?? null,
     estimationGaps: [...(hero.reliability?.visibleGaps ?? [])],
   };
@@ -453,6 +602,18 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         confidencePctRounded: vm.hero.twinTrustStrip.confidencePctRounded,
         limitingCauseText: vm.hero.twinTrustStrip.limitingCauseText,
         confidenceLabel: vm.hero.twinTrustStrip.confidenceLabel,
+        limiterSignal: vm.hero.twinTrustStrip.limiterSignal,
+        limiterSignals: vm.hero.twinTrustStrip.limiterSignals,
+        limiterCountLabel: vm.hero.twinTrustStrip.limiterCountLabel,
+        supportSignal: vm.hero.twinTrustStrip.supportSignal,
+        supportSignals: vm.hero.twinTrustStrip.supportSignals,
+        supportCountLabel: vm.hero.twinTrustStrip.supportCountLabel,
+        explanation: vm.hero.twinTrustStrip.explanation,
+        instruction: vm.hero.twinTrustStrip.instruction,
+        stateCode: vm.hero.twinTrustStrip.stateCode,
+        showHeadline: vm.hero.twinTrustStrip.showHeadline,
+        vsYesterday: vm.hero.twinTrustStrip.vsYesterday,
+        vsYesterdayLabel: vm.hero.twinTrustStrip.vsYesterdayLabel,
       },
       reliability: vm.hero.reliability
         ? {
