@@ -1,0 +1,519 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SHARPIT contrast pass — example surfaces</title>
+    <style>
+      :root {
+        /* Snow White #fcfcf7 — page canvas only */
+        --background: oklch(0.99 0.007 106.5);
+        /* Forest Depths #1c3a13 — body ink */
+        --foreground: oklch(0.315 0.073 139);
+        /* Pure white plates — cards, outline buttons, chip wells (lift off canvas) */
+        --card: #fff;
+        --card-foreground: oklch(0.315 0.073 139);
+        --popover: #fff;
+        --popover-foreground: oklch(0.315 0.073 139);
+        /*
+    Interactive brand green — Seed hue family, enough chroma to read at /10–/15.
+    Filled CTAs use this; body text stays Forest via --foreground.
+  */
+        --primary: oklch(0.48 0.13 142);
+        --primary-foreground: oklch(0.99 0.007 106.5);
+        /* Warm Stone #f0f1e8 — slight lime cast toward highlight */
+        --secondary: oklch(0.955 0.012 115);
+        --secondary-foreground: oklch(0.315 0.073 139);
+        --muted: oklch(0.955 0.012 115);
+        /* Pewter #666666 */
+        --muted-foreground: oklch(0.51 0 0);
+        /* Soft Lime wash — Seed softAccent, continues highlight */
+        --accent: oklch(0.955 0.055 127);
+        --accent-foreground: oklch(0.315 0.073 139);
+        /* Lime Pulse #d3fa99 — nav active, badges, icon wells (keep vivid) */
+        --highlight: oklch(0.936 0.13 126.6);
+        --highlight-foreground: oklch(0.315 0.073 139);
+        /* Forest Depths band — empty states, hub callouts (Seed dark section, inset) */
+        --ink-surface: oklch(0.315 0.073 139);
+        --ink-surface-foreground: oklch(0.99 0.007 106.5);
+        /* Accent legible *on* the ink band in both themes: Lime punctuation on Forest
+     here, inverted to Forest-on-Lime in dark. Exists as a variable (not a
+     `dark:` class) because SVG/recharts color props take a raw color string. */
+        --ink-accent: var(--highlight);
+        /* Chip / analysis plates share card white so they lift off Snow White canvas */
+        --chip-surface: var(--card);
+        --destructive: oklch(0.58 0.2 27);
+        /* Snow on destructive — white passes AA on both themes after dark-mode darken. */
+        --destructive-foreground: oklch(0.99 0.007 106.5);
+        --border: oklch(0.315 0.073 139 / 12%);
+        --input: oklch(0.315 0.073 139 / 14%);
+        --ring: oklch(0.48 0.13 142);
+        /*
+    Semantic charts — same botanical orbit as Lime Pulse (hue ~120–142),
+    then warm effort spectrum. Avoid cool sage / brown tan that fights highlight.
+  */
+        --chart-1: oklch(0.56 0.09 148); /* recovery — leaf-eucalyptus toward lime */
+        --chart-2: oklch(0.48 0.13 142); /* base — matches interactive primary */
+        --chart-3: oklch(0.72 0.11 122); /* tempo — olive-lime (moderate days) */
+        --chart-4: oklch(0.74 0.12 95); /* threshold — warm gold, still lime-adjacent */
+        --chart-5: oklch(0.66 0.15 55); /* VO2max / charge — warm orange (data) */
+        --analysis-surface: var(--card);
+        --analysis-surface-alt: oklch(0.955 0.012 115);
+        --analysis-border: oklch(0.315 0.073 139 / 16%);
+        --analysis-grid: oklch(0.315 0.073 139 / 8%);
+        /*
+    Accent/onAccent pairs: filled signal plates never use raw text-white.
+    Light: snow when white ≥ 4.5:1, else dark-canvas ink (or pure black on mid fills).
+    Dark: accents go light → ink (dark canvas) always.
+  */
+        --signal-recovery: var(--chart-1);
+        --signal-recovery-foreground: oklch(0 0 0); /* mid fill — snow 4.35 fails, black 4.70 */
+        --signal-base: var(--chart-2);
+        --signal-base-foreground: oklch(0.99 0.007 106.5);
+        --signal-tempo: var(--chart-3);
+        --signal-tempo-foreground: oklch(0.22 0.045 139);
+        --signal-threshold: var(--chart-4);
+        --signal-threshold-foreground: oklch(0.22 0.045 139);
+        --signal-vo2: var(--chart-5);
+        --signal-vo2-foreground: oklch(0.22 0.045 139);
+        --signal-neutral: oklch(0.51 0 0);
+        --signal-neutral-foreground: oklch(0.99 0.007 106.5);
+        /*
+    Caution and risk are state, not palette. They used to sit inside the botanical
+    hue orbit at low chroma — caution at hue 98 was a yellow-green, three degrees
+    of separation from the brand, and measured 2.40:1 on the light canvas. It is
+    used as *text* in 28 places, so a marker out of range was the least legible
+    thing on the screen.
+
+    Both now clear 4.5:1 on their own ground, and caution leaves the green orbit
+    for true amber (98 → 75). Luminance cannot carry the separation on a near-white
+    canvas — three tiers of 3:1 need a 27:1 range and white only offers 21 — so
+    hue and chroma do the work, backed as always by the word beside the colour.
+  */
+        --signal-caution: oklch(0.55 0.135 75); /* 4.81:1 on canvas */
+        --signal-caution-foreground: oklch(0.99 0.007 106.5);
+        --signal-risk: oklch(0.5 0.2 28); /* 6.48:1 on canvas */
+        --signal-risk-foreground: oklch(0.99 0.007 106.5);
+        --health-status-ok: oklch(0.52 0.09 140);
+        --health-status-ok-foreground: oklch(0.99 0.007 106.5);
+        --health-status-watch: var(--signal-caution);
+        --health-status-watch-foreground: var(--signal-caution-foreground);
+        --health-status-verify: oklch(0.56 0.09 148);
+        --health-status-verify-foreground: oklch(0 0 0);
+        --health-status-attention: var(--signal-risk);
+        --health-status-attention-foreground: var(--signal-risk-foreground);
+        --record-accent: var(--chart-5);
+        --record-accent-foreground: oklch(0.22 0.045 139); /* snow fails on warm orange */
+        /*
+    Sport identity fills (fixed — do not flip with theme). Hex mirrors
+    SPORT_IDENTITY_HEX. on-sport: ink on run/bike/swim/triathlon (white fails
+    ~3.6–4.1), snow on strength/hike/other. Ink is one step deeper than the dark
+    canvas so swim clears AA 4.5:1.
+  */
+        --sport-run: #ea580c;
+        --on-sport-run: oklch(0.18 0.045 139);
+        --sport-bike: #059669;
+        --on-sport-bike: oklch(0.18 0.045 139);
+        --sport-swim: #0284c7;
+        --on-sport-swim: oklch(0.18 0.045 139);
+        --sport-strength: #e11d48;
+        --on-sport-strength: oklch(0.99 0.007 106.5);
+        --sport-triathlon: #0d9488;
+        --on-sport-triathlon: oklch(0.18 0.045 139);
+        --sport-hike: #b45309;
+        --on-sport-hike: oklch(0.99 0.007 106.5);
+        --sport-other: #2f6b28;
+        --on-sport-other: oklch(0.99 0.007 106.5);
+        --radial-track: oklch(0.955 0.012 115);
+        --radial-empty: oklch(0.826 0.005 145.5); /* Frosted Glass */
+        --radius: 1rem;
+        --sidebar: oklch(0.955 0.012 115);
+        --sidebar-foreground: oklch(0.315 0.073 139);
+        --sidebar-primary: oklch(0.48 0.13 142);
+        --sidebar-primary-foreground: oklch(0.99 0.007 106.5);
+        --sidebar-accent: oklch(0.955 0.055 127);
+        --sidebar-accent-foreground: oklch(0.315 0.073 139);
+        --sidebar-border: oklch(0.315 0.073 139 / 10%);
+        --sidebar-ring: oklch(0.48 0.13 142);
+
+        /*
+    Floating bottom-nav contract (every viewport). `--bottom-nav-height` is the
+    bar itself (BottomNav in `layout/mobile-shell.tsx`); `--bottom-nav-offset`
+    adds the home-indicator inset. Sticky action bars and chat composers must
+    anchor on `--bottom-nav-offset` so they never swallow a nav tap. Toasts live
+    at the top edge instead — they must not compete with the floating capsule.
+
+    Top system edge (Dynamic Island / notch / status bar): `--safe-top` is the
+    inset from iOS when `viewport-fit=cover` + translucent status bar. The
+    document owns AppShell scrolling (ADR-039). Readable content uses
+    `safe-page-top` so headings clear Safari's native status tint at rest.
+    `--system-edge-blur-height` sizes the scroll-only progressive blur.
+    Interactive chrome uses `safe-top-offset` — never model-specific heights.
+  */
+        /* Floating glass tab bar — keep last hub cards / quiet links clear of the bar. */
+        --bottom-nav-height: 5.75rem;
+        --bottom-nav-offset: calc(
+          var(--bottom-nav-height) + 2rem + env(safe-area-inset-bottom, 0px)
+        );
+        --safe-top: env(safe-area-inset-top, 0px);
+        /* Floor clears Safari-tab Liquid Glass overlap when env() under-reports;
+     standalone island insets still win via max(). Not a model-specific px. */
+        --safe-page-top-floor: 3.5rem;
+        --system-edge-blur-height: calc(max(var(--safe-top), var(--safe-page-top-floor)) + 1.25rem);
+
+        /* Press feedback scales — ADR-028 / motionTokens.scale.press* */
+        --press-scale-micro: 0.95;
+        --press-scale-small: 0.96;
+        --press-scale-large: 0.98;
+        --press-scale-surface: 0.988;
+      }
+      .dark {
+        /* Near-ink forest — deeper than Seed product-band green for app density */
+        --background: oklch(0.22 0.045 139);
+        --foreground: oklch(0.99 0.007 106.5);
+        --card: oklch(0.28 0.05 139);
+        --card-foreground: oklch(0.99 0.007 106.5);
+        --popover: oklch(0.28 0.05 139);
+        --popover-foreground: oklch(0.99 0.007 106.5);
+        /* Lime Pulse — full chromatic punch on dark */
+        --primary: oklch(0.936 0.13 126.6);
+        --primary-foreground: oklch(0.28 0.05 139);
+        --secondary: oklch(0.32 0.045 139);
+        --secondary-foreground: oklch(0.99 0.007 106.5);
+        --muted: oklch(0.32 0.045 139);
+        --muted-foreground: oklch(0.78 0.02 145);
+        --accent: oklch(0.36 0.055 130);
+        --accent-foreground: oklch(0.99 0.007 106.5);
+        --highlight: oklch(0.936 0.13 126.6);
+        --highlight-foreground: oklch(0.28 0.05 139);
+        /* Lime band on dark — Seed punctuation as inverted section */
+        --ink-surface: oklch(0.936 0.13 126.6);
+        --ink-surface-foreground: oklch(0.22 0.045 139);
+        --ink-accent: var(--ink-surface-foreground);
+        --chip-surface: var(--card);
+        /* Darkened so snow (destructive-foreground) clears WCAG AA 4.5:1. */
+        --destructive: oklch(0.55 0.2 27);
+        --destructive-foreground: oklch(0.99 0.007 106.5);
+        --border: oklch(0.99 0.007 106.5 / 12%);
+        --input: oklch(0.99 0.007 106.5 / 14%);
+        --ring: oklch(0.936 0.13 126.6);
+        --chart-1: oklch(0.74 0.08 148);
+        --chart-2: oklch(0.936 0.13 126.6);
+        --chart-3: oklch(0.82 0.1 122);
+        --chart-4: oklch(0.82 0.11 95);
+        --chart-5: oklch(0.74 0.14 55);
+        --analysis-surface: var(--card);
+        --analysis-surface-alt: oklch(0.3 0.05 139);
+        --analysis-border: oklch(0.99 0.007 106.5 / 14%);
+        --analysis-grid: oklch(0.99 0.007 106.5 / 8%);
+        /* Dark accents are light → ink (dark canvas) on every filled plate. */
+        --signal-recovery: var(--chart-1);
+        --signal-recovery-foreground: oklch(0.22 0.045 139);
+        --signal-base: var(--chart-2);
+        --signal-base-foreground: oklch(0.22 0.045 139);
+        --signal-tempo: var(--chart-3);
+        --signal-tempo-foreground: oklch(0.22 0.045 139);
+        --signal-threshold: var(--chart-4);
+        --signal-threshold-foreground: oklch(0.22 0.045 139);
+        --signal-vo2: var(--chart-5);
+        --signal-vo2-foreground: oklch(0.22 0.045 139);
+        --signal-neutral: oklch(0.78 0.02 145);
+        --signal-neutral-foreground: oklch(0.22 0.045 139);
+        /* Same move on the dark ground: out of the green orbit, chroma up. */
+        --signal-caution: oklch(0.85 0.15 82); /* 10.71:1 on canvas */
+        --signal-caution-foreground: oklch(0.22 0.045 139);
+        --signal-risk: oklch(0.72 0.19 28); /* 6.15:1 on canvas */
+        --signal-risk-foreground: oklch(0.22 0.045 139);
+        --health-status-ok: oklch(0.74 0.09 140);
+        --health-status-ok-foreground: oklch(0.22 0.045 139);
+        --health-status-watch: var(--signal-caution);
+        --health-status-watch-foreground: var(--signal-caution-foreground);
+        --health-status-verify: oklch(0.74 0.08 148);
+        --health-status-verify-foreground: oklch(0.22 0.045 139);
+        --health-status-attention: var(--signal-risk);
+        --health-status-attention-foreground: var(--signal-risk-foreground);
+        --record-accent: oklch(0.74 0.14 55);
+        --record-accent-foreground: oklch(0.22 0.045 139);
+        /* Sport + on-sport stay fixed (inherited from :root). */
+        --radial-track: oklch(0.32 0.045 139);
+        --radial-empty: oklch(0.42 0.05 139);
+        --sidebar: oklch(0.2 0.042 139);
+        --sidebar-foreground: oklch(0.99 0.007 106.5);
+        --sidebar-primary: oklch(0.936 0.13 126.6);
+        --sidebar-primary-foreground: oklch(0.28 0.05 139);
+        --sidebar-accent: oklch(0.32 0.045 139);
+        --sidebar-accent-foreground: oklch(0.99 0.007 106.5);
+        --sidebar-border: oklch(0.99 0.007 106.5 / 10%);
+        --sidebar-ring: oklch(0.936 0.13 126.6);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+        line-height: 1.35;
+        font-family: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 1.5rem;
+        font-family: Syne, sans-serif;
+      }
+      .kicker {
+        margin-bottom: 24px;
+        color: var(--muted-foreground);
+        font-size: 0.75rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .grid {
+        display: grid;
+        gap: 20px;
+      }
+      .card {
+        padding: 16px 18px;
+        border: 1px solid color-mix(in oklch, var(--foreground) 12%, transparent);
+        border-radius: 16px;
+        background: var(--card);
+        color: var(--card-foreground);
+      }
+      .card h2 {
+        margin: 0 0 8px;
+        color: var(--muted-foreground);
+        font-weight: 600;
+        font-size: 0.7rem;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .card h3 {
+        margin: 0 0 10px;
+        font-size: 1.15rem;
+        font-family: Syne, sans-serif;
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+      }
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        height: 28px;
+        padding: 0 12px;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.8rem;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        height: 36px;
+        padding: 0 14px;
+        border: none;
+        border-radius: 999px;
+        font-weight: 500;
+        font-size: 0.875rem;
+      }
+      .signal {
+        min-width: 7rem;
+        padding: 10px 12px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-align: center;
+      }
+      .muted {
+        margin: 0;
+        color: var(--muted-foreground);
+        font-size: 0.875rem;
+      }
+      .broken {
+        outline: 2px dashed oklch(0.7 0.15 25);
+        outline-offset: 2px;
+      }
+      .section-label {
+        margin: 16px 0 8px;
+        color: var(--muted-foreground);
+        font-size: 0.7rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+      .compare {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .compare .col-title {
+        margin-bottom: 6px;
+        font-weight: 600;
+        font-size: 0.7rem;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="kicker">Exemple · données fictives</p>
+    <h1>Aujourd'hui</h1>
+    <p class="muted" style="margin-bottom: 20px">
+      Charge maîtrisée — tu peux tenir le tempo prévu.
+    </p>
+
+    <div class="grid">
+      <section class="card" data-shot="verdict">
+        <h2>Le verdict</h2>
+        <h3>Allure tenue</h3>
+        <p class="muted">Posture : construis · vs hier : +4</p>
+        <div class="row" style="margin-top: 12px">
+          <span class="chip" style="background: var(--primary); color: var(--primary-foreground)"
+            >Primary</span
+          >
+          <span
+            class="chip"
+            style="background: var(--highlight); color: var(--highlight-foreground)"
+            >Highlight</span
+          >
+          <span
+            class="chip"
+            style="background: var(--record-accent); color: var(--record-accent-foreground)"
+            >Record</span
+          >
+        </div>
+      </section>
+
+      <section class="card" data-shot="signals">
+        <h2>Les signaux</h2>
+        <h3>Ce que le corps dit</h3>
+        <div class="row">
+          <div
+            class="signal"
+            style="background: var(--signal-caution); color: var(--signal-caution-foreground)"
+          >
+            Caution 62
+          </div>
+          <div
+            class="signal"
+            style="background: var(--signal-risk); color: var(--signal-risk-foreground)"
+          >
+            Risk 28
+          </div>
+          <div
+            class="signal"
+            style="background: var(--health-status-ok); color: var(--health-status-ok-foreground)"
+          >
+            Santé OK
+          </div>
+          <div
+            class="signal"
+            style="background: var(--signal-recovery); color: var(--signal-recovery-foreground)"
+          >
+            Récup
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-shot="sports">
+        <h2>Sports</h2>
+        <h3>Chips identité</h3>
+        <div class="row">
+          <span class="chip" style="background: var(--sport-run); color: var(--on-sport-run)"
+            >Course</span
+          >
+          <span class="chip" style="background: var(--sport-bike); color: var(--on-sport-bike)"
+            >Vélo</span
+          >
+          <span class="chip" style="background: var(--sport-swim); color: var(--on-sport-swim)"
+            >Natation</span
+          >
+          <span
+            class="chip"
+            style="background: var(--sport-triathlon); color: var(--on-sport-triathlon)"
+            >Triathlon</span
+          >
+          <span
+            class="chip"
+            style="background: var(--sport-strength); color: var(--on-sport-strength)"
+            >Renfo</span
+          >
+          <span class="chip" style="background: var(--sport-hike); color: var(--on-sport-hike)"
+            >Rando</span
+          >
+          <span class="chip" style="background: var(--sport-other); color: var(--on-sport-other)"
+            >Autre</span
+          >
+        </div>
+      </section>
+
+      <section class="card" data-shot="destructive">
+        <h2>Actions</h2>
+        <h3>Destructif</h3>
+        <div class="row">
+          <button
+            class="btn"
+            style="background: var(--destructive); color: var(--destructive-foreground)"
+          >
+            Supprimer le compte
+          </button>
+          <button class="btn" style="background: var(--primary); color: var(--primary-foreground)">
+            Accent
+          </button>
+          <button
+            class="btn"
+            style="background: var(--highlight); color: var(--highlight-foreground)"
+          >
+            Highlight
+          </button>
+        </div>
+      </section>
+
+      <section class="card" data-shot="before-after">
+        <h2>Contraste</h2>
+        <h3>Avant / après (fond accent dark)</h3>
+        <div class="compare">
+          <div>
+            <div class="col-title">Avant — text blanc hardcodé</div>
+            <div class="row">
+              <span class="chip broken" style="background: var(--primary); color: #fff"
+                >Primary</span
+              >
+              <span class="chip broken" style="background: var(--signal-caution); color: #fff"
+                >Caution</span
+              >
+              <span class="chip broken" style="background: var(--destructive); color: #fff"
+                >Delete</span
+              >
+              <span class="chip broken" style="background: var(--sport-run); color: #fff"
+                >Course</span
+              >
+            </div>
+          </div>
+          <div>
+            <div class="col-title">Après — paire sémantique</div>
+            <div class="row">
+              <span
+                class="chip"
+                style="background: var(--primary); color: var(--primary-foreground)"
+                >Primary</span
+              >
+              <span
+                class="chip"
+                style="background: var(--signal-caution); color: var(--signal-caution-foreground)"
+                >Caution</span
+              >
+              <span
+                class="chip"
+                style="background: var(--destructive); color: var(--destructive-foreground)"
+                >Delete</span
+              >
+              <span class="chip" style="background: var(--sport-run); color: var(--on-sport-run)"
+                >Course</span
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </body>
+</html>

@@ -18,7 +18,7 @@ const buttonVariants = cva(
         outline: `border-foreground/55 bg-card text-foreground ${pointerHover}:hover:bg-muted aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-card dark:${pointerHover}:hover:bg-foreground/10`,
         secondary: `bg-card text-card-foreground border border-border/70 ${pointerHover}:hover:bg-[color-mix(in_oklch,var(--card),var(--foreground)_4%)] aria-expanded:bg-card aria-expanded:text-card-foreground`,
         ghost: `${pointerHover}:hover:bg-muted ${pointerHover}:hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:${pointerHover}:hover:bg-muted/50`,
-        destructive: `bg-destructive/10 text-destructive ${pointerHover}:hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:${pointerHover}:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40`,
+        destructive: `bg-destructive text-destructive-foreground ${pointerHover}:hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40`,
         /** Chromatic accent — leaf / Lime interactive, not the filled CTA */
         accent: `bg-primary text-primary-foreground ${pointerHover}:hover:bg-primary/85`,
         /** Lime Pulse action pill — bande ink affordance (pressed = one ramp darker) */

@@ -18,7 +18,8 @@
     "api": "yarn workspace @sharpit/api",
     "hub": "yarn workspace @sharpit/hub",
     "core": "yarn workspace @sharpit/core",
-    "prepare": "node -e \"process.exit(process.env.CI||process.env.VERCEL?0:1)\" || husky"
+    "prepare": "node -e \"process.exit(process.env.CI||process.env.VERCEL?0:1)\" || husky",
+    "check:text-colors": "node scripts/ci/check-hardcoded-text-colors.mjs"
   },
   "devDependencies": {
     "husky": "^9.1.7",

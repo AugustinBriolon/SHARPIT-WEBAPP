@@ -1,6 +1,7 @@
 import { cacheLife } from 'next/cache';
 import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
+import { limiterSignalChipForMode } from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import { addTrainingDays, trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { CARNET_FRESHNESS, readViewModel } from '@/components/carnet/carnet-read';
 import { carnetHref, longDayLabel, resolveDayParam } from '@/components/carnet/carnet-time';
@@ -179,8 +180,18 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
         }
       >
         {vm.statusMessage ? <Quiet>{vm.statusMessage}</Quiet> : null}
+        {trust.explanation?.essential ? (
+          <p className="text-sm leading-relaxed">{trust.explanation.essential}</p>
+        ) : null}
         {trust.instruction ? (
           <p className="text-sm leading-relaxed font-medium">{trust.instruction}</p>
+        ) : null}
+        {trust.limiterCountLabel ? (
+          <p className="text-label text-muted-foreground">Frein · {trust.limiterCountLabel}</p>
+        ) : trust.limiterSignals[0] ? (
+          <p className="text-label text-muted-foreground">
+            {limiterSignalChipForMode(trust.limiterSignals[0], 'essential')}
+          </p>
         ) : null}
         <Reasons items={reasons} />
         {actionRow.morningRecalibration?.status === 'PRESENTED' ? (

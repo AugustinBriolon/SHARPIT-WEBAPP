@@ -18,6 +18,15 @@ describe('buttonVariants (Seed ink CTA)', () => {
   it('keeps accent as chromatic primary for rare emphasis', () => {
     const classes = buttonVariants({ variant: 'accent' });
     expect(classes).toContain('bg-primary');
+    expect(classes).toContain('text-primary-foreground');
+  });
+
+  it('uses solid destructive with the paired foreground token', () => {
+    const classes = buttonVariants({ variant: 'destructive' });
+    expect(classes).toContain('bg-destructive');
+    expect(classes).toContain('text-destructive-foreground');
+    expect(classes).not.toContain('text-white');
+    expect(classes).not.toContain('bg-destructive/10');
   });
 
   it('uses rounded-full for all button sizes', () => {
