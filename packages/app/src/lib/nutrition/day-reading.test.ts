@@ -62,6 +62,7 @@ describe('buildNutritionDayReading', () => {
           {
             name: 'lunch',
             label: 'Déjeuner',
+            subtitle: null,
             calories: 700,
             protein: 50,
             carbs: 70,
@@ -71,6 +72,7 @@ describe('buildNutritionDayReading', () => {
           {
             name: 'dinner',
             label: 'Dîner',
+            subtitle: null,
             calories: 1210,
             protein: 114,
             carbs: 70,
