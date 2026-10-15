@@ -263,11 +263,12 @@ const SUPPORT_EXPLANATION_FRAGMENT: Record<SupportSignalCode, DensityPair> = {
 };
 
 /**
- * Essential closing when the fact sentence starts with « Ton corps … »
- * (« lui » = le corps — never use this after Expert « Ta VFC… »).
+ * Essentiel CAUTION closing (also forced after a « Ton corps … » fact sentence).
+ * Names « ton corps » explicitly so the referent stays clear when the fact does not.
+ * Expert keeps its own closing (« aide ton corps ») — never reuse this string there.
  */
 export const ESSENTIAL_CLOSING_AFTER_TON_CORPS =
-  'Une séance facile aujourd’hui lui laisse le temps de se remettre.';
+  'Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.';
 
 /**
  * Orientation closing — conjugated, tutoiement, no promised outcome.
@@ -370,19 +371,41 @@ function capitalizeFr(sentence: string): string {
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
-function joinFragments(fragments: string[]): string {
+/** Join glossary fragments with « et » (and commas for 3+). No period, no capitalize. */
+function joinWithEt(fragments: readonly string[]): string {
   if (fragments.length === 0) {
     return '';
   }
   if (fragments.length === 1) {
-    return capitalizeFr(fragments[0]!);
+    return fragments[0]!;
   }
   if (fragments.length === 2) {
-    return `${capitalizeFr(fragments[0]!)} et ${fragments[1]}.`;
+    return `${fragments[0]} et ${fragments[1]}`;
   }
   const head = fragments.slice(0, -1).join(', ');
-  const last = fragments[fragments.length - 1]!;
-  return `${capitalizeFr(head)} et ${last}.`;
+  return `${head} et ${fragments[fragments.length - 1]}`;
+}
+
+/**
+ * Fact sentence from glossary fragments only.
+ * - Brake only / support only: joined with « et ».
+ * - Brake + support: support first, then «, mais », then brake last.
+ */
+function joinExplanationFacts(
+  limiterBits: readonly string[],
+  supportBits: readonly string[],
+): string {
+  if (supportBits.length > 0 && limiterBits.length > 0) {
+    return `${capitalizeFr(joinWithEt(supportBits))}, mais ${joinWithEt(limiterBits)}.`;
+  }
+  const bits = limiterBits.length > 0 ? limiterBits : supportBits;
+  if (bits.length === 0) {
+    return '';
+  }
+  if (bits.length === 1) {
+    return capitalizeFr(bits[0]!);
+  }
+  return `${capitalizeFr(joinWithEt(bits))}.`;
 }
 
 function sortByImportance<T extends string>(
@@ -469,7 +492,7 @@ function resolveOrientationClosing(
   if (mode !== 'essential') {
     return defaultClosing;
   }
-  // « lui » only after « Ton corps … » — Expert keeps « aide ton corps » (VFC ≠ lui).
+  // After « Ton corps … » (or CAUTION), use the Essentiel closing that names « ton corps ».
   const startsWithTonCorps = Boolean(factSentence?.match(/^Ton corps\b/i));
   if (startsWithTonCorps || stateCode === 'CAUTION') {
     return ESSENTIAL_CLOSING_AFTER_TON_CORPS;
@@ -490,7 +513,7 @@ function buildExplanationForMode(
     return resolveOrientationClosing(stateCode, mode, null);
   }
 
-  const factSentence = joinFragments([...limiterBits, ...supportBits]);
+  const factSentence = joinExplanationFacts(limiterBits, supportBits);
   const fact = factSentence.endsWith('.') ? factSentence : `${factSentence}.`;
   const closing = resolveOrientationClosing(stateCode, mode, fact);
   return `${fact} ${closing}`;

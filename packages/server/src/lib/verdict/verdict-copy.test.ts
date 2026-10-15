@@ -17,7 +17,6 @@ import {
   formatSupportChip,
   resolveInstruction,
   resolveVsYesterday,
-  sentencesShareNoWord,
   serializeVerdictCopyGlossary,
   signalCountLabel,
   verdictCopyLogFields,
@@ -134,17 +133,16 @@ describe('buildVerdictCopy — every state', () => {
     expect(copy.limiterSignal).toBe('hrv_low');
     expect(copy.limiterCountLabel).toBe('2 signaux');
     expect(copy.explanation.essential).toBe(
-      'Ton corps n’a pas encore récupéré et ta nuit a été trop courte. Une séance facile aujourd’hui lui laisse le temps de se remettre.',
+      'Ton corps n’a pas encore récupéré et ta nuit a été trop courte. Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.',
     );
     expect(copy.explanation.expert).toBe(
       'Ta VFC est basse et ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
     );
     const [essentialFact, essentialClosing] = copy.explanation.essential.split(/(?<=\.)\s+/);
     expect(essentialFact).toMatch(/^Ton corps\b/);
-    expect(essentialClosing).toBe(
-      'Une séance facile aujourd’hui lui laisse le temps de se remettre.',
-    );
-    expect(sentencesShareNoWord(essentialFact!, essentialClosing!)).toBe(true);
+    expect(essentialClosing).toBe(ESSENTIAL_CLOSING_AFTER_TON_CORPS);
+    expect(essentialClosing).toMatch(/laisse à ton corps le temps de se remettre/);
+    expect(essentialClosing).not.toContain('lui laisse');
     expect(formatLimiterChip(copy.limiterSignals, 'essential')).toBe('Frein · 2 signaux');
     expect(formatLimiterChip(copy.limiterSignals, 'expert')).toBe(
       'Frein · VFC basse · Sommeil court',
@@ -153,13 +151,13 @@ describe('buildVerdictCopy — every state', () => {
     expect(formatLimiterChip(['hrv_low'], 'expert')).toBe('Frein · VFC basse');
   });
 
-  it('Essential closing after « Ton corps … » uses lui — Expert keeps aide ton corps', () => {
+  it('Essential closing names ton corps — Expert keeps aide ton corps', () => {
     for (const state of ALL_STATES) {
       const copy = buildVerdictCopy(state, { limiterSignals: ['hrv_low'] });
       expect(copy.explanation.essential.startsWith('Ton corps')).toBe(true);
       expect(copy.explanation.essential.endsWith(ESSENTIAL_CLOSING_AFTER_TON_CORPS)).toBe(true);
-      const [fact, closing] = copy.explanation.essential.split(/(?<=\.)\s+/);
-      expect(sentencesShareNoWord(fact!, closing!)).toBe(true);
+      expect(copy.explanation.essential).toContain('laisse à ton corps le temps de se remettre');
+      expect(copy.explanation.essential).not.toContain('lui laisse');
       expect(copy.explanation.expert).not.toContain('lui laisse');
     }
     const cautionExpert = buildVerdictCopy('CAUTION', {
@@ -233,13 +231,15 @@ describe('resolveSupportSignals / extraLimiterFacts', () => {
       limiterSignals: ['sleep_short'],
       supportSignals: ['sleep_quality_ok', 'hrv_ok'],
     });
-    // Sleep support dropped; autonomic support kept.
+    // Sleep support dropped; autonomic support kept — support first, then «, mais » brake.
     expect(copy.supportSignals).toEqual(['hrv_ok']);
-    expect(copy.explanation.essential).toMatch(/nuit a été trop courte/i);
-    expect(copy.explanation.essential).toMatch(/corps a bien récupéré/i);
+    expect(copy.explanation.essential).toBe(
+      'Ton corps a bien récupéré, mais ta nuit a été trop courte. Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.',
+    );
+    expect(copy.explanation.expert).toBe(
+      'Ta VFC est dans la norme, mais ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
+    );
     expect(copy.explanation.essential).not.toMatch(/réparatrice|suffisante/i);
-    expect(copy.explanation.expert).toMatch(/sommeil a été court/i);
-    expect(copy.explanation.expert).toMatch(/VFC est dans la norme/i);
     expect(copy.explanation.expert).not.toMatch(/qualité|suffisant/i);
   });
 
@@ -250,7 +250,7 @@ describe('resolveSupportSignals / extraLimiterFacts', () => {
     });
     expect(copy.supportSignals).toEqual([]);
     expect(copy.explanation.essential).toBe(
-      'Ta nuit a été trop courte. Une séance facile aujourd’hui lui laisse le temps de se remettre.',
+      'Ta nuit a été trop courte. Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.',
     );
     expect(copy.explanation.expert).toBe(
       'Ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
@@ -266,6 +266,45 @@ describe('resolveSupportSignals / extraLimiterFacts', () => {
         hints: { sleepMinutes: 300, sleepTargetMinutes: 480 },
       }),
     ).toContain('sleep_short');
+  });
+});
+
+describe('explanation fact join — glossary phrases only', () => {
+  it('brake only — single clause in both densities', () => {
+    const copy = buildVerdictCopy('CAUTION', {
+      limiterSignals: ['sleep_short'],
+    });
+    expect(copy.explanation.essential).toBe(
+      'Ta nuit a été trop courte. Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.',
+    );
+    expect(copy.explanation.expert).toBe(
+      'Ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
+    );
+  });
+
+  it('brake + support — support first, puis «, mais », brake last in both densities', () => {
+    const copy = buildVerdictCopy('CAUTION', {
+      limiterSignals: ['sleep_short'],
+      supportSignals: ['hrv_ok'],
+    });
+    expect(copy.explanation.essential).toBe(
+      'Ton corps a bien récupéré, mais ta nuit a été trop courte. Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.',
+    );
+    expect(copy.explanation.expert).toBe(
+      'Ta VFC est dans la norme, mais ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
+    );
+  });
+
+  it('two brakes — joined with « et » in both densities', () => {
+    const copy = buildVerdictCopy('CAUTION', {
+      limiterSignals: ['hrv_low', 'sleep_short'],
+    });
+    expect(copy.explanation.essential).toBe(
+      'Ton corps n’a pas encore récupéré et ta nuit a été trop courte. Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.',
+    );
+    expect(copy.explanation.expert).toBe(
+      'Ta VFC est basse et ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
+    );
   });
 });
 
