@@ -980,6 +980,8 @@ function assembleTodayHero(ctx: ReturnType<typeof prepareTodayViewModelContext>)
       limiterSignal: verdictCopy.limiterSignal,
       limiterSignals: verdictCopy.limiterSignals,
       limiterCountLabel: verdictCopy.limiterCountLabel,
+      limiterChipLabels: verdictCopy.limiterChipLabels,
+      limiterOverflowLabel: verdictCopy.limiterOverflowLabel,
       supportSignal: verdictCopy.supportSignal,
       supportSignals: verdictCopy.supportSignals,
       supportCountLabel: verdictCopy.supportCountLabel,
@@ -989,6 +991,7 @@ function assembleTodayHero(ctx: ReturnType<typeof prepareTodayViewModelContext>)
       showHeadline: verdictCopy.showHeadline,
       vsYesterday: verdictCopy.vsYesterday,
       vsYesterdayLabel: verdictCopy.vsYesterdayLabel,
+      vsYesterdayVerdictLabel: verdictCopy.vsYesterdayVerdictLabel,
     },
     reliability: reliabilityBundle.reliability,
   };

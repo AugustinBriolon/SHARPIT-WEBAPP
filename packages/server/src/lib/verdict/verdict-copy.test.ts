@@ -129,9 +129,11 @@ describe('buildVerdictCopy — every state', () => {
     expect(copy.showHeadline).toBe(false);
     expect(copy.instruction).toBe('Baisse l’intensité de la séance prévue.');
     expect(copy.vsYesterdayLabel).toBe('Comme hier');
+    expect(copy.vsYesterdayVerdictLabel).toBe('Hier : Prudence');
     expect(copy.limiterSignals).toEqual(['hrv_low', 'sleep_short']);
     expect(copy.limiterSignal).toBe('hrv_low');
     expect(copy.limiterCountLabel).toBe('2 signaux');
+    expect(copy.limiterOverflowLabel).toBeNull();
     expect(copy.explanation.essential).toBe(
       'Ton corps n’a pas encore récupéré et ta nuit a été trop courte. Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.',
     );
@@ -151,14 +153,20 @@ describe('buildVerdictCopy — every state', () => {
     expect(formatLimiterChip(['hrv_low'], 'expert')).toBe('Frein · VFC basse');
   });
 
-  it('Essential closing names ton corps — Expert keeps aide ton corps', () => {
+  it('Essential closing names ton corps — Expert keeps aide ton corps (except REPOS dedupe)', () => {
     for (const state of ALL_STATES) {
       const copy = buildVerdictCopy(state, { limiterSignals: ['hrv_low'] });
       expect(copy.explanation.essential.startsWith('Ton corps')).toBe(true);
-      expect(copy.explanation.essential.endsWith(ESSENTIAL_CLOSING_AFTER_TON_CORPS)).toBe(true);
-      expect(copy.explanation.essential).toContain('laisse à ton corps le temps de se remettre');
       expect(copy.explanation.essential).not.toContain('lui laisse');
       expect(copy.explanation.expert).not.toContain('lui laisse');
+      if (state === 'RECOVER') {
+        expect(copy.explanation.essential).toBe(
+          'Ton corps n’a pas encore récupéré. Un vrai repos aujourd’hui.',
+        );
+        continue;
+      }
+      expect(copy.explanation.essential.endsWith(ESSENTIAL_CLOSING_AFTER_TON_CORPS)).toBe(true);
+      expect(copy.explanation.essential).toContain('laisse à ton corps le temps de se remettre');
     }
     const cautionExpert = buildVerdictCopy('CAUTION', {
       limiterSignals: ['hrv_low', 'sleep_short'],
@@ -306,6 +314,77 @@ describe('explanation fact join — glossary phrases only', () => {
       'Ta VFC est basse et ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
     );
   });
+
+  it('Léa — 3 freins + bon ressenti : phrase cite 1 support + 2 freins (et), 3e en data', () => {
+    // Demo athlete Léa: good feeling + not recovered + short night + heavy week.
+    const copy = buildVerdictCopy('RECOVER', {
+      limiterSignals: ['hrv_low', 'sleep_short', 'load_elevated'],
+      supportSignals: ['subjective_ok'],
+      yesterdayStateCode: 'CAUTION',
+    });
+    expect(copy.limiterSignals).toEqual(['hrv_low', 'sleep_short', 'load_elevated']);
+    expect(copy.supportSignals).toEqual(['subjective_ok']);
+    expect(copy.limiterOverflowLabel).toBe('+1');
+    expect(copy.limiterChipLabels.essential).toEqual([
+      'Corps pas encore récupéré',
+      'Nuit trop courte',
+    ]);
+    expect(copy.limiterChipLabels.expert).toEqual(['VFC basse', 'Sommeil court']);
+    // Sentence: support + 2 brakes with « et » — never comma-chain brakes; load stays out.
+    expect(copy.explanation.essential).toBe(
+      'Ta forme ressentie est bonne, mais ton corps n’a pas encore récupéré et ta nuit a été trop courte. Un vrai repos aujourd’hui.',
+    );
+    // Expert fact does not say « récupéré » — full REPOS closing stays.
+    expect(copy.explanation.expert).toBe(
+      'Ton ressenti est élevé, mais ta VFC est basse et ton sommeil a été court. Un vrai repos aujourd’hui aide ton corps à récupérer.',
+    );
+    // Comma only before « mais » — never « frein, frein et frein ».
+    expect(copy.explanation.essential).toMatch(/bonne, mais /);
+    expect(copy.explanation.essential).not.toMatch(/récupéré,/);
+    expect(copy.explanation.essential).not.toMatch(/semaine|lourde/i);
+    expect(copy.explanation.expert).not.toMatch(/charge est élevée/i);
+    expect(copy.explanation.essential).not.toMatch(/récupérer/i);
+  });
+});
+
+describe('closing dedupe — no récupérer echo', () => {
+  it('REPOS: closing stays short when the fact already says the body has not recovered', () => {
+    const copy = buildVerdictCopy('RECOVER', { limiterSignals: ['hrv_low'] });
+    expect(copy.explanation.essential).toMatch(/n’a pas encore récupéré/i);
+    expect(copy.explanation.essential).toBe(
+      'Ton corps n’a pas encore récupéré. Un vrai repos aujourd’hui.',
+    );
+    expect(copy.explanation.essential).not.toMatch(/aide ton corps à récupérer/i);
+    expect(copy.explanation.expert).toBe(
+      'Ta VFC est basse. Un vrai repos aujourd’hui aide ton corps à récupérer.',
+    );
+  });
+
+  it('generic stem dedupe: closing that shares a content stem with the fact is replaced', () => {
+    const copy = buildVerdictCopy('RECOVER', {
+      limiterSignals: ['hrv_low', 'sleep_short'],
+    });
+    const [fact, closing] = copy.explanation.essential.split(/(?<=\.)\s+/);
+    expect(fact).toMatch(/récupéré/i);
+    expect(closing).toBe('Un vrai repos aujourd’hui.');
+    expect(closing).not.toMatch(/récupér/i);
+  });
+});
+
+describe('vsYesterdayVerdictLabel — additive Hier tag', () => {
+  it('exposes yesterday tag label without changing vsYesterdayLabel', () => {
+    const same = buildVerdictCopy('CAUTION', { yesterdayStateCode: 'CAUTION' });
+    expect(same.vsYesterdayLabel).toBe('Comme hier');
+    expect(same.vsYesterdayVerdictLabel).toBe('Hier : Prudence');
+
+    const changed = buildVerdictCopy('RECOVER', { yesterdayStateCode: 'CAUTION' });
+    expect(changed.vsYesterdayLabel).toBe('Changé depuis hier');
+    expect(changed.vsYesterdayVerdictLabel).toBe('Hier : Prudence');
+
+    const none = buildVerdictCopy('CAUTION');
+    expect(none.vsYesterdayLabel).toBeNull();
+    expect(none.vsYesterdayVerdictLabel).toBeNull();
+  });
 });
 
 describe('yesterday security — session athlete only', () => {
@@ -395,7 +474,7 @@ describe('resolveVsYesterday', () => {
 describe('serializeVerdictCopyGlossary', () => {
   it('exports a versioned snapshot shape with tone + count labels', () => {
     const snap = serializeVerdictCopyGlossary();
-    expect(snap.version).toBe(2);
+    expect(snap.version).toBe(3);
     expect(snap.showHeadline).toBe(false);
     expect(snap.tone.address).toBe('tutoiement');
     expect(snap.limiterCountLabel.minCount).toBe(2);

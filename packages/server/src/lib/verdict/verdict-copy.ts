@@ -100,6 +100,35 @@ export const VS_YESTERDAY_LABEL: Record<VsYesterdayCode, string> = {
   changed: 'Changé depuis hier',
 };
 
+/** Additive label next to vsYesterdayLabel — e.g. « Hier : Prudence ». */
+export const VS_YESTERDAY_VERDICT_LABEL_TEMPLATE = 'Hier : {tag}' as const;
+
+export function formatVsYesterdayVerdictLabel(
+  yesterday: VerdictStateCode | null | undefined,
+): string | null {
+  if (!yesterday) {
+    return null;
+  }
+  return `Hier : ${VERDICT_TAG[yesterday]}`;
+}
+
+/** Max freins / supports cited inside the explanation sentence (extras stay structured). */
+export const EXPLANATION_MAX_LIMITERS = 2;
+export const EXPLANATION_MAX_SUPPORTS = 1;
+
+/** Max frein chips before « +N » overflow. */
+export const LIMITER_CHIPS_VISIBLE_MAX = 2;
+
+export function formatSignalOverflowLabel(
+  total: number,
+  visibleMax: number = LIMITER_CHIPS_VISIBLE_MAX,
+): string | null {
+  if (total <= visibleMax) {
+    return null;
+  }
+  return `+${total - visibleMax}`;
+}
+
 // ─── Limiter chip pairs (Essentiel / Expert) — owned by @sharpit/app ──────────
 
 export const LIMITER_LABEL: Record<LimiterSignalCode, DensityPair> = LIMITER_LABEL_BY_DENSITY;
@@ -305,6 +334,24 @@ const ORIENTATION_CLOSING: Record<VerdictStateCode, DensityPair> = {
   },
 };
 
+/**
+ * Short / alternate closings when the default shares a content stem with the fact
+ * (e.g. « récupéré » → avoid « récupérer »). Glossary phrases only.
+ */
+const ORIENTATION_CLOSING_ALTERNATES: Partial<Record<VerdictStateCode, DensityPair>> = {
+  RECOVER: {
+    essential: 'Un vrai repos aujourd’hui.',
+    expert: 'Un vrai repos aujourd’hui.',
+  },
+  CAUTION: {
+    essential: ESSENTIAL_CLOSING_AFTER_TON_CORPS,
+    expert: 'Une séance facile aujourd’hui.',
+  },
+};
+
+/** REPOS short closing — preferred when the fact already names recovery. */
+export const RECOVER_SHORT_CLOSING = 'Un vrai repos aujourd’hui.';
+
 /** Expert-mode acronyms the Coach must avoid in essential reading. */
 export const EXPERT_ACRONYMS = [
   'VFC',
@@ -357,11 +404,21 @@ export type BuiltVerdictCopy = {
   limiterSignal: LimiterSignalCode | null;
   /** « 2 signaux » — null when fewer than 2 freins. */
   limiterCountLabel: string | null;
+  /**
+   * Glossary labels for the first {@link LIMITER_CHIPS_VISIBLE_MAX} freins
+   * (UI shows these chips; extras via {@link limiterOverflowLabel}).
+   */
+  limiterChipLabels: { essential: string[]; expert: string[] };
+  /** « +N » when more freins than {@link LIMITER_CHIPS_VISIBLE_MAX} — null otherwise. */
+  limiterOverflowLabel: string | null;
   supportSignals: SupportSignalCode[];
   supportSignal: SupportSignalCode | null;
   supportCountLabel: string | null;
   vsYesterday: VsYesterdayCode | null;
+  /** Legacy comparative label — do not remove (installed iOS). */
   vsYesterdayLabel: string | null;
+  /** Additive. Yesterday's verdict tag, e.g. « Hier : Prudence ». */
+  vsYesterdayVerdictLabel: string | null;
 };
 
 function capitalizeFr(sentence: string): string {
@@ -371,7 +428,10 @@ function capitalizeFr(sentence: string): string {
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
-/** Join glossary fragments with « et » (and commas for 3+). No period, no capitalize. */
+/**
+ * Join glossary fragments with « et » only — never comma-chain.
+ * Callers must pass at most {@link EXPLANATION_MAX_LIMITERS} brake fragments.
+ */
 function joinWithEt(fragments: readonly string[]): string {
   if (fragments.length === 0) {
     return '';
@@ -379,11 +439,7 @@ function joinWithEt(fragments: readonly string[]): string {
   if (fragments.length === 1) {
     return fragments[0]!;
   }
-  if (fragments.length === 2) {
-    return `${fragments[0]} et ${fragments[1]}`;
-  }
-  const head = fragments.slice(0, -1).join(', ');
-  return `${head} et ${fragments[fragments.length - 1]}`;
+  return `${fragments[0]} et ${fragments.slice(1).join(' et ')}`;
 }
 
 /**
@@ -472,6 +528,71 @@ function wordsOf(sentence: string): Set<string> {
   );
 }
 
+/** Function / glue words ignored by stem dedupe (pronouns, articles, light verbs). */
+const CONTENT_STEM_STOPWORDS = new Set([
+  'a',
+  'à',
+  'ai',
+  'aide',
+  'au',
+  'aujourd',
+  'aux',
+  'ce',
+  'ces',
+  'cette',
+  'dans',
+  'de',
+  'des',
+  'du',
+  'en',
+  'est',
+  'et',
+  'été',
+  'ete',
+  'hui',
+  'la',
+  'le',
+  'les',
+  'lui',
+  'mais',
+  'ne',
+  'pas',
+  'pour',
+  'par',
+  'sa',
+  'se',
+  'ses',
+  'son',
+  'sur',
+  'ta',
+  'te',
+  'ton',
+  'tu',
+  'un',
+  'une',
+  'y',
+]);
+
+/** Fold accents and collapse récupér* stems so « récupéré » clashes with « récupérer ». */
+function contentStem(word: string): string {
+  const folded = word.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase('fr-FR');
+  if (folded.startsWith('recuper')) {
+    return 'recuper';
+  }
+  return folded;
+}
+
+function contentStemsOf(sentence: string): Set<string> {
+  const out = new Set<string>();
+  for (const word of wordsOf(sentence)) {
+    const stem = contentStem(word);
+    if (!CONTENT_STEM_STOPWORDS.has(stem)) {
+      out.add(stem);
+    }
+  }
+  return out;
+}
+
 /** True when two French sentences share no content word (accents folded by locale). */
 export function sentencesShareNoWord(a: string, b: string): boolean {
   const left = wordsOf(a);
@@ -483,21 +604,52 @@ export function sentencesShareNoWord(a: string, b: string): boolean {
   return true;
 }
 
+/** True when two sentences share a content stem (récupéré ↔ récupérer). */
+export function sentencesShareContentStem(a: string, b: string): boolean {
+  const left = contentStemsOf(a);
+  for (const stem of contentStemsOf(b)) {
+    if (left.has(stem)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Pick the first closing that does not echo a content stem already in the fact.
+ * Alternates are glossary phrases only — never free text.
+ */
+export function dedupeClosingAgainstFact(
+  fact: string | null | undefined,
+  closing: string,
+  alternate: string | null | undefined,
+): string {
+  if (!fact || !sentencesShareContentStem(fact, closing)) {
+    return closing;
+  }
+  if (alternate && !sentencesShareContentStem(fact, alternate)) {
+    return alternate;
+  }
+  return alternate ?? closing;
+}
+
 function resolveOrientationClosing(
   stateCode: VerdictStateCode,
   mode: keyof DensityPair,
   factSentence: string | null,
 ): string {
-  const defaultClosing = ORIENTATION_CLOSING[stateCode][mode];
-  if (mode !== 'essential') {
-    return defaultClosing;
+  let closing = ORIENTATION_CLOSING[stateCode][mode];
+  if (mode === 'essential') {
+    // RECOVER keeps its own rest closing (then deduped) — do not force « séance facile ».
+    if (stateCode !== 'RECOVER') {
+      const startsWithTonCorps = Boolean(factSentence?.match(/^Ton corps\b/i));
+      if (startsWithTonCorps || stateCode === 'CAUTION') {
+        closing = ESSENTIAL_CLOSING_AFTER_TON_CORPS;
+      }
+    }
   }
-  // After « Ton corps … » (or CAUTION), use the Essentiel closing that names « ton corps ».
-  const startsWithTonCorps = Boolean(factSentence?.match(/^Ton corps\b/i));
-  if (startsWithTonCorps || stateCode === 'CAUTION') {
-    return ESSENTIAL_CLOSING_AFTER_TON_CORPS;
-  }
-  return defaultClosing;
+  const alternate = ORIENTATION_CLOSING_ALTERNATES[stateCode]?.[mode] ?? null;
+  return dedupeClosingAgainstFact(factSentence, closing, alternate);
 }
 
 function buildExplanationForMode(
@@ -506,8 +658,10 @@ function buildExplanationForMode(
   supportSignals: readonly SupportSignalCode[],
   mode: keyof DensityPair,
 ): string {
-  const limiterBits = limiterSignals.map((code) => LIMITER_EXPLANATION_FRAGMENT[code][mode]);
-  const supportBits = supportSignals.map((code) => SUPPORT_EXPLANATION_FRAGMENT[code][mode]);
+  const citedLimiters = limiterSignals.slice(0, EXPLANATION_MAX_LIMITERS);
+  const citedSupports = supportSignals.slice(0, EXPLANATION_MAX_SUPPORTS);
+  const limiterBits = citedLimiters.map((code) => LIMITER_EXPLANATION_FRAGMENT[code][mode]);
+  const supportBits = citedSupports.map((code) => SUPPORT_EXPLANATION_FRAGMENT[code][mode]);
 
   if (limiterBits.length === 0 && supportBits.length === 0) {
     return resolveOrientationClosing(stateCode, mode, null);
@@ -517,6 +671,17 @@ function buildExplanationForMode(
   const fact = factSentence.endsWith('.') ? factSentence : `${factSentence}.`;
   const closing = resolveOrientationClosing(stateCode, mode, fact);
   return `${fact} ${closing}`;
+}
+
+function buildLimiterChipLabels(codes: readonly LimiterSignalCode[]): {
+  essential: string[];
+  expert: string[];
+} {
+  const visible = codes.slice(0, LIMITER_CHIPS_VISIBLE_MAX);
+  return {
+    essential: visible.map((code) => LIMITER_LABEL[code].essential),
+    expert: visible.map((code) => LIMITER_LABEL[code].expert),
+  };
 }
 
 export function resolveInstruction(
@@ -581,11 +746,14 @@ export function buildVerdictCopy(
     limiterSignals,
     limiterSignal,
     limiterCountLabel: signalCountLabel(limiterSignals.length),
+    limiterChipLabels: buildLimiterChipLabels(limiterSignals),
+    limiterOverflowLabel: formatSignalOverflowLabel(limiterSignals.length),
     supportSignals,
     supportSignal,
     supportCountLabel: signalCountLabel(supportSignals.length),
     vsYesterday,
     vsYesterdayLabel: vsYesterday ? VS_YESTERDAY_LABEL[vsYesterday] : null,
+    vsYesterdayVerdictLabel: formatVsYesterdayVerdictLabel(facts.yesterdayStateCode),
   };
 }
 
@@ -705,7 +873,7 @@ export function verdictCopyLogFields(copy: BuiltVerdictCopy): {
 /** Serializable glossary snapshot for iOS / cross-platform copy. */
 export function serializeVerdictCopyGlossary() {
   return {
-    version: 2,
+    version: 3,
     stateCodesOrdered: [...VERDICT_STATE_CODES_ORDERED, 'INSUFFICIENT_DATA' as const],
     tags: { ...VERDICT_TAG },
     titles: { ...VERDICT_TITLE },
@@ -715,6 +883,9 @@ export function serializeVerdictCopyGlossary() {
       TRAIN_HARD_OVERLOAD: VERDICT_INSTRUCTION_TRAIN_HARD_OVERLOAD,
     },
     vsYesterday: { ...VS_YESTERDAY_LABEL },
+    vsYesterdayVerdictLabel: {
+      template: VS_YESTERDAY_VERDICT_LABEL_TEMPLATE,
+    },
     limiterSignals: Object.fromEntries(
       LIMITER_SIGNAL_CODES.map((code) => [code, { ...LIMITER_LABEL[code] }]),
     ),
@@ -729,6 +900,14 @@ export function serializeVerdictCopyGlossary() {
     supportCountLabel: {
       template: '{n} signaux',
       minCount: 2,
+    },
+    limiterOverflowLabel: {
+      template: '+{n}',
+      visibleMax: LIMITER_CHIPS_VISIBLE_MAX,
+    },
+    explanationCiteLimits: {
+      maxLimiters: EXPLANATION_MAX_LIMITERS,
+      maxSupports: EXPLANATION_MAX_SUPPORTS,
     },
     chipPrefixes: {
       limiter: LIMITER_CHIP_PREFIX,

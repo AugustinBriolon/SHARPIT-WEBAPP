@@ -49,6 +49,10 @@ export type V1TodaySource = {
       >;
       /** « 2 signaux » — null below 2 freins. */
       limiterCountLabel?: string | null;
+      /** Glossary labels for at most 2 frein chips. */
+      limiterChipLabels?: { essential: string[]; expert: string[] } | null;
+      /** « +N » when more than 2 freins. */
+      limiterOverflowLabel?: string | null;
       /** Additive « Porté par » code (= first of supportSignals). */
       supportSignal?:
         | 'hrv_ok'
@@ -86,6 +90,8 @@ export type V1TodaySource = {
       /** Compared to yesterday's verdict for this athlete only. */
       vsYesterday?: 'same' | 'changed' | null;
       vsYesterdayLabel?: string | null;
+      /** Additive. Yesterday's verdict tag, e.g. « Hier : Prudence ». */
+      vsYesterdayVerdictLabel?: string | null;
     };
     reliability?: {
       packTier: V1TodayPackTier;
@@ -188,6 +194,10 @@ export type V1TodayResponse = {
     >;
     /** Additive. « 2 signaux » — null below 2 freins. */
     limiterCountLabel: string | null;
+    /** Additive. Glossary labels for at most 2 frein chips. */
+    limiterChipLabels: { essential: string[]; expert: string[] };
+    /** Additive. « +N » when more than 2 freins. */
+    limiterOverflowLabel: string | null;
     /**
      * Additive. « Porté par » **code** only — equals `supportSignals[0]`.
      */
@@ -227,7 +237,10 @@ export type V1TodayResponse = {
     showHeadline: false;
     /** Additive. Compared to yesterday's verdict for this session athlete only. */
     vsYesterday: 'same' | 'changed' | null;
+    /** Legacy comparative label — keep for installed iOS. */
     vsYesterdayLabel: string | null;
+    /** Additive. Yesterday's verdict tag, e.g. « Hier : Prudence ». */
+    vsYesterdayVerdictLabel: string | null;
     statusLabel: string;
     actionLine: string | null;
     confidenceLabel: string | null;
@@ -390,10 +403,15 @@ function projectVerdictAdditive(strip: V1TodaySource['hero']['twinTrustStrip']) 
   const supportCountLabel =
     strip.supportCountLabel ??
     (supportSignals.length >= 2 ? `${supportSignals.length} signaux` : null);
+  const limiterOverflowLabel =
+    strip.limiterOverflowLabel ??
+    (limiterSignals.length > 2 ? `+${limiterSignals.length - 2}` : null);
   return {
     limiterSignal: limiterSignals[0] ?? strip.limiterSignal ?? null,
     limiterSignals,
     limiterCountLabel,
+    limiterChipLabels: strip.limiterChipLabels ?? { essential: [], expert: [] },
+    limiterOverflowLabel,
     supportSignal: supportSignals[0] ?? strip.supportSignal ?? null,
     supportSignals,
     supportCountLabel,
@@ -403,6 +421,7 @@ function projectVerdictAdditive(strip: V1TodaySource['hero']['twinTrustStrip']) 
     showHeadline: false as const,
     vsYesterday: strip.vsYesterday ?? null,
     vsYesterdayLabel: strip.vsYesterdayLabel ?? null,
+    vsYesterdayVerdictLabel: strip.vsYesterdayVerdictLabel ?? null,
   };
 }
 
@@ -605,6 +624,8 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         limiterSignal: vm.hero.twinTrustStrip.limiterSignal,
         limiterSignals: vm.hero.twinTrustStrip.limiterSignals,
         limiterCountLabel: vm.hero.twinTrustStrip.limiterCountLabel,
+        limiterChipLabels: vm.hero.twinTrustStrip.limiterChipLabels,
+        limiterOverflowLabel: vm.hero.twinTrustStrip.limiterOverflowLabel,
         supportSignal: vm.hero.twinTrustStrip.supportSignal,
         supportSignals: vm.hero.twinTrustStrip.supportSignals,
         supportCountLabel: vm.hero.twinTrustStrip.supportCountLabel,
@@ -614,6 +635,7 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         showHeadline: vm.hero.twinTrustStrip.showHeadline,
         vsYesterday: vm.hero.twinTrustStrip.vsYesterday,
         vsYesterdayLabel: vm.hero.twinTrustStrip.vsYesterdayLabel,
+        vsYesterdayVerdictLabel: vm.hero.twinTrustStrip.vsYesterdayVerdictLabel,
       },
       reliability: vm.hero.reliability
         ? {

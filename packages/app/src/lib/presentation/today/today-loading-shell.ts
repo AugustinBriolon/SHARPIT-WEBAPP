@@ -87,6 +87,8 @@ function shellHeroSection(): TodayViewModel['hero'] {
       limiterSignal: null,
       limiterSignals: [],
       limiterCountLabel: null,
+      limiterChipLabels: { essential: [], expert: [] },
+      limiterOverflowLabel: null,
       supportSignal: null,
       supportSignals: [],
       supportCountLabel: null,
@@ -96,6 +98,7 @@ function shellHeroSection(): TodayViewModel['hero'] {
       showHeadline: null,
       vsYesterday: null,
       vsYesterdayLabel: null,
+      vsYesterdayVerdictLabel: null,
     },
     reliability: null,
   };
