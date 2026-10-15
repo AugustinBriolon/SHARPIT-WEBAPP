@@ -4,11 +4,9 @@
  * ADR-023: the server never picks essential vs expert. It returns both variants;
  * the client (and Coach prompt) choose from the athlete's displayMode.
  *
- * Rules (AUDIT_VERDICT_COPY_MATIN R1–R8, refined):
- * - Stable state codes; tags soft→strong: Repos → Prudence → Léger → Qualité → Intense → Pic
- * - « En attente » is separate (INSUFFICIENT_DATA)
- * - No gendered agreement; no invented facts; no jargon in essential
- * - Explanation never goes to MORNING_VERDICT push or logs (codes/bools only)
+ * Tone: tutoiement, verbes conjugués, impératif tutoyé pour l’instruction.
+ * Jamais de promesse de résultat (« demain tu seras… »). Aucun accord genré.
+ * Explanation never goes to MORNING_VERDICT push or logs (codes/bools only).
  */
 
 import type { OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
@@ -47,6 +45,18 @@ export type DensityPair = {
 
 export type VsYesterdayCode = 'same' | 'changed';
 
+/** Importance order for frein chips (primary stays first when present). */
+export const LIMITER_IMPORTANCE_ORDER: readonly LimiterSignalCode[] = [
+  'hrv_low',
+  'rhr_high',
+  'sleep_short',
+  'sleep_poor',
+  'subjective_low',
+  'load_elevated',
+];
+
+export const SUPPORT_IMPORTANCE_ORDER: readonly SupportSignalCode[] = [...SUPPORT_SIGNAL_CODES];
+
 // ─── Tags (athlete-facing, density-invariant) ────────────────────────────────
 
 export const VERDICT_TAG: Record<VerdictStateCode, string> = {
@@ -59,7 +69,10 @@ export const VERDICT_TAG: Record<VerdictStateCode, string> = {
   INSUFFICIENT_DATA: 'En attente',
 };
 
-/** Short title under the tag — not the instruction, not the explanation. */
+/**
+ * Headline kept filled for legacy clients — new clients hide it via `showHeadline: false`
+ * so the card does not repeat the tag.
+ */
 export const VERDICT_TITLE: Record<VerdictStateCode, string> = {
   RECOVER: 'Priorité au repos',
   CAUTION: 'Signaux à ménager',
@@ -71,22 +84,21 @@ export const VERDICT_TITLE: Record<VerdictStateCode, string> = {
 };
 
 /**
- * Short instruction — plain text, no Markdown/HTML, gender-neutral.
- * Infinitive form avoids gendered agreement.
+ * Instruction — plain text, no Markdown/HTML, impératif tutoyé, gender-neutral.
  */
 export const VERDICT_INSTRUCTION: Record<VerdictStateCode, string> = {
-  RECOVER: 'Privilégier le repos ou une marche très légère.',
-  CAUTION: 'Réduire l’intensité prévue.',
-  TRAIN_EASY: 'Rester en endurance facile.',
-  TRAIN_SMART: 'Garder la qualité, couper le volume.',
-  TRAIN_HARD: 'Enchaîner la séance prévue avec engagement.',
-  RACE_READY: 'Réaliser la séance qualité prévue.',
-  INSUFFICIENT_DATA: 'Synchroniser la nuit avant de décider.',
+  RECOVER: 'Privilégie le repos ou une marche très légère.',
+  CAUTION: 'Baisse l’intensité de la séance prévue.',
+  TRAIN_EASY: 'Reste en endurance facile.',
+  TRAIN_SMART: 'Garde la qualité, coupe le volume.',
+  TRAIN_HARD: 'Enchaîne la séance prévue avec engagement.',
+  RACE_READY: 'Fais la séance qualité prévue.',
+  INSUFFICIENT_DATA: 'Synchronise ta nuit avant de décider.',
 };
 
 /** TRAIN_HARD when adaptation is positively adapting — fact-gated variant. */
 export const VERDICT_INSTRUCTION_TRAIN_HARD_OVERLOAD =
-  'Pousser la séance clé avec une progression mesurée.';
+  'Pousse la séance clé avec une progression mesurée.';
 
 export const VS_YESTERDAY_LABEL: Record<VsYesterdayCode, string> = {
   same: 'Comme hier',
@@ -154,90 +166,102 @@ export const SUPPORT_LABEL: Record<SupportSignalCode, DensityPair> = {
 export const LIMITER_CHIP_PREFIX = 'Frein';
 export const SUPPORT_CHIP_PREFIX = 'Porté par';
 
-// ─── Fact fragments for explanations (only when the fact is present) ─────────
+/** Count label for 2+ signals — null below 2. */
+export function signalCountLabel(count: number): string | null {
+  if (count < 2) {
+    return null;
+  }
+  return `${count} signaux`;
+}
+
+// ─── Fact fragments for explanations (tutoiement, conjugated) ────────────────
 
 const LIMITER_EXPLANATION_FRAGMENT: Record<LimiterSignalCode, DensityPair> = {
   hrv_low: {
-    essential: 'le corps n’a pas encore récupéré',
-    expert: 'la VFC est basse',
+    essential: 'ton corps n’a pas encore récupéré',
+    expert: 'ta VFC est basse',
   },
   rhr_high: {
-    essential: 'le cœur bat plus vite au repos',
-    expert: 'la FC de repos est haute',
+    essential: 'ton cœur bat plus vite au repos',
+    expert: 'ta FC de repos est haute',
   },
   sleep_short: {
-    essential: 'la nuit a été trop courte',
-    expert: 'le sommeil a été court',
+    essential: 'ta nuit a été trop courte',
+    expert: 'ton sommeil a été court',
   },
   sleep_poor: {
-    essential: 'la nuit a été agitée',
-    expert: 'le sommeil a été agité',
+    essential: 'ta nuit a été agitée',
+    expert: 'ton sommeil a été agité',
   },
   subjective_low: {
-    essential: 'la fatigue ressentie est marquée',
-    expert: 'le ressenti est bas',
+    essential: 'ta fatigue ressentie est marquée',
+    expert: 'ton ressenti est bas',
   },
   load_elevated: {
-    essential: 'la semaine d’entraînement a été lourde',
-    expert: 'la charge est élevée',
+    essential: 'ta semaine d’entraînement a été lourde',
+    expert: 'ta charge est élevée',
   },
 };
 
 const SUPPORT_EXPLANATION_FRAGMENT: Record<SupportSignalCode, DensityPair> = {
   hrv_ok: {
-    essential: 'le corps a bien récupéré',
-    expert: 'la VFC est dans la norme',
+    essential: 'ton corps a bien récupéré',
+    expert: 'ta VFC est dans la norme',
   },
   rhr_ok: {
-    essential: 'le cœur reste calme au repos',
-    expert: 'la FC de repos est normale',
+    essential: 'ton cœur reste calme au repos',
+    expert: 'ta FC de repos est normale',
   },
   sleep_adequate: {
-    essential: 'la nuit a été suffisante',
-    expert: 'le sommeil a été suffisant',
+    essential: 'ta nuit a été suffisante',
+    expert: 'ton sommeil a été suffisant',
   },
   sleep_quality_ok: {
-    essential: 'la nuit a été réparatrice',
-    expert: 'le sommeil a été de qualité',
+    essential: 'ta nuit a été réparatrice',
+    expert: 'ton sommeil a été de qualité',
   },
   subjective_ok: {
-    essential: 'la forme ressentie est bonne',
-    expert: 'le ressenti est élevé',
+    essential: 'ta forme ressentie est bonne',
+    expert: 'ton ressenti est élevé',
   },
   load_managed: {
-    essential: 'la charge reste bien gérée',
-    expert: 'la charge est maîtrisée',
+    essential: 'ta charge reste bien gérée',
+    expert: 'ta charge est maîtrisée',
   },
 };
 
+/**
+ * Orientation closing — conjugated, tutoiement, no promised outcome.
+ * Same prose in essential/expert unless jargon would appear.
+ */
 const ORIENTATION_CLOSING: Record<VerdictStateCode, DensityPair> = {
   RECOVER: {
-    essential: 'Le repos est la priorité aujourd’hui.',
-    expert: 'Le repos est la priorité aujourd’hui.',
+    essential: 'Un vrai repos aujourd’hui aide ton corps à récupérer.',
+    expert: 'Un vrai repos aujourd’hui aide ton corps à récupérer.',
   },
   CAUTION: {
-    essential: 'Les signaux appellent à la prudence.',
-    expert: 'Les signaux appellent à la prudence.',
+    essential: 'Une séance facile aujourd’hui aide ton corps à récupérer.',
+    expert: 'Une séance facile aujourd’hui aide ton corps à récupérer.',
   },
   TRAIN_EASY: {
-    essential: 'Une séance légère reste adaptée.',
-    expert: 'Une séance légère reste adaptée.',
+    essential: 'Une séance légère te convient aujourd’hui.',
+    expert: 'Une séance légère te convient aujourd’hui.',
   },
   TRAIN_SMART: {
-    essential: 'Mieux vaut viser la qualité que le volume.',
-    expert: 'Mieux vaut viser la qualité que le volume.',
+    essential: 'Tu peux viser la qualité plutôt que le volume aujourd’hui.',
+    expert: 'Tu peux viser la qualité plutôt que le volume aujourd’hui.',
   },
   TRAIN_HARD: {
-    essential: 'Le corps peut encaisser une séance exigeante.',
-    expert: 'Le corps peut encaisser une séance exigeante.',
+    essential: 'Tu peux enchaîner une séance exigeante aujourd’hui.',
+    expert: 'Tu peux enchaîner une séance exigeante aujourd’hui.',
   },
   RACE_READY: {
-    essential: 'La forme est alignée pour performer.',
-    expert: 'La forme est alignée pour une séance de pic.',
+    essential: 'Tu es dans une fenêtre de performance aujourd’hui.',
+    expert: 'Tu es dans une fenêtre de performance aujourd’hui.',
   },
   INSUFFICIENT_DATA: {
-    essential: 'Il manque encore des signaux pour trancher.',
-    expert: 'Il manque encore des signaux pour trancher.',
+    essential: 'Il te manque encore des signaux pour trancher.',
+    expert: 'Il te manque encore des signaux pour trancher.',
   },
 };
 
@@ -263,11 +287,15 @@ export const EXPERT_ACRONYMS = [
 // ─── Builders ────────────────────────────────────────────────────────────────
 
 export type VerdictCopyFacts = {
-  /** Primary frein — only when calculated. */
+  /** Ordered frein codes (importance). First becomes limiterSignal. */
+  limiterSignals?: readonly LimiterSignalCode[];
+  /** @deprecated Prefer limiterSignals — kept for call-site migration. */
   limiterSignal?: LimiterSignalCode | null;
-  /** Extra limiter-like facts to weave in (e.g. short night when frein is HRV). */
+  /** Extra limiter-like facts merged after primary. */
   extraLimiterFacts?: readonly LimiterSignalCode[];
-  /** Positive support chip — only when calculated. */
+  /** Ordered support codes. First becomes supportSignal. */
+  supportSignals?: readonly SupportSignalCode[];
+  /** @deprecated Prefer supportSignals. */
   supportSignal?: SupportSignalCode | null;
   /** TRAIN_HARD overload path when adaptation is positively adapting. */
   trainHardOverload?: boolean;
@@ -279,12 +307,19 @@ export type BuiltVerdictCopy = {
   stateCode: VerdictStateCode;
   tag: string;
   title: string;
+  /** New clients hide the headline so it does not repeat the tag. */
+  showHeadline: false;
   instruction: string;
   /** Kept for TestFlight — mirrors instruction. */
   actionLine: string;
   explanation: DensityPair;
+  limiterSignals: LimiterSignalCode[];
   limiterSignal: LimiterSignalCode | null;
+  /** « 2 signaux » — null when fewer than 2 freins. */
+  limiterCountLabel: string | null;
+  supportSignals: SupportSignalCode[];
   supportSignal: SupportSignalCode | null;
+  supportCountLabel: string | null;
   vsYesterday: VsYesterdayCode | null;
   vsYesterdayLabel: string | null;
 };
@@ -311,41 +346,64 @@ function joinFragments(fragments: string[]): string {
   return `${capitalizeFr(head)} et ${last}.`;
 }
 
-function densityFragments(
-  codes: readonly LimiterSignalCode[],
-  table: Record<LimiterSignalCode, DensityPair>,
-  mode: keyof DensityPair,
-): string[] {
-  return codes.map((code) => table[code][mode]);
-}
-
-function uniqueLimiterFacts(
-  primary: LimiterSignalCode | null | undefined,
-  extra: readonly LimiterSignalCode[] | undefined,
-): LimiterSignalCode[] {
-  const out: LimiterSignalCode[] = [];
-  const seen = new Set<LimiterSignalCode>();
-  for (const code of [primary, ...(extra ?? [])]) {
-    if (!code || seen.has(code)) {
-      continue;
+function sortByImportance<T extends string>(
+  codes: readonly T[],
+  order: readonly T[],
+  primaryFirst?: T | null,
+): T[] {
+  const set = new Set(codes);
+  const out: T[] = [];
+  if (primaryFirst && set.has(primaryFirst)) {
+    out.push(primaryFirst);
+    set.delete(primaryFirst);
+  }
+  for (const code of order) {
+    if (set.has(code)) {
+      out.push(code);
+      set.delete(code);
     }
-    seen.add(code);
-    out.push(code);
   }
   return out;
 }
 
+export function resolveLimiterSignals(facts: VerdictCopyFacts): LimiterSignalCode[] {
+  if (facts.limiterSignals && facts.limiterSignals.length > 0) {
+    return sortByImportance(
+      facts.limiterSignals,
+      LIMITER_IMPORTANCE_ORDER,
+      facts.limiterSignals[0],
+    );
+  }
+  const primary = facts.limiterSignal ?? null;
+  const merged = [
+    ...(primary ? [primary] : []),
+    ...(facts.extraLimiterFacts ?? []).filter((code) => code !== primary),
+  ];
+  return sortByImportance(merged, LIMITER_IMPORTANCE_ORDER, primary);
+}
+
+export function resolveSupportSignalsList(facts: VerdictCopyFacts): SupportSignalCode[] {
+  if (facts.supportSignals && facts.supportSignals.length > 0) {
+    return sortByImportance(
+      facts.supportSignals,
+      SUPPORT_IMPORTANCE_ORDER,
+      facts.supportSignals[0],
+    );
+  }
+  if (facts.supportSignal) {
+    return [facts.supportSignal];
+  }
+  return [];
+}
+
 function buildExplanationForMode(
   stateCode: VerdictStateCode,
-  facts: VerdictCopyFacts,
+  limiterSignals: readonly LimiterSignalCode[],
+  supportSignals: readonly SupportSignalCode[],
   mode: keyof DensityPair,
 ): string {
-  const limiterCodes = uniqueLimiterFacts(facts.limiterSignal, facts.extraLimiterFacts);
-  const limiterBits = densityFragments(limiterCodes, LIMITER_EXPLANATION_FRAGMENT, mode);
-  const supportBits = facts.supportSignal
-    ? [SUPPORT_EXPLANATION_FRAGMENT[facts.supportSignal][mode]]
-    : [];
-
+  const limiterBits = limiterSignals.map((code) => LIMITER_EXPLANATION_FRAGMENT[code][mode]);
+  const supportBits = supportSignals.map((code) => SUPPORT_EXPLANATION_FRAGMENT[code][mode]);
   const closing = ORIENTATION_CLOSING[stateCode][mode];
 
   if (limiterBits.length === 0 && supportBits.length === 0) {
@@ -353,7 +411,6 @@ function buildExplanationForMode(
   }
 
   const factSentence = joinFragments([...limiterBits, ...supportBits]);
-  // Cap at two sentences: facts + orientation.
   return `${factSentence.endsWith('.') ? factSentence : `${factSentence}.`} ${closing}`;
 }
 
@@ -378,6 +435,19 @@ export function resolveVsYesterday(
 }
 
 /**
+ * Security helper: yesterday verdict is looked up **only** by session athlete id.
+ * Never fall back to another athlete's row.
+ */
+export function yesterdayStateForSessionAthlete(input: {
+  sessionAthleteId: string;
+  /** Map athleteId → yesterday state code (fixture / test stand-in for the repository). */
+  yesterdayByAthlete: ReadonlyMap<string, VerdictStateCode | null | undefined>;
+}): VerdictStateCode | null {
+  const value = input.yesterdayByAthlete.get(input.sessionAthleteId);
+  return value ?? null;
+}
+
+/**
  * Builds the full additive verdict copy from a stable state code and calculated facts.
  * Never invents a frein / support / yesterday delta without a fact.
  */
@@ -387,21 +457,28 @@ export function buildVerdictCopy(
 ): BuiltVerdictCopy {
   const instruction = resolveInstruction(stateCode, facts);
   const vsYesterday = resolveVsYesterday(stateCode, facts.yesterdayStateCode);
-  const limiterSignal = facts.limiterSignal ?? null;
-  const supportSignal = facts.supportSignal ?? null;
+  const limiterSignals = resolveLimiterSignals(facts);
+  const supportSignals = resolveSupportSignalsList(facts);
+  const limiterSignal = limiterSignals[0] ?? null;
+  const supportSignal = supportSignals[0] ?? null;
 
   return {
     stateCode,
     tag: VERDICT_TAG[stateCode],
     title: VERDICT_TITLE[stateCode],
+    showHeadline: false,
     instruction,
     actionLine: instruction,
     explanation: {
-      essential: buildExplanationForMode(stateCode, facts, 'essential'),
-      expert: buildExplanationForMode(stateCode, facts, 'expert'),
+      essential: buildExplanationForMode(stateCode, limiterSignals, supportSignals, 'essential'),
+      expert: buildExplanationForMode(stateCode, limiterSignals, supportSignals, 'expert'),
     },
+    limiterSignals,
     limiterSignal,
+    limiterCountLabel: signalCountLabel(limiterSignals.length),
+    supportSignals,
     supportSignal,
+    supportCountLabel: signalCountLabel(supportSignals.length),
     vsYesterday,
     vsYesterdayLabel: vsYesterday ? VS_YESTERDAY_LABEL[vsYesterday] : null,
   };
@@ -415,18 +492,52 @@ export function supportChipLabel(code: SupportSignalCode, mode: keyof DensityPai
   return `${SUPPORT_CHIP_PREFIX} · ${SUPPORT_LABEL[code][mode]}`;
 }
 
+/**
+ * Frein chip text: single signal → density label; 2+ → « N signaux ».
+ */
+export function formatLimiterChip(
+  codes: readonly LimiterSignalCode[],
+  mode: keyof DensityPair,
+): string | null {
+  if (codes.length === 0) {
+    return null;
+  }
+  const count = signalCountLabel(codes.length);
+  if (count) {
+    return `${LIMITER_CHIP_PREFIX} · ${count}`;
+  }
+  return limiterChipLabel(codes[0]!, mode);
+}
+
+export function formatSupportChip(
+  codes: readonly SupportSignalCode[],
+  mode: keyof DensityPair,
+): string | null {
+  if (codes.length === 0) {
+    return null;
+  }
+  const count = signalCountLabel(codes.length);
+  if (count) {
+    return `${SUPPORT_CHIP_PREFIX} · ${count}`;
+  }
+  return supportChipLabel(codes[0]!, mode);
+}
+
 /** Coach prompt line: athlete reading density — written live into the context. */
 export function formatDisplayModeCoachLine(mode: 'essential' | 'expert'): string {
   if (mode === 'essential') {
     return (
       `Densité de lecture de l’athlète : essentiel. ` +
       `N’utilise aucun acronyme technique (interdits : ${EXPERT_ACRONYMS.join(', ')}). ` +
-      `Parle en langage clair (« corps pas encore récupéré », « nuit trop courte », « charge »).`
+      `Tutoie, conjugue les verbes, parle en langage clair ` +
+      `(« ton corps n’a pas encore récupéré », « ta nuit a été trop courte »). ` +
+      `Ne promets jamais de résultat (« demain tu seras… »).`
     );
   }
   return (
     `Densité de lecture de l’athlète : expert. ` +
-    `Les acronymes techniques (VFC, FC, TSS, ACWR, CTL/ATL, TSB…) sont autorisés quand ils aident.`
+    `Tutoie et conjugue. Les acronymes techniques (VFC, FC, TSS, ACWR, CTL/ATL, TSB…) ` +
+    `sont autorisés quand ils aident. Ne promets jamais de résultat.`
   );
 }
 
@@ -434,16 +545,22 @@ export function formatDisplayModeCoachLine(mode: 'essential' | 'expert'): string
 export function verdictCopyLogFields(copy: BuiltVerdictCopy): {
   stateCode: VerdictStateCode;
   limiterSignal: LimiterSignalCode | null;
+  limiterSignalCount: number;
   supportSignal: SupportSignalCode | null;
+  supportSignalCount: number;
   vsYesterday: VsYesterdayCode | null;
+  showHeadline: false;
   hasExplanation: boolean;
   hasInstruction: boolean;
 } {
   return {
     stateCode: copy.stateCode,
     limiterSignal: copy.limiterSignal,
+    limiterSignalCount: copy.limiterSignals.length,
     supportSignal: copy.supportSignal,
+    supportSignalCount: copy.supportSignals.length,
     vsYesterday: copy.vsYesterday,
+    showHeadline: false,
     hasExplanation: Boolean(copy.explanation.essential || copy.explanation.expert),
     hasInstruction: Boolean(copy.instruction),
   };
@@ -452,10 +569,11 @@ export function verdictCopyLogFields(copy: BuiltVerdictCopy): {
 /** Serializable glossary snapshot for iOS / cross-platform copy. */
 export function serializeVerdictCopyGlossary() {
   return {
-    version: 1,
+    version: 2,
     stateCodesOrdered: [...VERDICT_STATE_CODES_ORDERED, 'INSUFFICIENT_DATA' as const],
     tags: { ...VERDICT_TAG },
     titles: { ...VERDICT_TITLE },
+    showHeadline: false as const,
     instructions: {
       ...VERDICT_INSTRUCTION,
       TRAIN_HARD_OVERLOAD: VERDICT_INSTRUCTION_TRAIN_HARD_OVERLOAD,
@@ -467,11 +585,25 @@ export function serializeVerdictCopyGlossary() {
     supportSignals: Object.fromEntries(
       SUPPORT_SIGNAL_CODES.map((code) => [code, { ...SUPPORT_LABEL[code] }]),
     ),
+    limiterCountLabel: {
+      template: '{n} signaux',
+      minCount: 2,
+    },
+    supportCountLabel: {
+      template: '{n} signaux',
+      minCount: 2,
+    },
     chipPrefixes: {
       limiter: LIMITER_CHIP_PREFIX,
       support: SUPPORT_CHIP_PREFIX,
     },
     expertAcronyms: [...EXPERT_ACRONYMS],
+    tone: {
+      address: 'tutoiement',
+      instructionMood: 'imperatif',
+      noPromisedOutcome: true,
+      noGenderedAgreement: true,
+    },
   };
 }
 

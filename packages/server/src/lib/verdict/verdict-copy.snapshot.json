@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "stateCodesOrdered": [
     "RECOVER",
     "CAUTION",
@@ -27,15 +27,16 @@
     "RACE_READY": "Fenêtre de performance",
     "INSUFFICIENT_DATA": "Pas encore de verdict fiable"
   },
+  "showHeadline": false,
   "instructions": {
-    "RECOVER": "Privilégier le repos ou une marche très légère.",
-    "CAUTION": "Réduire l’intensité prévue.",
-    "TRAIN_EASY": "Rester en endurance facile.",
-    "TRAIN_SMART": "Garder la qualité, couper le volume.",
-    "TRAIN_HARD": "Enchaîner la séance prévue avec engagement.",
-    "RACE_READY": "Réaliser la séance qualité prévue.",
-    "INSUFFICIENT_DATA": "Synchroniser la nuit avant de décider.",
-    "TRAIN_HARD_OVERLOAD": "Pousser la séance clé avec une progression mesurée."
+    "RECOVER": "Privilégie le repos ou une marche très légère.",
+    "CAUTION": "Baisse l’intensité de la séance prévue.",
+    "TRAIN_EASY": "Reste en endurance facile.",
+    "TRAIN_SMART": "Garde la qualité, coupe le volume.",
+    "TRAIN_HARD": "Enchaîne la séance prévue avec engagement.",
+    "RACE_READY": "Fais la séance qualité prévue.",
+    "INSUFFICIENT_DATA": "Synchronise ta nuit avant de décider.",
+    "TRAIN_HARD_OVERLOAD": "Pousse la séance clé avec une progression mesurée."
   },
   "vsYesterday": {
     "same": "Comme hier",
@@ -93,6 +94,14 @@
       "expert": "Charge maîtrisée"
     }
   },
+  "limiterCountLabel": {
+    "template": "{n} signaux",
+    "minCount": 2
+  },
+  "supportCountLabel": {
+    "template": "{n} signaux",
+    "minCount": 2
+  },
   "chipPrefixes": {
     "limiter": "Frein",
     "support": "Porté par"
@@ -113,5 +122,11 @@
     "FTP",
     "LTHR",
     "CSS"
-  ]
+  ],
+  "tone": {
+    "address": "tutoiement",
+    "instructionMood": "imperatif",
+    "noPromisedOutcome": true,
+    "noGenderedAgreement": true
+  }
 }

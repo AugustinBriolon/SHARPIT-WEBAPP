@@ -59,7 +59,7 @@ describe('morning-push', () => {
     it('maps TRAIN_HARD verdict to glossary tag + instruction (never explanation)', () => {
       const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app');
       expect(payload.title).toBe('Intense');
-      expect(payload.body).toBe('Enchaîner la séance prévue avec engagement.');
+      expect(payload.body).toBe('Enchaîne la séance prévue avec engagement.');
       expect(payload.body).not.toMatch(/VFC|explanation|récupéré/i);
       expect(payload.url).toBe('https://sharpit.app/coach?discuss=morning-brief&day=2026-09-24');
       expect(payload.verdict).toBe('TRAIN_HARD');
@@ -93,7 +93,7 @@ describe('morning-push', () => {
 
       const payload = buildMorningPushPayload(recoverSnap, 'https://sharpit.app');
       expect(payload.title).toBe('Repos');
-      expect(payload.body).toBe('Privilégier le repos ou une marche très légère.');
+      expect(payload.body).toBe('Privilégie le repos ou une marche très légère.');
     });
 
     it('truncates body exceeding 140 chars gracefully', () => {

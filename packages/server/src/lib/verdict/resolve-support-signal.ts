@@ -1,6 +1,6 @@
 /**
- * Resolves a single positive « Porté par » signal from calculated recovery hints.
- * Never invents a support when the dimension is the frein, or when data is missing.
+ * Resolves positive « Porté par » signals from calculated recovery hints.
+ * Never invents a support when the dimension is a frein, or when data is missing.
  */
 
 import { isSet } from '@sharpit/shared/value';
@@ -13,7 +13,9 @@ import {
 
 export type ResolveSupportSignalInput = {
   hints?: LimiterSignalHints | null;
-  /** Frein already shown — never emit the conflicting support. */
+  /** Freins already shown — never emit a conflicting support. */
+  limiterSignals?: readonly LimiterSignalCode[] | null;
+  /** @deprecated Prefer limiterSignals. */
   limiterSignal?: LimiterSignalCode | null;
   /** Subjective wellness when known: HIGH | NORMAL | LOW | VERY_LOW */
   subjectiveWellness?: string | null;
@@ -75,23 +77,24 @@ const BLOCKED_BY_LIMITER: Record<SupportSignalCode, readonly LimiterSignalCode[]
   load_managed: ['load_elevated'],
 };
 
-function isBlocked(
-  code: SupportSignalCode,
-  limiter: LimiterSignalCode | null | undefined,
-): boolean {
-  if (!limiter) {
-    return false;
+function isBlocked(code: SupportSignalCode, limiters: readonly LimiterSignalCode[]): boolean {
+  return limiters.some((limiter) => BLOCKED_BY_LIMITER[code].includes(limiter));
+}
+
+function limiterList(input: ResolveSupportSignalInput): LimiterSignalCode[] {
+  if (input.limiterSignals && input.limiterSignals.length > 0) {
+    return [...input.limiterSignals];
   }
-  return BLOCKED_BY_LIMITER[code].includes(limiter);
+  return input.limiterSignal ? [input.limiterSignal] : [];
 }
 
 /**
- * Picks at most one support signal, priority: autonomic → sleep → subjective → load.
- * Returns null when no positive fact is calculated.
+ * All positive support signals that pass, priority order.
+ * Returns [] when no positive fact is calculated.
  */
-export function resolveSupportSignal(input: ResolveSupportSignalInput): SupportSignalCode | null {
+export function resolveSupportSignals(input: ResolveSupportSignalInput): SupportSignalCode[] {
   const hints = input.hints ?? {};
-  const limiter = input.limiterSignal;
+  const limiters = limiterList(input);
 
   const candidates: Array<{ code: SupportSignalCode; ok: boolean }> = [
     { code: 'hrv_ok', ok: isHrvOk(hints) },
@@ -108,12 +111,14 @@ export function resolveSupportSignal(input: ResolveSupportSignalInput): SupportS
     },
   ];
 
-  for (const candidate of candidates) {
-    if (candidate.ok && !isBlocked(candidate.code, limiter)) {
-      return candidate.code;
-    }
-  }
-  return null;
+  return candidates
+    .filter((candidate) => candidate.ok && !isBlocked(candidate.code, limiters))
+    .map((candidate) => candidate.code);
+}
+
+/** @deprecated Prefer resolveSupportSignals — returns the first support only. */
+export function resolveSupportSignal(input: ResolveSupportSignalInput): SupportSignalCode | null {
+  return resolveSupportSignals(input)[0] ?? null;
 }
 
 export { SUPPORT_SIGNAL_CODES };

@@ -158,7 +158,7 @@ export type TodayViewModel = {
       limitingCauseText: string | null;
       /** Drill-down when plate limiter is shown. */
       limitingFactorHref: string | null;
-      /** Additive frein code — chip labels are localized in the app. */
+      /** Additive frein code — first of `limiterSignals` (legacy single). */
       limiterSignal:
         | 'hrv_low'
         | 'rhr_high'
@@ -167,7 +167,13 @@ export type TodayViewModel = {
         | 'subjective_low'
         | 'load_elevated'
         | null;
-      /** Additive « Porté par » code — chip labels localized client-side. */
+      /** Frein codes sorted by importance; empty when none. */
+      limiterSignals: Array<
+        'hrv_low' | 'rhr_high' | 'sleep_short' | 'sleep_poor' | 'subjective_low' | 'load_elevated'
+      >;
+      /** « 2 signaux » — null below 2 freins. */
+      limiterCountLabel: string | null;
+      /** Additive « Porté par » code — first of `supportSignals`. */
       supportSignal:
         | 'hrv_ok'
         | 'rhr_ok'
@@ -176,12 +182,21 @@ export type TodayViewModel = {
         | 'subjective_ok'
         | 'load_managed'
         | null;
+      supportSignals: Array<
+        | 'hrv_ok'
+        | 'rhr_ok'
+        | 'sleep_adequate'
+        | 'sleep_quality_ok'
+        | 'subjective_ok'
+        | 'load_managed'
+      >;
+      supportCountLabel: string | null;
       /**
        * Dual reading (ADR-023) — server returns both; client picks by displayMode.
        * Never logged / never pushed as prose.
        */
       explanation: { essential: string; expert: string } | null;
-      /** Short plain-text instruction (no Markdown/HTML). */
+      /** Short plain-text instruction (no Markdown/HTML) — impératif tutoyé. */
       instruction: string | null;
       /** Stable machine verdict code. */
       stateCode:
@@ -193,6 +208,8 @@ export type TodayViewModel = {
         | 'CAUTION'
         | 'INSUFFICIENT_DATA'
         | null;
+      /** New clients hide headline so it does not repeat the tag. */
+      showHeadline: false | null;
       /** Compared to yesterday's verdict for this athlete only. */
       vsYesterday: 'same' | 'changed' | null;
       vsYesterdayLabel: string | null;

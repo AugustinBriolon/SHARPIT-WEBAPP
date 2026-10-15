@@ -33,7 +33,7 @@ export type V1TodaySource = {
       limitingCauseText: string | null;
       confidenceLabel?: string | null;
       /**
-       * Stable recovery frein signal code for the chip.
+       * Stable recovery frein signal code for the chip (= first of limiterSignals).
        * Null when the frein is not a recovery primary limiter.
        */
       limiterSignal?:
@@ -44,7 +44,12 @@ export type V1TodaySource = {
         | 'subjective_low'
         | 'load_elevated'
         | null;
-      /** Additive « Porté par » code — null when no positive fact is calculated. */
+      limiterSignals?: Array<
+        'hrv_low' | 'rhr_high' | 'sleep_short' | 'sleep_poor' | 'subjective_low' | 'load_elevated'
+      >;
+      /** « 2 signaux » — null below 2 freins. */
+      limiterCountLabel?: string | null;
+      /** Additive « Porté par » code (= first of supportSignals). */
       supportSignal?:
         | 'hrv_ok'
         | 'rhr_ok'
@@ -53,9 +58,18 @@ export type V1TodaySource = {
         | 'subjective_ok'
         | 'load_managed'
         | null;
+      supportSignals?: Array<
+        | 'hrv_ok'
+        | 'rhr_ok'
+        | 'sleep_adequate'
+        | 'sleep_quality_ok'
+        | 'subjective_ok'
+        | 'load_managed'
+      >;
+      supportCountLabel?: string | null;
       /** Dual reading (ADR-023) — both variants; client picks. */
       explanation?: { essential: string; expert: string } | null;
-      /** Short plain-text instruction (no Markdown/HTML). */
+      /** Short plain-text instruction (no Markdown/HTML) — impératif tutoyé. */
       instruction?: string | null;
       /** Stable machine verdict code. */
       stateCode?:
@@ -67,6 +81,8 @@ export type V1TodaySource = {
         | 'CAUTION'
         | 'INSUFFICIENT_DATA'
         | null;
+      /** New clients hide headline so it does not repeat the tag. */
+      showHeadline?: false | null;
       /** Compared to yesterday's verdict for this athlete only. */
       vsYesterday?: 'same' | 'changed' | null;
       vsYesterdayLabel?: string | null;
@@ -156,7 +172,7 @@ export type V1TodayResponse = {
     limitingCause: string | null;
     /**
      * Additive. Frein **code** only — chip labels are localized in the app.
-     * `hrv_low` | `rhr_high` | `sleep_short` | `sleep_poor` | `subjective_low` | `load_elevated` | null
+     * Equals `limiterSignals[0]` when present.
      */
     limiterSignal:
       | 'hrv_low'
@@ -166,8 +182,14 @@ export type V1TodayResponse = {
       | 'subjective_low'
       | 'load_elevated'
       | null;
+    /** Additive. Frein codes sorted by importance. */
+    limiterSignals: Array<
+      'hrv_low' | 'rhr_high' | 'sleep_short' | 'sleep_poor' | 'subjective_low' | 'load_elevated'
+    >;
+    /** Additive. « 2 signaux » — null below 2 freins. */
+    limiterCountLabel: string | null;
     /**
-     * Additive. « Porté par » **code** only — chip labels localized in the app.
+     * Additive. « Porté par » **code** only — equals `supportSignals[0]`.
      */
     supportSignal:
       | 'hrv_ok'
@@ -177,12 +199,16 @@ export type V1TodayResponse = {
       | 'subjective_ok'
       | 'load_managed'
       | null;
+    supportSignals: Array<
+      'hrv_ok' | 'rhr_ok' | 'sleep_adequate' | 'sleep_quality_ok' | 'subjective_ok' | 'load_managed'
+    >;
+    supportCountLabel: string | null;
     /**
      * Additive. Dual reading (ADR-023) — server never picks by displayMode.
      * Never included in MORNING_VERDICT push body or logs.
      */
     explanation: { essential: string; expert: string } | null;
-    /** Additive. Short plain-text instruction (no Markdown/HTML). */
+    /** Additive. Short plain-text instruction (impératif tutoyé, no Markdown/HTML). */
     instruction: string | null;
     /** Additive. Stable machine verdict code. */
     stateCode:
@@ -194,6 +220,11 @@ export type V1TodayResponse = {
       | 'CAUTION'
       | 'INSUFFICIENT_DATA'
       | null;
+    /**
+     * Additive. New clients hide the headline (it used to repeat the tag).
+     * `headline` stays filled for legacy builds.
+     */
+    showHeadline: false;
     /** Additive. Compared to yesterday's verdict for this session athlete only. */
     vsYesterday: 'same' | 'changed' | null;
     vsYesterdayLabel: string | null;
@@ -345,12 +376,31 @@ function resolveActionLine(hero: V1TodaySource['hero']): string | null {
 }
 
 function projectVerdictAdditive(strip: V1TodaySource['hero']['twinTrustStrip']) {
+  const limiterSignals = [...(strip.limiterSignals ?? [])];
+  if (limiterSignals.length === 0 && strip.limiterSignal) {
+    limiterSignals.push(strip.limiterSignal);
+  }
+  const supportSignals = [...(strip.supportSignals ?? [])];
+  if (supportSignals.length === 0 && strip.supportSignal) {
+    supportSignals.push(strip.supportSignal);
+  }
+  const limiterCountLabel =
+    strip.limiterCountLabel ??
+    (limiterSignals.length >= 2 ? `${limiterSignals.length} signaux` : null);
+  const supportCountLabel =
+    strip.supportCountLabel ??
+    (supportSignals.length >= 2 ? `${supportSignals.length} signaux` : null);
   return {
-    limiterSignal: strip.limiterSignal ?? null,
-    supportSignal: strip.supportSignal ?? null,
+    limiterSignal: limiterSignals[0] ?? strip.limiterSignal ?? null,
+    limiterSignals,
+    limiterCountLabel,
+    supportSignal: supportSignals[0] ?? strip.supportSignal ?? null,
+    supportSignals,
+    supportCountLabel,
     explanation: strip.explanation ?? null,
     instruction: strip.instruction?.trim() || null,
     stateCode: strip.stateCode ?? null,
+    showHeadline: false as const,
     vsYesterday: strip.vsYesterday ?? null,
     vsYesterdayLabel: strip.vsYesterdayLabel ?? null,
   };
@@ -553,10 +603,15 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         limitingCauseText: vm.hero.twinTrustStrip.limitingCauseText,
         confidenceLabel: vm.hero.twinTrustStrip.confidenceLabel,
         limiterSignal: vm.hero.twinTrustStrip.limiterSignal,
+        limiterSignals: vm.hero.twinTrustStrip.limiterSignals,
+        limiterCountLabel: vm.hero.twinTrustStrip.limiterCountLabel,
         supportSignal: vm.hero.twinTrustStrip.supportSignal,
+        supportSignals: vm.hero.twinTrustStrip.supportSignals,
+        supportCountLabel: vm.hero.twinTrustStrip.supportCountLabel,
         explanation: vm.hero.twinTrustStrip.explanation,
         instruction: vm.hero.twinTrustStrip.instruction,
         stateCode: vm.hero.twinTrustStrip.stateCode,
+        showHeadline: vm.hero.twinTrustStrip.showHeadline,
         vsYesterday: vm.hero.twinTrustStrip.vsYesterday,
         vsYesterdayLabel: vm.hero.twinTrustStrip.vsYesterdayLabel,
       },

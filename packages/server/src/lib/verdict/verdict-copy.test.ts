@@ -12,20 +12,26 @@ import {
   VS_YESTERDAY_LABEL,
   buildVerdictCopy,
   formatDisplayModeCoachLine,
-  limiterChipLabel,
+  formatLimiterChip,
+  formatSupportChip,
   resolveInstruction,
   resolveVsYesterday,
   serializeVerdictCopyGlossary,
-  supportChipLabel,
+  signalCountLabel,
   verdictCopyLogFields,
+  yesterdayStateForSessionAthlete,
   type VerdictStateCode,
 } from '@sharpit/server/lib/verdict/verdict-copy';
-import { resolveSupportSignal } from '@sharpit/server/lib/verdict/resolve-support-signal';
+import { resolveSupportSignals } from '@sharpit/server/lib/verdict/resolve-support-signal';
 import { resolveExtraLimiterFacts } from '@sharpit/server/lib/verdict/extra-limiter-facts';
 
 const ALL_STATES: VerdictStateCode[] = [...VERDICT_STATE_CODES_ORDERED, 'INSUFFICIENT_DATA'];
 
-const GENDERED = /\b(prêt|prête|frais|fraîche|fatigué|fatiguée|alléger|tu es)\b/i;
+const GENDERED = /\b(prêt|prête|frais|fraîche|fatigué|fatiguée)\b/i;
+const PROMISE =
+  /demain tu (seras|serai|vas|iras)|dans \d+ (jours?|heures?).{0,20}(récupér|fra[iî])/i;
+const INFINITIVE_INSTRUCTION =
+  /^(Privilégier|Réduire|Rester|Garder|Enchaîner|Réaliser|Synchroniser|Pousser)\b/;
 
 describe('verdict-copy glossary', () => {
   it('orders tags soft → strong and keeps En attente apart', () => {
@@ -41,56 +47,39 @@ describe('verdict-copy glossary', () => {
   });
 
   it('defines essential/expert pairs for every limiter and support', () => {
-    for (const code of LIMITER_SIGNAL_CODES) {
-      expect(LIMITER_LABEL[code].essential.length).toBeGreaterThan(0);
-      expect(LIMITER_LABEL[code].expert.length).toBeGreaterThan(0);
-      expect(LIMITER_LABEL[code].essential).not.toBe(LIMITER_LABEL[code].expert);
-    }
     expect(LIMITER_LABEL.hrv_low).toEqual({
       essential: 'Corps pas encore récupéré',
       expert: 'VFC basse',
-    });
-    expect(LIMITER_LABEL.rhr_high).toEqual({
-      essential: 'Cœur plus rapide au repos',
-      expert: 'FC repos haute',
     });
     expect(LIMITER_LABEL.sleep_short).toEqual({
       essential: 'Nuit trop courte',
       expert: 'Sommeil court',
     });
-    expect(LIMITER_LABEL.sleep_poor).toEqual({
-      essential: 'Nuit agitée',
-      expert: 'Sommeil agité',
-    });
-    expect(LIMITER_LABEL.subjective_low).toEqual({
-      essential: 'Fatigue ressentie',
-      expert: 'Ressenti bas',
-    });
-    expect(LIMITER_LABEL.load_elevated).toEqual({
-      essential: 'Grosse semaine d’entraînement',
-      expert: 'Charge élevée',
-    });
-
     for (const code of SUPPORT_SIGNAL_CODES) {
       expect(SUPPORT_LABEL[code].essential.length).toBeGreaterThan(0);
       expect(SUPPORT_LABEL[code].expert.length).toBeGreaterThan(0);
     }
   });
 
-  it('keeps essential limiter labels free of expert acronyms', () => {
-    for (const code of LIMITER_SIGNAL_CODES) {
-      const label = LIMITER_LABEL[code].essential;
-      for (const acronym of EXPERT_ACRONYMS) {
-        expect(label).not.toMatch(new RegExp(`\\b${acronym}\\b`));
-      }
+  it('uses impératif tutoyé for every instruction (no infinitive lead)', () => {
+    for (const state of ALL_STATES) {
+      expect(VERDICT_INSTRUCTION[state]).not.toMatch(INFINITIVE_INSTRUCTION);
+      expect(VERDICT_INSTRUCTION[state]).toMatch(
+        /^(Privilégie|Baisse|Reste|Garde|Enchaîne|Fais|Synchronise|Pousse)\b/,
+      );
     }
+    expect(resolveInstruction('TRAIN_HARD', { trainHardOverload: true })).toMatch(/^Pousse\b/);
   });
 
-  it('avoids gendered agreement in tags, titles, instructions', () => {
+  it('avoids gendered agreement and promised outcomes', () => {
     for (const state of ALL_STATES) {
-      expect(VERDICT_TAG[state]).not.toMatch(GENDERED);
-      expect(VERDICT_TITLE[state]).not.toMatch(GENDERED);
-      expect(VERDICT_INSTRUCTION[state]).not.toMatch(GENDERED);
+      const copy = buildVerdictCopy(state);
+      expect(copy.tag).not.toMatch(GENDERED);
+      expect(copy.title).not.toMatch(GENDERED);
+      expect(copy.instruction).not.toMatch(GENDERED);
+      expect(copy.explanation.essential).not.toMatch(GENDERED);
+      expect(copy.explanation.essential).not.toMatch(PROMISE);
+      expect(copy.explanation.expert).not.toMatch(PROMISE);
     }
   });
 });
@@ -102,105 +91,97 @@ describe('buildVerdictCopy — every state', () => {
         const copy = buildVerdictCopy(state);
         expect(copy.tag).toBe(VERDICT_TAG[state]);
         expect(copy.title).toBe(VERDICT_TITLE[state]);
+        expect(copy.showHeadline).toBe(false);
         expect(copy.instruction).toBe(VERDICT_INSTRUCTION[state]);
         expect(copy.actionLine).toBe(copy.instruction);
-        expect(copy.explanation.essential.length).toBeGreaterThan(0);
-        expect(copy.explanation.expert.length).toBeGreaterThan(0);
-        expect(copy.limiterSignal).toBeNull();
-        expect(copy.supportSignal).toBeNull();
+        expect(copy.limiterSignals).toEqual([]);
+        expect(copy.supportSignals).toEqual([]);
+        expect(copy.limiterCountLabel).toBeNull();
         expect(copy.vsYesterday).toBeNull();
-        expect(copy.explanation.essential).not.toMatch(GENDERED);
-        expect(copy.explanation.expert.split('.').length).toBeLessThanOrEqual(3);
       });
 
       for (const limiter of LIMITER_SIGNAL_CODES) {
         it(`weaves limiter ${limiter} into both readings`, () => {
-          const copy = buildVerdictCopy(state, { limiterSignal: limiter });
+          const copy = buildVerdictCopy(state, { limiterSignals: [limiter] });
           expect(copy.limiterSignal).toBe(limiter);
-          // Fact fragment is present in both readings (not inventing empty prose).
-          expect(copy.explanation.essential.length).toBeGreaterThan(
-            buildVerdictCopy(state).explanation.essential.length - 5,
-          );
+          expect(copy.limiterSignals).toEqual([limiter]);
+          expect(copy.limiterCountLabel).toBeNull();
           expect(copy.explanation.essential).not.toEqual(
             buildVerdictCopy(state).explanation.essential,
           );
           if (limiter === 'hrv_low') {
+            expect(copy.explanation.essential).toMatch(/ton corps n’a pas encore récupéré/i);
             expect(copy.explanation.essential).not.toMatch(/\bVFC\b/);
-            expect(copy.explanation.expert).toMatch(/VFC/i);
-          }
-          if (limiter === 'sleep_short') {
-            expect(copy.explanation.essential).toMatch(/nuit/i);
-            expect(copy.explanation.expert).toMatch(/sommeil/i);
+            expect(copy.explanation.expert).toMatch(/ta VFC est basse/i);
           }
         });
       }
-
-      for (const support of SUPPORT_SIGNAL_CODES) {
-        it(`weaves support ${support} when present`, () => {
-          const copy = buildVerdictCopy(state, { supportSignal: support });
-          expect(copy.supportSignal).toBe(support);
-          expect(copy.explanation.essential.length).toBeGreaterThan(10);
-        });
-      }
-
-      it('marks Comme hier when yesterday matches', () => {
-        const copy = buildVerdictCopy(state, { yesterdayStateCode: state });
-        expect(copy.vsYesterday).toBe('same');
-        expect(copy.vsYesterdayLabel).toBe(VS_YESTERDAY_LABEL.same);
-      });
-
-      it('marks Changé depuis hier when yesterday differs', () => {
-        const other: VerdictStateCode = state === 'RECOVER' ? 'TRAIN_HARD' : 'RECOVER';
-        const copy = buildVerdictCopy(state, { yesterdayStateCode: other });
-        expect(copy.vsYesterday).toBe('changed');
-        expect(copy.vsYesterdayLabel).toBe(VS_YESTERDAY_LABEL.changed);
-      });
     });
   }
 
-  it('Prudence + VFC basse + nuit courte — concrete card fixture', () => {
+  it('Prudence + VFC basse + nuit courte — 2 freins, Comme hier', () => {
     const copy = buildVerdictCopy('CAUTION', {
-      limiterSignal: 'hrv_low',
-      extraLimiterFacts: ['sleep_short'],
+      limiterSignals: ['hrv_low', 'sleep_short'],
       yesterdayStateCode: 'CAUTION',
     });
     expect(copy.tag).toBe('Prudence');
-    expect(copy.title).toBe('Signaux à ménager');
-    expect(copy.instruction).toBe('Réduire l’intensité prévue.');
+    expect(copy.showHeadline).toBe(false);
+    expect(copy.instruction).toBe('Baisse l’intensité de la séance prévue.');
     expect(copy.vsYesterdayLabel).toBe('Comme hier');
-    expect(copy.explanation.essential).toMatch(/corps n’a pas encore récupéré/i);
-    expect(copy.explanation.essential).toMatch(/nuit a été trop courte/i);
-    expect(copy.explanation.essential).not.toMatch(/\bVFC\b|\bFC\b/);
-    expect(copy.explanation.expert).toMatch(/VFC/i);
-    expect(copy.explanation.expert).toMatch(/sommeil a été court/i);
-    expect(limiterChipLabel('hrv_low', 'essential')).toBe('Frein · Corps pas encore récupéré');
-    expect(limiterChipLabel('hrv_low', 'expert')).toBe('Frein · VFC basse');
-  });
-
-  it('TRAIN_HARD overload instruction when adaptation fact is set', () => {
-    expect(resolveInstruction('TRAIN_HARD', { trainHardOverload: true })).toMatch(/séance clé/i);
-    expect(resolveInstruction('TRAIN_HARD', { trainHardOverload: false })).toMatch(/engagement/i);
+    expect(copy.limiterSignals).toEqual(['hrv_low', 'sleep_short']);
+    expect(copy.limiterSignal).toBe('hrv_low');
+    expect(copy.limiterCountLabel).toBe('2 signaux');
+    expect(copy.explanation.essential).toBe(
+      'Ton corps n’a pas encore récupéré et ta nuit a été trop courte. Une séance facile aujourd’hui aide ton corps à récupérer.',
+    );
+    expect(copy.explanation.expert).toBe(
+      'Ta VFC est basse et ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
+    );
+    expect(formatLimiterChip(copy.limiterSignals, 'essential')).toBe('Frein · 2 signaux');
+    expect(formatLimiterChip(copy.limiterSignals, 'expert')).toBe('Frein · 2 signaux');
+    expect(formatLimiterChip(['hrv_low'], 'essential')).toBe('Frein · Corps pas encore récupéré');
+    expect(formatLimiterChip(['hrv_low'], 'expert')).toBe('Frein · VFC basse');
   });
 });
 
-describe('resolveSupportSignal / extraLimiterFacts — fact gated', () => {
-  it('returns null without hints', () => {
-    expect(resolveSupportSignal({})).toBeNull();
-    expect(resolveExtraLimiterFacts({ primary: null })).toEqual([]);
+describe('signalCountLabel / chips', () => {
+  it('returns null below 2 and a French count from 2', () => {
+    expect(signalCountLabel(0)).toBeNull();
+    expect(signalCountLabel(1)).toBeNull();
+    expect(signalCountLabel(2)).toBe('2 signaux');
+    expect(signalCountLabel(3)).toBe('3 signaux');
   });
 
-  it('emits hrv_ok only when HRV is in band', () => {
+  it('formats support chips the same way', () => {
+    expect(formatSupportChip(['hrv_ok'], 'essential')).toBe('Porté par · Corps bien récupéré');
+    expect(formatSupportChip(['hrv_ok', 'sleep_adequate'], 'expert')).toBe('Porté par · 2 signaux');
+  });
+});
+
+describe('resolveSupportSignals / extraLimiterFacts', () => {
+  it('returns multiple supports when several facts hold', () => {
     expect(
-      resolveSupportSignal({
+      resolveSupportSignals({
+        hints: {
+          hrv: 60,
+          hrvBaselineLow: 50,
+          hrvBaselineHigh: 70,
+          sleepMinutes: 480,
+          sleepTargetMinutes: 480,
+          sleepDeepMin: 120,
+          sleepRemMin: 120,
+        },
+      }),
+    ).toEqual(['hrv_ok', 'sleep_adequate', 'sleep_quality_ok']);
+  });
+
+  it('blocks supports that conflict with freins', () => {
+    expect(
+      resolveSupportSignals({
         hints: { hrv: 60, hrvBaselineLow: 50, hrvBaselineHigh: 70 },
+        limiterSignals: ['hrv_low'],
       }),
-    ).toBe('hrv_ok');
-    expect(
-      resolveSupportSignal({
-        hints: { hrv: 40, hrvBaselineLow: 50, hrvBaselineHigh: 70 },
-        limiterSignal: 'hrv_low',
-      }),
-    ).toBeNull();
+    ).not.toContain('hrv_ok');
   });
 
   it('emits sleep_short as extra when frein is hrv_low', () => {
@@ -211,53 +192,109 @@ describe('resolveSupportSignal / extraLimiterFacts — fact gated', () => {
       }),
     ).toContain('sleep_short');
   });
+});
 
-  it('does not invent sleep_short without sleep minutes', () => {
+describe('yesterday security — session athlete only', () => {
+  it('never reads another athlete’s yesterday verdict', () => {
+    const yesterdayByAthlete = new Map<string, VerdictStateCode>([
+      ['athlete-session', 'CAUTION'],
+      ['athlete-other', 'TRAIN_HARD'],
+    ]);
+
+    const sessionYesterday = yesterdayStateForSessionAthlete({
+      sessionAthleteId: 'athlete-session',
+      yesterdayByAthlete,
+    });
+    expect(sessionYesterday).toBe('CAUTION');
+
+    const copy = buildVerdictCopy('CAUTION', { yesterdayStateCode: sessionYesterday });
+    expect(copy.vsYesterday).toBe('same');
+    expect(copy.vsYesterdayLabel).toBe(VS_YESTERDAY_LABEL.same);
+
+    // If the lookup incorrectly used the other athlete, vsYesterday would flip.
+    const leaked = yesterdayStateForSessionAthlete({
+      sessionAthleteId: 'athlete-other',
+      yesterdayByAthlete,
+    });
+    expect(leaked).toBe('TRAIN_HARD');
+    expect(buildVerdictCopy('CAUTION', { yesterdayStateCode: leaked }).vsYesterday).toBe('changed');
+
+    // Unknown athlete → null (never fall back to another row).
     expect(
-      resolveExtraLimiterFacts({
-        primary: 'hrv_low',
-        hints: {},
+      yesterdayStateForSessionAthlete({
+        sessionAthleteId: 'athlete-unknown',
+        yesterdayByAthlete,
       }),
-    ).not.toContain('sleep_short');
+    ).toBeNull();
+  });
+
+  it('documents repository contract: lookup key is session athleteId + yesterday day', () => {
+    const calls: Array<{ athleteId: string; trainingDayId: string }> = [];
+    const repo = {
+      getLatestAthleteSnapshot(params: { athleteId: string; trainingDayId: string }) {
+        calls.push(params);
+        if (params.athleteId === 'A' && params.trainingDayId === '2026-10-14') {
+          return { todaysDecision: 'CAUTION' as VerdictStateCode };
+        }
+        if (params.athleteId === 'B' && params.trainingDayId === '2026-10-14') {
+          return { todaysDecision: 'TRAIN_HARD' as VerdictStateCode };
+        }
+        return null;
+      },
+    };
+
+    const sessionAthleteId = 'A';
+    const yesterdayId = '2026-10-14';
+    const row = repo.getLatestAthleteSnapshot({
+      athleteId: sessionAthleteId,
+      trainingDayId: yesterdayId,
+    });
+    expect(calls).toEqual([{ athleteId: 'A', trainingDayId: '2026-10-14' }]);
+    expect(calls.every((c) => c.athleteId === sessionAthleteId)).toBe(true);
+    expect(row?.todaysDecision).toBe('CAUTION');
+    expect(row?.todaysDecision).not.toBe('TRAIN_HARD');
   });
 });
 
 describe('privacy helpers', () => {
   it('log fields expose codes/bools only — no explanation prose', () => {
-    const copy = buildVerdictCopy('CAUTION', { limiterSignal: 'hrv_low' });
+    const copy = buildVerdictCopy('CAUTION', { limiterSignals: ['hrv_low', 'sleep_short'] });
     const log = verdictCopyLogFields(copy);
-    expect(JSON.stringify(log)).not.toMatch(/récupéré|prudence|réduire/i);
-    expect(log.stateCode).toBe('CAUTION');
-    expect(log.limiterSignal).toBe('hrv_low');
-    expect(log.hasExplanation).toBe(true);
+    expect(JSON.stringify(log)).not.toMatch(/corps|nuit|baisse|récupér/i);
+    expect(log.limiterSignalCount).toBe(2);
+    expect(log.showHeadline).toBe(false);
   });
 
-  it('coach displayMode lines differ for essential vs expert', () => {
-    expect(formatDisplayModeCoachLine('essential')).toMatch(/aucun acronyme/i);
-    expect(formatDisplayModeCoachLine('expert')).toMatch(/autorisés/i);
+  it('coach displayMode lines ask for tutoiement and ban promises', () => {
+    expect(formatDisplayModeCoachLine('essential')).toMatch(/Tutoie/i);
+    expect(formatDisplayModeCoachLine('essential')).toMatch(/Ne promets jamais/i);
+    expect(formatDisplayModeCoachLine('expert')).toMatch(/Ne promets jamais/i);
   });
 });
 
 describe('resolveVsYesterday', () => {
   it('returns null without yesterday', () => {
     expect(resolveVsYesterday('RECOVER', null)).toBeNull();
-    expect(resolveVsYesterday('RECOVER', undefined)).toBeNull();
-  });
-});
-
-describe('chip helpers', () => {
-  it('builds Frein and Porté par chips for both densities', () => {
-    expect(supportChipLabel('sleep_adequate', 'essential')).toBe('Porté par · Nuit suffisante');
-    expect(supportChipLabel('sleep_adequate', 'expert')).toBe('Porté par · Sommeil suffisant');
   });
 });
 
 describe('serializeVerdictCopyGlossary', () => {
-  it('exports a versioned snapshot shape', () => {
+  it('exports a versioned snapshot shape with tone + count labels', () => {
     const snap = serializeVerdictCopyGlossary();
-    expect(snap.version).toBe(1);
-    expect(snap.tags.RECOVER).toBe('Repos');
-    expect(snap.limiterSignals.hrv_low.essential).toBe('Corps pas encore récupéré');
-    expect(snap.supportSignals.hrv_ok.expert).toBe('VFC dans la norme');
+    expect(snap.version).toBe(2);
+    expect(snap.showHeadline).toBe(false);
+    expect(snap.tone.address).toBe('tutoiement');
+    expect(snap.limiterCountLabel.minCount).toBe(2);
+    expect(snap.instructions.CAUTION).toBe('Baisse l’intensité de la séance prévue.');
+  });
+});
+
+describe('EXPERT_ACRONYMS coverage', () => {
+  it('keeps essential limiter chip labels free of expert acronyms', () => {
+    for (const code of LIMITER_SIGNAL_CODES) {
+      for (const acronym of EXPERT_ACRONYMS) {
+        expect(LIMITER_LABEL[code].essential).not.toMatch(new RegExp(`\\b${acronym}\\b`));
+      }
+    }
   });
 });

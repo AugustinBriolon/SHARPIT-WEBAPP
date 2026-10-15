@@ -151,7 +151,7 @@ describe('formatDecisionSection', () => {
     expect(text).toContain('Verdict :');
     expect(text).toContain('Léger');
     expect(text).toContain('Instruction carte :');
-    expect(text).toContain('Rester en endurance facile.');
+    expect(text).toContain('Reste en endurance facile.');
     expect(text).toContain('Action prioritaire :');
     expect(text).not.toContain('Hors fenêtre de conseil actionnable');
     expect(text).not.toContain('en calibration');

@@ -91,7 +91,7 @@ import {
   type BuiltVerdictCopy,
   type VerdictStateCode,
 } from '@sharpit/server/lib/verdict/verdict-copy';
-import { resolveSupportSignal } from '@sharpit/server/lib/verdict/resolve-support-signal';
+import { resolveSupportSignals } from '@sharpit/server/lib/verdict/resolve-support-signal';
 import { resolveExtraLimiterFacts } from '@sharpit/server/lib/verdict/extra-limiter-facts';
 
 function localDateFromTrainingDayId(trainingDayId: string): Date {
@@ -444,15 +444,19 @@ function buildTodayVerdictPlate(input: {
   const { recovery } = effectiveSnapshot;
   const subjectiveWellness = recovery?.signals?.subjectiveWellness ?? null;
   const loadStressContext = recovery?.signals?.loadStressContext ?? null;
-  const supportSignal = resolveSupportSignal({
-    hints,
-    limiterSignal: plateLimiter.signalCode,
-    subjectiveWellness,
-    loadStressContext,
-  });
   const extraLimiterFacts = resolveExtraLimiterFacts({
     primary: plateLimiter.signalCode,
     hints,
+    subjectiveWellness,
+    loadStressContext,
+  });
+  const limiterSignals = [
+    ...(plateLimiter.signalCode ? [plateLimiter.signalCode] : []),
+    ...extraLimiterFacts,
+  ];
+  const supportSignals = resolveSupportSignals({
+    hints,
+    limiterSignals,
     subjectiveWellness,
     loadStressContext,
   });
@@ -461,9 +465,8 @@ function buildTodayVerdictPlate(input: {
     effectiveSnapshot.adaptation?.adaptationStatus === 'POSITIVELY_ADAPTING';
 
   return buildVerdictCopy(stateCode, {
-    limiterSignal: plateLimiter.signalCode,
-    extraLimiterFacts,
-    supportSignal,
+    limiterSignals,
+    supportSignals,
     trainHardOverload,
     yesterdayStateCode: yesterdayStateCode(yesterdaySnapshot),
   });
@@ -975,10 +978,15 @@ function assembleTodayHero(ctx: ReturnType<typeof prepareTodayViewModelContext>)
       limitingCauseText: ctx.plateLimiter.text,
       limitingFactorHref: ctx.plateLimiter.href,
       limiterSignal: verdictCopy.limiterSignal,
+      limiterSignals: verdictCopy.limiterSignals,
+      limiterCountLabel: verdictCopy.limiterCountLabel,
       supportSignal: verdictCopy.supportSignal,
+      supportSignals: verdictCopy.supportSignals,
+      supportCountLabel: verdictCopy.supportCountLabel,
       explanation: verdictCopy.explanation,
       instruction: withhold ? null : verdictCopy.instruction,
       stateCode: verdictCopy.stateCode,
+      showHeadline: verdictCopy.showHeadline,
       vsYesterday: verdictCopy.vsYesterday,
       vsYesterdayLabel: verdictCopy.vsYesterdayLabel,
     },
