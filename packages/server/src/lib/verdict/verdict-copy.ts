@@ -231,6 +231,13 @@ const SUPPORT_EXPLANATION_FRAGMENT: Record<SupportSignalCode, DensityPair> = {
 };
 
 /**
+ * Essential closing when the fact sentence starts with « Ton corps … »
+ * (« lui » = le corps — never use this after Expert « Ta VFC… »).
+ */
+export const ESSENTIAL_CLOSING_AFTER_TON_CORPS =
+  'Une séance facile aujourd’hui lui laisse le temps de se remettre.';
+
+/**
  * Orientation closing — conjugated, tutoiement, no promised outcome.
  * Same prose in essential/expert unless jargon would appear.
  */
@@ -240,7 +247,7 @@ const ORIENTATION_CLOSING: Record<VerdictStateCode, DensityPair> = {
     expert: 'Un vrai repos aujourd’hui aide ton corps à récupérer.',
   },
   CAUTION: {
-    essential: 'Une séance facile aujourd’hui aide ton corps à récupérer.',
+    essential: ESSENTIAL_CLOSING_AFTER_TON_CORPS,
     expert: 'Une séance facile aujourd’hui aide ton corps à récupérer.',
   },
   TRAIN_EASY: {
@@ -396,6 +403,44 @@ export function resolveSupportSignalsList(facts: VerdictCopyFacts): SupportSigna
   return [];
 }
 
+function wordsOf(sentence: string): Set<string> {
+  return new Set(
+    sentence
+      .toLocaleLowerCase('fr-FR')
+      .replace(/[’']/g, ' ')
+      .split(/[^\p{L}\p{N}]+/u)
+      .filter(Boolean),
+  );
+}
+
+/** True when two French sentences share no content word (accents folded by locale). */
+export function sentencesShareNoWord(a: string, b: string): boolean {
+  const left = wordsOf(a);
+  for (const word of wordsOf(b)) {
+    if (left.has(word)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function resolveOrientationClosing(
+  stateCode: VerdictStateCode,
+  mode: keyof DensityPair,
+  factSentence: string | null,
+): string {
+  const defaultClosing = ORIENTATION_CLOSING[stateCode][mode];
+  if (mode !== 'essential') {
+    return defaultClosing;
+  }
+  // « lui » only after « Ton corps … » — Expert keeps « aide ton corps » (VFC ≠ lui).
+  const startsWithTonCorps = Boolean(factSentence?.match(/^Ton corps\b/i));
+  if (startsWithTonCorps || stateCode === 'CAUTION') {
+    return ESSENTIAL_CLOSING_AFTER_TON_CORPS;
+  }
+  return defaultClosing;
+}
+
 function buildExplanationForMode(
   stateCode: VerdictStateCode,
   limiterSignals: readonly LimiterSignalCode[],
@@ -404,14 +449,15 @@ function buildExplanationForMode(
 ): string {
   const limiterBits = limiterSignals.map((code) => LIMITER_EXPLANATION_FRAGMENT[code][mode]);
   const supportBits = supportSignals.map((code) => SUPPORT_EXPLANATION_FRAGMENT[code][mode]);
-  const closing = ORIENTATION_CLOSING[stateCode][mode];
 
   if (limiterBits.length === 0 && supportBits.length === 0) {
-    return closing;
+    return resolveOrientationClosing(stateCode, mode, null);
   }
 
   const factSentence = joinFragments([...limiterBits, ...supportBits]);
-  return `${factSentence.endsWith('.') ? factSentence : `${factSentence}.`} ${closing}`;
+  const fact = factSentence.endsWith('.') ? factSentence : `${factSentence}.`;
+  const closing = resolveOrientationClosing(stateCode, mode, fact);
+  return `${fact} ${closing}`;
 }
 
 export function resolveInstruction(

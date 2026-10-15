@@ -14,7 +14,6 @@ import {
   type MorningRecalibrationPresentation,
 } from '@sharpit/server/lib/morning-recalibration/service';
 import { coachDiscussHref } from '@sharpit/app/lib/coach/chat/discuss/coach-discuss-href';
-import { formatDayScoresPushBits } from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-day-scores';
 import { loadV1DayScores, type V1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores';
 import {
   VERDICT_INSTRUCTION,
@@ -53,18 +52,19 @@ const DEFAULT_CONCURRENCY = 5;
 
 /**
  * Builds the minimal, silenceable morning push notification payload (Moment 1 - Wake).
- * Meets the athlete with a single honest verdict + briefing excerpt before they open the app.
  * Deep-links into the coach morning-brief conversation (not only Today).
  *
- * Privacy: never include the card `explanation` prose — title = glossary tag,
- * body = instruction or non-explanatory briefing excerpt.
+ * Lock-screen privacy: title = fixed glossary tag, body = fixed state instruction
+ * (or a waiting morning proposal). Never the card `explanation`, never health
+ * score values (Réserve / Stress). `dayScores` is kept for call-site compat and ignored.
  */
 export function buildMorningPushPayload(
   snapshot: AthleteSnapshot,
   origin = appOrigin('https://sharpit.app'),
   proposal: MorningRecalibrationPresentation | null = null,
-  dayScores: V1DayScores | null = null,
+  _dayScores: V1DayScores | null = null,
 ): MorningPushPayload {
+  void _dayScores;
   const verdict = (snapshot.todaysDecision ??
     snapshot.decision?.overallVerdict ??
     null) as OverallVerdict | null;
@@ -76,19 +76,15 @@ export function buildMorningPushPayload(
     instruction = VERDICT_INSTRUCTION[verdict as VerdictStateCode];
   }
 
-  // Proposal first, else short instruction (not the explanation), else briefing.
+  // Proposal while it waits, else fixed instruction (never explanation / scores).
   const rawBody =
     morningProposalLine(proposal) ||
     instruction ||
-    snapshot.primaryProductMessage ||
-    snapshot.briefing?.content?.split('\n').find((l) => l.trim().length > 0) ||
     snapshot.insufficientDataMessage ||
     'La lecture du jour attend dans SharpIt.';
 
-  const scoresBits = formatDayScoresPushBits(dayScores);
-  const withScores = scoresBits ? `${rawBody} · ${scoresBits}` : rawBody;
   // Cap length cleanly for lock screen presentation
-  const body = withScores.length > 140 ? `${withScores.slice(0, 137).trim()}…` : withScores;
+  const body = rawBody.length > 140 ? `${rawBody.slice(0, 137).trim()}…` : rawBody;
   const base = origin.replace(/\/+$/, '');
   const coachPath = coachDiscussHref({
     kind: 'morning-brief',

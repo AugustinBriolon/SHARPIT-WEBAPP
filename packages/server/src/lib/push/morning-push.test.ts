@@ -66,7 +66,7 @@ describe('morning-push', () => {
       expect(payload.trainingDayId).toBe('2026-09-24');
     });
 
-    it('appends day scores bits to the body when available', () => {
+    it('never appends health score values to the lock-screen body', () => {
       const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app', null, {
         stress: { value: 30, asOf: '2026-09-24' },
         energyBank: {
@@ -79,9 +79,9 @@ describe('morning-push', () => {
         targetBand: null,
         strainPerformance: null,
       });
-      expect(payload.body).toContain('Réserve 68');
-      expect(payload.body).toContain('Stress 30');
-      expect(payload.body.length).toBeLessThanOrEqual(140);
+      expect(payload.body).toBe('Enchaîne la séance prévue avec engagement.');
+      expect(payload.body).not.toMatch(/Réserve|Stress|\d{2,}/);
+      expect(payload.body).not.toMatch(/VFC|récupéré|explication/i);
     });
 
     it('maps RECOVER verdict to Repos tag + instruction', () => {
@@ -102,7 +102,7 @@ describe('morning-push', () => {
         ...dummySnapshot,
         todaysDecision: null,
         decision: null,
-        primaryProductMessage: longMessage,
+        insufficientDataMessage: longMessage,
       } as unknown as AthleteSnapshot;
 
       const payload = buildMorningPushPayload(longSnap);

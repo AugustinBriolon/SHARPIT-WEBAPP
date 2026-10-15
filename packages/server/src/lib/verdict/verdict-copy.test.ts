@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { LIMITER_SIGNAL_CODES } from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import {
+  ESSENTIAL_CLOSING_AFTER_TON_CORPS,
   EXPERT_ACRONYMS,
   LIMITER_LABEL,
   SUPPORT_LABEL,
@@ -16,6 +17,7 @@ import {
   formatSupportChip,
   resolveInstruction,
   resolveVsYesterday,
+  sentencesShareNoWord,
   serializeVerdictCopyGlossary,
   signalCountLabel,
   verdictCopyLogFields,
@@ -132,15 +134,38 @@ describe('buildVerdictCopy — every state', () => {
     expect(copy.limiterSignal).toBe('hrv_low');
     expect(copy.limiterCountLabel).toBe('2 signaux');
     expect(copy.explanation.essential).toBe(
-      'Ton corps n’a pas encore récupéré et ta nuit a été trop courte. Une séance facile aujourd’hui aide ton corps à récupérer.',
+      'Ton corps n’a pas encore récupéré et ta nuit a été trop courte. Une séance facile aujourd’hui lui laisse le temps de se remettre.',
     );
     expect(copy.explanation.expert).toBe(
       'Ta VFC est basse et ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
     );
+    const [essentialFact, essentialClosing] = copy.explanation.essential.split(/(?<=\.)\s+/);
+    expect(essentialFact).toMatch(/^Ton corps\b/);
+    expect(essentialClosing).toBe(
+      'Une séance facile aujourd’hui lui laisse le temps de se remettre.',
+    );
+    expect(sentencesShareNoWord(essentialFact!, essentialClosing!)).toBe(true);
     expect(formatLimiterChip(copy.limiterSignals, 'essential')).toBe('Frein · 2 signaux');
     expect(formatLimiterChip(copy.limiterSignals, 'expert')).toBe('Frein · 2 signaux');
     expect(formatLimiterChip(['hrv_low'], 'essential')).toBe('Frein · Corps pas encore récupéré');
     expect(formatLimiterChip(['hrv_low'], 'expert')).toBe('Frein · VFC basse');
+  });
+
+  it('Essential closing after « Ton corps … » uses lui — Expert keeps aide ton corps', () => {
+    for (const state of ALL_STATES) {
+      const copy = buildVerdictCopy(state, { limiterSignals: ['hrv_low'] });
+      expect(copy.explanation.essential.startsWith('Ton corps')).toBe(true);
+      expect(copy.explanation.essential.endsWith(ESSENTIAL_CLOSING_AFTER_TON_CORPS)).toBe(true);
+      const [fact, closing] = copy.explanation.essential.split(/(?<=\.)\s+/);
+      expect(sentencesShareNoWord(fact!, closing!)).toBe(true);
+      expect(copy.explanation.expert).not.toContain('lui laisse');
+    }
+    const cautionExpert = buildVerdictCopy('CAUTION', {
+      limiterSignals: ['hrv_low', 'sleep_short'],
+    });
+    expect(cautionExpert.explanation.expert).toBe(
+      'Ta VFC est basse et ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
+    );
   });
 });
 
