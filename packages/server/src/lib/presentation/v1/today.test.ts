@@ -21,7 +21,7 @@ function source(
       actionLine: null,
       twinTrustStrip: {
         confidencePctRounded: 72,
-        limitingCauseText: 'Sommeil court',
+        limitingCauseText: 'Sommeil',
         confidenceLabel: 'ESTIMATION PARTIELLE',
         limiterSignal: 'sleep_short',
       },
@@ -66,7 +66,7 @@ describe('projectV1Today', () => {
       subline: 'Tenir',
       posture: 'steady',
       confidencePct: 72,
-      limitingCause: 'Sommeil court',
+      limitingCause: 'Sommeil',
       limiterSignal: 'sleep_short',
       statusLabel: 'FEU VERT',
       actionLine: 'Entraîne-toi — légèrement',

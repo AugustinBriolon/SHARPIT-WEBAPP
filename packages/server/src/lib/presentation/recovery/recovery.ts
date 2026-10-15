@@ -34,6 +34,13 @@ import { buildRecoveryPageInsights } from '@sharpit/server/lib/product-insight/r
 import { buildGlobalDecisionContext } from '@sharpit/server/lib/decision/global-decision-context';
 import { EMPTY_GLOBAL_DECISION } from '@sharpit/app/presentation/global-decision-context';
 
+const PRIMARY_LIMITER_LABEL: Record<string, string> = {
+  autonomic: 'Système nerveux autonome',
+  sleep: 'Qualité du sommeil',
+  subjective: 'Bien-être subjectif',
+  loadContext: 'Contexte de charge',
+};
+
 const COMPLETENESS_LABEL: Record<string, string> = {
   FULL: 'Complètes',
   PARTIAL: 'Partielles',
@@ -72,37 +79,47 @@ function isSleepLimiterPending(snapshot: AthleteSnapshot) {
   );
 }
 
-function recoveryLimiterHints(todayEntry: DailyHealthRow | null) {
-  if (!todayEntry) {
-    return {};
-  }
-  return {
-    hrv: todayEntry.hrv,
-    hrvBaselineLow: todayEntry.hrvBaselineLow,
-    hrvBaselineHigh: todayEntry.hrvBaselineHigh,
-    hrvStatus: todayEntry.hrvStatus,
-    restingHr: todayEntry.restingHr,
-    sleepMinutes: todayEntry.sleepMinutes,
-    sleepDeepMin: todayEntry.sleepDeepMin,
-    sleepRemMin: todayEntry.sleepRemMin,
-  };
-}
-
-function resolveRecoveryLimiter(
+function resolveRecoveryLimiterLabel(
   snapshot: AthleteSnapshot,
   recovery: NonNullable<AthleteSnapshot['recovery']>,
-  todayEntry: DailyHealthRow | null,
-): { label: string; code: LimiterSignalCode } | null {
+): string | null {
   if (!recovery.primaryLimitingFactor) {
     return null;
   }
   if (isSleepLimiterPending(snapshot) && recovery.primaryLimitingFactor === 'sleep') {
     return null;
   }
-  return resolveLimiterSignal({
-    primaryLimitingFactor: recovery.primaryLimitingFactor,
-    hints: recoveryLimiterHints(todayEntry),
-  });
+  return PRIMARY_LIMITER_LABEL[recovery.primaryLimitingFactor] ?? recovery.primaryLimitingFactor;
+}
+
+function resolveRecoveryLimiterSignal(
+  snapshot: AthleteSnapshot,
+  recovery: NonNullable<AthleteSnapshot['recovery']>,
+  todayEntry: DailyHealthRow | null,
+): LimiterSignalCode | null {
+  if (!recovery.primaryLimitingFactor) {
+    return null;
+  }
+  if (isSleepLimiterPending(snapshot) && recovery.primaryLimitingFactor === 'sleep') {
+    return null;
+  }
+  return (
+    resolveLimiterSignal({
+      primaryLimitingFactor: recovery.primaryLimitingFactor,
+      hints: todayEntry
+        ? {
+            hrv: todayEntry.hrv,
+            hrvBaselineLow: todayEntry.hrvBaselineLow,
+            hrvBaselineHigh: todayEntry.hrvBaselineHigh,
+            hrvStatus: todayEntry.hrvStatus,
+            restingHr: todayEntry.restingHr,
+            sleepMinutes: todayEntry.sleepMinutes,
+            sleepDeepMin: todayEntry.sleepDeepMin,
+            sleepRemMin: todayEntry.sleepRemMin,
+          }
+        : null,
+    })?.code ?? null
+  );
 }
 
 function resolveRecoverySignalPresentation(recovery: NonNullable<AthleteSnapshot['recovery']>) {
@@ -160,8 +177,8 @@ function buildPopulatedRecoveryViewModel(input: {
   const { snapshot, recovery, todayEntry, healthSeries } = input;
   const signal = mapRecoveryToSignal(recovery.readinessCategory as ReadinessCategory);
   const presentation = resolveRecoverySignalPresentation(recovery);
-  const limiter = resolveRecoveryLimiter(snapshot, recovery, todayEntry);
-  const limiterLabel = limiter?.label ?? null;
+  const limiterLabel = resolveRecoveryLimiterLabel(snapshot, recovery);
+  const limiterSignal = resolveRecoveryLimiterSignal(snapshot, recovery, todayEntry);
   const rationale = recovery.decision.rationale.map((r) => resolve(r));
   const keyEvidence = recovery.recommendation.keyEvidence.map((e) => resolve(e));
   const todayHealth = readTodayHealthEntry(todayEntry);
@@ -185,7 +202,7 @@ function buildPopulatedRecoveryViewModel(input: {
     readinessScore: recovery.readinessScore,
     signal,
     limiterLabel,
-    limiterSignal: limiter?.code ?? null,
+    limiterSignal,
     estimatedRecoveryDays: recovery.estimatedTimeToFullRecovery,
     isCalibrating: recovery.readinessCategory === 'BASELINE_PENDING',
     availableDimCount: Object.values(recovery.dimensions).filter((d) => d.available).length,

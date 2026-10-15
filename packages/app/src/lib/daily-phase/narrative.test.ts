@@ -4,6 +4,7 @@ import {
   assertPhaseNarrativeConsistency,
   buildPhaseNarrative,
   pickAdaptationReminders,
+  VERDICT_STATUS_TAG,
 } from '@sharpit/app/lib/daily-phase/narrative';
 import { resolveDailyPhase } from '@sharpit/app/lib/daily-phase/resolve';
 import type {
@@ -12,6 +13,7 @@ import type {
   DailyPhase,
 } from '@sharpit/app/lib/daily-phase/types';
 import { DAILY_PHASE_PRIMARY_QUESTION } from '@sharpit/app/lib/daily-phase/types';
+import type { OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
 
 function minutesSinceLastActivityForPhase(phase: DailyPhase): number | null {
   if (phase === 'SESSION_COMPLETED') {
@@ -105,44 +107,6 @@ describe('buildPhaseNarrative', () => {
     const n = narrativeForPhase('MORNING');
     expect(n.heroEyebrow).toBe(DAILY_PHASE_PRIMARY_QUESTION.MORNING);
     expect(n.heroHeadline).toContain('effort');
-  });
-
-  it('morning RECOVER card: tag only for récup, empty headline, action without récup', () => {
-    const ref = new Date('2026-07-07T07:00:00');
-    const resolution = resolveDailyPhase(
-      {
-        dayContext: buildDailyPhaseDayContext(ref, [], []),
-        athlete: {
-          recommendationAvailable: true,
-          adviceActionable: true,
-          dailyStrainAvailable: false,
-          newSessionSincePriorSnapshot: false,
-          newInferenceSincePriorSnapshot: false,
-          newObservationsSincePriorSnapshot: false,
-          minutesSinceLastActivity: null,
-          minutesSinceSnapshotGenerated: 10,
-          priorPhase: null,
-          sleepLoggedTonight: false,
-        },
-        localHour: 7,
-      },
-      ref,
-    );
-    const recover = buildPhaseNarrative({
-      resolution,
-      verdict: 'RECOVER',
-      adviceActionable: true,
-      actionLine: 'Séance légère ou repos aujourd’hui.',
-      sportLabel: null,
-      totalTssToday: null,
-      dailyStrainScore: null,
-      dailyStrainAvailable: false,
-    });
-    expect(recover.posture).toBe('protect');
-    expect(recover.postureLabel).toBe('Récup d’abord');
-    expect(recover.heroHeadline).toBe('');
-    expect(recover.focusPriority).toBe('Séance légère ou repos aujourd’hui.');
-    expect(recover.focusPriority).not.toMatch(/récup/i);
   });
 
   it('before session uses approach question', () => {
@@ -472,5 +436,60 @@ describe('pickAdaptationReminders', () => {
   it('returns reminders only for recovery and end of day', () => {
     expect(pickAdaptationReminders('RECOVERY_WINDOW').length).toBeGreaterThan(0);
     expect(pickAdaptationReminders('MORNING')).toHaveLength(0);
+  });
+});
+
+describe('verdict status tags', () => {
+  const ALL_VERDICTS = Object.keys(VERDICT_STATUS_TAG) as OverallVerdict[];
+
+  function morningNarrative(verdict: OverallVerdict) {
+    const ref = new Date('2026-07-07T10:00:00');
+    const dayContext = buildDailyPhaseDayContext(ref, [], []);
+    const resolution = resolveDailyPhase(
+      {
+        dayContext,
+        athlete: {
+          recommendationAvailable: true,
+          adviceActionable: true,
+          dailyStrainAvailable: false,
+          newSessionSincePriorSnapshot: false,
+          newInferenceSincePriorSnapshot: false,
+          newObservationsSincePriorSnapshot: false,
+          minutesSinceLastActivity: null,
+          minutesSinceSnapshotGenerated: 60,
+          priorPhase: null,
+          sleepLoggedTonight: false,
+        },
+        localHour: 10,
+      },
+      ref,
+    );
+    return buildPhaseNarrative({
+      resolution,
+      verdict,
+      adviceActionable: true,
+      actionLine: null,
+      sportLabel: null,
+      totalTssToday: null,
+      dailyStrainScore: null,
+      dailyStrainAvailable: false,
+    });
+  }
+
+  it('maps every verdict state to its own distinct existing tag', () => {
+    const tags = ALL_VERDICTS.map((v) => VERDICT_STATUS_TAG[v]);
+    expect(tags).toHaveLength(ALL_VERDICTS.length);
+    expect(new Set(tags).size).toBe(ALL_VERDICTS.length);
+
+    const morningTags = ALL_VERDICTS.map((v) => morningNarrative(v).postureLabel);
+    expect(new Set(morningTags).size).toBe(ALL_VERDICTS.length);
+  });
+
+  it('CAUTION uses Prudence — never RECOVER’s Récup d’abord', () => {
+    expect(VERDICT_STATUS_TAG.CAUTION).toBe('Prudence');
+    expect(VERDICT_STATUS_TAG.RECOVER).toBe('Récup d’abord');
+    expect(morningNarrative('RECOVER').postureLabel).toBe('Récup d’abord');
+    expect(morningNarrative('CAUTION').postureLabel).toBe('Prudence');
+    expect(morningNarrative('CAUTION').postureLabel).not.toMatch(/récup/i);
   });
 });

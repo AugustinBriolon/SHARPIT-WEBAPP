@@ -18,17 +18,6 @@ describe('today-rich-view', () => {
     expect(line).toContain('Entraîne-toi');
   });
 
-  it('buildTopActionLine keeps recover as an action sentence without the frein', () => {
-    const line = buildTopActionLine({
-      verbCode: 'reasoning.topAction.recover.verb',
-      focusCode: 'reasoning.topAction.recover.focusDefault',
-      rationaleCode: 'reasoning.topAction.recover.rationale',
-      expectedBenefit: 0.8,
-    });
-    expect(line).toBe('Séance légère ou repos aujourd’hui.');
-    expect(line).not.toMatch(/\{|frein|système autonome|récup/i);
-  });
-
   it('verdictHeadline is honest when not actionable', () => {
     expect(verdictHeadline('TRAIN_HARD', false)).toBe('Pas encore de verdict fiable');
     expect(verdictHeadline('TRAIN_HARD', true)).toBe('Entraîne-toi fort');

@@ -154,14 +154,11 @@ export type TodayViewModel = {
       confidenceLabel: string | null;
       confidencePctRounded: number | null;
       confidenceHref: string | null;
-      /** Why the limiting dimension is limiting — athlete signal label (e.g. « VFC basse »). */
+      /** Why the limiting dimension is limiting — not its name. */
       limitingCauseText: string | null;
       /** Drill-down when plate limiter is shown. */
       limitingFactorHref: string | null;
-      /**
-       * Stable machine code for the recovery frein signal.
-       * @see LimiterSignalCode — iOS renders « Frein · <label> » from this.
-       */
+      /** Additive frein code — chip labels are localized in the app. */
       limiterSignal:
         | 'hrv_low'
         | 'rhr_high'

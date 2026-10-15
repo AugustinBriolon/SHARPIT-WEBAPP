@@ -37,10 +37,10 @@ const MODEL_SYSTEM_FR: Record<string, string> = {
 };
 
 const LIMITER_FR: Record<string, string> = {
-  autonomic: 'VFC basse',
-  sleep: 'sommeil court',
-  subjective: 'ressenti bas',
-  loadContext: "charge d'entraînement",
+  autonomic: 'le système autonome',
+  sleep: 'le sommeil',
+  subjective: 'le ressenti subjectif',
+  loadContext: "la charge d'entraînement",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ const STRINGS: Record<string, string> = {
     "Préserve de l'énergie — ta récupération est prioritaire.",
 
   'reasoning.topAction.recover.verb': 'Récupère',
-  'reasoning.topAction.recover.focusDefault': 'Séance légère ou repos aujourd’hui.',
+  'reasoning.topAction.recover.focusDefault': 'activement',
   'reasoning.topAction.recover.rationale':
     'Tes signaux du jour indiquent un besoin de repos pour rebondir.',
 
@@ -182,8 +182,8 @@ const STRINGS: Record<string, string> = {
     'Surmenage — la dimension {dimension} est le facteur limitant',
   'reasoning.limitingFactor.fatigue.accumulated':
     'Fatigue accumulée ({dimension}) depuis {days} jour(s)',
-  // Frein signal lives on the verdict chip — do not embed `{limiter}` here.
-  'reasoning.limitingFactor.recovery.deficit': 'Récupération en déficit',
+  // deficit always ships params.limiter; criticallyLow/reduced never do — no `{limiter}` there.
+  'reasoning.limitingFactor.recovery.deficit': 'Récupération en déficit · frein : {limiter}',
   'reasoning.limitingFactor.recovery.criticallyLow': 'Récupération critique',
   'reasoning.limitingFactor.recovery.reduced': 'Récupération réduite',
   'reasoning.limitingFactor.adaptation.factor': 'Adaptation freinée par : {factor}',
@@ -345,6 +345,7 @@ export function resolve(item: I18nItem): string {
     .replace(/\{(\w+)\}/g, (_, key) => resolveParam(key, item.params?.[key]))
     .replace(/\s{2,}/g, ' ')
     .replace(/\s+([·•,;:.!?])/g, '$1')
+    .replace(/\s·\s*$/g, '')
     .trim();
 }
 

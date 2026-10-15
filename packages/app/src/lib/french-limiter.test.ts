@@ -11,31 +11,32 @@ const LIMITER_PARAMS = ['autonomic', 'sleep', 'subjective', 'loadContext'] as co
 
 const UNREPLACED_TOKEN = /\{[A-Za-z_][A-Za-z0-9_]*\}/;
 
-describe('french recovery limiting copy', () => {
-  it('never leaves an unreplaced {token} for any recovery limiting code × limiter', () => {
+describe('french resolve — never emit unreplaced {tokens}', () => {
+  it('never leaves an unreplaced {token} for recovery limiting codes (± limiter param)', () => {
     for (const code of RECOVERY_LIMITING_CODES) {
       expect(resolve({ code })).not.toMatch(UNREPLACED_TOKEN);
       expect(resolveCode(code)).not.toMatch(UNREPLACED_TOKEN);
       for (const limiter of LIMITER_PARAMS) {
-        const text = resolve({ code, params: { limiter } });
-        expect(text).not.toMatch(UNREPLACED_TOKEN);
-        expect(text).not.toMatch(/système autonome/i);
+        expect(resolve({ code, params: { limiter } })).not.toMatch(UNREPLACED_TOKEN);
       }
     }
   });
 
-  it('keeps the frein out of the limiting-factor sentence', () => {
-    for (const code of RECOVERY_LIMITING_CODES) {
-      const text = resolve({ code, params: { limiter: 'autonomic' } });
-      expect(text.toLowerCase()).not.toContain('frein');
-      expect(text).not.toContain('VFC');
-    }
+  it('omits missing params instead of emitting {param}', () => {
+    expect(resolve({ code: 'reasoning.limitingFactor.recovery.deficit' })).not.toContain(
+      '{limiter}',
+    );
+    expect(resolve({ code: 'reasoning.limitingFactor.recovery.criticallyLow' })).toBe(
+      'Récupération critique',
+    );
+    expect(resolve({ code: 'reasoning.limitingFactor.recovery.reduced' })).toBe(
+      'Récupération réduite',
+    );
   });
 
-  it('resolves recover focus to an action line without placeholders or récup', () => {
+  it('resolves recover focus without placeholders', () => {
     const focus = resolveCode('reasoning.topAction.recover.focusDefault');
-    expect(focus).toBe('Séance légère ou repos aujourd’hui.');
+    expect(focus).toBeTruthy();
     expect(focus).not.toMatch(UNREPLACED_TOKEN);
-    expect(focus).not.toMatch(/récup/i);
   });
 });

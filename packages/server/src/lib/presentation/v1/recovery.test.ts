@@ -5,7 +5,7 @@ function source(over: Partial<V1RecoverySource> = {}): V1RecoverySource {
   return {
     readinessScore: 71,
     signal: { label: 'Bonne', qualityClass: 'text-[var(--color-signal-recovery)]', arrow: '↗' },
-    limiterLabel: 'Sommeil court',
+    limiterLabel: 'Qualité du sommeil',
     limiterSignal: 'sleep_short',
     estimatedRecoveryDays: 1,
     isCalibrating: false,
@@ -65,6 +65,12 @@ describe('projectV1Recovery', () => {
   it('keeps only the dimensions that were measured, in a stable order', () => {
     const payload = projectV1Recovery(source(), '2026-09-21');
     expect(payload.dimensions.map((d) => d.key)).toEqual(['autonomic', 'sleep', 'loadContext']);
+  });
+
+  it('ships limiter label for legacy clients and additive limiterSignal code', () => {
+    const payload = projectV1Recovery(source(), '2026-09-21');
+    expect(payload.limiter).toBe('Qualité du sommeil');
+    expect(payload.limiterSignal).toBe('sleep_short');
   });
 
   it('merges the HRV and resting HR series into dated days', () => {

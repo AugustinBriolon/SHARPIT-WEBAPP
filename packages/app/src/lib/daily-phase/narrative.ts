@@ -68,22 +68,33 @@ function isRestDayRecoveryWindow(input: PhaseNarrativeInput): boolean {
   );
 }
 
-function postureLabelForPhase(posture: TodayPosture, phase: DailyPhase): string | null {
+/**
+ * Athlete-facing status tag per overall verdict — existing labels only.
+ * Mapped by verdict (not posture) so CAUTION never reuses RECOVER’s « Récup d’abord ».
+ */
+export const VERDICT_STATUS_TAG: Record<OverallVerdict, string> = {
+  RECOVER: 'Récup d’abord',
+  CAUTION: 'Prudence',
+  TRAIN_HARD: 'Feu vert',
+  RACE_READY: 'Prêt à performer',
+  TRAIN_EASY: 'Forme stable',
+  TRAIN_SMART: 'Entraîne-toi finement',
+  INSUFFICIENT_DATA: 'À préciser',
+};
+
+/** Non-morning protect still softens the recover tag; other verdicts keep their tag. */
+function postureLabelForVerdict(
+  verdict: OverallVerdict,
+  posture: TodayPosture,
+  phase: DailyPhase,
+): string | null {
   if (phase === 'END_OF_DAY' || phase === 'SESSION_COMPLETED') {
     return null;
   }
-
-  switch (posture) {
-    case 'protect':
-      // Morning RECOVER card: tag is the sole « récup » line (headline is empty).
-      return phase === 'MORNING' ? 'Récup d’abord' : 'Récup fragile';
-    case 'steady':
-      return 'Forme stable';
-    case 'push':
-      return 'Feu vert';
-    default:
-      return 'À préciser';
+  if (verdict === 'RECOVER' && posture === 'protect' && phase !== 'MORNING') {
+    return 'Récup fragile';
   }
+  return VERDICT_STATUS_TAG[verdict];
 }
 
 /** Rest-day equivalent of RECOVERY_WINDOW's reminders. No session to reference. */
@@ -338,8 +349,7 @@ function postTrainingHeadline(
 function morningHeadline(verdict: OverallVerdict): string {
   switch (verdict) {
     case 'RECOVER':
-      // Card = tag (« Récup d'abord ») + action line + frein chip — no title.
-      return '';
+      return 'Récupération prioritaire';
     case 'TRAIN_HARD':
     case 'RACE_READY':
       return 'Journée propice à l’effort';
@@ -490,7 +500,7 @@ export function buildPhaseNarrative(input: PhaseNarrativeInput): PhaseNarrative 
     heroSubline: sublineForPhase(input, focusPriority),
     whyFocus: input.resolution.whyFocus,
     posture,
-    postureLabel: postureLabelForPhase(posture, phase) ?? '',
+    postureLabel: postureLabelForVerdict(input.verdict, posture, phase) ?? '',
     focusPriority,
     goalLine,
     adaptationReminders,

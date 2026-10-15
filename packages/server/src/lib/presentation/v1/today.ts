@@ -127,13 +127,10 @@ export type V1TodayResponse = {
     subline: string;
     posture: 'protect' | 'steady' | 'push' | 'uncertain';
     confidencePct: number | null;
-    /** Athlete signal label (e.g. « VFC basse ») — keep for older iOS clients. */
     limitingCause: string | null;
     /**
-     * Stable machine code for the recovery frein chip.
-     * Values: `hrv_low` | `rhr_high` | `sleep_short` | `sleep_poor` |
-     * `subjective_low` | `load_elevated` | null.
-     * New clients render « Frein · <label> » from this code.
+     * Additive. Frein **code** only — chip labels are localized in the app.
+     * `hrv_low` | `rhr_high` | `sleep_short` | `sleep_poor` | `subjective_low` | `load_elevated` | null
      */
     limiterSignal:
       | 'hrv_low'
@@ -143,11 +140,7 @@ export type V1TodayResponse = {
       | 'subjective_low'
       | 'load_elevated'
       | null;
-    /**
-     * Optional tag (`postureLabel`). For morning RECOVER: « Récup d'abord » —
-     * the only card line that may contain « récup ». Null when posture has no tag.
-     */
-    statusLabel: string | null;
+    statusLabel: string;
     actionLine: string | null;
     confidenceLabel: string | null;
     packTier: V1TodayPackTier | null;
@@ -273,10 +266,13 @@ function sportLabel(activityType: ActivityType | undefined): string | null {
   return activityTypeLabels[activityType] ?? null;
 }
 
-/** Tag line only — never fall back to eyebrow (that field is separate). */
-function resolveStatusLabel(hero: V1TodaySource['hero']): string | null {
+/** Always a string (old clients decode non-null). Prefer posture tag, else eyebrow. */
+function resolveStatusLabel(hero: V1TodaySource['hero']): string {
   const fromPosture = hero.postureLabel?.trim();
-  return fromPosture || null;
+  if (fromPosture) {
+    return fromPosture;
+  }
+  return hero.eyebrow;
 }
 
 function resolveActionLine(hero: V1TodaySource['hero']): string | null {

@@ -22,12 +22,11 @@ export type V1RecoveryResponse = {
   readinessScore: number | null;
   signal: { label: string; tone: V1RecoveryTone };
   isCalibrating: boolean;
-  /** Athlete signal label (e.g. « VFC basse ») — keep for older clients. */
+  /** Human frein hint for older clients — keep meaningful, never a `{…}` placeholder. */
   limiter: string | null;
   /**
-   * Stable machine code for the recovery frein chip.
-   * Values: `hrv_low` | `rhr_high` | `sleep_short` | `sleep_poor` |
-   * `subjective_low` | `load_elevated` | null.
+   * Additive. Frein **code** only — chip labels are localized in the app.
+   * `hrv_low` | `rhr_high` | `sleep_short` | `sleep_poor` | `subjective_low` | `load_elevated` | null
    */
   limiterSignal:
     | 'hrv_low'

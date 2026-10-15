@@ -792,9 +792,8 @@ function buildTrainHardAction(a: AdaptationState | null): ReasoningState['topAct
 function buildRecoverAction(
   _limitingFactor: ReasoningState['limitingFactor'],
 ): ReasoningState['topAction'] {
-  // Action line only — the frein lives on the limiter chip, never as focusCode.
-  // (focusCode used to point at reasoning.limitingFactor.recovery.* templates that
-  // require a `{limiter}` param; resolveCode left the placeholder literal.)
+  // Never put a limiting-factor i18n code in focusCode — those templates need
+  // `{limiter}` params; resolveCode left the placeholder literal in the action line.
   return {
     verbCode: 'reasoning.topAction.recover.verb',
     focusCode: 'reasoning.topAction.recover.focusDefault',
