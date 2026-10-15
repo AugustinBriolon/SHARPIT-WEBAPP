@@ -9,10 +9,7 @@
  * Explanation never goes to MORNING_VERDICT push or logs (codes/bools only).
  */
 
-import {
-  VERDICT_TAG,
-  type OverallVerdict,
-} from '@sharpit/app/lib/today/dashboard/today-mapping';
+import { VERDICT_TAG, type OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
 import type { LimiterSignalCode } from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import {
   LIMITER_LABEL_BY_DENSITY,

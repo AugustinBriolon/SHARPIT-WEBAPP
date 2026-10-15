@@ -6,10 +6,7 @@ import {
   type EveningSleepHints,
   type TomorrowSessionHint,
 } from '@sharpit/app/lib/daily-phase/evening-context';
-import {
-  VERDICT_TAG,
-  type OverallVerdict,
-} from '@sharpit/app/lib/today/dashboard/today-mapping';
+import { VERDICT_TAG, type OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
 import type { TodayEffortLevel } from '@sharpit/app/lib/today/navigation/today-narrative-context';
 import type {
   DailyPhase,
