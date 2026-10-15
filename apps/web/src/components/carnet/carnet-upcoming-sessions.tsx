@@ -3,7 +3,6 @@
 import { type ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ActivityType, SessionIntensity } from '@prisma/client';
-import { Ellipsis } from 'lucide-react';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
 import { SPORT_IDENTITY_HEX } from '@sharpit/app/lib/activity/sport-identity';
 import {
@@ -145,67 +144,6 @@ function Field({
       <dd className="mt-1 text-sm leading-relaxed whitespace-pre-wrap">
         {editing ? input : value}
       </dd>
-    </div>
-  );
-}
-
-function SessionActionsMenu({
-  busy,
-  onEdit,
-  onDelete,
-}: {
-  busy: boolean;
-  onEdit: () => void;
-  onDelete: () => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="relative mr-8 shrink-0">
-      <Button
-        aria-expanded={open}
-        aria-haspopup="menu"
-        aria-label="Actions"
-        disabled={busy}
-        size="icon-xs"
-        type="button"
-        variant="ghost"
-        onClick={() => setOpen((value) => !value)}
-      >
-        <Ellipsis aria-hidden />
-      </Button>
-      {open ? (
-        <ul
-          className="bg-popover text-popover-foreground ring-foreground/10 absolute top-full right-0 z-10 mt-1 min-w-36 rounded-xl p-1 ring-1"
-          role="menu"
-        >
-          <li>
-            <button
-              className="hover:bg-muted w-full rounded-lg px-3 py-2 text-left text-sm"
-              role="menuitem"
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                onEdit();
-              }}
-            >
-              Modifier
-            </button>
-          </li>
-          <li>
-            <button
-              className="hover:bg-muted text-destructive w-full rounded-lg px-3 py-2 text-left text-sm"
-              role="menuitem"
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                onDelete();
-              }}
-            >
-              Supprimer
-            </button>
-          </li>
-        </ul>
-      ) : null}
     </div>
   );
 }
@@ -352,37 +290,41 @@ function SessionDetailDialog({
   return (
     <Dialog open onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md" showCloseButton={!editing}>
-        <DialogHeader className="pr-10">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <p className="text-label text-muted-foreground">
-                {session.type ? activityTypeLabels[session.type] : 'Séance'}
-                {session.isKey ? ' · clé' : ''}
-              </p>
-              <DialogTitle className="mt-1">{sessionTitle(session)}</DialogTitle>
-              <DialogDescription>
-                {longDayLabel(dayId(session.date))}
-                {session.startTime ? ` · ${session.startTime}` : ''}
-              </DialogDescription>
-            </div>
-            {editing ? null : (
-              <SessionActionsMenu busy={busy} onDelete={onDelete} onEdit={onEdit} />
-            )}
-          </div>
+        <DialogHeader className={editing ? undefined : 'pr-10'}>
+          <p className="text-label text-muted-foreground">
+            {session.type ? activityTypeLabels[session.type] : 'Séance'}
+            {session.isKey ? ' · clé' : ''}
+          </p>
+          <DialogTitle className="mt-1">{sessionTitle(session)}</DialogTitle>
+          <DialogDescription>
+            {longDayLabel(dayId(session.date))}
+            {session.startTime ? ` · ${session.startTime}` : ''}
+          </DialogDescription>
         </DialogHeader>
 
         <SessionFields draft={draft} editing={editing} session={session} onChange={onDraftChange} />
 
-        {editing ? (
-          <DialogFooter>
-            <Button disabled={busy} type="button" variant="outline" onClick={onCancelEdit}>
-              Annuler
-            </Button>
-            <Button disabled={busy} type="button" onClick={onSave}>
-              Modifier
-            </Button>
-          </DialogFooter>
-        ) : null}
+        <DialogFooter>
+          {editing ? (
+            <>
+              <Button disabled={busy} type="button" variant="outline" onClick={onCancelEdit}>
+                Annuler
+              </Button>
+              <Button disabled={busy} type="button" onClick={onSave}>
+                Enregistrer
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button disabled={busy} type="button" variant="outline" onClick={onDelete}>
+                Supprimer
+              </Button>
+              <Button disabled={busy} type="button" onClick={onEdit}>
+                Modifier
+              </Button>
+            </>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
