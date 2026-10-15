@@ -15,12 +15,12 @@ describe('today-rich-view', () => {
       rationaleCode: 'reasoning.topAction.trainSmart.rationale',
       expectedBenefit: 0.5,
     });
-    expect(line).toContain('Entraîne-toi');
+    expect(line).toContain('Garde');
   });
 
   it('verdictHeadline is honest when not actionable', () => {
     expect(verdictHeadline('TRAIN_HARD', false)).toBe('Pas encore de verdict fiable');
-    expect(verdictHeadline('TRAIN_HARD', true)).toBe('Entraîne-toi fort');
+    expect(verdictHeadline('TRAIN_HARD', true)).toBe('Intense');
   });
 
   it('canTrainHardAnswer maps verdicts', () => {

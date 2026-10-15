@@ -789,12 +789,12 @@ function buildTrainHardAction(a: AdaptationState | null): ReasoningState['topAct
   };
 }
 
-function buildRecoverAction(
-  limitingFactor: ReasoningState['limitingFactor'],
-): ReasoningState['topAction'] {
+function buildRecoverAction(): ReasoningState['topAction'] {
+  // Never put a limiting-factor i18n code in focusCode — those templates need
+  // `{limiter}` params; resolveCode left the placeholder literal in the action line.
   return {
     verbCode: 'reasoning.topAction.recover.verb',
-    focusCode: limitingFactor.description?.code ?? 'reasoning.topAction.recover.focusDefault',
+    focusCode: 'reasoning.topAction.recover.focusDefault',
     rationaleCode: 'reasoning.topAction.recover.rationale',
     expectedBenefit: 80,
   };
@@ -809,7 +809,7 @@ export function buildTopAction(
     return buildTrainHardAction(a);
   }
   if (verdict === 'RECOVER') {
-    return buildRecoverAction(limitingFactor);
+    return buildRecoverAction();
   }
   if (verdict === 'INSUFFICIENT_DATA') {
     return null;
