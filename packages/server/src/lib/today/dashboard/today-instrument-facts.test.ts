@@ -72,4 +72,23 @@ describe('today-instrument-facts', () => {
     expect(emptyText).toBeNull();
     expect(facts.some((fact) => fact.value === 'Signaux')).toBe(false);
   });
+
+  it('uses Essentiel glossary for autonomic cause — never Système autonome', () => {
+    const { facts } = buildTodayLimitingFacts({
+      limitingFactor: {
+        system: 'RECOVERY',
+        actionable: true,
+        description: {
+          code: 'reasoning.limitingFactor.recovery.deficit',
+          params: { limiter: 'autonomic' },
+        },
+      },
+    });
+
+    expect(facts).toEqual([
+      { label: 'Frein', value: 'Récupération' },
+      { label: 'Cause', value: 'Récupération du corps' },
+    ]);
+    expect(facts.some((fact) => /Système autonome/i.test(fact.value))).toBe(false);
+  });
 });

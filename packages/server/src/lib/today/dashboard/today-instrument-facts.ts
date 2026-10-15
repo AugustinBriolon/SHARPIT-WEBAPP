@@ -7,7 +7,10 @@
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
 import type { DecisionData, LimitingFactor } from '@sharpit/app/athlete-state/today-state';
 import type { LimiterSignalCode } from '@sharpit/app/lib/today/dashboard/limiter-signal';
-import { formatLimiterChipBody } from '@sharpit/server/lib/verdict/verdict-copy';
+import {
+  formatLimiterChipBody,
+  LIMITER_DIMENSION_LABEL,
+} from '@sharpit/server/lib/verdict/verdict-copy';
 
 export type TodayFactRow = {
   label: string;
@@ -23,21 +26,19 @@ const SYSTEM_LABEL: Record<string, string> = {
   ENVIRONMENT: 'Environnement',
 };
 
-const LIMITER_DIMENSION_LABEL: Record<string, string> = {
-  autonomic: 'Système autonome',
-  sleep: 'Sommeil',
-  subjective: 'Ressenti',
-  loadContext: "Charge d'entraînement",
-};
-
 function limiterFromDescription(
   description: LimitingFactor['description'] | DecisionData['limitingFactor']['description'],
+  mode: 'essential' | 'expert' = 'essential',
 ): string | null {
   const raw = description?.params?.limiter;
   if (raw === undefined || raw === null) {
     return null;
   }
-  return LIMITER_DIMENSION_LABEL[String(raw)] ?? String(raw);
+  const key = String(raw) as keyof typeof LIMITER_DIMENSION_LABEL;
+  if (key in LIMITER_DIMENSION_LABEL) {
+    return LIMITER_DIMENSION_LABEL[key][mode];
+  }
+  return String(raw);
 }
 
 function systemLabel(system: string | null | undefined, domain?: string | null): string | null {
@@ -53,6 +54,7 @@ function systemLabel(system: string | null | undefined, domain?: string | null):
 /**
  * Limiting panel = constraint identity only (chip / system + cause).
  * No twin scores — those live in the hero metrics row.
+ * Cause uses Essentiel glossary wording (Expert terms live on frein chips / density pairs).
  */
 export function buildTodayLimitingFacts(input: {
   limitingFactor: AthleteSnapshot['limitingFactor'] | DecisionData['limitingFactor'] | null;
@@ -69,7 +71,7 @@ export function buildTodayLimitingFacts(input: {
     const frein =
       chipBody ??
       systemLabel(limitingFactor.system, 'domain' in limitingFactor ? limitingFactor.domain : null);
-    const cause = limiterFromDescription(limitingFactor.description);
+    const cause = limiterFromDescription(limitingFactor.description, 'essential');
 
     const facts: TodayFactRow[] = [
       ...(frein ? [{ label: 'Frein', value: frein }] : []),

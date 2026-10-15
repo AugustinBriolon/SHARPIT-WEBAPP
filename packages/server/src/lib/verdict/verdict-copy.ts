@@ -104,6 +104,32 @@ export const VS_YESTERDAY_LABEL: Record<VsYesterdayCode, string> = {
 
 export const LIMITER_LABEL: Record<LimiterSignalCode, DensityPair> = LIMITER_LABEL_BY_DENSITY;
 
+/**
+ * Dimension cause labels (description.params.limiter) — same glossary as frein chips.
+ * Essentiel stays plain; Expert may use technical terms.
+ */
+export const LIMITER_DIMENSION_LABEL: Record<
+  'autonomic' | 'sleep' | 'subjective' | 'loadContext',
+  DensityPair
+> = {
+  autonomic: {
+    essential: 'Récupération du corps',
+    expert: 'VFC · FC repos',
+  },
+  sleep: {
+    essential: 'Sommeil',
+    expert: 'Sommeil',
+  },
+  subjective: {
+    essential: 'Ressenti',
+    expert: 'Ressenti',
+  },
+  loadContext: {
+    essential: "Charge d'entraînement",
+    expert: "Charge d'entraînement",
+  },
+};
+
 // ─── Support (« Porté par ») chip pairs ──────────────────────────────────────
 
 export const SUPPORT_LABEL: Record<SupportSignalCode, DensityPair> = {
@@ -135,6 +161,42 @@ export const SUPPORT_LABEL: Record<SupportSignalCode, DensityPair> = {
 
 export const LIMITER_CHIP_PREFIX = 'Frein';
 export const SUPPORT_CHIP_PREFIX = 'Porté par';
+
+/**
+ * Recovery systems shared by frein / support codes.
+ * A system cannot be both brake and support in the same reading.
+ */
+export type RecoverySignalSystem = 'autonomic' | 'sleep' | 'subjective' | 'load';
+
+export const LIMITER_SIGNAL_SYSTEM: Record<LimiterSignalCode, RecoverySignalSystem> = {
+  hrv_low: 'autonomic',
+  rhr_high: 'autonomic',
+  sleep_short: 'sleep',
+  sleep_poor: 'sleep',
+  subjective_low: 'subjective',
+  load_elevated: 'load',
+};
+
+export const SUPPORT_SIGNAL_SYSTEM: Record<SupportSignalCode, RecoverySignalSystem> = {
+  hrv_ok: 'autonomic',
+  rhr_ok: 'autonomic',
+  sleep_adequate: 'sleep',
+  sleep_quality_ok: 'sleep',
+  subjective_ok: 'subjective',
+  load_managed: 'load',
+};
+
+/** Drop supports whose system already has a frein. */
+export function filterSupportsAgainstLimiters(
+  supports: readonly SupportSignalCode[],
+  limiters: readonly LimiterSignalCode[],
+): SupportSignalCode[] {
+  if (limiters.length === 0 || supports.length === 0) {
+    return [...supports];
+  }
+  const blocked = new Set(limiters.map((code) => LIMITER_SIGNAL_SYSTEM[code]));
+  return supports.filter((code) => !blocked.has(SUPPORT_SIGNAL_SYSTEM[code]));
+}
 
 /** Count label for 2+ signals — null below 2. */
 export function signalCountLabel(count: number): string | null {
@@ -359,18 +421,22 @@ export function resolveLimiterSignals(facts: VerdictCopyFacts): LimiterSignalCod
   return sortByImportance(merged, LIMITER_IMPORTANCE_ORDER, primary);
 }
 
-export function resolveSupportSignalsList(facts: VerdictCopyFacts): SupportSignalCode[] {
+export function resolveSupportSignalsList(
+  facts: VerdictCopyFacts,
+  limiterSignals: readonly LimiterSignalCode[] = [],
+): SupportSignalCode[] {
+  let supports: SupportSignalCode[] = [];
   if (facts.supportSignals && facts.supportSignals.length > 0) {
-    return sortByImportance(
+    supports = sortByImportance(
       facts.supportSignals,
       SUPPORT_IMPORTANCE_ORDER,
       facts.supportSignals[0],
     );
+  } else if (facts.supportSignal) {
+    supports = [facts.supportSignal];
   }
-  if (facts.supportSignal) {
-    return [facts.supportSignal];
-  }
-  return [];
+  // Generator rule: a system cannot be both frein and support.
+  return filterSupportsAgainstLimiters(supports, limiterSignals);
 }
 
 function wordsOf(sentence: string): Set<string> {
@@ -474,7 +540,7 @@ export function buildVerdictCopy(
   const instruction = resolveInstruction(stateCode, facts);
   const vsYesterday = resolveVsYesterday(stateCode, facts.yesterdayStateCode);
   const limiterSignals = resolveLimiterSignals(facts);
-  const supportSignals = resolveSupportSignalsList(facts);
+  const supportSignals = resolveSupportSignalsList(facts, limiterSignals);
   const limiterSignal = limiterSignals[0] ?? null;
   const supportSignal = supportSignals[0] ?? null;
 
@@ -629,6 +695,7 @@ export function serializeVerdictCopyGlossary() {
     limiterSignals: Object.fromEntries(
       LIMITER_SIGNAL_CODES.map((code) => [code, { ...LIMITER_LABEL[code] }]),
     ),
+    limiterDimensions: { ...LIMITER_DIMENSION_LABEL },
     supportSignals: Object.fromEntries(
       SUPPORT_SIGNAL_CODES.map((code) => [code, { ...SUPPORT_LABEL[code] }]),
     ),

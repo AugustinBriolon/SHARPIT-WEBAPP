@@ -68,6 +68,24 @@
       "expert": "Charge élevée"
     }
   },
+  "limiterDimensions": {
+    "autonomic": {
+      "essential": "Récupération du corps",
+      "expert": "VFC · FC repos"
+    },
+    "sleep": {
+      "essential": "Sommeil",
+      "expert": "Sommeil"
+    },
+    "subjective": {
+      "essential": "Ressenti",
+      "expert": "Ressenti"
+    },
+    "loadContext": {
+      "essential": "Charge d'entraînement",
+      "expert": "Charge d'entraînement"
+    }
+  },
   "supportSignals": {
     "hrv_ok": {
       "essential": "Corps bien récupéré",

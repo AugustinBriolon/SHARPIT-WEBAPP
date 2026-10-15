@@ -216,6 +216,49 @@ describe('resolveSupportSignals / extraLimiterFacts', () => {
     ).not.toContain('hrv_ok');
   });
 
+  it('blocks every support on a system that already has a frein (nuit courte vs nuit réparatrice)', () => {
+    expect(
+      resolveSupportSignals({
+        hints: {
+          sleepMinutes: 300,
+          sleepTargetMinutes: 480,
+          sleepDeepMin: 90,
+          sleepRemMin: 90,
+        },
+        limiterSignals: ['sleep_short'],
+      }),
+    ).toEqual([]);
+
+    const copy = buildVerdictCopy('CAUTION', {
+      limiterSignals: ['sleep_short'],
+      supportSignals: ['sleep_quality_ok', 'hrv_ok'],
+    });
+    // Sleep support dropped; autonomic support kept.
+    expect(copy.supportSignals).toEqual(['hrv_ok']);
+    expect(copy.explanation.essential).toMatch(/nuit a été trop courte/i);
+    expect(copy.explanation.essential).toMatch(/corps a bien récupéré/i);
+    expect(copy.explanation.essential).not.toMatch(/réparatrice|suffisante/i);
+    expect(copy.explanation.expert).toMatch(/sommeil a été court/i);
+    expect(copy.explanation.expert).toMatch(/VFC est dans la norme/i);
+    expect(copy.explanation.expert).not.toMatch(/qualité|suffisant/i);
+  });
+
+  it('mentions only the brake when no support remains on other systems', () => {
+    const copy = buildVerdictCopy('CAUTION', {
+      limiterSignals: ['sleep_short'],
+      supportSignals: ['sleep_quality_ok'],
+    });
+    expect(copy.supportSignals).toEqual([]);
+    expect(copy.explanation.essential).toBe(
+      'Ta nuit a été trop courte. Une séance facile aujourd’hui lui laisse le temps de se remettre.',
+    );
+    expect(copy.explanation.expert).toBe(
+      'Ton sommeil a été court. Une séance facile aujourd’hui aide ton corps à récupérer.',
+    );
+    expect(copy.explanation.essential).not.toMatch(/réparatrice/i);
+    expect(copy.explanation.expert).not.toMatch(/qualité/i);
+  });
+
   it('emits sleep_short as extra when frein is hrv_low', () => {
     expect(
       resolveExtraLimiterFacts({
@@ -318,6 +361,10 @@ describe('serializeVerdictCopyGlossary', () => {
     expect(snap.tone.address).toBe('tutoiement');
     expect(snap.limiterCountLabel.minCount).toBe(2);
     expect(snap.instructions.CAUTION).toBe('Baisse l’intensité de la séance prévue.');
+    expect(snap.limiterDimensions.autonomic).toEqual({
+      essential: 'Récupération du corps',
+      expert: 'VFC · FC repos',
+    });
   });
 });
 
