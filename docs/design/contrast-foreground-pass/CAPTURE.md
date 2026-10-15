@@ -4,9 +4,11 @@ Binary PNG evidence for the accent/onAccent token pass.
 
 **All athlete data in these captures is fictional.** Screens were taken against a
 local ephemeral Postgres (`docker`-less apt Postgres on `127.0.0.1`) seeded with
-`yarn api db:seed:demo` (demo athlete renamed for `DEV_BYPASS_CLERK`). No user
-account, no production database, and no shared Neon branch were used. No real
-health data is committed.
+`docs/design/contrast-foreground-pass/seed-capture-today.ts` (demo seed +
+`local_fictional_capture` rename for `DEV_BYPASS_CLERK`, fresh connection stubs,
+morning CAUTION verdict with `hrv_low` + `sleep_short`). No user account, no
+production database, and no shared Neon branch were used. No real health data is
+committed.
 
 ## Fixture surfaces (synthetic chips)
 
@@ -32,8 +34,22 @@ Plan in the carnet IA is `/saison` (legacy `/plan` redirects there).
 | `screens/light-nutrition.png` / `screens/dark-nutrition.png` | Nutrition — coach reading card |
 | `screens/light-plan.png` / `screens/dark-plan.png`           | Plan / La saison               |
 
-Run (web + api on local DB with `DEV_BYPASS_CLERK`):
+Prepare the local athlete (api `.env` loaded for `SECRET_ENCRYPTION_KEY`):
+
+```bash
+set -a && source apps/api/.env && set +a
+yarn workspace @sharpit/api exec tsx ../../docs/design/contrast-foreground-pass/seed-capture-today.ts
+```
+
+Then (web + api on local DB with `DEV_BYPASS_CLERK`):
 `node docs/design/contrast-foreground-pass/capture-screens.mjs`
+
+### Copy bugs observed (not fixed in this PR)
+
+- Section eyebrow « Les signaux » reads as a raw catalogue label next to the
+  verdict plate; denser coach copy would fit the carnet tone better.
+- Morning explanation can interleave frein and support clauses in one sentence
+  (« …nuit trop courte, ta nuit a été réparatrice… ») when both densities fire.
 
 ### Bug found during capture
 
