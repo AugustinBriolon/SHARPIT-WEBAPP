@@ -28,6 +28,11 @@ export type NutritionFoodEntry = {
 export type NutritionMealSummary = {
   name: string;
   label: string;
+  /**
+   * Optional line under the meal title. Null when it would repeat `label`
+   * (e.g. stored name already « Petit-déjeuner »).
+   */
+  subtitle: string | null;
   calories: number;
   protein: number;
   carbs: number;

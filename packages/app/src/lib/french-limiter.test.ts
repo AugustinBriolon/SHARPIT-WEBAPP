@@ -39,4 +39,19 @@ describe('french resolve — never emit unreplaced {tokens}', () => {
     expect(focus).toBeTruthy();
     expect(focus).not.toMatch(UNREPLACED_TOKEN);
   });
+
+  it('pluralises jour(s) from the days param', () => {
+    expect(
+      resolve({
+        code: 'reasoning.finding.overreachingRisk.evidence.accumulationDays',
+        params: { days: 1 },
+      }),
+    ).toBe('Accumulation depuis 1 jour');
+    expect(
+      resolve({
+        code: 'reasoning.finding.overreachingRisk.evidence.accumulationDays',
+        params: { days: 6 },
+      }),
+    ).toBe('Accumulation depuis 6 jours');
+  });
 });

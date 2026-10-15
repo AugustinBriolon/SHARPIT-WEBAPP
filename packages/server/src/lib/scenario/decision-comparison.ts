@@ -5,6 +5,7 @@
  * @see docs/product/SCENARIO_ENGINE.md
  */
 
+import { formatJours } from '@sharpit/shared/french-plural';
 import type { ScenarioDecisionDelta, ScenarioDecisionSnapshot } from '@sharpit/core/scenario/types';
 import { verdictRiskRank } from '@sharpit/server/lib/scenario/decision-snapshot';
 
@@ -124,7 +125,7 @@ function preferabilityParts(
     parts.push(`confiance +${Math.round(delta.endConfidenceDelta * 100)} pts`);
   }
   if (delta.riskDayCountDelta < 0) {
-    parts.push(`${Math.abs(delta.riskDayCountDelta)} jour(s) à risque en moins`);
+    parts.push(`${formatJours(Math.abs(delta.riskDayCountDelta))} à risque en moins`);
   }
   if (delta.endLimitingFactorDomainChanged && candidate.endLimitingFactorDomain) {
     parts.push(`facteur limitant déplacé vers ${candidate.endLimitingFactorDomain}`);
@@ -159,7 +160,8 @@ export function buildDecisionTradeOffs(delta: ScenarioDecisionDelta): string[] {
     );
   }
   if (delta.riskDayCountDelta > 0) {
-    lines.push(`${delta.riskDayCountDelta} jour(s) à risque supplémentaire(s)`);
+    const extra = delta.riskDayCountDelta > 1 ? 'supplémentaires' : 'supplémentaire';
+    lines.push(`${formatJours(delta.riskDayCountDelta)} à risque ${extra}`);
   }
   if (delta.endVerdictImproved === false) {
     lines.push('Verdict de fin d’horizon moins favorable');

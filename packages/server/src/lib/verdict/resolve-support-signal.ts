@@ -7,6 +7,7 @@ import { isSet } from '@sharpit/shared/value';
 import type { LimiterSignalCode } from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import type { LimiterSignalHints } from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import {
+  filterSupportsAgainstLimiters,
   SUPPORT_SIGNAL_CODES,
   type SupportSignalCode,
 } from '@sharpit/server/lib/verdict/verdict-copy';
@@ -67,20 +68,6 @@ function isSleepQualityOk(hints: LimiterSignalHints): boolean {
   return ((deep + rem) / total) * 100 >= 40;
 }
 
-/** Limiter codes that block a given support. */
-const BLOCKED_BY_LIMITER: Record<SupportSignalCode, readonly LimiterSignalCode[]> = {
-  hrv_ok: ['hrv_low'],
-  rhr_ok: ['rhr_high'],
-  sleep_adequate: ['sleep_short'],
-  sleep_quality_ok: ['sleep_poor'],
-  subjective_ok: ['subjective_low'],
-  load_managed: ['load_elevated'],
-};
-
-function isBlocked(code: SupportSignalCode, limiters: readonly LimiterSignalCode[]): boolean {
-  return limiters.some((limiter) => BLOCKED_BY_LIMITER[code].includes(limiter));
-}
-
 function limiterList(input: ResolveSupportSignalInput): LimiterSignalCode[] {
   if (input.limiterSignals && input.limiterSignals.length > 0) {
     return [...input.limiterSignals];
@@ -91,6 +78,7 @@ function limiterList(input: ResolveSupportSignalInput): LimiterSignalCode[] {
 /**
  * All positive support signals that pass, priority order.
  * Returns [] when no positive fact is calculated.
+ * Generator rule: never emit a support on a system that already has a frein.
  */
 export function resolveSupportSignals(input: ResolveSupportSignalInput): SupportSignalCode[] {
   const hints = input.hints ?? {};
@@ -111,9 +99,8 @@ export function resolveSupportSignals(input: ResolveSupportSignalInput): Support
     },
   ];
 
-  return candidates
-    .filter((candidate) => candidate.ok && !isBlocked(candidate.code, limiters))
-    .map((candidate) => candidate.code);
+  const ok = candidates.filter((candidate) => candidate.ok).map((candidate) => candidate.code);
+  return filterSupportsAgainstLimiters(ok, limiters);
 }
 
 /** @deprecated Prefer resolveSupportSignals — returns the first support only. */

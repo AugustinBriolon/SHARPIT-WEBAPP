@@ -994,15 +994,35 @@ function assembleTodayHero(ctx: ReturnType<typeof prepareTodayViewModelContext>)
   };
 }
 
-function assembleTodayActionRow(ctx: ReturnType<typeof prepareTodayViewModelContext>) {
+function assembleTodayActionRow(
+  ctx: ReturnType<typeof prepareTodayViewModelContext>,
+  strip: TodayViewModel['hero']['twinTrustStrip'],
+) {
+  // END_OF_DAY clears the column; reminder rows keep their Levier/Aussi facts.
+  const skipChipRewrite =
+    ctx.phase === 'END_OF_DAY' ||
+    ctx.limitingSection.limitingFacts.some(
+      (fact) => fact.label === 'Levier' || fact.label === 'Aussi',
+    );
+  const limitingBuilt = skipChipRewrite
+    ? { facts: ctx.limitingSection.limitingFacts, emptyText: ctx.limitingSection.limitingText }
+    : buildTodayLimitingFacts({
+        limitingFactor: ctx.effectiveSnapshot.limitingFactor,
+        limiterSignals: strip.limiterSignals ?? [],
+        limiterCountLabel: strip.limiterCountLabel ?? null,
+      });
   return {
     showLimitingColumn: false,
     limitingLabel: ctx.labels.limiting,
-    limitingMode: ctx.limitingSection.limitingMode,
+    limitingMode: skipChipRewrite
+      ? ctx.limitingSection.limitingMode
+      : limitingBuilt.facts.length > 0 || limitingBuilt.emptyText
+        ? ('facts' as const)
+        : ('none' as const),
     limitingLines: ctx.limitingSection.limitingLines,
-    limitingText: ctx.limitingSection.limitingText,
+    limitingText: limitingBuilt.emptyText,
     limitingHref: ctx.limitingSection.limitingHref,
-    limitingFacts: ctx.limitingSection.limitingFacts,
+    limitingFacts: limitingBuilt.facts,
     actionLabel: ctx.labels.action,
     daySummaryEmptyText: 'Aucune séance prévue ni réalisée.',
     daySummaryEmptyHref: TWIN_DRILL_DOWN.planning,
@@ -1019,6 +1039,7 @@ function assembleTodayActionRow(ctx: ReturnType<typeof prepareTodayViewModelCont
 function assembleTodayViewModel(
   ctx: ReturnType<typeof prepareTodayViewModelContext>,
 ): TodayViewModel {
+  const hero = assembleTodayHero(ctx);
   return {
     hasContent: snapshotHasDisplayableContent(ctx.effectiveSnapshot),
     emptyState: ctx.emptyState,
@@ -1033,8 +1054,8 @@ function assembleTodayViewModel(
     effortUnavailableMessage: ctx.effectiveSnapshot.effortUnavailableMessage,
     morningOrientation: ctx.morningOrientation,
     navigationTargets: todayNavigationTargets(),
-    hero: assembleTodayHero(ctx),
-    actionRow: assembleTodayActionRow(ctx),
+    hero,
+    actionRow: assembleTodayActionRow(ctx, hero.twinTrustStrip),
     insights: [],
     header: {
       weather: ctx.weather

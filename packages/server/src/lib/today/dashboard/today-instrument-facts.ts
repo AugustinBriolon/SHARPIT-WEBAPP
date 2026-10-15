@@ -1,10 +1,16 @@
 /**
  * Today dashboard — instrument facts for the Limiting panel.
  * Never restate twin scores already shown in the hero (sleep / recovery / effort / adaptation).
+ * Frein value reuses the #154 chip (limiterSignals + limiterCountLabel) — never raw « Signaux ».
  */
 
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
 import type { DecisionData, LimitingFactor } from '@sharpit/app/athlete-state/today-state';
+import type { LimiterSignalCode } from '@sharpit/app/lib/today/dashboard/limiter-signal';
+import {
+  formatLimiterChipBody,
+  LIMITER_DIMENSION_LABEL,
+} from '@sharpit/server/lib/verdict/verdict-copy';
 
 export type TodayFactRow = {
   label: string;
@@ -20,21 +26,19 @@ const SYSTEM_LABEL: Record<string, string> = {
   ENVIRONMENT: 'Environnement',
 };
 
-const LIMITER_LABEL: Record<string, string> = {
-  autonomic: 'Système autonome',
-  sleep: 'Sommeil',
-  subjective: 'Ressenti',
-  loadContext: "Charge d'entraînement",
-};
-
 function limiterFromDescription(
   description: LimitingFactor['description'] | DecisionData['limitingFactor']['description'],
+  mode: 'essential' | 'expert' = 'essential',
 ): string | null {
   const raw = description?.params?.limiter;
   if (raw === undefined || raw === null) {
     return null;
   }
-  return LIMITER_LABEL[String(raw)] ?? String(raw);
+  const key = String(raw) as keyof typeof LIMITER_DIMENSION_LABEL;
+  if (key in LIMITER_DIMENSION_LABEL) {
+    return LIMITER_DIMENSION_LABEL[key][mode];
+  }
+  return String(raw);
 }
 
 function systemLabel(system: string | null | undefined, domain?: string | null): string | null {
@@ -48,29 +52,33 @@ function systemLabel(system: string | null | undefined, domain?: string | null):
 }
 
 /**
- * Limiting panel = constraint identity only (system + cause).
+ * Limiting panel = constraint identity only (chip / system + cause).
  * No twin scores — those live in the hero metrics row.
+ * Cause uses Essentiel glossary wording (Expert terms live on frein chips / density pairs).
  */
 export function buildTodayLimitingFacts(input: {
   limitingFactor: AthleteSnapshot['limitingFactor'] | DecisionData['limitingFactor'] | null;
   reminders?: string[];
+  /** Frein codes from the verdict plate (#154) — preferred over system / « Signaux ». */
+  limiterSignals?: readonly LimiterSignalCode[];
+  /** « N signaux » when 2+ freins — null below 2. */
+  limiterCountLabel?: string | null;
 }): { facts: TodayFactRow[]; emptyText: string | null } {
-  const { limitingFactor, reminders = [] } = input;
+  const { limitingFactor, reminders = [], limiterSignals = [], limiterCountLabel = null } = input;
 
   if (limitingFactor) {
+    const chipBody = formatLimiterChipBody(limiterSignals, limiterCountLabel);
     const frein =
-      systemLabel(
-        limitingFactor.system,
-        'domain' in limitingFactor ? limitingFactor.domain : null,
-      ) ?? 'Signaux';
-    const cause = limiterFromDescription(limitingFactor.description);
+      chipBody ??
+      systemLabel(limitingFactor.system, 'domain' in limitingFactor ? limitingFactor.domain : null);
+    const cause = limiterFromDescription(limitingFactor.description, 'essential');
 
     const facts: TodayFactRow[] = [
-      { label: 'Frein', value: frein },
+      ...(frein ? [{ label: 'Frein', value: frein }] : []),
       ...(cause ? [{ label: 'Cause', value: cause }] : []),
     ];
 
-    return { facts, emptyText: null };
+    return { facts, emptyText: facts.length > 0 ? null : 'Aucun frein majeur aujourd’hui.' };
   }
 
   if (reminders.length > 0) {

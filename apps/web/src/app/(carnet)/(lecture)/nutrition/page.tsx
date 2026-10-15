@@ -80,6 +80,9 @@ function Day({ day }: { day: NutritionDaySummary }) {
         <ReadingRow key={meal.name} href={null}>
           <div className="min-w-0">
             <p className="font-medium">{meal.label}</p>
+            {meal.subtitle ? (
+              <p className="text-muted-foreground mt-0.5 text-sm">{meal.subtitle}</p>
+            ) : null}
             <p className="text-muted-foreground mt-0.5 text-sm">
               {meal.entries.map((e) => e.name).join(', ')}
             </p>

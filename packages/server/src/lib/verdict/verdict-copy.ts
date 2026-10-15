@@ -104,6 +104,32 @@ export const VS_YESTERDAY_LABEL: Record<VsYesterdayCode, string> = {
 
 export const LIMITER_LABEL: Record<LimiterSignalCode, DensityPair> = LIMITER_LABEL_BY_DENSITY;
 
+/**
+ * Dimension cause labels (description.params.limiter) — same glossary as frein chips.
+ * Essentiel stays plain; Expert may use technical terms.
+ */
+export const LIMITER_DIMENSION_LABEL: Record<
+  'autonomic' | 'sleep' | 'subjective' | 'loadContext',
+  DensityPair
+> = {
+  autonomic: {
+    essential: 'Récupération du corps',
+    expert: 'VFC · FC repos',
+  },
+  sleep: {
+    essential: 'Sommeil',
+    expert: 'Sommeil',
+  },
+  subjective: {
+    essential: 'Ressenti',
+    expert: 'Ressenti',
+  },
+  loadContext: {
+    essential: "Charge d'entraînement",
+    expert: "Charge d'entraînement",
+  },
+};
+
 // ─── Support (« Porté par ») chip pairs ──────────────────────────────────────
 
 export const SUPPORT_LABEL: Record<SupportSignalCode, DensityPair> = {
@@ -135,6 +161,42 @@ export const SUPPORT_LABEL: Record<SupportSignalCode, DensityPair> = {
 
 export const LIMITER_CHIP_PREFIX = 'Frein';
 export const SUPPORT_CHIP_PREFIX = 'Porté par';
+
+/**
+ * Recovery systems shared by frein / support codes.
+ * A system cannot be both brake and support in the same reading.
+ */
+export type RecoverySignalSystem = 'autonomic' | 'sleep' | 'subjective' | 'load';
+
+export const LIMITER_SIGNAL_SYSTEM: Record<LimiterSignalCode, RecoverySignalSystem> = {
+  hrv_low: 'autonomic',
+  rhr_high: 'autonomic',
+  sleep_short: 'sleep',
+  sleep_poor: 'sleep',
+  subjective_low: 'subjective',
+  load_elevated: 'load',
+};
+
+export const SUPPORT_SIGNAL_SYSTEM: Record<SupportSignalCode, RecoverySignalSystem> = {
+  hrv_ok: 'autonomic',
+  rhr_ok: 'autonomic',
+  sleep_adequate: 'sleep',
+  sleep_quality_ok: 'sleep',
+  subjective_ok: 'subjective',
+  load_managed: 'load',
+};
+
+/** Drop supports whose system already has a frein. */
+export function filterSupportsAgainstLimiters(
+  supports: readonly SupportSignalCode[],
+  limiters: readonly LimiterSignalCode[],
+): SupportSignalCode[] {
+  if (limiters.length === 0 || supports.length === 0) {
+    return [...supports];
+  }
+  const blocked = new Set(limiters.map((code) => LIMITER_SIGNAL_SYSTEM[code]));
+  return supports.filter((code) => !blocked.has(SUPPORT_SIGNAL_SYSTEM[code]));
+}
 
 /** Count label for 2+ signals — null below 2. */
 export function signalCountLabel(count: number): string | null {
@@ -201,11 +263,12 @@ const SUPPORT_EXPLANATION_FRAGMENT: Record<SupportSignalCode, DensityPair> = {
 };
 
 /**
- * Essential closing when the fact sentence starts with « Ton corps … »
- * (« lui » = le corps — never use this after Expert « Ta VFC… »).
+ * Essentiel CAUTION closing (also forced after a « Ton corps … » fact sentence).
+ * Names « ton corps » explicitly so the referent stays clear when the fact does not.
+ * Expert keeps its own closing (« aide ton corps ») — never reuse this string there.
  */
 export const ESSENTIAL_CLOSING_AFTER_TON_CORPS =
-  'Une séance facile aujourd’hui lui laisse le temps de se remettre.';
+  'Une séance facile aujourd’hui laisse à ton corps le temps de se remettre.';
 
 /**
  * Orientation closing — conjugated, tutoiement, no promised outcome.
@@ -308,19 +371,41 @@ function capitalizeFr(sentence: string): string {
   return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
-function joinFragments(fragments: string[]): string {
+/** Join glossary fragments with « et » (and commas for 3+). No period, no capitalize. */
+function joinWithEt(fragments: readonly string[]): string {
   if (fragments.length === 0) {
     return '';
   }
   if (fragments.length === 1) {
-    return capitalizeFr(fragments[0]!);
+    return fragments[0]!;
   }
   if (fragments.length === 2) {
-    return `${capitalizeFr(fragments[0]!)} et ${fragments[1]}.`;
+    return `${fragments[0]} et ${fragments[1]}`;
   }
   const head = fragments.slice(0, -1).join(', ');
-  const last = fragments[fragments.length - 1]!;
-  return `${capitalizeFr(head)} et ${last}.`;
+  return `${head} et ${fragments[fragments.length - 1]}`;
+}
+
+/**
+ * Fact sentence from glossary fragments only.
+ * - Brake only / support only: joined with « et ».
+ * - Brake + support: support first, then «, mais », then brake last.
+ */
+function joinExplanationFacts(
+  limiterBits: readonly string[],
+  supportBits: readonly string[],
+): string {
+  if (supportBits.length > 0 && limiterBits.length > 0) {
+    return `${capitalizeFr(joinWithEt(supportBits))}, mais ${joinWithEt(limiterBits)}.`;
+  }
+  const bits = limiterBits.length > 0 ? limiterBits : supportBits;
+  if (bits.length === 0) {
+    return '';
+  }
+  if (bits.length === 1) {
+    return capitalizeFr(bits[0]!);
+  }
+  return `${capitalizeFr(joinWithEt(bits))}.`;
 }
 
 function sortByImportance<T extends string>(
@@ -359,18 +444,22 @@ export function resolveLimiterSignals(facts: VerdictCopyFacts): LimiterSignalCod
   return sortByImportance(merged, LIMITER_IMPORTANCE_ORDER, primary);
 }
 
-export function resolveSupportSignalsList(facts: VerdictCopyFacts): SupportSignalCode[] {
+export function resolveSupportSignalsList(
+  facts: VerdictCopyFacts,
+  limiterSignals: readonly LimiterSignalCode[] = [],
+): SupportSignalCode[] {
+  let supports: SupportSignalCode[] = [];
   if (facts.supportSignals && facts.supportSignals.length > 0) {
-    return sortByImportance(
+    supports = sortByImportance(
       facts.supportSignals,
       SUPPORT_IMPORTANCE_ORDER,
       facts.supportSignals[0],
     );
+  } else if (facts.supportSignal) {
+    supports = [facts.supportSignal];
   }
-  if (facts.supportSignal) {
-    return [facts.supportSignal];
-  }
-  return [];
+  // Generator rule: a system cannot be both frein and support.
+  return filterSupportsAgainstLimiters(supports, limiterSignals);
 }
 
 function wordsOf(sentence: string): Set<string> {
@@ -403,7 +492,7 @@ function resolveOrientationClosing(
   if (mode !== 'essential') {
     return defaultClosing;
   }
-  // « lui » only after « Ton corps … » — Expert keeps « aide ton corps » (VFC ≠ lui).
+  // After « Ton corps … » (or CAUTION), use the Essentiel closing that names « ton corps ».
   const startsWithTonCorps = Boolean(factSentence?.match(/^Ton corps\b/i));
   if (startsWithTonCorps || stateCode === 'CAUTION') {
     return ESSENTIAL_CLOSING_AFTER_TON_CORPS;
@@ -424,7 +513,7 @@ function buildExplanationForMode(
     return resolveOrientationClosing(stateCode, mode, null);
   }
 
-  const factSentence = joinFragments([...limiterBits, ...supportBits]);
+  const factSentence = joinExplanationFacts(limiterBits, supportBits);
   const fact = factSentence.endsWith('.') ? factSentence : `${factSentence}.`;
   const closing = resolveOrientationClosing(stateCode, mode, fact);
   return `${fact} ${closing}`;
@@ -474,7 +563,7 @@ export function buildVerdictCopy(
   const instruction = resolveInstruction(stateCode, facts);
   const vsYesterday = resolveVsYesterday(stateCode, facts.yesterdayStateCode);
   const limiterSignals = resolveLimiterSignals(facts);
-  const supportSignals = resolveSupportSignalsList(facts);
+  const supportSignals = resolveSupportSignalsList(facts, limiterSignals);
   const limiterSignal = limiterSignals[0] ?? null;
   const supportSignal = supportSignals[0] ?? null;
 
@@ -509,7 +598,9 @@ export function supportChipLabel(code: SupportSignalCode, mode: keyof DensityPai
 }
 
 /**
- * Frein chip text: single signal → density label; 2+ → « N signaux ».
+ * Frein chip text (ADR-023):
+ * - Essentiel: single label, or « N signaux » from 2 freins up
+ * - Expert: lists each expert label (joined with « · »)
  */
 export function formatLimiterChip(
   codes: readonly LimiterSignalCode[],
@@ -518,11 +609,34 @@ export function formatLimiterChip(
   if (codes.length === 0) {
     return null;
   }
-  const count = signalCountLabel(codes.length);
-  if (count) {
-    return `${LIMITER_CHIP_PREFIX} · ${count}`;
+  if (mode === 'essential') {
+    const count = signalCountLabel(codes.length);
+    if (count) {
+      return `${LIMITER_CHIP_PREFIX} · ${count}`;
+    }
+    return limiterChipLabel(codes[0]!, 'essential');
   }
-  return limiterChipLabel(codes[0]!, mode);
+  if (codes.length === 1) {
+    return limiterChipLabel(codes[0]!, 'expert');
+  }
+  return `${LIMITER_CHIP_PREFIX} · ${codes.map((code) => LIMITER_LABEL[code].expert).join(' · ')}`;
+}
+
+/**
+ * Body of the Frein chip without the « Frein · » prefix — for fact rows whose
+ * label is already « Frein ». Essentiel semantics (single label / N signaux).
+ */
+export function formatLimiterChipBody(
+  codes: readonly LimiterSignalCode[],
+  countLabel?: string | null,
+): string | null {
+  if (codes.length === 0) {
+    return null;
+  }
+  if (codes.length >= 2) {
+    return countLabel ?? signalCountLabel(codes.length);
+  }
+  return LIMITER_LABEL[codes[0]!].essential;
 }
 
 export function formatSupportChip(
@@ -532,11 +646,17 @@ export function formatSupportChip(
   if (codes.length === 0) {
     return null;
   }
-  const count = signalCountLabel(codes.length);
-  if (count) {
-    return `${SUPPORT_CHIP_PREFIX} · ${count}`;
+  if (mode === 'essential') {
+    const count = signalCountLabel(codes.length);
+    if (count) {
+      return `${SUPPORT_CHIP_PREFIX} · ${count}`;
+    }
+    return supportChipLabel(codes[0]!, 'essential');
   }
-  return supportChipLabel(codes[0]!, mode);
+  if (codes.length === 1) {
+    return supportChipLabel(codes[0]!, 'expert');
+  }
+  return `${SUPPORT_CHIP_PREFIX} · ${codes.map((code) => SUPPORT_LABEL[code].expert).join(' · ')}`;
 }
 
 /** Coach prompt line: athlete reading density — written live into the context. */
@@ -598,6 +718,7 @@ export function serializeVerdictCopyGlossary() {
     limiterSignals: Object.fromEntries(
       LIMITER_SIGNAL_CODES.map((code) => [code, { ...LIMITER_LABEL[code] }]),
     ),
+    limiterDimensions: { ...LIMITER_DIMENSION_LABEL },
     supportSignals: Object.fromEntries(
       SUPPORT_SIGNAL_CODES.map((code) => [code, { ...SUPPORT_LABEL[code] }]),
     ),

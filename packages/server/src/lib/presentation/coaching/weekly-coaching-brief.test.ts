@@ -195,6 +195,24 @@ describe('buildWeeklyCoachingBriefViewModel', () => {
         plannedSessions: [session({ date: new Date('2026-07-14T08:00:00.000Z') })],
       }),
     );
-    expect(vm.recovery?.protectedDayLabels.length).toBeGreaterThan(0);
+    expect(vm.recovery?.protectedDayLabels.length).toBe(6);
+    expect(vm.recovery?.note).toBe('6 jours de récupération protégés cette semaine.');
+  });
+
+  it('pluralises a single protected recovery day', () => {
+    const vm = buildWeeklyCoachingBriefViewModel(
+      baseInput({
+        plannedSessions: [
+          session({ id: 's1', date: new Date('2026-07-13T08:00:00.000Z') }),
+          session({ id: 's2', date: new Date('2026-07-14T08:00:00.000Z') }),
+          session({ id: 's3', date: new Date('2026-07-15T08:00:00.000Z') }),
+          session({ id: 's4', date: new Date('2026-07-16T08:00:00.000Z') }),
+          session({ id: 's5', date: new Date('2026-07-17T08:00:00.000Z') }),
+          session({ id: 's6', date: new Date('2026-07-18T08:00:00.000Z') }),
+        ],
+      }),
+    );
+    expect(vm.recovery?.protectedDayLabels).toEqual(['dimanche']);
+    expect(vm.recovery?.note).toBe('1 jour de récupération protégés cette semaine.');
   });
 });

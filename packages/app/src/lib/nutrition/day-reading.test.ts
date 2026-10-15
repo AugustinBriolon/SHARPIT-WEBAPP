@@ -52,6 +52,7 @@ describe('buildNutritionDayReading', () => {
           {
             name: 'breakfast',
             label: 'Petit-déjeuner',
+            subtitle: null,
             calories: 400,
             protein: 30,
             carbs: 40,
@@ -61,6 +62,7 @@ describe('buildNutritionDayReading', () => {
           {
             name: 'lunch',
             label: 'Déjeuner',
+            subtitle: null,
             calories: 700,
             protein: 50,
             carbs: 70,
@@ -70,6 +72,7 @@ describe('buildNutritionDayReading', () => {
           {
             name: 'dinner',
             label: 'Dîner',
+            subtitle: null,
             calories: 1210,
             protein: 114,
             carbs: 70,
@@ -96,6 +99,7 @@ describe('buildNutritionDayReading', () => {
           {
             name: 'lunch',
             label: 'Déjeuner',
+            subtitle: null,
             calories: 800,
             protein: 60,
             carbs: 80,
@@ -130,6 +134,7 @@ describe('buildNutritionDayReading', () => {
           {
             name: 'dinner',
             label: 'Dîner',
+            subtitle: null,
             calories: 2600,
             protein: 180,
             carbs: 270,

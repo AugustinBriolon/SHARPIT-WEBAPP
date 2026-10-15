@@ -1,6 +1,7 @@
 import { addDays, format, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { NextResponse } from 'next/server';
+import { formatJours } from '@sharpit/shared/french-plural';
 import { COACH_REASONING_LEVEL, isCoachConfigured } from '@sharpit/server/lib/ai';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
@@ -210,7 +211,7 @@ function buildPlanPrompt(input: {
     macroBlock,
     agendaBlock,
   } = input;
-  return `Génère un plan d'entraînement couvrant ${days} jour(s) à partir du ${format(
+  return `Génère un plan d'entraînement couvrant ${formatJours(days)} à partir du ${format(
     start,
     'EEEE d MMMM yyyy',
     { locale: fr },

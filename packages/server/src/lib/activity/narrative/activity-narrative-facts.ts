@@ -21,6 +21,7 @@ import {
 import { isIndoorActivitySession } from '@sharpit/app/lib/activity/location/indoor-activity';
 import { resolveActivityEnvironmentPresentation } from '@sharpit/server/lib/environment/activity-environment';
 import { formatDistance, formatDuration } from '@sharpit/app/lib/format';
+import { formatJours, formatSeances } from '@sharpit/shared/french-plural';
 import {
   formatGoalDisplayValue,
   parseGoalMetricConfig,
@@ -269,7 +270,7 @@ function comparePeerHrPeakLine(activity: ActivityRow, peers: PeerRow[]): string 
   });
   if (lastHigher) {
     const days = differenceInCalendarDays(startOfDay(activity.date), startOfDay(lastHigher.date));
-    return `- FC moyenne la plus élevée depuis ${days} jour(s) (parmi les séances comparables récentes).`;
+    return `- FC moyenne la plus élevée depuis ${formatJours(days)} (parmi les séances comparables récentes).`;
   }
   if (peers.length >= 2) {
     return '- FC moyenne la plus élevée sur la fenêtre 30 jours comparée.';
@@ -299,7 +300,7 @@ function buildComparativeFacts(activity: ActivityRow, peers: PeerRow[]): string 
   }
 
   const lines = [
-    `Comparatif sur ${peers.length} séance(s) du même sport dans les 30 jours précédant celle-ci :`,
+    `Comparatif sur ${formatSeances(peers.length)} du même sport dans les 30 jours précédant celle-ci :`,
     comparePeerPaceLine(activity, peers),
     comparePeerHrLine(activity, peers),
     comparePeerHrPeakLine(activity, peers),
