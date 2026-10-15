@@ -56,16 +56,17 @@ describe('morning-push', () => {
   } as unknown as AthleteSnapshot;
 
   describe('buildMorningPushPayload', () => {
-    it('maps TRAIN_HARD verdict to French label and builds deep link', () => {
+    it('maps TRAIN_HARD verdict to glossary tag + instruction (never explanation)', () => {
       const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app');
-      expect(payload.title).toBe('Entraîne-toi fort');
-      expect(payload.body).toBe('Super forme ce matin — séance clé au programme.');
+      expect(payload.title).toBe('Intense');
+      expect(payload.body).toBe('Enchaîne la séance prévue avec engagement.');
+      expect(payload.body).not.toMatch(/VFC|explanation|récupéré/i);
       expect(payload.url).toBe('https://sharpit.app/coach?discuss=morning-brief&day=2026-09-24');
       expect(payload.verdict).toBe('TRAIN_HARD');
       expect(payload.trainingDayId).toBe('2026-09-24');
     });
 
-    it('appends day scores bits to the body when available', () => {
+    it('never appends health score values to the lock-screen body', () => {
       const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app', null, {
         stress: { value: 30, asOf: '2026-09-24' },
         energyBank: {
@@ -78,12 +79,12 @@ describe('morning-push', () => {
         targetBand: null,
         strainPerformance: null,
       });
-      expect(payload.body).toContain('Réserve 68');
-      expect(payload.body).toContain('Stress 30');
-      expect(payload.body.length).toBeLessThanOrEqual(140);
+      expect(payload.body).toBe('Enchaîne la séance prévue avec engagement.');
+      expect(payload.body).not.toMatch(/Réserve|Stress|\d{2,}/);
+      expect(payload.body).not.toMatch(/VFC|récupéré|explication/i);
     });
 
-    it('maps RECOVER verdict correctly', () => {
+    it('maps RECOVER verdict to Repos tag + instruction', () => {
       const recoverSnap = {
         ...dummySnapshot,
         todaysDecision: 'RECOVER',
@@ -91,15 +92,17 @@ describe('morning-push', () => {
       } as unknown as AthleteSnapshot;
 
       const payload = buildMorningPushPayload(recoverSnap, 'https://sharpit.app');
-      expect(payload.title).toBe('Récupère');
-      expect(payload.body).toBe('Sommeil perturbé — repos recommandé.');
+      expect(payload.title).toBe('Repos');
+      expect(payload.body).toBe('Privilégie le repos ou une marche très légère.');
     });
 
     it('truncates body exceeding 140 chars gracefully', () => {
       const longMessage = 'A'.repeat(200);
       const longSnap = {
         ...dummySnapshot,
-        primaryProductMessage: longMessage,
+        todaysDecision: null,
+        decision: null,
+        insufficientDataMessage: longMessage,
       } as unknown as AthleteSnapshot;
 
       const payload = buildMorningPushPayload(longSnap);
@@ -113,7 +116,7 @@ describe('morning-push', () => {
       const morning = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app');
       const apns = toApnsPayload(morning);
 
-      expect(apns.aps.alert?.title).toBe('Entraîne-toi fort');
+      expect(apns.aps.alert?.title).toBe('Intense');
       expect(apns.aps.sound).toBe('default');
       expect(apns.aps.badge).toBe(1);
       expect(apns.aps.category).toBe('MORNING_VERDICT');
