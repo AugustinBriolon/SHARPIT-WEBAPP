@@ -66,6 +66,14 @@ export function recoveryLoadingShell() {
     readinessScore: null as number | null,
     signal: { label: '', qualityClass: 'text-muted-foreground', arrow: '' },
     limiterLabel: null as string | null,
+    limiterSignal: null as
+      | 'hrv_low'
+      | 'rhr_high'
+      | 'sleep_short'
+      | 'sleep_poor'
+      | 'subjective_low'
+      | 'load_elevated'
+      | null,
     estimatedRecoveryDays: null as number | null,
     isCalibrating: false,
     availableDimCount: 0,

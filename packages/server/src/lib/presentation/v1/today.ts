@@ -32,6 +32,18 @@ export type V1TodaySource = {
       confidencePctRounded: number | null;
       limitingCauseText: string | null;
       confidenceLabel?: string | null;
+      /**
+       * Stable recovery frein signal code for the chip.
+       * Null when the frein is not a recovery primary limiter.
+       */
+      limiterSignal?:
+        | 'hrv_low'
+        | 'rhr_high'
+        | 'sleep_short'
+        | 'sleep_poor'
+        | 'subjective_low'
+        | 'load_elevated'
+        | null;
     };
     reliability?: {
       packTier: V1TodayPackTier;
@@ -115,8 +127,27 @@ export type V1TodayResponse = {
     subline: string;
     posture: 'protect' | 'steady' | 'push' | 'uncertain';
     confidencePct: number | null;
+    /** Athlete signal label (e.g. « VFC basse ») — keep for older iOS clients. */
     limitingCause: string | null;
-    statusLabel: string;
+    /**
+     * Stable machine code for the recovery frein chip.
+     * Values: `hrv_low` | `rhr_high` | `sleep_short` | `sleep_poor` |
+     * `subjective_low` | `load_elevated` | null.
+     * New clients render « Frein · <label> » from this code.
+     */
+    limiterSignal:
+      | 'hrv_low'
+      | 'rhr_high'
+      | 'sleep_short'
+      | 'sleep_poor'
+      | 'subjective_low'
+      | 'load_elevated'
+      | null;
+    /**
+     * Optional tag (`postureLabel`). For morning RECOVER: « Récup d'abord » —
+     * the only card line that may contain « récup ». Null when posture has no tag.
+     */
+    statusLabel: string | null;
     actionLine: string | null;
     confidenceLabel: string | null;
     packTier: V1TodayPackTier | null;
@@ -242,12 +273,10 @@ function sportLabel(activityType: ActivityType | undefined): string | null {
   return activityTypeLabels[activityType] ?? null;
 }
 
-function resolveStatusLabel(hero: V1TodaySource['hero']): string {
+/** Tag line only — never fall back to eyebrow (that field is separate). */
+function resolveStatusLabel(hero: V1TodaySource['hero']): string | null {
   const fromPosture = hero.postureLabel?.trim();
-  if (fromPosture) {
-    return fromPosture;
-  }
-  return hero.eyebrow;
+  return fromPosture || null;
 }
 
 function resolveActionLine(hero: V1TodaySource['hero']): string | null {
@@ -273,6 +302,7 @@ function projectVerdict(
     posture: hero.posture,
     confidencePct: hero.twinTrustStrip.confidencePctRounded,
     limitingCause: hero.twinTrustStrip.limitingCauseText,
+    limiterSignal: hero.twinTrustStrip.limiterSignal ?? null,
     statusLabel: resolveStatusLabel(hero),
     actionLine: resolveActionLine(hero),
     confidenceLabel: hero.twinTrustStrip.confidenceLabel ?? null,
@@ -453,6 +483,7 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         confidencePctRounded: vm.hero.twinTrustStrip.confidencePctRounded,
         limitingCauseText: vm.hero.twinTrustStrip.limitingCauseText,
         confidenceLabel: vm.hero.twinTrustStrip.confidenceLabel,
+        limiterSignal: vm.hero.twinTrustStrip.limiterSignal,
       },
       reliability: vm.hero.reliability
         ? {

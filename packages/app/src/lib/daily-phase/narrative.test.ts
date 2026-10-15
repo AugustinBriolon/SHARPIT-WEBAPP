@@ -107,6 +107,44 @@ describe('buildPhaseNarrative', () => {
     expect(n.heroHeadline).toContain('effort');
   });
 
+  it('morning RECOVER card: tag only for récup, empty headline, action without récup', () => {
+    const ref = new Date('2026-07-07T07:00:00');
+    const resolution = resolveDailyPhase(
+      {
+        dayContext: buildDailyPhaseDayContext(ref, [], []),
+        athlete: {
+          recommendationAvailable: true,
+          adviceActionable: true,
+          dailyStrainAvailable: false,
+          newSessionSincePriorSnapshot: false,
+          newInferenceSincePriorSnapshot: false,
+          newObservationsSincePriorSnapshot: false,
+          minutesSinceLastActivity: null,
+          minutesSinceSnapshotGenerated: 10,
+          priorPhase: null,
+          sleepLoggedTonight: false,
+        },
+        localHour: 7,
+      },
+      ref,
+    );
+    const recover = buildPhaseNarrative({
+      resolution,
+      verdict: 'RECOVER',
+      adviceActionable: true,
+      actionLine: 'Séance légère ou repos aujourd’hui.',
+      sportLabel: null,
+      totalTssToday: null,
+      dailyStrainScore: null,
+      dailyStrainAvailable: false,
+    });
+    expect(recover.posture).toBe('protect');
+    expect(recover.postureLabel).toBe('Récup d’abord');
+    expect(recover.heroHeadline).toBe('');
+    expect(recover.focusPriority).toBe('Séance légère ou repos aujourd’hui.');
+    expect(recover.focusPriority).not.toMatch(/récup/i);
+  });
+
   it('before session uses approach question', () => {
     const ref = new Date('2026-07-07T16:00:00');
     const dayContext = buildDailyPhaseDayContext(

@@ -37,10 +37,10 @@ const MODEL_SYSTEM_FR: Record<string, string> = {
 };
 
 const LIMITER_FR: Record<string, string> = {
-  autonomic: 'le système autonome',
-  sleep: 'le sommeil',
-  subjective: 'le ressenti subjectif',
-  loadContext: "la charge d'entraînement",
+  autonomic: 'VFC basse',
+  sleep: 'sommeil court',
+  subjective: 'ressenti bas',
+  loadContext: "charge d'entraînement",
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -66,7 +66,7 @@ const STRINGS: Record<string, string> = {
     "Préserve de l'énergie — ta récupération est prioritaire.",
 
   'reasoning.topAction.recover.verb': 'Récupère',
-  'reasoning.topAction.recover.focusDefault': 'activement',
+  'reasoning.topAction.recover.focusDefault': 'Séance légère ou repos aujourd’hui.',
   'reasoning.topAction.recover.rationale':
     'Tes signaux du jour indiquent un besoin de repos pour rebondir.',
 
@@ -182,9 +182,10 @@ const STRINGS: Record<string, string> = {
     'Surmenage — la dimension {dimension} est le facteur limitant',
   'reasoning.limitingFactor.fatigue.accumulated':
     'Fatigue accumulée ({dimension}) depuis {days} jour(s)',
-  'reasoning.limitingFactor.recovery.deficit': 'Récupération en déficit · frein : {limiter}',
-  'reasoning.limitingFactor.recovery.criticallyLow': 'Récupération critique · frein : {limiter}',
-  'reasoning.limitingFactor.recovery.reduced': 'Récupération réduite · frein : {limiter}',
+  // Frein signal lives on the verdict chip — do not embed `{limiter}` here.
+  'reasoning.limitingFactor.recovery.deficit': 'Récupération en déficit',
+  'reasoning.limitingFactor.recovery.criticallyLow': 'Récupération critique',
+  'reasoning.limitingFactor.recovery.reduced': 'Récupération réduite',
   'reasoning.limitingFactor.adaptation.factor': 'Adaptation freinée par : {factor}',
   'reasoning.limitingFactor.adaptation.insufficientStimulus':
     'Stimulus insuffisant — la progression stagne',
@@ -327,8 +328,9 @@ const PARAM_RESOLVERS: Record<string, (raw: unknown) => string> = {
 };
 
 function resolveParam(key: string, raw: unknown): string {
-  if (raw === undefined) {
-    return `{${key}}`;
+  if (raw === undefined || raw === null) {
+    // Never emit a literal `{param}` — missing params omit the token.
+    return '';
   }
   return PARAM_RESOLVERS[key]?.(raw) ?? String(raw);
 }
@@ -338,11 +340,12 @@ export function resolve(item: I18nItem): string {
   if (!template) {
     return item.code;
   }
-  if (!item.params) {
-    return template;
-  }
 
-  return template.replace(/\{(\w+)\}/g, (_, key) => resolveParam(key, item.params![key]));
+  return template
+    .replace(/\{(\w+)\}/g, (_, key) => resolveParam(key, item.params?.[key]))
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([·•,;:.!?])/g, '$1')
+    .trim();
 }
 
 // Convenience: resolve a plain code string (for TopAction verbCode / focusCode / rationaleCode)

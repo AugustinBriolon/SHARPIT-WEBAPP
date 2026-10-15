@@ -18,6 +18,10 @@ export function buildTopActionLine(topAction: TopAction | null): string | null {
   if (!verb || verb === topAction.verbCode) {
     return null;
   }
+  // Recover card: headline already says « Récupère… » — action line is the focus alone.
+  if (topAction.verbCode === 'reasoning.topAction.recover.verb') {
+    return focus && focus !== topAction.focusCode ? focus : verb;
+  }
   return focus && focus !== topAction.focusCode ? `${verb} — ${focus}` : verb;
 }
 

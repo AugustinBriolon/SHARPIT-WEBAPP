@@ -84,6 +84,7 @@ function shellHeroSection(): TodayViewModel['hero'] {
       confidenceHref: null,
       limitingCauseText: null,
       limitingFactorHref: null,
+      limiterSignal: null,
     },
     reliability: null,
   };

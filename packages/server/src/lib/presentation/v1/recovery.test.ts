@@ -5,7 +5,8 @@ function source(over: Partial<V1RecoverySource> = {}): V1RecoverySource {
   return {
     readinessScore: 71,
     signal: { label: 'Bonne', qualityClass: 'text-[var(--color-signal-recovery)]', arrow: '↗' },
-    limiterLabel: 'Qualité du sommeil',
+    limiterLabel: 'Sommeil court',
+    limiterSignal: 'sleep_short',
     estimatedRecoveryDays: 1,
     isCalibrating: false,
     availableDimCount: 3,

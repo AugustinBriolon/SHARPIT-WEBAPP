@@ -95,6 +95,23 @@ describe('morning-push', () => {
       expect(payload.body).toBe('Sommeil perturbé — repos recommandé.');
     });
 
+    it('keeps MORNING_VERDICT payload minimal — no limiter or health fields', () => {
+      const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app');
+      expect(Object.keys(payload).sort()).toEqual([
+        'body',
+        'title',
+        'trainingDayId',
+        'url',
+        'verdict',
+      ]);
+      expect(payload).not.toHaveProperty('limiterSignal');
+      expect(payload).not.toHaveProperty('limitingCause');
+      expect(payload).not.toHaveProperty('hrv');
+      const apns = toApnsPayload(payload);
+      expect(apns.aps.category).toBe('MORNING_VERDICT');
+      expect(apns).not.toHaveProperty('limiterSignal');
+    });
+
     it('truncates body exceeding 140 chars gracefully', () => {
       const longMessage = 'A'.repeat(200);
       const longSnap = {

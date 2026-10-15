@@ -154,10 +154,22 @@ export type TodayViewModel = {
       confidenceLabel: string | null;
       confidencePctRounded: number | null;
       confidenceHref: string | null;
-      /** Why the limiting dimension is limiting — not its name. */
+      /** Why the limiting dimension is limiting — athlete signal label (e.g. « VFC basse »). */
       limitingCauseText: string | null;
       /** Drill-down when plate limiter is shown. */
       limitingFactorHref: string | null;
+      /**
+       * Stable machine code for the recovery frein signal.
+       * @see LimiterSignalCode — iOS renders « Frein · <label> » from this.
+       */
+      limiterSignal:
+        | 'hrv_low'
+        | 'rhr_high'
+        | 'sleep_short'
+        | 'sleep_poor'
+        | 'subjective_low'
+        | 'load_elevated'
+        | null;
     };
     /** Science Sport reliability V0 — packTier soft-hero + provenance. */
     reliability: {

@@ -58,6 +58,11 @@ import { buildTodayLimitingFacts } from '@sharpit/server/lib/today/dashboard/tod
 import { buildTodayGoalAnchor } from '@sharpit/app/lib/today/rich/today-goal-anchor';
 import { TWIN_DRILL_DOWN } from '@sharpit/app/lib/today/navigation/today-twin-navigation';
 import { buildSignalPreviews } from '@sharpit/app/lib/today/dashboard/signal-previews';
+import { getIndexedHealthEntry, indexHealthEntriesByDay } from '@sharpit/app/lib/health/health';
+import type {
+  LimiterSignalCode,
+  LimiterSignalHints,
+} from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import { endOfDay, startOfDay } from 'date-fns';
 import type { ClientActivity, ClientPlannedSession } from '@sharpit/app/lib/query/types';
 import type { SessionIntensity } from '@prisma/client';
@@ -245,6 +250,7 @@ function buildTodayLimitingSection(input: {
   });
   const limitingBuilt = buildTodayLimitingFacts({
     limitingFactor: preferReminders ? null : input.effectiveSnapshot.limitingFactor,
+    recovery: input.effectiveSnapshot.recovery,
     reminders: preferReminders ? input.adaptationHints : [],
   });
   const limitingHref = isSet(input.effectiveSnapshot.limitingFactor)
@@ -320,20 +326,62 @@ function mapDaySummaryLineForView(
   };
 }
 
-function buildPlateLimiter(effectiveSnapshot: AthleteSnapshot): {
+function typicalRestingHr(healthEntries: TodayPresentationInputs['healthEntries']): number | null {
+  const samples = healthEntries
+    .map((e) => e.restingHr)
+    .filter((v): v is number => typeof v === 'number');
+  if (samples.length < 3) {
+    return null;
+  }
+  return samples.reduce((sum, value) => sum + value, 0) / samples.length;
+}
+
+function limiterHintsFromHealth(
+  healthEntries: TodayPresentationInputs['healthEntries'],
+  day: Date,
+  sleepTargetMinutes: number,
+): LimiterSignalHints {
+  const today = getIndexedHealthEntry(indexHealthEntriesByDay(healthEntries), day);
+  if (!today) {
+    return { sleepTargetMinutes, restingHrTypical: typicalRestingHr(healthEntries) };
+  }
+  return {
+    hrv: today.hrv,
+    hrvBaselineLow: today.hrvBaselineLow,
+    hrvBaselineHigh: today.hrvBaselineHigh,
+    hrvStatus: today.hrvStatus,
+    restingHr: today.restingHr,
+    restingHrTypical: typicalRestingHr(healthEntries),
+    sleepMinutes: today.sleepMinutes,
+    sleepTargetMinutes,
+    sleepDeepMin: today.sleepDeepMin,
+    sleepRemMin: today.sleepRemMin,
+  };
+}
+
+function buildPlateLimiter(input: {
+  effectiveSnapshot: AthleteSnapshot;
+  healthEntries: TodayPresentationInputs['healthEntries'];
+  day: Date;
+  sleepTargetMinutes: number;
+}): {
   text: string | null;
   href: string | null;
+  signalCode: LimiterSignalCode | null;
 } {
+  const { effectiveSnapshot, healthEntries, day, sleepTargetMinutes } = input;
   if (effectiveSnapshot.limitingFactor === undefined || effectiveSnapshot.limitingFactor === null) {
-    return { text: null, href: null };
+    return { text: null, href: null, signalCode: null };
   }
-  const text =
-    buildTodayLimitingFacts({ limitingFactor: effectiveSnapshot.limitingFactor }).facts.find(
-      (f) => f.label === 'Cause',
-    )?.value ?? null;
+  const built = buildTodayLimitingFacts({
+    limitingFactor: effectiveSnapshot.limitingFactor,
+    recovery: effectiveSnapshot.recovery,
+    hints: limiterHintsFromHealth(healthEntries, day, sleepTargetMinutes),
+  });
+  const text = built.facts.find((f) => f.label === 'Cause')?.value ?? null;
   const href =
     resolveLimitingFactorHrefFromDecision(effectiveSnapshot.decision) ?? TWIN_DRILL_DOWN.recovery;
-  return { text, href };
+  return { text, href, signalCode: built.limiterSignal?.code ?? null };
 }
 
 function phaseNarrativeText(
@@ -707,7 +755,12 @@ function prepareTodayViewModelContext(inputs: TodayPresentationInputs) {
     emptyState: buildTodayEmptyState(effectiveSnapshot, derived.status.message),
     ...derived.morning,
     rearrangeProposal,
-    plateLimiter: buildPlateLimiter(effectiveSnapshot),
+    plateLimiter: buildPlateLimiter({
+      effectiveSnapshot,
+      healthEntries: inputs.healthEntries,
+      day: inputs.day,
+      sleepTargetMinutes: sleepTargetMin,
+    }),
     goalAnchor,
     habitCoaching: inputs.habitCoaching ?? null,
   };
@@ -820,6 +873,7 @@ function assembleTodayHero(ctx: ReturnType<typeof prepareTodayViewModelContext>)
       confidenceHref: ctx.hideHeroConfidence ? null : ctx.confidenceHref,
       limitingCauseText: ctx.plateLimiter.text,
       limitingFactorHref: ctx.plateLimiter.href,
+      limiterSignal: ctx.plateLimiter.signalCode,
     },
     reliability: reliabilityBundle.reliability,
   };

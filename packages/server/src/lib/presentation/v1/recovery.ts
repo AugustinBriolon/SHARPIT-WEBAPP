@@ -22,7 +22,21 @@ export type V1RecoveryResponse = {
   readinessScore: number | null;
   signal: { label: string; tone: V1RecoveryTone };
   isCalibrating: boolean;
+  /** Athlete signal label (e.g. « VFC basse ») — keep for older clients. */
   limiter: string | null;
+  /**
+   * Stable machine code for the recovery frein chip.
+   * Values: `hrv_low` | `rhr_high` | `sleep_short` | `sleep_poor` |
+   * `subjective_low` | `load_elevated` | null.
+   */
+  limiterSignal:
+    | 'hrv_low'
+    | 'rhr_high'
+    | 'sleep_short'
+    | 'sleep_poor'
+    | 'subjective_low'
+    | 'load_elevated'
+    | null;
   estimatedRecoveryDays: number | null;
   intensity: string;
   rationale: string[];
@@ -122,6 +136,7 @@ export function projectV1Recovery(
     signal: { label: source.signal.label, tone: toneFromClass(source.signal.qualityClass) },
     isCalibrating: source.isCalibrating,
     limiter: source.limiterLabel,
+    limiterSignal: source.limiterSignal,
     estimatedRecoveryDays: source.estimatedRecoveryDays,
     intensity: source.intensityLabel,
     rationale: source.rationale,

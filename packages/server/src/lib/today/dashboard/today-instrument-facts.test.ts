@@ -3,7 +3,7 @@ import { buildTodayLimitingFacts } from './today-instrument-facts';
 
 describe('today-instrument-facts', () => {
   it('buildTodayLimitingFacts keeps frein + cause only', () => {
-    const { facts, emptyText } = buildTodayLimitingFacts({
+    const { facts, emptyText, limiterSignal } = buildTodayLimitingFacts({
       limitingFactor: {
         system: 'RECOVERY',
         actionable: true,
@@ -12,12 +12,16 @@ describe('today-instrument-facts', () => {
           params: { limiter: 'loadContext' },
         },
       },
+      recovery: {
+        primaryLimitingFactor: 'loadContext',
+      } as never,
     });
 
     expect(emptyText).toBeNull();
     expect(facts).toEqual([
       { label: 'Frein', value: 'Récupération' },
-      { label: 'Cause', value: "Charge d'entraînement" },
+      { label: 'Cause', value: 'Charge élevée' },
     ]);
+    expect(limiterSignal).toEqual({ code: 'load_elevated', label: 'Charge élevée' });
   });
 });

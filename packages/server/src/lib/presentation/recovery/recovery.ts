@@ -10,6 +10,10 @@ import {
   indexHealthEntriesByDay,
 } from '@sharpit/app/lib/health/health';
 import { resolve } from '@sharpit/app/lib/french';
+import {
+  resolveLimiterSignal,
+  type LimiterSignalCode,
+} from '@sharpit/app/lib/today/dashboard/limiter-signal';
 
 type DailyHealthRow = Awaited<ReturnType<typeof getHealthEntries>>[number];
 import {
@@ -29,13 +33,6 @@ import {
 import { buildRecoveryPageInsights } from '@sharpit/server/lib/product-insight/recovery-page-insights';
 import { buildGlobalDecisionContext } from '@sharpit/server/lib/decision/global-decision-context';
 import { EMPTY_GLOBAL_DECISION } from '@sharpit/app/presentation/global-decision-context';
-
-const PRIMARY_LIMITER_LABEL: Record<string, string> = {
-  autonomic: 'Système nerveux autonome',
-  sleep: 'Qualité du sommeil',
-  subjective: 'Bien-être subjectif',
-  loadContext: 'Contexte de charge',
-};
 
 const COMPLETENESS_LABEL: Record<string, string> = {
   FULL: 'Complètes',
@@ -75,17 +72,37 @@ function isSleepLimiterPending(snapshot: AthleteSnapshot) {
   );
 }
 
-function resolveRecoveryLimiterLabel(
+function recoveryLimiterHints(todayEntry: DailyHealthRow | null) {
+  if (!todayEntry) {
+    return {};
+  }
+  return {
+    hrv: todayEntry.hrv,
+    hrvBaselineLow: todayEntry.hrvBaselineLow,
+    hrvBaselineHigh: todayEntry.hrvBaselineHigh,
+    hrvStatus: todayEntry.hrvStatus,
+    restingHr: todayEntry.restingHr,
+    sleepMinutes: todayEntry.sleepMinutes,
+    sleepDeepMin: todayEntry.sleepDeepMin,
+    sleepRemMin: todayEntry.sleepRemMin,
+  };
+}
+
+function resolveRecoveryLimiter(
   snapshot: AthleteSnapshot,
   recovery: NonNullable<AthleteSnapshot['recovery']>,
-): string | null {
+  todayEntry: DailyHealthRow | null,
+): { label: string; code: LimiterSignalCode } | null {
   if (!recovery.primaryLimitingFactor) {
     return null;
   }
   if (isSleepLimiterPending(snapshot) && recovery.primaryLimitingFactor === 'sleep') {
     return null;
   }
-  return PRIMARY_LIMITER_LABEL[recovery.primaryLimitingFactor] ?? recovery.primaryLimitingFactor;
+  return resolveLimiterSignal({
+    primaryLimitingFactor: recovery.primaryLimitingFactor,
+    hints: recoveryLimiterHints(todayEntry),
+  });
 }
 
 function resolveRecoverySignalPresentation(recovery: NonNullable<AthleteSnapshot['recovery']>) {
@@ -143,7 +160,8 @@ function buildPopulatedRecoveryViewModel(input: {
   const { snapshot, recovery, todayEntry, healthSeries } = input;
   const signal = mapRecoveryToSignal(recovery.readinessCategory as ReadinessCategory);
   const presentation = resolveRecoverySignalPresentation(recovery);
-  const limiterLabel = resolveRecoveryLimiterLabel(snapshot, recovery);
+  const limiter = resolveRecoveryLimiter(snapshot, recovery, todayEntry);
+  const limiterLabel = limiter?.label ?? null;
   const rationale = recovery.decision.rationale.map((r) => resolve(r));
   const keyEvidence = recovery.recommendation.keyEvidence.map((e) => resolve(e));
   const todayHealth = readTodayHealthEntry(todayEntry);
@@ -167,6 +185,7 @@ function buildPopulatedRecoveryViewModel(input: {
     readinessScore: recovery.readinessScore,
     signal,
     limiterLabel,
+    limiterSignal: limiter?.code ?? null,
     estimatedRecoveryDays: recovery.estimatedTimeToFullRecovery,
     isCalibrating: recovery.readinessCategory === 'BASELINE_PENDING',
     availableDimCount: Object.values(recovery.dimensions).filter((d) => d.available).length,
@@ -240,6 +259,7 @@ function emptyRecoveryViewModel(): RecoveryViewModel {
     readinessScore: null,
     signal: { label: '—', qualityClass: 'text-muted-foreground', arrow: '→' },
     limiterLabel: null,
+    limiterSignal: null,
     estimatedRecoveryDays: null,
     isCalibrating: false,
     availableDimCount: 0,

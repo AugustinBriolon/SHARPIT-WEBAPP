@@ -75,6 +75,7 @@ function postureLabelForPhase(posture: TodayPosture, phase: DailyPhase): string 
 
   switch (posture) {
     case 'protect':
+      // Morning RECOVER card: tag is the sole « récup » line (headline is empty).
       return phase === 'MORNING' ? 'Récup d’abord' : 'Récup fragile';
     case 'steady':
       return 'Forme stable';
@@ -337,7 +338,8 @@ function postTrainingHeadline(
 function morningHeadline(verdict: OverallVerdict): string {
   switch (verdict) {
     case 'RECOVER':
-      return 'Récupération prioritaire';
+      // Card = tag (« Récup d'abord ») + action line + frein chip — no title.
+      return '';
     case 'TRAIN_HARD':
     case 'RACE_READY':
       return 'Journée propice à l’effort';
