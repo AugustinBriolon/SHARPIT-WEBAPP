@@ -20,6 +20,7 @@ import {
 } from '@/components/carnet/carnet-parts';
 import { CarnetEmptyDay } from '@/components/carnet/carnet-empty-day';
 import { RaceBand } from '@/components/carnet/carnet-race';
+import { MorningCheckInReminder } from '@/components/today/morning-check-in-sheet';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
 export const instant = true;
@@ -32,6 +33,15 @@ const SIGNALS = [
   { key: 'effort', label: 'Effort', score: 'effortScore' },
   { key: 'adaptation', label: 'Adaptation', score: 'adaptationScore' },
 ] as const;
+
+function TodayAside({ day, today }: { day: string; today: string }) {
+  return (
+    <div className="flex items-center gap-1">
+      {day === today ? <MorningCheckInReminder /> : null}
+      <DayPager day={day} today={today} />
+    </div>
+  );
+}
 
 function DayPager({ day, today }: { day: string; today: string }) {
   const previous = addTrainingDays(day, -1);
@@ -127,7 +137,7 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
 
   if (!vm) {
     return (
-      <CarnetPage aside={<DayPager day={day} today={today} />} kicker={kicker} title="Ta journée">
+      <CarnetPage aside={<TodayAside day={day} today={today} />} kicker={kicker} title="Ta journée">
         <Unreadable what="Cette journée" />
       </CarnetPage>
     );
@@ -136,7 +146,7 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
   if (!vm.hasContent && vm.emptyState) {
     return (
       <CarnetEmptyDay
-        aside={<DayPager day={day} today={today} />}
+        aside={<TodayAside day={day} today={today} />}
         description={vm.emptyState.description}
         kicker={kicker}
         race={vm.race}
@@ -157,7 +167,7 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
 
   return (
     <CarnetPage
-      aside={<DayPager day={day} today={today} />}
+      aside={<TodayAside day={day} today={today} />}
       kicker={kicker}
       lead={hero.subline}
       title={pageTitle}

@@ -29,6 +29,10 @@ describe('toastRootClass', () => {
       '[&[data-ending-style]:not([data-limited]):not([data-swipe-direction])]:[transform:translateY(-120%)]',
     );
   });
+
+  it('uses touch-none so the banner follows the pointer without scroll chaining', () => {
+    expect(toastRootClass).toContain('touch-none');
+  });
 });
 
 describe('toastCloseClass', () => {
