@@ -69,4 +69,9 @@ describe('closedAdherence', () => {
     expect(closedAdherence(weeks)).toBe(0.5);
     expect(closedAdherence([])).toBeNull();
   });
+
+  it('is null with no planned sessions — empty state for Séances faites (no — %)', () => {
+    const weeks = seasonWeeks([], MONDAYS, '2026-10-05');
+    expect(closedAdherence(weeks)).toBeNull();
+  });
 });

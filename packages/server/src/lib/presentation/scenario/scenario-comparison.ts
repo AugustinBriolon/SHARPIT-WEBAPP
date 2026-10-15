@@ -76,7 +76,7 @@ const PREFERABILITY_CLAUSE_HANDLERS: Array<{
     format: () => 'gagne en confiance sur la projection',
   },
   {
-    match: (clause) => clause.includes('jour(s) à risque en moins'),
+    match: (clause) => /jours? à risque en moins/.test(clause),
     format: (clause) => {
       const n = clause.match(/(\d+)/)?.[1];
       return n

@@ -12,6 +12,7 @@ import { isSet } from '@sharpit/shared/value';
 import { fr } from 'date-fns/locale';
 import type { ActivityType, GoalHorizon, PlanPhase, SessionIntensity } from '@prisma/client';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
+import { formatJours } from '@sharpit/shared/french-plural';
 import { intensityLabels } from '@sharpit/app/lib/planned-session/sessions';
 import { phaseLabels } from '@sharpit/app/lib/training/periodization';
 import { horizonLabels } from '@sharpit/app/lib/goals/goals';
@@ -154,7 +155,7 @@ function buildRecoveryDays(
 
   const note =
     protectedDayLabels.length > 0
-      ? `${protectedDayLabels.length} jour(s) de récupération protégés cette semaine.`
+      ? `${formatJours(protectedDayLabels.length)} de récupération protégés cette semaine.`
       : 'Aucun jour de récupération explicite cette semaine.';
 
   return { protectedDayLabels, note };

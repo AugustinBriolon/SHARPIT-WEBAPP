@@ -121,12 +121,14 @@ export async function runGoogleSync(): Promise<GoogleSyncResult> {
 }
 
 export function stravaBackfillSummary(data: StravaBackfillResult): string {
-  const base = `${data.processed} séance(s) traitée(s), ${data.withData} avec données détaillées.`;
+  const processed = data.processed > 1 ? 'séances traitées' : 'séance traitée';
+  const base = `${data.processed} ${processed}, ${data.withData} avec données détaillées.`;
   if (data.remaining <= 0) {
     return `${base} Historique complet ✓`;
   }
+  const remaining = data.remaining > 1 ? 'restantes' : 'restante';
   if (data.stopped === 'rate_limited') {
-    return `${base} Limite Strava atteinte, ${data.remaining} restante(s) — réessaie dans ~15 min.`;
+    return `${base} Limite Strava atteinte, ${data.remaining} ${remaining} — réessaie dans ~15 min.`;
   }
-  return `${base} ${data.remaining} restante(s), relance pour continuer.`;
+  return `${base} ${data.remaining} ${remaining}, relance pour continuer.`;
 }

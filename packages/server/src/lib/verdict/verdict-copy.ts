@@ -509,7 +509,9 @@ export function supportChipLabel(code: SupportSignalCode, mode: keyof DensityPai
 }
 
 /**
- * Frein chip text: single signal → density label; 2+ → « N signaux ».
+ * Frein chip text (ADR-023):
+ * - Essentiel: single label, or « N signaux » from 2 freins up
+ * - Expert: lists each expert label (joined with « · »)
  */
 export function formatLimiterChip(
   codes: readonly LimiterSignalCode[],
@@ -518,11 +520,34 @@ export function formatLimiterChip(
   if (codes.length === 0) {
     return null;
   }
-  const count = signalCountLabel(codes.length);
-  if (count) {
-    return `${LIMITER_CHIP_PREFIX} · ${count}`;
+  if (mode === 'essential') {
+    const count = signalCountLabel(codes.length);
+    if (count) {
+      return `${LIMITER_CHIP_PREFIX} · ${count}`;
+    }
+    return limiterChipLabel(codes[0]!, 'essential');
   }
-  return limiterChipLabel(codes[0]!, mode);
+  if (codes.length === 1) {
+    return limiterChipLabel(codes[0]!, 'expert');
+  }
+  return `${LIMITER_CHIP_PREFIX} · ${codes.map((code) => LIMITER_LABEL[code].expert).join(' · ')}`;
+}
+
+/**
+ * Body of the Frein chip without the « Frein · » prefix — for fact rows whose
+ * label is already « Frein ». Essentiel semantics (single label / N signaux).
+ */
+export function formatLimiterChipBody(
+  codes: readonly LimiterSignalCode[],
+  countLabel?: string | null,
+): string | null {
+  if (codes.length === 0) {
+    return null;
+  }
+  if (codes.length >= 2) {
+    return countLabel ?? signalCountLabel(codes.length);
+  }
+  return LIMITER_LABEL[codes[0]!].essential;
 }
 
 export function formatSupportChip(
@@ -532,11 +557,17 @@ export function formatSupportChip(
   if (codes.length === 0) {
     return null;
   }
-  const count = signalCountLabel(codes.length);
-  if (count) {
-    return `${SUPPORT_CHIP_PREFIX} · ${count}`;
+  if (mode === 'essential') {
+    const count = signalCountLabel(codes.length);
+    if (count) {
+      return `${SUPPORT_CHIP_PREFIX} · ${count}`;
+    }
+    return supportChipLabel(codes[0]!, 'essential');
   }
-  return supportChipLabel(codes[0]!, mode);
+  if (codes.length === 1) {
+    return supportChipLabel(codes[0]!, 'expert');
+  }
+  return `${SUPPORT_CHIP_PREFIX} · ${codes.map((code) => SUPPORT_LABEL[code].expert).join(' · ')}`;
 }
 
 /** Coach prompt line: athlete reading density — written live into the context. */

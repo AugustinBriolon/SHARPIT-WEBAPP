@@ -27,6 +27,7 @@ function day(date: string, calories: number, goal: number | null = 2400): Nutrit
       {
         name: 'breakfast',
         label: 'Petit-déjeuner',
+        subtitle: null,
         calories: 520,
         protein: 25,
         carbs: 70,
@@ -79,6 +80,11 @@ describe('projectV1Nutrition', () => {
       remaining: 300,
       pct: 88,
     });
+    expect(result.day?.meals[0]).toMatchObject({
+      name: 'breakfast',
+      label: 'Petit-déjeuner',
+      subtitle: null,
+    });
     expect(result.day?.meals[0]?.entries[0]).toEqual({
       name: 'Flocons d’avoine',
       calories: 300,
@@ -86,6 +92,28 @@ describe('projectV1Nutrition', () => {
       carbs: 54,
       fat: 6,
     });
+  });
+
+  it('hides meal subtitle when it would repeat the title', () => {
+    const selected = day('2026-09-27', 2100);
+    selected.meals = [
+      {
+        name: 'Petit-déjeuner',
+        label: 'Petit-déjeuner',
+        subtitle: null,
+        calories: 400,
+        protein: 20,
+        carbs: 40,
+        fat: 10,
+        entries: [],
+      },
+    ];
+    const result = projectV1Nutrition(
+      viewModel({ selectedDay: selected, history: [selected] }),
+      '2026-09-27',
+    );
+    expect(result.day?.meals[0]?.subtitle).toBeNull();
+    expect(result.day?.meals[0]?.label).toBe('Petit-déjeuner');
   });
 
   it('lays 14 days out, oldest first, gaps included, each read against its goal', () => {

@@ -1,4 +1,5 @@
 import { buildProductInsightBundle } from './build-product-insight-bundle';
+import { formatJours } from '@sharpit/shared/french-plural';
 import { isSet } from '@sharpit/shared/value';
 import type { EffortInsightInput, ProductInsight } from './types';
 
@@ -29,7 +30,7 @@ function buildTrainingCapacityInsight(input: EffortInsightInput): ProductInsight
       : 'La capacité traduit ce que le corps peut encore absorber sans payer trop cher ensuite.',
     evidence: [
       isSet(input.estimatedDaysToFresh)
-        ? `${input.estimatedDaysToFresh} jour(s) pour revenir frais`
+        ? `${formatJours(input.estimatedDaysToFresh)} pour revenir frais`
         : null,
       input.limitingFactorLabel,
     ].filter((line): line is string => Boolean(line)),

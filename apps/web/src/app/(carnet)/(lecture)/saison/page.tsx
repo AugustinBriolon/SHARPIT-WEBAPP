@@ -237,7 +237,7 @@ export default async function CarnetSeasonPage() {
               <Figure
                 hint={`sur les ${WEEKS_BACK} dernières semaines`}
                 label="Séances faites"
-                unit="%"
+                unit={adherence === null ? null : '%'}
                 value={percent(adherence)}
               />
             </Figures>

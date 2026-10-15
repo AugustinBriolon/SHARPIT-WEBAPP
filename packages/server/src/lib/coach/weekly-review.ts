@@ -1,5 +1,6 @@
 import { generateText } from 'ai';
 import { isSet } from '@sharpit/shared/value';
+import { formatSeances } from '@sharpit/shared/french-plural';
 import {
   addDays,
   differenceInCalendarDays,
@@ -224,7 +225,7 @@ function formatWeeklyVolumeLine(stats: WeeklyStats): string {
     stats.prevTotalLoad > 0
       ? Math.round(((stats.totalLoad - stats.prevTotalLoad) / stats.prevTotalLoad) * 100)
       : null;
-  return `Volume : ${stats.sessionsDone} séance(s), ${formatDuration(stats.totalDurationMin)}, charge ${stats.totalLoad}${
+  return `Volume : ${formatSeances(stats.sessionsDone)}, ${formatDuration(stats.totalDurationMin)}, charge ${stats.totalLoad}${
     isSet(loadDelta)
       ? ` (${loadDelta > 0 ? '+' : ''}${loadDelta}% vs semaine précédente ${stats.prevTotalLoad})`
       : ''
@@ -271,7 +272,9 @@ function formatWeeklyStats(stats: WeeklyStats): string {
     );
   }
   lines.push(
-    `Plan : ${stats.sessionsCompleted}/${stats.sessionsPlanned} séance(s) planifiée(s) réalisée(s)${
+    `Plan : ${stats.sessionsCompleted}/${stats.sessionsPlanned} ${
+      stats.sessionsPlanned > 1 ? 'séances planifiées réalisées' : 'séance planifiée réalisée'
+    }${
       isSet(stats.avgComplianceScore) ? `, conformité moyenne ${stats.avgComplianceScore}/100` : ''
     }.`,
   );

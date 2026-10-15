@@ -6,6 +6,7 @@ import { PRIORITY_CONSEQUENCES, PRIORITY_ROLES } from '@sharpit/app/lib/goals/go
 import { travelTrainingConstraintLabel } from '@sharpit/app/lib/travel-context/training-constraint';
 import { travelDisciplineLabels } from '@sharpit/app/lib/travel-context/disciplines';
 import { resolve, resolveCode } from '@sharpit/app/lib/french';
+import { formatJours } from '@sharpit/shared/french-plural';
 import { formatEquipmentForCoach } from '@sharpit/app/lib/equipment/format';
 import { formatPracticedSportsForCoach } from '@sharpit/app/lib/practiced-sports';
 import {
@@ -244,7 +245,7 @@ function appendFatigueWarningLines(
     );
   }
   if (isSet(fatigue.estimatedTimeToFresh) && fatigue.fatigueLevel !== 'FRESH') {
-    lines.push(`Retour à l'état frais estimé dans ${fatigue.estimatedTimeToFresh} jour(s).`);
+    lines.push(`Retour à l'état frais estimé dans ${formatJours(fatigue.estimatedTimeToFresh)}.`);
   }
   if (fatigue.performanceImpairmentEstimate && fatigue.performanceImpairmentEstimate > 0.1) {
     lines.push(
@@ -307,7 +308,7 @@ function appendAdaptationWarningLines(
     );
   }
   if (isSet(adaptation.estimatedAdaptationPeak)) {
-    lines.push(`Pic de forme estimé dans ${adaptation.estimatedAdaptationPeak} jour(s).`);
+    lines.push(`Pic de forme estimé dans ${formatJours(adaptation.estimatedAdaptationPeak)}.`);
   }
 }
 

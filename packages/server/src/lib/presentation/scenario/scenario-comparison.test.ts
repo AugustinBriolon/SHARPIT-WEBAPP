@@ -95,7 +95,7 @@ function mockComparison(overrides?: {
         endTsb: 0,
       },
       preferabilityExplanation:
-        'verdict de fin d’horizon plus favorable (Entraînement malin → Récupération) · 1 jour(s) à risque en moins',
+        'verdict de fin d’horizon plus favorable (Entraînement malin → Récupération) · 1 jour à risque en moins',
       isPreferredOverBaseline: true,
       projection: { days: [{ decision: { limitingFactor: { domain: 'RECOVERY' } } }] } as never,
     }),

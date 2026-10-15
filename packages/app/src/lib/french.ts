@@ -2,6 +2,8 @@
 // Maps all codes emitted by the inference layer to natural French.
 // To add a language: duplicate this file, translate the strings.
 
+import { expandFrenchCountSuffixes } from '@sharpit/shared/french-plural';
+
 export type I18nItem = {
   code: string;
   params?: Record<string, string | number>;
@@ -344,12 +346,14 @@ export function resolve(item: I18nItem): string {
     return item.code;
   }
 
-  return template
-    .replace(/\{(\w+)\}/g, (_, key) => resolveParam(key, item.params?.[key]))
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\s+([·•,;:.!?])/g, '$1')
-    .replace(/\s·\s*$/g, '')
-    .trim();
+  return expandFrenchCountSuffixes(
+    template
+      .replace(/\{(\w+)\}/g, (_, key) => resolveParam(key, item.params?.[key]))
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\s+([·•,;:.!?])/g, '$1')
+      .replace(/\s·\s*$/g, '')
+      .trim(),
+  );
 }
 
 // Convenience: resolve a plain code string (for TopAction verbCode / focusCode / rationaleCode)

@@ -52,6 +52,8 @@ export type V1NutritionDay = {
   meals: Array<{
     name: string;
     label: string;
+    /** Null when it would repeat `label` (title). */
+    subtitle: string | null;
     calories: number;
     protein: number;
     carbs: number;
@@ -115,6 +117,7 @@ function projectDay(day: NutritionDaySummary): V1NutritionDay {
     meals: day.meals.map((meal) => ({
       name: meal.name,
       label: meal.label,
+      subtitle: meal.subtitle ?? null,
       calories: meal.calories,
       protein: meal.protein,
       carbs: meal.carbs,

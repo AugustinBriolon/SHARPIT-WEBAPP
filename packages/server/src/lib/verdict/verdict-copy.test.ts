@@ -146,7 +146,9 @@ describe('buildVerdictCopy — every state', () => {
     );
     expect(sentencesShareNoWord(essentialFact!, essentialClosing!)).toBe(true);
     expect(formatLimiterChip(copy.limiterSignals, 'essential')).toBe('Frein · 2 signaux');
-    expect(formatLimiterChip(copy.limiterSignals, 'expert')).toBe('Frein · 2 signaux');
+    expect(formatLimiterChip(copy.limiterSignals, 'expert')).toBe(
+      'Frein · VFC basse · Sommeil court',
+    );
     expect(formatLimiterChip(['hrv_low'], 'essential')).toBe('Frein · Corps pas encore récupéré');
     expect(formatLimiterChip(['hrv_low'], 'expert')).toBe('Frein · VFC basse');
   });
@@ -179,7 +181,12 @@ describe('signalCountLabel / chips', () => {
 
   it('formats support chips the same way', () => {
     expect(formatSupportChip(['hrv_ok'], 'essential')).toBe('Porté par · Corps bien récupéré');
-    expect(formatSupportChip(['hrv_ok', 'sleep_adequate'], 'expert')).toBe('Porté par · 2 signaux');
+    expect(formatSupportChip(['hrv_ok', 'sleep_adequate'], 'essential')).toBe(
+      'Porté par · 2 signaux',
+    );
+    expect(formatSupportChip(['hrv_ok', 'sleep_adequate'], 'expert')).toBe(
+      'Porté par · VFC dans la norme · Sommeil suffisant',
+    );
   });
 });
 

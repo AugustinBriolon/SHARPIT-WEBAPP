@@ -1,4 +1,5 @@
 import { buildProductInsightBundle } from './build-product-insight-bundle';
+import { formatJours } from '@sharpit/shared/french-plural';
 import { isSet } from '@sharpit/shared/value';
 import type { ProductInsight, RecoveryInsightInput } from './types';
 
@@ -37,7 +38,7 @@ function buildRecoveryWindowInsight(input: RecoveryInsightInput): ProductInsight
   return {
     id: 'recovery:time-to-full-recovery',
     title: 'Fenêtre de retour complet',
-    summary: `${input.estimatedRecoveryDays} jour(s) pour revenir pleinement`,
+    summary: `${formatJours(input.estimatedRecoveryDays)} pour revenir pleinement`,
     explanation:
       'Cette estimation aide à placer la prochaine séance exigeante au bon moment plutôt que de forcer trop tôt.',
     evidence: input.rationale.slice(0, 2),
