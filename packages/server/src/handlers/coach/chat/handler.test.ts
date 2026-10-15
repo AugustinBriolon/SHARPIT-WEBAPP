@@ -119,9 +119,11 @@ async function systemPromptSent(): Promise<string> {
 }
 
 describe('POST /api/coach/chat · journal analyses gate', () => {
+  // Dynamic import of the coach chat handler graph; CI with --maxWorkers=4
+  // can exceed Vitest's default 20s hook ceiling under load.
   beforeAll(async () => {
     await importRoute();
-  });
+  }, 60_000);
 
   beforeEach(() => {
     vi.clearAllMocks();

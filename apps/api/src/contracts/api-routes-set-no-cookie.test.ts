@@ -64,7 +64,9 @@ function closureOf(routeFile: string, seen = new Set<string>()): Set<string> {
 }
 
 describe('api host contract', () => {
-  it('no route sets a cookie, directly or through a helper', () => {
+  // Closure walk over every API route → @sharpit/server import graph; CI runners
+  // routinely land near the default 15s Vitest ceiling.
+  it('no route sets a cookie, directly or through a helper', { timeout: 30_000 }, () => {
     const routes = routeFiles(join('src', 'app', 'api'));
     const reached = new Set(routes.flatMap((route) => [route, ...closureOf(route)]));
     const offenders = [...reached].filter(setsACookieForApiClients);
