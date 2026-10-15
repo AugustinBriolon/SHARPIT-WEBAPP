@@ -459,7 +459,8 @@
     transform 0.32s cubic-bezier(0.23, 1, 0.32, 1),
     opacity 0.28s cubic-bezier(0.23, 1, 0.32, 1);
   @media (prefers-reduced-motion: reduce) {
-    transition: none;
+    /* Finger-follow is skipped in JS; dismiss is a short fade. */
+    transition: opacity 0.2s ease;
   }
 }
 
