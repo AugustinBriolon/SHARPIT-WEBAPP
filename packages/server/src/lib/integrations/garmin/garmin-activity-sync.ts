@@ -278,7 +278,13 @@ async function mergeGarminActivityMatch(
     where: { id: match.id },
     data: garminEnrichmentUpdate(activity, evaluation, type, match.stravaId, match.source),
   });
-  await backfillStrengthSets(match.id, strengthSets);
+  // App-recorded strength (sharpit-ios) keeps its exercises/sets — watch auto-sets must not replace them.
+  const keepAppStrengthSets =
+    type === ActivityType.STRENGTH &&
+    (match.source === 'sharpit-ios' || match.source.split('+').includes('sharpit-ios'));
+  if (!keepAppStrengthSets) {
+    await backfillStrengthSets(match.id, strengthSets);
+  }
   // Do not delete streams here — a failed Garmin fetch would leave the row without series.
   // getActivityStreams retries when garminId is set and replaces stubs / older series on demand.
   // A session first sent by Apple Health (or merged Strava onto AH) went to the Core without a

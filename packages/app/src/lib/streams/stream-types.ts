@@ -40,6 +40,11 @@ export interface ActivityStreamPayload {
     maxAlt: number | null;
   } | null;
   analysis: ActivityAnalysis | null;
+  /**
+   * Present when the iOS app recorded live HR during a strength session.
+   * `ble` → show « FC captée en direct » on the activity detail.
+   */
+  liveHr?: { source: 'watch' | 'ble' } | null;
 }
 
 export interface MultisportLegStream {

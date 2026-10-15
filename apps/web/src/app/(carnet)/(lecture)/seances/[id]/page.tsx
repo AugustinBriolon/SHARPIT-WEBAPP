@@ -30,6 +30,7 @@ import {
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
 import { RaceReading } from '@/components/carnet/carnet-race-analysis';
+import { HR_ZONES } from '@/components/carnet/carnet-race-reading';
 import { streamProfile } from '@/components/carnet/carnet-stream';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -69,16 +70,19 @@ function isAnalysis(value: unknown): value is SessionAnalysis {
 function KeyFigures({
   activity,
   stats,
+  analysisHr,
 }: {
   activity: ClientActivityDetail;
   stats: ActivityStreamPayload['stats'];
+  analysisHr: { avgHr: number | null; maxHr: number | null } | null;
 }) {
   const run = activity.runMetrics;
   const bike = activity.bikeMetrics;
   const swim = activity.swimMetrics;
   const hike = activity.hikeMetrics;
   const distance = run?.distanceM ?? bike?.distanceM ?? swim?.distanceM ?? hike?.distanceM ?? null;
-  const avgHr = run?.avgHr ?? stats?.avgHr ?? null;
+  const avgHr = run?.avgHr ?? analysisHr?.avgHr ?? stats?.avgHr ?? null;
+  const maxHr = analysisHr?.maxHr ?? stats?.maxHr ?? null;
   const ascent = run?.elevationM ?? hike?.elevationM ?? stats?.totalAscent ?? null;
 
   return (
@@ -93,10 +97,54 @@ function KeyFigures({
         <Figure label="Puissance normalisée" unit="W" value={Math.round(bike.normalizedPower)} />
       ) : null}
       {avgHr ? <Figure label="FC moyenne" unit="bpm" value={avgHr} /> : null}
+      {maxHr ? <Figure label="FC max" unit="bpm" value={maxHr} /> : null}
       {ascent ? <Figure label="Dénivelé" unit="m D+" value={Math.round(ascent)} /> : null}
       {activity.load ? <Figure label="Charge" value={Math.round(activity.load)} /> : null}
       {activity.rpe ? <Figure label="Effort ressenti" unit="/10" value={activity.rpe} /> : null}
     </Figures>
+  );
+}
+
+function SessionHrZones({
+  zones,
+}: {
+  zones: { shortLabel: string; percent: number; color: string }[];
+}) {
+  if (zones.length === 0 || zones.every((z) => z.percent === 0)) {
+    return null;
+  }
+  const spoken = zones.map((z) => `${z.shortLabel} ${z.percent} %`).join(', ');
+  return (
+    <div className="space-y-3">
+      <div
+        aria-label={`Zones cardiaques : ${spoken}`}
+        className="flex h-2 w-full overflow-hidden rounded-full"
+        role="img"
+      >
+        {zones.map((zone) => (
+          <span
+            key={zone.shortLabel}
+            className="h-full"
+            style={{ flexGrow: Math.max(zone.percent, 0), backgroundColor: zone.color }}
+          />
+        ))}
+      </div>
+      <ul aria-label="Zones" className="text-data flex flex-wrap gap-x-4 gap-y-1 text-xs">
+        {HR_ZONES.map((zone, i) => (
+          <li key={zone.label} className="flex items-center gap-1.5">
+            <span
+              className="size-1.5 rounded-full"
+              style={{ backgroundColor: zone.color }}
+              aria-hidden
+            />
+            <span className="text-muted-foreground">
+              {zone.label}
+              {zones[i] ? ` · ${zones[i]!.percent} %` : ''}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -218,6 +266,8 @@ async function SessionReading({ id }: { id: string }) {
   const profile = streams?.available ? streamProfile(streams.samples) : [];
   const hasProfile = profile.some((p) => p.hr !== null || p.alt !== null);
   const sport = activityTypeLabels[activity.type];
+  const liveHrBle = streams?.liveHr?.source === 'ble';
+  const hrZones = streams?.analysis?.hr.zones ?? [];
 
   return (
     <div className="activity-reading">
@@ -235,9 +285,24 @@ async function SessionReading({ id }: { id: string }) {
         />
 
         <CarnetSection label="Les chiffres">
-          <KeyFigures activity={activity} stats={streams?.stats ?? null} />
+          <KeyFigures
+            activity={activity}
+            analysisHr={streams?.analysis?.hr ?? null}
+            stats={streams?.stats ?? null}
+          />
+          {liveHrBle ? (
+            <Quiet>
+              <span className="text-foreground font-medium">FC captée en direct</span>
+            </Quiet>
+          ) : null}
           {activity.notes ? <Quiet>{activity.notes}</Quiet> : null}
         </CarnetSection>
+
+        {hrZones.length > 0 ? (
+          <CarnetSection label="Zones cardiaques">
+            <SessionHrZones zones={hrZones} />
+          </CarnetSection>
+        ) : null}
 
         {narrative ? (
           <CarnetSection label="La lecture" title="Ce que le coach en retient">
@@ -262,7 +327,13 @@ async function SessionReading({ id }: { id: string }) {
                 data={profile.map((p) => ({ label: p.label, hr: p.hr }))}
                 title="Fréquence cardiaque"
                 series={[
-                  { key: 'hr', name: 'Fréquence cardiaque', stroke: CHART_VO2_STROKE, unit: 'bpm' },
+                  {
+                    key: 'hr',
+                    name: 'Fréquence cardiaque',
+                    stroke: CHART_VO2_STROKE,
+                    unit: 'bpm',
+                    connectNulls: false,
+                  },
                 ]}
               />
             ) : null}

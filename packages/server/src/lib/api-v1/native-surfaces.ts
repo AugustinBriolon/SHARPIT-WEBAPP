@@ -94,6 +94,7 @@ export const NATIVE_V1_ONLY = [
   { path: 'sync-status', methods: ['GET'] },
   { path: 'health-samples', methods: ['POST'] },
   { path: 'health-workouts', methods: ['POST'] },
+  { path: 'strength-sessions', methods: ['POST'] },
   { path: 'apple-health/link', methods: ['POST'] },
   { path: 'apple-calendar/link', methods: ['POST'] },
   { path: 'calendar/busy', methods: ['POST'] },

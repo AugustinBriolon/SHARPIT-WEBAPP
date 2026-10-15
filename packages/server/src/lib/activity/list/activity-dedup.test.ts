@@ -20,6 +20,12 @@ describe('mergedSource', () => {
     expect(mergedSource(true, false, true)).toBe('garmin+apple-health');
     expect(mergedSource(false, false, true)).toBe('apple-health');
   });
+
+  it('preserves sharpit-ios in composites', () => {
+    expect(mergedSource(false, false, false, true)).toBe('sharpit-ios');
+    expect(mergedSource(true, false, false, true)).toBe('garmin+sharpit-ios');
+    expect(mergedSource(true, true, false, true)).toBe('garmin+strava+sharpit-ios');
+  });
 });
 
 describe('sourceIncludes', () => {

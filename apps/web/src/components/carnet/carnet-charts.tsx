@@ -26,6 +26,11 @@ export type CarnetSeries = {
   unit?: string;
   /** A second series read against the first: dashed, so it survives a dim screen. */
   dashed?: boolean;
+  /**
+   * When false, null points break the line (signal gaps). Default true except HR
+   * should pass false so live HR dropouts stay visible.
+   */
+  connectNulls?: boolean;
 };
 
 function formatValue(value: unknown, unit?: string): string {
@@ -120,7 +125,7 @@ export function CarnetLineChart({
               strokeDasharray={s.dashed ? '5 3' : undefined}
               strokeWidth={2}
               type="monotone"
-              connectNulls
+              connectNulls={s.connectNulls ?? true}
             />
           ))}
           {series.length > 1 ? <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} /> : null}
