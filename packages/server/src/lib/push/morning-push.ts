@@ -7,10 +7,7 @@ import { getLatestAthleteSnapshot } from '@sharpit/server/infrastructure/athlete
 import { prisma } from '@sharpit/db/client';
 import { wantsMorningVerdict } from '@sharpit/server/lib/notifications/notification-prefs';
 import type { ApnsPayload } from '@sharpit/server/lib/push/apns';
-import {
-  mapVerdictToDisplay,
-  type OverallVerdict,
-} from '@sharpit/app/lib/today/dashboard/today-mapping';
+import type { OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
 import {
   ensureMorningRecalibration,
@@ -19,6 +16,11 @@ import {
 import { coachDiscussHref } from '@sharpit/app/lib/coach/chat/discuss/coach-discuss-href';
 import { formatDayScoresPushBits } from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-day-scores';
 import { loadV1DayScores, type V1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores';
+import {
+  VERDICT_INSTRUCTION,
+  VERDICT_TAG,
+  type VerdictStateCode,
+} from '@sharpit/server/lib/verdict/verdict-copy';
 
 export type MorningPushPayload = {
   title: string;
@@ -53,6 +55,9 @@ const DEFAULT_CONCURRENCY = 5;
  * Builds the minimal, silenceable morning push notification payload (Moment 1 - Wake).
  * Meets the athlete with a single honest verdict + briefing excerpt before they open the app.
  * Deep-links into the coach morning-brief conversation (not only Today).
+ *
+ * Privacy: never include the card `explanation` prose — title = glossary tag,
+ * body = instruction or non-explanatory briefing excerpt.
  */
 export function buildMorningPushPayload(
   snapshot: AthleteSnapshot,
@@ -65,18 +70,20 @@ export function buildMorningPushPayload(
     null) as OverallVerdict | null;
 
   let title = 'Verdict du jour';
-  if (verdict) {
-    const display = mapVerdictToDisplay(verdict);
-    title = display?.label ?? title;
+  let instruction: string | null = null;
+  if (verdict && verdict in VERDICT_TAG) {
+    title = VERDICT_TAG[verdict as VerdictStateCode];
+    instruction = VERDICT_INSTRUCTION[verdict as VerdictStateCode];
   }
 
-  // The night's proposal for today's session first — the one thing to act on — else the briefing.
+  // Proposal first, else short instruction (not the explanation), else briefing.
   const rawBody =
     morningProposalLine(proposal) ||
+    instruction ||
     snapshot.primaryProductMessage ||
     snapshot.briefing?.content?.split('\n').find((l) => l.trim().length > 0) ||
     snapshot.insufficientDataMessage ||
-    'Ta lecture du jour t’attend dans SharpIt.';
+    'La lecture du jour attend dans SharpIt.';
 
   const scoresBits = formatDayScoresPushBits(dayScores);
   const withScores = scoresBits ? `${rawBody} · ${scoresBits}` : rawBody;

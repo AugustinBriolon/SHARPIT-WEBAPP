@@ -28,7 +28,7 @@ describe('resolveLimiterSignal', () => {
           restingHrTypical: 48,
         },
       }),
-    ).toEqual({ code: 'rhr_high', label: 'FC au repos élevée' });
+    ).toEqual({ code: 'rhr_high', label: 'FC repos haute' });
   });
 
   it('names sommeil court when sleep duration is under target', () => {
@@ -51,7 +51,7 @@ describe('resolveLimiterSignal', () => {
           sleepRemMin: 20,
         },
       }),
-    ).toEqual({ code: 'sleep_poor', label: 'Sommeil fragmenté' });
+    ).toEqual({ code: 'sleep_poor', label: 'Sommeil agité' });
   });
 
   it('covers subjective and load without inventing VFC basse', () => {

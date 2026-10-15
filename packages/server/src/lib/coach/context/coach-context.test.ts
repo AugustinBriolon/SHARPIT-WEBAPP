@@ -52,6 +52,7 @@ function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
   return {
     today: 'lundi 10 août 2026 (2026-08-10)',
     note: null,
+    displayMode: 'essential',
     equipment: normalizeAthleteEquipment(null),
     practicedSports: ['run', 'bike', 'swim', 'triathlon'],
     profile: null,
@@ -148,9 +149,22 @@ describe('formatDecisionSection', () => {
     const lines = formatDecisionSection(baseDecision());
     const text = lines.join('\n');
     expect(text).toContain('Verdict :');
+    expect(text).toContain('Léger');
+    expect(text).toContain('Instruction carte :');
+    expect(text).toContain('Rester en endurance facile.');
     expect(text).toContain('Action prioritaire :');
     expect(text).not.toContain('Hors fenêtre de conseil actionnable');
     expect(text).not.toContain('en calibration');
+  });
+
+  it('writes displayMode into the coach context (ADR-023)', () => {
+    const essential = formatCoachContext(minimalContext({ displayMode: 'essential' }));
+    expect(essential).toContain('Densité de lecture de l’athlète : essentiel');
+    expect(essential).toContain('N’utilise aucun acronyme');
+
+    const expert = formatCoachContext(minimalContext({ displayMode: 'expert' }));
+    expect(expert).toContain('Densité de lecture de l’athlète : expert');
+    expect(expert).toContain('acronymes techniques');
   });
 
   it('withholds the verdict and refuses to prescribe when prescriptiveAdviceAllowed is false (F11)', () => {

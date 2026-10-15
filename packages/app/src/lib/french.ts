@@ -50,33 +50,36 @@ const LIMITER_FR: Record<string, string> = {
 
 const STRINGS: Record<string, string> = {
   // ── Top actions ────────────────────────────────────────────────────────────
-  'reasoning.topAction.trainHard.verb': 'Entraîne-toi',
-  'reasoning.topAction.trainHard.focus.progressiveOverload': 'avec une surcharge progressive',
-  'reasoning.topAction.trainHard.focus.aerobicBase': 'sur la base aérobie',
+  // Top-action strings — aligned with the shared verdict glossary (instruction field).
+  // Card + Coach prefer `verdict-copy.ts`; these remain for resolveCode / legacy paths.
+  'reasoning.topAction.trainHard.verb': 'Enchaîner',
+  'reasoning.topAction.trainHard.focus.progressiveOverload':
+    'la séance clé avec une progression mesurée',
+  'reasoning.topAction.trainHard.focus.aerobicBase': 'la séance prévue avec engagement',
   'reasoning.topAction.trainHard.rationale':
-    'Tes signaux du jour suggèrent une bonne tolérance à une charge élevée.',
+    'Les signaux du jour suggèrent une bonne tolérance à une charge élevée.',
 
-  'reasoning.topAction.trainSmart.verb': 'Entraîne-toi',
-  'reasoning.topAction.trainSmart.focus': 'avec intelligence',
-  'reasoning.topAction.trainSmart.rationale': "Cible la qualité plutôt que le volume aujourd'hui.",
+  'reasoning.topAction.trainSmart.verb': 'Garder',
+  'reasoning.topAction.trainSmart.focus': 'la qualité, couper le volume',
+  'reasoning.topAction.trainSmart.rationale': 'Cibler la qualité plutôt que le volume aujourd’hui.',
 
-  'reasoning.topAction.trainEasy.verb': 'Entraîne-toi',
-  'reasoning.topAction.trainEasy.focus': 'légèrement',
+  'reasoning.topAction.trainEasy.verb': 'Rester',
+  'reasoning.topAction.trainEasy.focus': 'en endurance facile',
   'reasoning.topAction.trainEasy.rationale':
-    "Préserve de l'énergie — ta récupération est prioritaire.",
+    'Préserve de l’énergie — la récupération reste prioritaire.',
 
-  'reasoning.topAction.recover.verb': 'Récupère',
-  'reasoning.topAction.recover.focusDefault': 'activement',
+  'reasoning.topAction.recover.verb': 'Privilégier',
+  'reasoning.topAction.recover.focusDefault': 'le repos ou une marche très légère',
   'reasoning.topAction.recover.rationale':
-    'Tes signaux du jour indiquent un besoin de repos pour rebondir.',
+    'Les signaux du jour indiquent un besoin de repos pour rebondir.',
 
-  'reasoning.topAction.raceReady.verb': 'Tu es prêt',
-  'reasoning.topAction.raceReady.focus': 'à performer',
+  'reasoning.topAction.raceReady.verb': 'Réaliser',
+  'reasoning.topAction.raceReady.focus': 'la séance qualité prévue',
   'reasoning.topAction.raceReady.rationale':
-    'Tes signaux du jour sont favorables à une bonne performance.',
+    'Les signaux du jour sont favorables à une bonne performance.',
 
-  'reasoning.topAction.caution.verb': 'Sois',
-  'reasoning.topAction.caution.focus': "prudent aujourd'hui",
+  'reasoning.topAction.caution.verb': 'Réduire',
+  'reasoning.topAction.caution.focus': 'l’intensité prévue',
   'reasoning.topAction.caution.rationale': 'Des signaux contradictoires appellent à la modération.',
 
   // ── Findings — overreaching without adaptation ──────────────────────────

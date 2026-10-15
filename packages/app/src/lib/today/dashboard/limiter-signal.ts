@@ -39,22 +39,64 @@ export type LimiterSignal = {
   label: string;
 };
 
-const LABEL_FR: Record<LimiterSignalCode, string> = {
-  hrv_low: 'VFC basse',
-  rhr_high: 'FC au repos élevée',
-  sleep_short: 'Sommeil court',
-  sleep_poor: 'Sommeil fragmenté',
-  subjective_low: 'Ressenti bas',
-  load_elevated: 'Charge élevée',
+/**
+ * Density pairs (ADR-023) — server returns the code; the client picks essential/expert.
+ * Keep in sync with `packages/server/src/lib/verdict/verdict-copy.ts` (snapshot JSON).
+ */
+export type LimiterDensityPair = {
+  essential: string;
+  expert: string;
 };
 
+export const LIMITER_LABEL_BY_DENSITY: Record<LimiterSignalCode, LimiterDensityPair> = {
+  hrv_low: {
+    essential: 'Corps pas encore récupéré',
+    expert: 'VFC basse',
+  },
+  rhr_high: {
+    essential: 'Cœur plus rapide au repos',
+    expert: 'FC repos haute',
+  },
+  sleep_short: {
+    essential: 'Nuit trop courte',
+    expert: 'Sommeil court',
+  },
+  sleep_poor: {
+    essential: 'Nuit agitée',
+    expert: 'Sommeil agité',
+  },
+  subjective_low: {
+    essential: 'Fatigue ressentie',
+    expert: 'Ressenti bas',
+  },
+  load_elevated: {
+    essential: 'Grosse semaine d’entraînement',
+    expert: 'Charge élevée',
+  },
+};
+
+/** @deprecated Prefer density-aware `limiterSignalLabelForMode` — defaults to expert. */
 export function limiterSignalLabel(code: LimiterSignalCode): string {
-  return LABEL_FR[code];
+  return LIMITER_LABEL_BY_DENSITY[code].expert;
 }
 
-/** Chip copy for native / web: « Frein · VFC basse ». */
+export function limiterSignalLabelForMode(
+  code: LimiterSignalCode,
+  mode: 'essential' | 'expert',
+): string {
+  return LIMITER_LABEL_BY_DENSITY[code][mode];
+}
+
+/** Chip copy for native / web: « Frein · … » — defaults to expert for legacy callers. */
 export function limiterSignalChip(code: LimiterSignalCode): string {
-  return `Frein · ${LABEL_FR[code]}`;
+  return `Frein · ${LIMITER_LABEL_BY_DENSITY[code].expert}`;
+}
+
+export function limiterSignalChipForMode(
+  code: LimiterSignalCode,
+  mode: 'essential' | 'expert',
+): string {
+  return `Frein · ${LIMITER_LABEL_BY_DENSITY[code][mode]}`;
 }
 
 function restorativeRatioPercent(hints: LimiterSignalHints): number | null {
@@ -182,7 +224,7 @@ export function resolveLimiterSignal(input: ResolveLimiterSignalInput): LimiterS
     default:
       return null;
   }
-  return { code, label: LABEL_FR[code] };
+  return { code, label: LIMITER_LABEL_BY_DENSITY[code].expert };
 }
 
 /** Every limiter dimension × signal code the API may emit (for exhaustive tests). */

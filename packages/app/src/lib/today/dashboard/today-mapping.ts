@@ -74,30 +74,31 @@ export type DimensionSignal = {
 // Verdict display
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Labels align with the shared verdict glossary tags (verdict-copy.ts). */
 const VERDICT_DISPLAY: Record<OverallVerdict, VerdictDisplay> = {
   TRAIN_HARD: {
-    label: 'Entraîne-toi fort',
+    label: 'Intense',
     colorClass: 'text-primary',
     bgClass: 'bg-primary/12 border-primary/30',
     dotClass: 'bg-primary',
     accentBarClass: 'bg-primary/80',
   },
   RACE_READY: {
-    label: 'Prêt à performer',
+    label: 'Pic',
     colorClass: 'text-primary',
     bgClass: 'bg-primary/12 border-primary/30',
     dotClass: 'bg-primary',
     accentBarClass: 'bg-primary/80',
   },
   TRAIN_SMART: {
-    label: 'Entraîne-toi finement',
+    label: 'Qualité',
     colorClass: 'text-[var(--color-signal-recovery)]',
     bgClass: 'bg-[var(--color-signal-recovery)]/12 border-[var(--color-signal-recovery)]/30',
     dotClass: 'bg-[var(--color-signal-recovery)]',
     accentBarClass: 'bg-[var(--color-signal-recovery)]/80',
   },
   TRAIN_EASY: {
-    label: 'Entraîne-toi légèrement',
+    label: 'Léger',
     /* Olive-lime tempo — moderate day in Lime Pulse orbit (not brown caution) */
     colorClass: 'text-[var(--color-signal-tempo)]',
     bgClass: 'bg-[var(--color-signal-tempo)]/14 border-[var(--color-signal-tempo)]/30',
@@ -112,7 +113,7 @@ const VERDICT_DISPLAY: Record<OverallVerdict, VerdictDisplay> = {
     accentBarClass: 'bg-signal-vo2/80',
   },
   RECOVER: {
-    label: 'Récupère',
+    label: 'Repos',
     // Protective brand sage — recovery is the right decision, not a failure.
     colorClass: 'text-primary',
     bgClass: 'bg-primary/12 border-primary/25',
@@ -120,7 +121,7 @@ const VERDICT_DISPLAY: Record<OverallVerdict, VerdictDisplay> = {
     accentBarClass: 'bg-primary/80',
   },
   INSUFFICIENT_DATA: {
-    label: 'Données insuffisantes',
+    label: 'En attente',
     colorClass: 'text-muted-foreground',
     bgClass: 'bg-muted/40 border-border',
     dotClass: 'bg-muted-foreground',

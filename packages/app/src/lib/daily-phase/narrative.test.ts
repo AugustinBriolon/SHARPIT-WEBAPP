@@ -485,11 +485,21 @@ describe('verdict status tags', () => {
     expect(new Set(morningTags).size).toBe(ALL_VERDICTS.length);
   });
 
-  it('CAUTION uses Prudence — never RECOVER’s Récup d’abord', () => {
+  it('CAUTION uses Prudence — never RECOVER’s Repos', () => {
     expect(VERDICT_STATUS_TAG.CAUTION).toBe('Prudence');
-    expect(VERDICT_STATUS_TAG.RECOVER).toBe('Récup d’abord');
-    expect(morningNarrative('RECOVER').postureLabel).toBe('Récup d’abord');
+    expect(VERDICT_STATUS_TAG.RECOVER).toBe('Repos');
+    expect(morningNarrative('RECOVER').postureLabel).toBe('Repos');
     expect(morningNarrative('CAUTION').postureLabel).toBe('Prudence');
-    expect(morningNarrative('CAUTION').postureLabel).not.toMatch(/récup/i);
+    expect(morningNarrative('CAUTION').postureLabel).not.toMatch(/repos/i);
+  });
+
+  it('tags follow soft→strong order (Repos → Pic) with En attente apart', () => {
+    expect(VERDICT_STATUS_TAG.RECOVER).toBe('Repos');
+    expect(VERDICT_STATUS_TAG.CAUTION).toBe('Prudence');
+    expect(VERDICT_STATUS_TAG.TRAIN_EASY).toBe('Léger');
+    expect(VERDICT_STATUS_TAG.TRAIN_SMART).toBe('Qualité');
+    expect(VERDICT_STATUS_TAG.TRAIN_HARD).toBe('Intense');
+    expect(VERDICT_STATUS_TAG.RACE_READY).toBe('Pic');
+    expect(VERDICT_STATUS_TAG.INSUFFICIENT_DATA).toBe('En attente');
   });
 });

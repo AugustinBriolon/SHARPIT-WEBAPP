@@ -69,17 +69,19 @@ function isRestDayRecoveryWindow(input: PhaseNarrativeInput): boolean {
 }
 
 /**
- * Athlete-facing status tag per overall verdict — existing labels only.
- * Mapped by verdict (not posture) so CAUTION never reuses RECOVER’s « Récup d’abord ».
+ * Athlete-facing status tags — softest → strongest: Repos, Prudence, Léger,
+ * Qualité, Intense, Pic. « En attente » is separate.
+ * Mapped by verdict (not posture) so CAUTION never reuses RECOVER’s tag.
+ * Keep in sync with `packages/server/src/lib/verdict/verdict-copy.ts`.
  */
 export const VERDICT_STATUS_TAG: Record<OverallVerdict, string> = {
-  RECOVER: 'Récup d’abord',
+  RECOVER: 'Repos',
   CAUTION: 'Prudence',
-  TRAIN_HARD: 'Feu vert',
-  RACE_READY: 'Prêt à performer',
-  TRAIN_EASY: 'Forme stable',
-  TRAIN_SMART: 'Entraîne-toi finement',
-  INSUFFICIENT_DATA: 'À préciser',
+  TRAIN_EASY: 'Léger',
+  TRAIN_SMART: 'Qualité',
+  TRAIN_HARD: 'Intense',
+  RACE_READY: 'Pic',
+  INSUFFICIENT_DATA: 'En attente',
 };
 
 /** Non-morning protect still softens the recover tag; other verdicts keep their tag. */
@@ -92,7 +94,7 @@ function postureLabelForVerdict(
     return null;
   }
   if (verdict === 'RECOVER' && posture === 'protect' && phase !== 'MORNING') {
-    return 'Récup fragile';
+    return 'Repos fragile';
   }
   return VERDICT_STATUS_TAG[verdict];
 }
@@ -349,18 +351,19 @@ function postTrainingHeadline(
 function morningHeadline(verdict: OverallVerdict): string {
   switch (verdict) {
     case 'RECOVER':
-      return 'Récupération prioritaire';
+      return 'Priorité au repos';
     case 'TRAIN_HARD':
-    case 'RACE_READY':
       return 'Journée propice à l’effort';
+    case 'RACE_READY':
+      return 'Fenêtre de performance';
     case 'TRAIN_EASY':
-      return 'Journée modérée';
+      return 'Journée légère';
     case 'CAUTION':
-      return 'Journée à ménager';
+      return 'Signaux à ménager';
     case 'TRAIN_SMART':
-      return 'Journée ciblée';
+      return 'Journée qualité';
     default:
-      return 'Lis ton état avant d’agir';
+      return 'Pas encore de verdict fiable';
   }
 }
 

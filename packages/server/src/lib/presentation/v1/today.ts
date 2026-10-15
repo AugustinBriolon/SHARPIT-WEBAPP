@@ -44,6 +44,32 @@ export type V1TodaySource = {
         | 'subjective_low'
         | 'load_elevated'
         | null;
+      /** Additive « Porté par » code — null when no positive fact is calculated. */
+      supportSignal?:
+        | 'hrv_ok'
+        | 'rhr_ok'
+        | 'sleep_adequate'
+        | 'sleep_quality_ok'
+        | 'subjective_ok'
+        | 'load_managed'
+        | null;
+      /** Dual reading (ADR-023) — both variants; client picks. */
+      explanation?: { essential: string; expert: string } | null;
+      /** Short plain-text instruction (no Markdown/HTML). */
+      instruction?: string | null;
+      /** Stable machine verdict code. */
+      stateCode?:
+        | 'TRAIN_HARD'
+        | 'TRAIN_SMART'
+        | 'TRAIN_EASY'
+        | 'RECOVER'
+        | 'RACE_READY'
+        | 'CAUTION'
+        | 'INSUFFICIENT_DATA'
+        | null;
+      /** Compared to yesterday's verdict for this athlete only. */
+      vsYesterday?: 'same' | 'changed' | null;
+      vsYesterdayLabel?: string | null;
     };
     reliability?: {
       packTier: V1TodayPackTier;
@@ -140,6 +166,37 @@ export type V1TodayResponse = {
       | 'subjective_low'
       | 'load_elevated'
       | null;
+    /**
+     * Additive. « Porté par » **code** only — chip labels localized in the app.
+     */
+    supportSignal:
+      | 'hrv_ok'
+      | 'rhr_ok'
+      | 'sleep_adequate'
+      | 'sleep_quality_ok'
+      | 'subjective_ok'
+      | 'load_managed'
+      | null;
+    /**
+     * Additive. Dual reading (ADR-023) — server never picks by displayMode.
+     * Never included in MORNING_VERDICT push body or logs.
+     */
+    explanation: { essential: string; expert: string } | null;
+    /** Additive. Short plain-text instruction (no Markdown/HTML). */
+    instruction: string | null;
+    /** Additive. Stable machine verdict code. */
+    stateCode:
+      | 'TRAIN_HARD'
+      | 'TRAIN_SMART'
+      | 'TRAIN_EASY'
+      | 'RECOVER'
+      | 'RACE_READY'
+      | 'CAUTION'
+      | 'INSUFFICIENT_DATA'
+      | null;
+    /** Additive. Compared to yesterday's verdict for this session athlete only. */
+    vsYesterday: 'same' | 'changed' | null;
+    vsYesterdayLabel: string | null;
     statusLabel: string;
     actionLine: string | null;
     confidenceLabel: string | null;
@@ -287,21 +344,37 @@ function resolveActionLine(hero: V1TodaySource['hero']): string | null {
   return hero.subline || null;
 }
 
+function projectVerdictAdditive(strip: V1TodaySource['hero']['twinTrustStrip']) {
+  return {
+    limiterSignal: strip.limiterSignal ?? null,
+    supportSignal: strip.supportSignal ?? null,
+    explanation: strip.explanation ?? null,
+    instruction: strip.instruction?.trim() || null,
+    stateCode: strip.stateCode ?? null,
+    vsYesterday: strip.vsYesterday ?? null,
+    vsYesterdayLabel: strip.vsYesterdayLabel ?? null,
+  };
+}
+
 function projectVerdict(
   hero: V1TodaySource['hero'],
   empty: V1TodayResponse['empty'],
 ): V1TodayResponse['verdict'] {
+  const strip = hero.twinTrustStrip;
+  const additive = projectVerdictAdditive(strip);
+  // actionLine stays filled for TestFlight — prefer instruction, else legacy focus path.
+  const actionLine = additive.instruction ?? resolveActionLine(hero);
   return {
     eyebrow: hero.eyebrow,
     headline: empty ? empty.title : hero.headline,
     subline: hero.subline,
     posture: hero.posture,
-    confidencePct: hero.twinTrustStrip.confidencePctRounded,
-    limitingCause: hero.twinTrustStrip.limitingCauseText,
-    limiterSignal: hero.twinTrustStrip.limiterSignal ?? null,
+    confidencePct: strip.confidencePctRounded,
+    limitingCause: strip.limitingCauseText,
+    ...additive,
     statusLabel: resolveStatusLabel(hero),
-    actionLine: resolveActionLine(hero),
-    confidenceLabel: hero.twinTrustStrip.confidenceLabel ?? null,
+    actionLine,
+    confidenceLabel: strip.confidenceLabel ?? null,
     packTier: hero.reliability?.packTier ?? null,
     estimationGaps: [...(hero.reliability?.visibleGaps ?? [])],
   };
@@ -480,6 +553,12 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         limitingCauseText: vm.hero.twinTrustStrip.limitingCauseText,
         confidenceLabel: vm.hero.twinTrustStrip.confidenceLabel,
         limiterSignal: vm.hero.twinTrustStrip.limiterSignal,
+        supportSignal: vm.hero.twinTrustStrip.supportSignal,
+        explanation: vm.hero.twinTrustStrip.explanation,
+        instruction: vm.hero.twinTrustStrip.instruction,
+        stateCode: vm.hero.twinTrustStrip.stateCode,
+        vsYesterday: vm.hero.twinTrustStrip.vsYesterday,
+        vsYesterdayLabel: vm.hero.twinTrustStrip.vsYesterdayLabel,
       },
       reliability: vm.hero.reliability
         ? {

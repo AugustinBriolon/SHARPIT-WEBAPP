@@ -167,6 +167,35 @@ export type TodayViewModel = {
         | 'subjective_low'
         | 'load_elevated'
         | null;
+      /** Additive « Porté par » code — chip labels localized client-side. */
+      supportSignal:
+        | 'hrv_ok'
+        | 'rhr_ok'
+        | 'sleep_adequate'
+        | 'sleep_quality_ok'
+        | 'subjective_ok'
+        | 'load_managed'
+        | null;
+      /**
+       * Dual reading (ADR-023) — server returns both; client picks by displayMode.
+       * Never logged / never pushed as prose.
+       */
+      explanation: { essential: string; expert: string } | null;
+      /** Short plain-text instruction (no Markdown/HTML). */
+      instruction: string | null;
+      /** Stable machine verdict code. */
+      stateCode:
+        | 'TRAIN_HARD'
+        | 'TRAIN_SMART'
+        | 'TRAIN_EASY'
+        | 'RECOVER'
+        | 'RACE_READY'
+        | 'CAUTION'
+        | 'INSUFFICIENT_DATA'
+        | null;
+      /** Compared to yesterday's verdict for this athlete only. */
+      vsYesterday: 'same' | 'changed' | null;
+      vsYesterdayLabel: string | null;
     };
     /** Science Sport reliability V0 — packTier soft-hero + provenance. */
     reliability: {
