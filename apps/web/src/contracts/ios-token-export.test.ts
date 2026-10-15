@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { BRAND } from '@sharpit/app/lib/brand/brand-tokens';
 import {
   EXPORTED_COLORS,
+  EXPORTED_SPORT_ON,
   parseColor,
   readDeclarations,
   renderIosTokens,
@@ -118,5 +119,21 @@ describe('renderIosTokens', () => {
 
   it('is deterministic', () => {
     expect(renderIosTokens(GLOBALS_CSS)).toBe(swift);
+  });
+
+  it('exports fixed onSport foregrounds (accent/onAccent) for every sport', () => {
+    for (const [cssName, swiftName] of EXPORTED_SPORT_ON) {
+      expect(swift).toContain(`/// \`--${cssName}\``);
+      expect(swift).toContain(`static let ${swiftName} =`);
+    }
+    expect(swift).toContain('static let onRun =');
+    expect(swift).toContain('static let onStrength =');
+  });
+
+  it('exports destructiveForeground and signal caution/risk foregrounds', () => {
+    expect(swift).toContain('static let destructiveForeground = dynamic(');
+    expect(swift).toContain('static let signalCautionForeground = dynamic(');
+    expect(swift).toContain('static let signalRiskForeground = dynamic(');
+    expect(swift).toContain('static let recordAccentForeground = dynamic(');
   });
 });

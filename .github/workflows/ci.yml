@@ -74,6 +74,9 @@ jobs:
         env:
           YARN_NODE_LINKER: node-modules
 
+      - name: Guard hardcoded text colors
+        run: node scripts/ci/check-hardcoded-text-colors.mjs
+
       - name: Run tests
         run: yarn test
         env:

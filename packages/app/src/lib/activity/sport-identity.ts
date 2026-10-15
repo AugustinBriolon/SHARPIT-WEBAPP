@@ -52,7 +52,7 @@ export const SPORT_IDENTITY_BORDER: Record<ActivityType, string> = {
 
 /**
  * Concrete hex for MapLibre / canvas — CSS vars are rejected by map paint props.
- * Keep aligned with the Tailwind families above.
+ * Keep aligned with `--sport-*` in globals.css and the Tailwind families above.
  */
 export const SPORT_IDENTITY_HEX: Record<ActivityType, string> = {
   RUN: '#ea580c',
@@ -62,6 +62,21 @@ export const SPORT_IDENTITY_HEX: Record<ActivityType, string> = {
   TRIATHLON: '#0d9488',
   HIKE: '#b45309',
   OTHER: '#2f6b28',
+};
+
+/**
+ * Solid sport fill + paired on-sport foreground (WCAG AA).
+ * Ink on run/bike/swim/triathlon; snow on strength/hike/other.
+ * Prefer this over `text-white` on sport hex backgrounds.
+ */
+export const SPORT_IDENTITY_SOLID: Record<ActivityType, string> = {
+  RUN: 'bg-sport-run text-on-sport-run',
+  BIKE: 'bg-sport-bike text-on-sport-bike',
+  SWIM: 'bg-sport-swim text-on-sport-swim',
+  STRENGTH: 'bg-sport-strength text-on-sport-strength',
+  TRIATHLON: 'bg-sport-triathlon text-on-sport-triathlon',
+  HIKE: 'bg-sport-hike text-on-sport-hike',
+  OTHER: 'bg-sport-other text-on-sport-other',
 };
 
 /** Analysis-panel tint for hero metric cards on activity detail. */
@@ -89,4 +104,8 @@ export function sportIdentityPanel(type: ActivityType): string {
 
 export function sportIdentityHex(type: ActivityType): string {
   return SPORT_IDENTITY_HEX[type] ?? SPORT_IDENTITY_HEX.OTHER;
+}
+
+export function sportIdentitySolid(type: ActivityType): string {
+  return SPORT_IDENTITY_SOLID[type] ?? SPORT_IDENTITY_SOLID.OTHER;
 }
