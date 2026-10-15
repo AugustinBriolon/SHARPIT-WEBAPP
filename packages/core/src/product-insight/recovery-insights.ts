@@ -35,15 +35,19 @@ function buildMainDriverInsight(input: RecoveryInsightInput): ProductInsight {
 }
 
 function buildRecoveryWindowInsight(input: RecoveryInsightInput): ProductInsight {
+  const days = input.estimatedRecoveryDays;
+  if (!isSet(days)) {
+    throw new Error('buildRecoveryWindowInsight requires estimatedRecoveryDays');
+  }
   return {
     id: 'recovery:time-to-full-recovery',
     title: 'Fenêtre de retour complet',
-    summary: `${formatJours(input.estimatedRecoveryDays)} pour revenir pleinement`,
+    summary: `${formatJours(days)} pour revenir pleinement`,
     explanation:
       'Cette estimation aide à placer la prochaine séance exigeante au bon moment plutôt que de forcer trop tôt.',
     evidence: input.rationale.slice(0, 2),
     confidence: input.confidence,
-    importance: input.estimatedRecoveryDays! >= 3 ? 'HIGH' : 'MEDIUM',
+    importance: days >= 3 ? 'HIGH' : 'MEDIUM',
     decisionImpact: 'LOAD_PROGRESSION',
     relatedDimensions: ['RECOVERY'],
   };
