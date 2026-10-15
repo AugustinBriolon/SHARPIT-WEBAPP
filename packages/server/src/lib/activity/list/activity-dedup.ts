@@ -78,6 +78,7 @@ export function mergedSource(
   hasGarmin: boolean,
   hasStrava: boolean,
   hasAppleHealth = false,
+  hasSharpitIos = false,
 ): string {
   const parts: string[] = [];
   if (hasGarmin) {
@@ -89,6 +90,9 @@ export function mergedSource(
   if (hasAppleHealth) {
     parts.push('apple-health');
   }
+  if (hasSharpitIos) {
+    parts.push('sharpit-ios');
+  }
   if (parts.length === 0) {
     return 'manual';
   }
@@ -96,7 +100,7 @@ export function mergedSource(
     return parts[0]!;
   }
   // Preserve the historical token for Garmin+Strava alone.
-  if (hasGarmin && hasStrava && !hasAppleHealth) {
+  if (hasGarmin && hasStrava && !hasAppleHealth && !hasSharpitIos) {
     return 'both';
   }
   return parts.join('+');

@@ -281,6 +281,7 @@ function stravaEnrichmentUpdate(
       Boolean(existingGarminId),
       true,
       sourceIncludes(existingSource, 'apple-health'),
+      sourceIncludes(existingSource, 'sharpit-ios'),
     ),
     title: strava.name,
     duration: strava.moving_time || strava.elapsed_time || undefined,

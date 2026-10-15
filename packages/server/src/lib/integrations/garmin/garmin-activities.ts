@@ -817,6 +817,7 @@ export function garminEnrichmentUpdate(
       true,
       Boolean(existingStravaId),
       sourceIncludes(existingSource, 'apple-health'),
+      sourceIncludes(existingSource, 'sharpit-ios'),
     ),
     title: activity.activityName || undefined,
     duration: duration ?? undefined,

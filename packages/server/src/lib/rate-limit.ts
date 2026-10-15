@@ -56,6 +56,8 @@ export const rateLimiters = {
   dayJournal: limiter(60, '1 m', 'day-journal'),
   /** Apple Health is sent by the phone in batches — a first import spans a year. */
   appleHealth: limiter(30, '10 m', 'apple-health'),
+  /** Live strength sessions with HR — one POST per finished workout. */
+  strengthLiveHr: limiter(30, '10 m', 'strength-live-hr'),
   /** « Donner un avis »: a few notes an hour is a talkative tester, more is a stuck button. */
   feedback: limiter(10, '1 h', 'feedback'),
 };

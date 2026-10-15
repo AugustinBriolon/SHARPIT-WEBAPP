@@ -149,8 +149,25 @@ function mean(arr: number[]): number | null {
   return valid.reduce((s, v) => s + v, 0) / valid.length;
 }
 
+/** Heart-rate mean/max ignore zeros — gaps in a live recording must not pull avg down. */
+function positiveHrMean(arr: number[]): number | null {
+  const valid = arr.filter((v) => isSet(v) && !Number.isNaN(v) && v > 0);
+  if (!valid.length) {
+    return null;
+  }
+  return valid.reduce((s, v) => s + v, 0) / valid.length;
+}
+
 function max(arr: number[]): number | null {
   const valid = arr.filter((v) => isSet(v) && !Number.isNaN(v));
+  if (!valid.length) {
+    return null;
+  }
+  return Math.max(...valid);
+}
+
+function positiveHrMax(arr: number[]): number | null {
+  const valid = arr.filter((v) => isSet(v) && !Number.isNaN(v) && v > 0);
   if (!valid.length) {
     return null;
   }
@@ -193,6 +210,14 @@ function nullableStreamValue(active: boolean, value: number | undefined): number
   return active ? (value ?? null) : null;
 }
 
+/** HR gaps are stored as 0 — expose them as null so charts do not interpolate across signal loss. */
+function nullableHrValue(active: boolean, value: number | undefined): number | null {
+  if (!active || value === undefined || value <= 0) {
+    return null;
+  }
+  return value;
+}
+
 function streamSampleAt(
   raw: RawStreams,
   has: ReturnType<typeof buildStreamHas>,
@@ -202,7 +227,7 @@ function streamSampleAt(
     t: raw.time[index] ?? 0,
     d: raw.distance[index] ?? 0,
     alt: nullableStreamValue(has.altitude, raw.altitude[index]),
-    hr: nullableStreamValue(has.hr, raw.heartrate[index]),
+    hr: nullableHrValue(has.hr, raw.heartrate[index]),
     watts: nullableStreamValue(has.watts, raw.watts[index]),
     cadence: nullableStreamValue(has.cadence, raw.cadence[index]),
     speed: nullableStreamValue(has.speed, raw.velocity[index]),
@@ -238,8 +263,8 @@ function computeStreamAvgSpeed(
 
 function buildHrStreamStats(raw: RawStreams, has: ReturnType<typeof buildStreamHas>) {
   return {
-    avgHr: roundMeanOrNull(has.hr, raw.heartrate),
-    maxHr: has.hr ? max(raw.heartrate) : null,
+    avgHr: has.hr ? Math.round(positiveHrMean(raw.heartrate) ?? 0) || null : null,
+    maxHr: has.hr ? positiveHrMax(raw.heartrate) : null,
   };
 }
 
@@ -305,8 +330,23 @@ function buildStreamAnalysis(
   return analyzeActivityStreams(raw, thresholds, analysisCtx);
 }
 
+type LiveHrStoredMeta = {
+  clientSessionId?: string;
+  source?: 'watch' | 'ble';
+};
+
+function readLiveHrMeta(
+  raw: RawStreams & { liveHr?: LiveHrStoredMeta },
+): ActivityStreamPayload['liveHr'] {
+  const source = raw.liveHr?.source;
+  if (source !== 'watch' && source !== 'ble') {
+    return null;
+  }
+  return { source };
+}
+
 function buildPayload(
-  raw: RawStreams,
+  raw: RawStreams & { liveHr?: LiveHrStoredMeta },
   activity: {
     type: ActivityType;
     duration: number | null;
@@ -324,7 +364,7 @@ function buildPayload(
   const stats = buildStreamStats(raw, has);
   const analysis = buildStreamAnalysis(raw, activity, profile);
 
-  return { available: true, path, samples, has, stats, analysis };
+  return { available: true, path, samples, has, stats, analysis, liveHr: readLiveHrMeta(raw) };
 }
 
 /**
@@ -361,6 +401,7 @@ const UNAVAILABLE: ActivityStreamPayload = {
   },
   stats: null,
   analysis: null,
+  liveHr: null,
 };
 
 /** `null`: Garmin has no usable series for the leg; `undefined`: the call failed, worth retrying. */
@@ -395,7 +436,10 @@ function buildLegStreamPayload(
 }
 
 /** Garmin leg streams have no row of their own: they are cached on the parent's stream row. */
-type StoredWithGarminLegs = RawStreams & { garminLegs?: Record<string, GarminLegCacheEntry> };
+type StoredWithGarminLegs = RawStreams & {
+  garminLegs?: Record<string, GarminLegCacheEntry>;
+  liveHr?: LiveHrStoredMeta;
+};
 
 /** Garmin had no stream for the leg: noted so every view does not ask again. */
 type GarminLegMissing = { missingAt: string };
@@ -602,11 +646,20 @@ async function fetchRawStreams(
   return null;
 }
 
+export type PersistStreamOptions = {
+  /**
+   * Live HR meta from the iOS strength recorder. Pass `null` to clear (e.g. when a
+   * watch stream with better coverage replaces the live series).
+   */
+  liveHr?: LiveHrStoredMeta | null;
+};
+
 /** Stores a session's streams and refreshes its features once they are cached. */
 export async function persistStream(
   athleteId: string,
   activityId: string,
   raw: RawStreams | null,
+  options?: PersistStreamOptions,
 ): Promise<boolean> {
   const available = isSet(raw) && rawStreamsHaveSignal(raw);
   if (!available) {
@@ -617,9 +670,11 @@ export async function persistStream(
 
   const previous = await loadParentStreamData(activityId);
   // A triathlon's Garmin legs live on its stream row: a new parent stream must not drop them.
+  const liveHr = options && 'liveHr' in options ? options.liveHr : (previous?.liveHr ?? undefined);
   const stored = {
     ...compactRawStreamsForStorage(raw),
     ...(previous?.garminLegs && { garminLegs: previous.garminLegs }),
+    ...(liveHr ? { liveHr } : {}),
   };
 
   await prisma.activityStream.upsert({
@@ -730,7 +785,10 @@ async function loadCachedActivityStream(
  * When a stream without position, distance or speed last asked the provider for a fuller one —
  * kept in the stored series so a provider with nothing better is not asked on every open.
  */
-type StoredStreams = RawStreams & { providerCheckedAt?: number };
+type StoredStreams = RawStreams & {
+  providerCheckedAt?: number;
+  liveHr?: LiveHrStoredMeta;
+};
 
 const PROVIDER_RECHECK_MS = 6 * 60 * 60 * 1000;
 
@@ -751,7 +809,9 @@ export function shouldAskProviderForFullerStream(
   if (!activity.garminId && !activity.stravaId) {
     return false;
   }
-  if (!isThinStream(stored)) {
+  // Live strength HR is also thin — re-check the watch when it may hold more coverage.
+  const liveStrengthHr = Boolean(stored.liveHr?.clientSessionId);
+  if (!isThinStream(stored) && !liveStrengthHr) {
     return false;
   }
   return !stored.providerCheckedAt || now - stored.providerCheckedAt >= PROVIDER_RECHECK_MS;
@@ -764,9 +824,22 @@ async function upgradeThinStream(
   stored: StoredStreams,
 ): Promise<RawStreams> {
   try {
+    const { preferHrStream } =
+      await import('@sharpit/server/lib/integrations/ios-strength/live-hr');
     const fuller = await fetchRawStreams(athleteId, activity);
-    if (fuller && !isThinStream(fuller) && (await persistStream(athleteId, activity.id, fuller))) {
-      return fuller;
+    if (fuller) {
+      const fullerNotThin = !isThinStream(fuller);
+      const fullerHasBetterHr = preferHrStream(stored, fuller) === 'b';
+      const shouldReplace = fullerNotThin || fullerHasBetterHr;
+      if (
+        shouldReplace &&
+        (await persistStream(athleteId, activity.id, fuller, {
+          // Provider series replaces live capture — drop the BLE/watch-app label.
+          liveHr: null,
+        }))
+      ) {
+        return fuller;
+      }
     }
   } catch (error) {
     console.error('[streams] upgradeThinStream', activity.id, error);
