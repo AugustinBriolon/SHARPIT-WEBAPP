@@ -129,10 +129,7 @@ export type RaceGoalResult = { activityId: string; durationSec: number | null };
 export type RaceGoalStanding = { status: RaceGoalStatus | null; result: RaceGoalResult | null };
 
 /** Whether the race's day has come on `trainingDayId`; an undated race is whenever it is run. */
-export function isRaceDayReached(
-  targetDate: Date | string | null,
-  trainingDayId: string,
-): boolean {
+export function isRaceDayReached(targetDate: Date | string | null, trainingDayId: string): boolean {
   return !targetDate || daysBetween(raceDayKey(targetDate), trainingDayId) >= 0;
 }
 

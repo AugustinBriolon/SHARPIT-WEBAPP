@@ -12,6 +12,15 @@ export type RecoveryViewModel = {
   readinessScore: number | null;
   signal: { label: string; qualityClass: string; arrow: string };
   limiterLabel: string | null;
+  /** Additive frein code for native clients — labels are localized in the app. */
+  limiterSignal:
+    | 'hrv_low'
+    | 'rhr_high'
+    | 'sleep_short'
+    | 'sleep_poor'
+    | 'subjective_low'
+    | 'load_elevated'
+    | null;
   estimatedRecoveryDays: number | null;
   isCalibrating: boolean;
   availableDimCount: number;

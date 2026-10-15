@@ -74,30 +74,45 @@ export type DimensionSignal = {
 // Verdict display
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Athlete-facing status tags — softest → strongest: Repos, Prudence, Léger,
+ * Qualité, Intense, Pic. « En attente » is separate.
+ * Single source for Today mapping, phase narrative, and server verdict-copy.
+ */
+export const VERDICT_TAG: Record<OverallVerdict, string> = {
+  RECOVER: 'Repos',
+  CAUTION: 'Prudence',
+  TRAIN_EASY: 'Léger',
+  TRAIN_SMART: 'Qualité',
+  TRAIN_HARD: 'Intense',
+  RACE_READY: 'Pic',
+  INSUFFICIENT_DATA: 'En attente',
+};
+
 const VERDICT_DISPLAY: Record<OverallVerdict, VerdictDisplay> = {
   TRAIN_HARD: {
-    label: 'Entraîne-toi fort',
+    label: VERDICT_TAG.TRAIN_HARD,
     colorClass: 'text-primary',
     bgClass: 'bg-primary/12 border-primary/30',
     dotClass: 'bg-primary',
     accentBarClass: 'bg-primary/80',
   },
   RACE_READY: {
-    label: 'Prêt à performer',
+    label: VERDICT_TAG.RACE_READY,
     colorClass: 'text-primary',
     bgClass: 'bg-primary/12 border-primary/30',
     dotClass: 'bg-primary',
     accentBarClass: 'bg-primary/80',
   },
   TRAIN_SMART: {
-    label: 'Entraîne-toi finement',
+    label: VERDICT_TAG.TRAIN_SMART,
     colorClass: 'text-[var(--color-signal-recovery)]',
     bgClass: 'bg-[var(--color-signal-recovery)]/12 border-[var(--color-signal-recovery)]/30',
     dotClass: 'bg-[var(--color-signal-recovery)]',
     accentBarClass: 'bg-[var(--color-signal-recovery)]/80',
   },
   TRAIN_EASY: {
-    label: 'Entraîne-toi légèrement',
+    label: VERDICT_TAG.TRAIN_EASY,
     /* Olive-lime tempo — moderate day in Lime Pulse orbit (not brown caution) */
     colorClass: 'text-[var(--color-signal-tempo)]',
     bgClass: 'bg-[var(--color-signal-tempo)]/14 border-[var(--color-signal-tempo)]/30',
@@ -105,14 +120,14 @@ const VERDICT_DISPLAY: Record<OverallVerdict, VerdictDisplay> = {
     accentBarClass: 'bg-[var(--color-signal-tempo)]/80',
   },
   CAUTION: {
-    label: 'Prudence',
+    label: VERDICT_TAG.CAUTION,
     colorClass: 'text-signal-vo2',
     bgClass: 'bg-signal-vo2/12 border-signal-vo2/30',
     dotClass: 'bg-signal-vo2',
     accentBarClass: 'bg-signal-vo2/80',
   },
   RECOVER: {
-    label: 'Récupère',
+    label: VERDICT_TAG.RECOVER,
     // Protective brand sage — recovery is the right decision, not a failure.
     colorClass: 'text-primary',
     bgClass: 'bg-primary/12 border-primary/25',
@@ -120,7 +135,7 @@ const VERDICT_DISPLAY: Record<OverallVerdict, VerdictDisplay> = {
     accentBarClass: 'bg-primary/80',
   },
   INSUFFICIENT_DATA: {
-    label: 'Données insuffisantes',
+    label: VERDICT_TAG.INSUFFICIENT_DATA,
     colorClass: 'text-muted-foreground',
     bgClass: 'bg-muted/40 border-border',
     dotClass: 'bg-muted-foreground',

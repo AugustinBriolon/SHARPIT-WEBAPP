@@ -181,7 +181,12 @@ describe('food log service', () => {
 
     await expect(
       service.addFoodLogEntries('athlete-1', [
-        { trainingDayId: '2026-10-01', meal: 'LUNCH', grams: 100, quick: { name: 'Riz', kcal: 130, protein: 0, carbs: 0, fat: 0 } },
+        {
+          trainingDayId: '2026-10-01',
+          meal: 'LUNCH',
+          grams: 100,
+          quick: { name: 'Riz', kcal: 130, protein: 0, carbs: 0, fat: 0 },
+        },
         { trainingDayId: '2026-10-01', meal: 'LUNCH', grams: 100, productId: 'someone-elses' },
       ]),
     ).rejects.toBeInstanceOf(service.FoodLogNotFoundError);

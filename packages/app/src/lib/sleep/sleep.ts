@@ -614,14 +614,20 @@ function strainSleepBoost(strainScore: number | null | undefined): number {
   if (!isSet(strainScore) || strainScore < 8) {
     return 0;
   }
-  return Math.min(Math.round(((strainScore - 8) / 13) * MAX_STRAIN_SLEEP_BOOST_MIN), MAX_STRAIN_SLEEP_BOOST_MIN);
+  return Math.min(
+    Math.round(((strainScore - 8) / 13) * MAX_STRAIN_SLEEP_BOOST_MIN),
+    MAX_STRAIN_SLEEP_BOOST_MIN,
+  );
 }
 
 function efficiencySleepBoost(efficiencyPercent: number | null | undefined): number {
   if (!isSet(efficiencyPercent) || efficiencyPercent >= 85) {
     return 0;
   }
-  return Math.min(Math.round(((85 - efficiencyPercent) / 25) * MAX_EFFICIENCY_SLEEP_BOOST_MIN), MAX_EFFICIENCY_SLEEP_BOOST_MIN);
+  return Math.min(
+    Math.round(((85 - efficiencyPercent) / 25) * MAX_EFFICIENCY_SLEEP_BOOST_MIN),
+    MAX_EFFICIENCY_SLEEP_BOOST_MIN,
+  );
 }
 
 function computeDebtAndRecommendedDuration(

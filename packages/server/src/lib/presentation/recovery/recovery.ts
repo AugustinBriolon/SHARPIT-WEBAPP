@@ -10,6 +10,10 @@ import {
   indexHealthEntriesByDay,
 } from '@sharpit/app/lib/health/health';
 import { resolve } from '@sharpit/app/lib/french';
+import {
+  resolveLimiterSignal,
+  type LimiterSignalCode,
+} from '@sharpit/app/lib/today/dashboard/limiter-signal';
 
 type DailyHealthRow = Awaited<ReturnType<typeof getHealthEntries>>[number];
 import {
@@ -88,6 +92,36 @@ function resolveRecoveryLimiterLabel(
   return PRIMARY_LIMITER_LABEL[recovery.primaryLimitingFactor] ?? recovery.primaryLimitingFactor;
 }
 
+function resolveRecoveryLimiterSignal(
+  snapshot: AthleteSnapshot,
+  recovery: NonNullable<AthleteSnapshot['recovery']>,
+  todayEntry: DailyHealthRow | null,
+): LimiterSignalCode | null {
+  if (!recovery.primaryLimitingFactor) {
+    return null;
+  }
+  if (isSleepLimiterPending(snapshot) && recovery.primaryLimitingFactor === 'sleep') {
+    return null;
+  }
+  return (
+    resolveLimiterSignal({
+      primaryLimitingFactor: recovery.primaryLimitingFactor,
+      hints: todayEntry
+        ? {
+            hrv: todayEntry.hrv,
+            hrvBaselineLow: todayEntry.hrvBaselineLow,
+            hrvBaselineHigh: todayEntry.hrvBaselineHigh,
+            hrvStatus: todayEntry.hrvStatus,
+            restingHr: todayEntry.restingHr,
+            sleepMinutes: todayEntry.sleepMinutes,
+            sleepDeepMin: todayEntry.sleepDeepMin,
+            sleepRemMin: todayEntry.sleepRemMin,
+          }
+        : null,
+    })?.code ?? null
+  );
+}
+
 function resolveRecoverySignalPresentation(recovery: NonNullable<AthleteSnapshot['recovery']>) {
   const autonomicDisplay = mapAutonomicBalanceToDisplay(
     recovery.signals.autonomicBalance as AutonomicBalance,
@@ -144,6 +178,7 @@ function buildPopulatedRecoveryViewModel(input: {
   const signal = mapRecoveryToSignal(recovery.readinessCategory as ReadinessCategory);
   const presentation = resolveRecoverySignalPresentation(recovery);
   const limiterLabel = resolveRecoveryLimiterLabel(snapshot, recovery);
+  const limiterSignal = resolveRecoveryLimiterSignal(snapshot, recovery, todayEntry);
   const rationale = recovery.decision.rationale.map((r) => resolve(r));
   const keyEvidence = recovery.recommendation.keyEvidence.map((e) => resolve(e));
   const todayHealth = readTodayHealthEntry(todayEntry);
@@ -167,6 +202,7 @@ function buildPopulatedRecoveryViewModel(input: {
     readinessScore: recovery.readinessScore,
     signal,
     limiterLabel,
+    limiterSignal,
     estimatedRecoveryDays: recovery.estimatedTimeToFullRecovery,
     isCalibrating: recovery.readinessCategory === 'BASELINE_PENDING',
     availableDimCount: Object.values(recovery.dimensions).filter((d) => d.available).length,
@@ -240,6 +276,7 @@ function emptyRecoveryViewModel(): RecoveryViewModel {
     readinessScore: null,
     signal: { label: '—', qualityClass: 'text-muted-foreground', arrow: '→' },
     limiterLabel: null,
+    limiterSignal: null,
     estimatedRecoveryDays: null,
     isCalibrating: false,
     availableDimCount: 0,

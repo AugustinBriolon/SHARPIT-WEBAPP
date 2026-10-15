@@ -50,33 +50,36 @@ const LIMITER_FR: Record<string, string> = {
 
 const STRINGS: Record<string, string> = {
   // ── Top actions ────────────────────────────────────────────────────────────
-  'reasoning.topAction.trainHard.verb': 'Entraîne-toi',
-  'reasoning.topAction.trainHard.focus.progressiveOverload': 'avec une surcharge progressive',
-  'reasoning.topAction.trainHard.focus.aerobicBase': 'sur la base aérobie',
+  // Top-action strings — aligned with the shared verdict glossary (impératif tutoyé).
+  // Card + Coach prefer `verdict-copy.ts`; these remain for resolveCode / legacy paths.
+  'reasoning.topAction.trainHard.verb': 'Enchaîne',
+  'reasoning.topAction.trainHard.focus.progressiveOverload':
+    'la séance clé avec une progression mesurée',
+  'reasoning.topAction.trainHard.focus.aerobicBase': 'la séance prévue avec engagement',
   'reasoning.topAction.trainHard.rationale':
     'Tes signaux du jour suggèrent une bonne tolérance à une charge élevée.',
 
-  'reasoning.topAction.trainSmart.verb': 'Entraîne-toi',
-  'reasoning.topAction.trainSmart.focus': 'avec intelligence',
-  'reasoning.topAction.trainSmart.rationale': "Cible la qualité plutôt que le volume aujourd'hui.",
+  'reasoning.topAction.trainSmart.verb': 'Garde',
+  'reasoning.topAction.trainSmart.focus': 'la qualité, coupe le volume',
+  'reasoning.topAction.trainSmart.rationale': 'Tu peux viser la qualité plutôt que le volume.',
 
-  'reasoning.topAction.trainEasy.verb': 'Entraîne-toi',
-  'reasoning.topAction.trainEasy.focus': 'légèrement',
+  'reasoning.topAction.trainEasy.verb': 'Reste',
+  'reasoning.topAction.trainEasy.focus': 'en endurance facile',
   'reasoning.topAction.trainEasy.rationale':
-    "Préserve de l'énergie — ta récupération est prioritaire.",
+    'Préserve ton énergie — la récupération reste prioritaire.',
 
-  'reasoning.topAction.recover.verb': 'Récupère',
-  'reasoning.topAction.recover.focusDefault': 'activement',
+  'reasoning.topAction.recover.verb': 'Privilégie',
+  'reasoning.topAction.recover.focusDefault': 'le repos ou une marche très légère',
   'reasoning.topAction.recover.rationale':
     'Tes signaux du jour indiquent un besoin de repos pour rebondir.',
 
-  'reasoning.topAction.raceReady.verb': 'Tu es prêt',
-  'reasoning.topAction.raceReady.focus': 'à performer',
+  'reasoning.topAction.raceReady.verb': 'Fais',
+  'reasoning.topAction.raceReady.focus': 'la séance qualité prévue',
   'reasoning.topAction.raceReady.rationale':
     'Tes signaux du jour sont favorables à une bonne performance.',
 
-  'reasoning.topAction.caution.verb': 'Sois',
-  'reasoning.topAction.caution.focus': "prudent aujourd'hui",
+  'reasoning.topAction.caution.verb': 'Baisse',
+  'reasoning.topAction.caution.focus': 'l’intensité de la séance prévue',
   'reasoning.topAction.caution.rationale': 'Des signaux contradictoires appellent à la modération.',
 
   // ── Findings — overreaching without adaptation ──────────────────────────
@@ -182,9 +185,10 @@ const STRINGS: Record<string, string> = {
     'Surmenage — la dimension {dimension} est le facteur limitant',
   'reasoning.limitingFactor.fatigue.accumulated':
     'Fatigue accumulée ({dimension}) depuis {days} jour(s)',
+  // deficit always ships params.limiter; criticallyLow/reduced never do — no `{limiter}` there.
   'reasoning.limitingFactor.recovery.deficit': 'Récupération en déficit · frein : {limiter}',
-  'reasoning.limitingFactor.recovery.criticallyLow': 'Récupération critique · frein : {limiter}',
-  'reasoning.limitingFactor.recovery.reduced': 'Récupération réduite · frein : {limiter}',
+  'reasoning.limitingFactor.recovery.criticallyLow': 'Récupération critique',
+  'reasoning.limitingFactor.recovery.reduced': 'Récupération réduite',
   'reasoning.limitingFactor.adaptation.factor': 'Adaptation freinée par : {factor}',
   'reasoning.limitingFactor.adaptation.insufficientStimulus':
     'Stimulus insuffisant — la progression stagne',
@@ -327,8 +331,9 @@ const PARAM_RESOLVERS: Record<string, (raw: unknown) => string> = {
 };
 
 function resolveParam(key: string, raw: unknown): string {
-  if (raw === undefined) {
-    return `{${key}}`;
+  if (raw === undefined || raw === null) {
+    // Never emit a literal `{param}` — missing params omit the token.
+    return '';
   }
   return PARAM_RESOLVERS[key]?.(raw) ?? String(raw);
 }
@@ -338,11 +343,13 @@ export function resolve(item: I18nItem): string {
   if (!template) {
     return item.code;
   }
-  if (!item.params) {
-    return template;
-  }
 
-  return template.replace(/\{(\w+)\}/g, (_, key) => resolveParam(key, item.params![key]));
+  return template
+    .replace(/\{(\w+)\}/g, (_, key) => resolveParam(key, item.params?.[key]))
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\s+([·•,;:.!?])/g, '$1')
+    .replace(/\s·\s*$/g, '')
+    .trim();
 }
 
 // Convenience: resolve a plain code string (for TopAction verbCode / focusCode / rationaleCode)

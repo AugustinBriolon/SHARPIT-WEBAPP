@@ -91,7 +91,12 @@ function matchesSprint(haystack: string): boolean {
 }
 
 /** French federation letters (the app's own « Triathlon L » titles): S, M, L, XXL (the full distance). XS and XL have no spec. */
-const LETTER_FORMATS: Record<string, TriathlonFormat> = { s: 'sprint', m: 'olympic', l: 'half', xxl: 'full' };
+const LETTER_FORMATS: Record<string, TriathlonFormat> = {
+  s: 'sprint',
+  m: 'olympic',
+  l: 'half',
+  xxl: 'full',
+};
 
 function matchesLetterFormat(raceFormat: string | null, haystack: string): TriathlonFormat | null {
   const alone = raceFormat?.trim().toLowerCase() ?? '';

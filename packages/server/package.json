@@ -10,7 +10,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint"
+    "lint": "eslint",
+    "verdict-copy:snapshot": "node --import tsx src/lib/verdict/generate-verdict-copy-snapshot.ts"
   },
   "dependencies": {
     "@apple/app-store-server-library": "3.1.0",

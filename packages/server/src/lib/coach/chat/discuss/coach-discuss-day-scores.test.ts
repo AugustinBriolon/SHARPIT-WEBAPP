@@ -58,7 +58,7 @@ describe('formatMorningBriefDiscussBlock', () => {
   it('names verdict, day scores, session and proposal', () => {
     const block = formatMorningBriefDiscussBlock({
       trainingDayId: '2026-10-12',
-      verdictLabel: 'Entraîne-toi fort',
+      verdictLabel: 'Intense',
       scores: SCORES,
       readiness: 78,
       sessionLine: 'Seuil · 55 min',
@@ -67,7 +67,7 @@ describe('formatMorningBriefDiscussBlock', () => {
     });
 
     expect(block).toContain('## Conversation ouverte depuis le brief du matin');
-    expect(block).toContain('Entraîne-toi fort');
+    expect(block).toContain('Intense');
     expect(block).toContain("Réserve d'énergie : 71/100");
     expect(block).toContain('Stress : 42/100');
     expect(block).toContain("Cible d'effort : 8–12");

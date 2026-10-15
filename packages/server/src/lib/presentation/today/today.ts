@@ -58,6 +58,12 @@ import { buildTodayLimitingFacts } from '@sharpit/server/lib/today/dashboard/tod
 import { buildTodayGoalAnchor } from '@sharpit/app/lib/today/rich/today-goal-anchor';
 import { TWIN_DRILL_DOWN } from '@sharpit/app/lib/today/navigation/today-twin-navigation';
 import { buildSignalPreviews } from '@sharpit/app/lib/today/dashboard/signal-previews';
+import { getIndexedHealthEntry, indexHealthEntriesByDay } from '@sharpit/app/lib/health/health';
+import {
+  resolveLimiterSignal,
+  type LimiterSignalCode,
+  type LimiterSignalHints,
+} from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import { endOfDay, startOfDay } from 'date-fns';
 import type { ClientActivity, ClientPlannedSession } from '@sharpit/app/lib/query/types';
 import type { SessionIntensity } from '@prisma/client';
@@ -78,6 +84,15 @@ import {
   isDemoAthleteProfile,
   withDemoSnapshotFreshness,
 } from '@sharpit/server/lib/demo/demo-presentation';
+import { previousTrainingDay } from '@sharpit/app/lib/nutrition/food-log/food-log-day';
+import { getLatestAthleteSnapshot } from '@sharpit/server/infrastructure/athlete-state/snapshot-repository';
+import {
+  buildVerdictCopy,
+  type BuiltVerdictCopy,
+  type VerdictStateCode,
+} from '@sharpit/server/lib/verdict/verdict-copy';
+import { resolveSupportSignals } from '@sharpit/server/lib/verdict/resolve-support-signal';
+import { resolveExtraLimiterFacts } from '@sharpit/server/lib/verdict/extra-limiter-facts';
 
 function localDateFromTrainingDayId(trainingDayId: string): Date {
   const [y, m, d] = trainingDayId.split('-').map(Number);
@@ -147,6 +162,11 @@ export type TodayPresentationInputs = {
   trainingDayId: string;
   day: Date;
   snapshot: AthleteSnapshot;
+  /**
+   * Yesterday's snapshot for the **same** session athlete only — used for
+   * « Comme hier » / « Changé depuis hier ». Never another athlete's row.
+   */
+  yesterdaySnapshot?: AthleteSnapshot | null;
   /** Today's forecast for the header. Null when unavailable — the screen renders without it. */
   weather?: TodayWeather | null;
   healthEntries: Awaited<ReturnType<typeof getHealthEntries>>;
@@ -320,12 +340,58 @@ function mapDaySummaryLineForView(
   };
 }
 
-function buildPlateLimiter(effectiveSnapshot: AthleteSnapshot): {
+function healthHintsForDay(
+  healthEntries: TodayPresentationInputs['healthEntries'],
+  day: Date,
+  sleepTargetMinutes?: number | null,
+): LimiterSignalHints | null {
+  const today = getIndexedHealthEntry(indexHealthEntriesByDay(healthEntries), day);
+  if (!today) {
+    return null;
+  }
+  return {
+    hrv: today.hrv,
+    hrvBaselineLow: today.hrvBaselineLow,
+    hrvBaselineHigh: today.hrvBaselineHigh,
+    hrvStatus: today.hrvStatus,
+    restingHr: today.restingHr,
+    sleepMinutes: today.sleepMinutes,
+    sleepTargetMinutes: sleepTargetMinutes ?? null,
+    sleepDeepMin: today.sleepDeepMin,
+    sleepRemMin: today.sleepRemMin,
+  };
+}
+
+function plateLimiterSignalCode(
+  effectiveSnapshot: AthleteSnapshot,
+  healthEntries: TodayPresentationInputs['healthEntries'],
+  day: Date,
+  sleepTargetMinutes?: number | null,
+): LimiterSignalCode | null {
+  if (effectiveSnapshot.limitingFactor?.system !== 'RECOVERY') {
+    return null;
+  }
+  return (
+    resolveLimiterSignal({
+      primaryLimitingFactor: effectiveSnapshot.recovery?.primaryLimitingFactor ?? null,
+      hints: healthHintsForDay(healthEntries, day, sleepTargetMinutes),
+    })?.code ?? null
+  );
+}
+
+function buildPlateLimiter(input: {
+  effectiveSnapshot: AthleteSnapshot;
+  healthEntries: TodayPresentationInputs['healthEntries'];
+  day: Date;
+  sleepTargetMinutes?: number | null;
+}): {
   text: string | null;
   href: string | null;
+  signalCode: LimiterSignalCode | null;
 } {
+  const { effectiveSnapshot, healthEntries, day, sleepTargetMinutes } = input;
   if (effectiveSnapshot.limitingFactor === undefined || effectiveSnapshot.limitingFactor === null) {
-    return { text: null, href: null };
+    return { text: null, href: null, signalCode: null };
   }
   const text =
     buildTodayLimitingFacts({ limitingFactor: effectiveSnapshot.limitingFactor }).facts.find(
@@ -333,7 +399,77 @@ function buildPlateLimiter(effectiveSnapshot: AthleteSnapshot): {
     )?.value ?? null;
   const href =
     resolveLimitingFactorHrefFromDecision(effectiveSnapshot.decision) ?? TWIN_DRILL_DOWN.recovery;
-  return { text, href };
+  return {
+    text,
+    href,
+    signalCode: plateLimiterSignalCode(effectiveSnapshot, healthEntries, day, sleepTargetMinutes),
+  };
+}
+
+function yesterdayStateCode(
+  yesterdaySnapshot: AthleteSnapshot | null | undefined,
+): VerdictStateCode | null {
+  if (!yesterdaySnapshot) {
+    return null;
+  }
+  const raw =
+    yesterdaySnapshot.todaysDecision ??
+    yesterdaySnapshot.decision?.overallVerdict ??
+    decisionVerdict(yesterdaySnapshot.decision);
+  if (!raw || typeof raw !== 'string') {
+    return null;
+  }
+  return raw as VerdictStateCode;
+}
+
+function buildTodayVerdictPlate(input: {
+  effectiveSnapshot: AthleteSnapshot;
+  healthEntries: TodayPresentationInputs['healthEntries'];
+  day: Date;
+  sleepTargetMinutes?: number | null;
+  yesterdaySnapshot?: AthleteSnapshot | null;
+  plateLimiter: ReturnType<typeof buildPlateLimiter>;
+}): BuiltVerdictCopy {
+  const {
+    effectiveSnapshot,
+    healthEntries,
+    day,
+    sleepTargetMinutes,
+    yesterdaySnapshot,
+    plateLimiter,
+  } = input;
+  const stateCode = (decisionVerdict(effectiveSnapshot.decision) ??
+    'INSUFFICIENT_DATA') as VerdictStateCode;
+  const hints = healthHintsForDay(healthEntries, day, sleepTargetMinutes);
+  const { recovery } = effectiveSnapshot;
+  const subjectiveWellness = recovery?.signals?.subjectiveWellness ?? null;
+  const loadStressContext = recovery?.signals?.loadStressContext ?? null;
+  const extraLimiterFacts = resolveExtraLimiterFacts({
+    primary: plateLimiter.signalCode,
+    hints,
+    subjectiveWellness,
+    loadStressContext,
+  });
+  const limiterSignals = [
+    ...(plateLimiter.signalCode ? [plateLimiter.signalCode] : []),
+    ...extraLimiterFacts,
+  ];
+  const supportSignals = resolveSupportSignals({
+    hints,
+    limiterSignals,
+    subjectiveWellness,
+    loadStressContext,
+  });
+  const trainHardOverload =
+    stateCode === 'TRAIN_HARD' &&
+    effectiveSnapshot.adaptation?.adaptationStatus === 'POSITIVELY_ADAPTING';
+
+  return buildVerdictCopy(stateCode, {
+    limiterSignals,
+    supportSignals,
+    trainHardOverload,
+    yesterdayStateCode: yesterdayStateCode(yesterdaySnapshot),
+  });
 }
 
 function phaseNarrativeText(
@@ -707,7 +843,14 @@ function prepareTodayViewModelContext(inputs: TodayPresentationInputs) {
     emptyState: buildTodayEmptyState(effectiveSnapshot, derived.status.message),
     ...derived.morning,
     rearrangeProposal,
-    plateLimiter: buildPlateLimiter(effectiveSnapshot),
+    plateLimiter: buildPlateLimiter({
+      effectiveSnapshot,
+      healthEntries: inputs.healthEntries,
+      day: inputs.day,
+      sleepTargetMinutes: sleepTargetMin,
+    }),
+    yesterdaySnapshot: inputs.yesterdaySnapshot ?? null,
+    sleepTargetMin,
     goalAnchor,
     habitCoaching: inputs.habitCoaching ?? null,
   };
@@ -769,19 +912,33 @@ function assembleTodayHero(ctx: ReturnType<typeof prepareTodayViewModelContext>)
     ctx.effectiveSnapshot,
     ctx.verdict as import('@sharpit/app/athlete-state/today-state').OverallVerdict | null,
   );
-  const headline = reliabilityBundle.effectiveHeadlineOverride ?? ctx.effectiveHeadline;
+  const verdictCopy = buildTodayVerdictPlate({
+    effectiveSnapshot: ctx.effectiveSnapshot,
+    healthEntries: ctx.healthEntries,
+    day: ctx.day,
+    sleepTargetMinutes: ctx.sleepTargetMin,
+    yesterdaySnapshot: ctx.yesterdaySnapshot,
+    plateLimiter: ctx.plateLimiter,
+  });
   const { displayVerdict } = reliabilityBundle;
   const displayVerdictStyle = mapVerdictToDisplay(displayVerdict);
-  const focusPriority = reliabilityBundle.reliability.withholdIntensityTopAction
-    ? null
-    : ctx.focusPriority;
+  const withhold = reliabilityBundle.reliability.withholdIntensityTopAction;
+  // Glossary instruction is the card action; keep focusPriority aligned for TestFlight.
+  const focusPriority = withhold ? null : verdictCopy.instruction;
+  const headline =
+    reliabilityBundle.effectiveHeadlineOverride ??
+    (ctx.phase === 'MORNING' ? verdictCopy.title : ctx.effectiveHeadline);
+  const postureLabel =
+    ctx.phase === 'MORNING' || ctx.phase === 'BEFORE_SESSION' || ctx.phase === 'RECOVERY_WINDOW'
+      ? verdictCopy.tag
+      : ctx.postureLabel;
 
   return {
     eyebrow: ctx.heroEyebrow,
     headline,
     subline: ctx.effectiveSubline,
     posture: ctx.posture,
-    postureLabel: ctx.postureLabel,
+    postureLabel,
     focusPriority,
     ...assembleTodayHeroGoalFields(ctx),
     actionLine: focusPriority,
@@ -820,6 +977,18 @@ function assembleTodayHero(ctx: ReturnType<typeof prepareTodayViewModelContext>)
       confidenceHref: ctx.hideHeroConfidence ? null : ctx.confidenceHref,
       limitingCauseText: ctx.plateLimiter.text,
       limitingFactorHref: ctx.plateLimiter.href,
+      limiterSignal: verdictCopy.limiterSignal,
+      limiterSignals: verdictCopy.limiterSignals,
+      limiterCountLabel: verdictCopy.limiterCountLabel,
+      supportSignal: verdictCopy.supportSignal,
+      supportSignals: verdictCopy.supportSignals,
+      supportCountLabel: verdictCopy.supportCountLabel,
+      explanation: verdictCopy.explanation,
+      instruction: withhold ? null : verdictCopy.instruction,
+      stateCode: verdictCopy.stateCode,
+      showHeadline: verdictCopy.showHeadline,
+      vsYesterday: verdictCopy.vsYesterday,
+      vsYesterdayLabel: verdictCopy.vsYesterdayLabel,
     },
     reliability: reliabilityBundle.reliability,
   };
@@ -921,8 +1090,11 @@ async function loadTodayPresentationInputs(
 ) {
   const dayStart = startOfDay(day);
 
+  const yesterdayId = previousTrainingDay(trainingDayId);
+
   const [
     snapshot,
+    yesterdaySnapshot,
     healthEntries,
     activities,
     plannedSessions,
@@ -935,6 +1107,8 @@ async function loadTodayPresentationInputs(
     options.athleteSnapshot
       ? Promise.resolve(options.athleteSnapshot)
       : getOrBuildAthleteSnapshot(athleteId, trainingDayId),
+    // Same athleteId only — never cross-athlete. Read-only; no Neon migration.
+    getLatestAthleteSnapshot({ athleteId, trainingDayId: yesterdayId }),
     getHealthEntries(athleteId, 14, day),
     getActivitiesList(athleteId, { sinceDays: 60 }),
     // Horizon covers Today day summary (filters to today) + rearrange detectors (14d).
@@ -950,6 +1124,7 @@ async function loadTodayPresentationInputs(
     trainingDayId,
     day,
     snapshot,
+    yesterdaySnapshot,
     healthEntries,
     activities,
     plannedSessions,

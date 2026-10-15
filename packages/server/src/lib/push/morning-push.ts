@@ -7,18 +7,19 @@ import { getLatestAthleteSnapshot } from '@sharpit/server/infrastructure/athlete
 import { prisma } from '@sharpit/db/client';
 import { wantsMorningVerdict } from '@sharpit/server/lib/notifications/notification-prefs';
 import type { ApnsPayload } from '@sharpit/server/lib/push/apns';
-import {
-  mapVerdictToDisplay,
-  type OverallVerdict,
-} from '@sharpit/app/lib/today/dashboard/today-mapping';
+import type { OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
 import {
   ensureMorningRecalibration,
   type MorningRecalibrationPresentation,
 } from '@sharpit/server/lib/morning-recalibration/service';
 import { coachDiscussHref } from '@sharpit/app/lib/coach/chat/discuss/coach-discuss-href';
-import { formatDayScoresPushBits } from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-day-scores';
 import { loadV1DayScores, type V1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores';
+import {
+  VERDICT_INSTRUCTION,
+  VERDICT_TAG,
+  type VerdictStateCode,
+} from '@sharpit/server/lib/verdict/verdict-copy';
 
 export type MorningPushPayload = {
   title: string;
@@ -51,37 +52,39 @@ const DEFAULT_CONCURRENCY = 5;
 
 /**
  * Builds the minimal, silenceable morning push notification payload (Moment 1 - Wake).
- * Meets the athlete with a single honest verdict + briefing excerpt before they open the app.
  * Deep-links into the coach morning-brief conversation (not only Today).
+ *
+ * Lock-screen privacy: title = fixed glossary tag, body = fixed state instruction
+ * (or a waiting morning proposal). Never the card `explanation`, never health
+ * score values (Réserve / Stress). `dayScores` is kept for call-site compat and ignored.
  */
 export function buildMorningPushPayload(
   snapshot: AthleteSnapshot,
   origin = appOrigin('https://sharpit.app'),
   proposal: MorningRecalibrationPresentation | null = null,
-  dayScores: V1DayScores | null = null,
+  _dayScores: V1DayScores | null = null,
 ): MorningPushPayload {
+  void _dayScores;
   const verdict = (snapshot.todaysDecision ??
     snapshot.decision?.overallVerdict ??
     null) as OverallVerdict | null;
 
   let title = 'Verdict du jour';
-  if (verdict) {
-    const display = mapVerdictToDisplay(verdict);
-    title = display?.label ?? title;
+  let instruction: string | null = null;
+  if (verdict && verdict in VERDICT_TAG) {
+    title = VERDICT_TAG[verdict as VerdictStateCode];
+    instruction = VERDICT_INSTRUCTION[verdict as VerdictStateCode];
   }
 
-  // The night's proposal for today's session first — the one thing to act on — else the briefing.
+  // Proposal while it waits, else fixed instruction (never explanation / scores).
   const rawBody =
     morningProposalLine(proposal) ||
-    snapshot.primaryProductMessage ||
-    snapshot.briefing?.content?.split('\n').find((l) => l.trim().length > 0) ||
+    instruction ||
     snapshot.insufficientDataMessage ||
-    'Ta lecture du jour t’attend dans SharpIt.';
+    'La lecture du jour attend dans SharpIt.';
 
-  const scoresBits = formatDayScoresPushBits(dayScores);
-  const withScores = scoresBits ? `${rawBody} · ${scoresBits}` : rawBody;
   // Cap length cleanly for lock screen presentation
-  const body = withScores.length > 140 ? `${withScores.slice(0, 137).trim()}…` : withScores;
+  const body = rawBody.length > 140 ? `${rawBody.slice(0, 137).trim()}…` : rawBody;
   const base = origin.replace(/\/+$/, '');
   const coachPath = coachDiscussHref({
     kind: 'morning-brief',

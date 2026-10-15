@@ -1,0 +1,132 @@
+{
+  "version": 2,
+  "stateCodesOrdered": [
+    "RECOVER",
+    "CAUTION",
+    "TRAIN_EASY",
+    "TRAIN_SMART",
+    "TRAIN_HARD",
+    "RACE_READY",
+    "INSUFFICIENT_DATA"
+  ],
+  "tags": {
+    "RECOVER": "Repos",
+    "CAUTION": "Prudence",
+    "TRAIN_EASY": "Léger",
+    "TRAIN_SMART": "Qualité",
+    "TRAIN_HARD": "Intense",
+    "RACE_READY": "Pic",
+    "INSUFFICIENT_DATA": "En attente"
+  },
+  "titles": {
+    "RECOVER": "Priorité au repos",
+    "CAUTION": "Signaux à ménager",
+    "TRAIN_EASY": "Journée légère",
+    "TRAIN_SMART": "Journée qualité",
+    "TRAIN_HARD": "Journée propice à l’effort",
+    "RACE_READY": "Fenêtre de performance",
+    "INSUFFICIENT_DATA": "Pas encore de verdict fiable"
+  },
+  "showHeadline": false,
+  "instructions": {
+    "RECOVER": "Privilégie le repos ou une marche très légère.",
+    "CAUTION": "Baisse l’intensité de la séance prévue.",
+    "TRAIN_EASY": "Reste en endurance facile.",
+    "TRAIN_SMART": "Garde la qualité, coupe le volume.",
+    "TRAIN_HARD": "Enchaîne la séance prévue avec engagement.",
+    "RACE_READY": "Fais la séance qualité prévue.",
+    "INSUFFICIENT_DATA": "Synchronise ta nuit avant de décider.",
+    "TRAIN_HARD_OVERLOAD": "Pousse la séance clé avec une progression mesurée."
+  },
+  "vsYesterday": {
+    "same": "Comme hier",
+    "changed": "Changé depuis hier"
+  },
+  "limiterSignals": {
+    "hrv_low": {
+      "essential": "Corps pas encore récupéré",
+      "expert": "VFC basse"
+    },
+    "rhr_high": {
+      "essential": "Cœur plus rapide au repos",
+      "expert": "FC repos haute"
+    },
+    "sleep_short": {
+      "essential": "Nuit trop courte",
+      "expert": "Sommeil court"
+    },
+    "sleep_poor": {
+      "essential": "Nuit agitée",
+      "expert": "Sommeil agité"
+    },
+    "subjective_low": {
+      "essential": "Fatigue ressentie",
+      "expert": "Ressenti bas"
+    },
+    "load_elevated": {
+      "essential": "Grosse semaine d’entraînement",
+      "expert": "Charge élevée"
+    }
+  },
+  "supportSignals": {
+    "hrv_ok": {
+      "essential": "Corps bien récupéré",
+      "expert": "VFC dans la norme"
+    },
+    "rhr_ok": {
+      "essential": "Cœur calme au repos",
+      "expert": "FC repos normale"
+    },
+    "sleep_adequate": {
+      "essential": "Nuit suffisante",
+      "expert": "Sommeil suffisant"
+    },
+    "sleep_quality_ok": {
+      "essential": "Nuit réparatrice",
+      "expert": "Sommeil de qualité"
+    },
+    "subjective_ok": {
+      "essential": "Bonne forme ressentie",
+      "expert": "Ressenti élevé"
+    },
+    "load_managed": {
+      "essential": "Charge bien gérée",
+      "expert": "Charge maîtrisée"
+    }
+  },
+  "limiterCountLabel": {
+    "template": "{n} signaux",
+    "minCount": 2
+  },
+  "supportCountLabel": {
+    "template": "{n} signaux",
+    "minCount": 2
+  },
+  "chipPrefixes": {
+    "limiter": "Frein",
+    "support": "Porté par"
+  },
+  "expertAcronyms": [
+    "VFC",
+    "HRV",
+    "FC",
+    "TSS",
+    "ACWR",
+    "CTL",
+    "ATL",
+    "TSB",
+    "IF",
+    "NP",
+    "VI",
+    "RPE",
+    "FTP",
+    "LTHR",
+    "CSS"
+  ],
+  "tone": {
+    "address": "tutoiement",
+    "instructionMood": "imperatif",
+    "noPromisedOutcome": true,
+    "noGenderedAgreement": true
+  }
+}

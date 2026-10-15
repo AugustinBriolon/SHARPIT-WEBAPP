@@ -31,6 +31,7 @@ export const NATIVE_V1_SURFACES = [
   { path: 'journal/day-signals', methods: ['GET'] },
   { path: 'journal-prefs', methods: ['GET', 'PUT'] },
   { path: 'wellness-checkin', methods: ['GET', 'POST'] },
+  { path: 'wellness-checkin/status', methods: ['GET'] },
   { path: 'athlete-profile', methods: ['GET', 'PATCH'] },
   { path: 'integrations/source-prefs', methods: ['GET', 'PATCH'] },
   { path: 'athlete-profile/threshold-history', methods: ['GET'] },

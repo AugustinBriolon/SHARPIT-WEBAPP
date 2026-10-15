@@ -29,11 +29,11 @@ import {
 
 describe('mapVerdictToDisplay', () => {
   it('returns correct label for TRAIN_HARD', () => {
-    expect(mapVerdictToDisplay('TRAIN_HARD').label).toBe('Entraîne-toi fort');
+    expect(mapVerdictToDisplay('TRAIN_HARD').label).toBe('Intense');
   });
 
   it('returns correct label for RECOVER', () => {
-    expect(mapVerdictToDisplay('RECOVER').label).toBe('Récupère');
+    expect(mapVerdictToDisplay('RECOVER').label).toBe('Repos');
   });
 
   it('RECOVER uses protective primary, not punitive red', () => {
@@ -44,8 +44,8 @@ describe('mapVerdictToDisplay', () => {
     expect(d.colorClass).not.toContain('red');
   });
 
-  it('RACE_READY is bike/swim inclusive', () => {
-    expect(mapVerdictToDisplay('RACE_READY').label).toBe('Prêt à performer');
+  it('RACE_READY uses Pic tag', () => {
+    expect(mapVerdictToDisplay('RACE_READY').label).toBe('Pic');
   });
 
   it('TRAIN_HARD and RACE_READY share primary colour', () => {
@@ -346,7 +346,7 @@ describe('mapConsistencyToDisplay', () => {
 
   it('mapConsistencyToAthleteDisplay hides raw conflict and shows verdict', () => {
     const result = mapConsistencyToAthleteDisplay('CONFLICTING', 33, 'TRAIN_EASY', 'RECOVERY');
-    expect(result.label).toBe('Décision : Entraîne-toi légèrement');
+    expect(result.label).toBe('Décision : Léger');
     expect(result.detail).toContain('récupération');
     expect(result.label).not.toContain('conflit');
   });

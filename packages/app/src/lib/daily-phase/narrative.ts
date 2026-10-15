@@ -6,7 +6,7 @@ import {
   type EveningSleepHints,
   type TomorrowSessionHint,
 } from '@sharpit/app/lib/daily-phase/evening-context';
-import type { OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
+import { VERDICT_TAG, type OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
 import type { TodayEffortLevel } from '@sharpit/app/lib/today/navigation/today-narrative-context';
 import type {
   DailyPhase,
@@ -68,21 +68,22 @@ function isRestDayRecoveryWindow(input: PhaseNarrativeInput): boolean {
   );
 }
 
-function postureLabelForPhase(posture: TodayPosture, phase: DailyPhase): string | null {
+/** @deprecated Prefer `VERDICT_TAG` from today-mapping — re-export for existing tests. */
+export const VERDICT_STATUS_TAG = VERDICT_TAG;
+
+/** Non-morning protect still softens the recover tag; other verdicts keep their tag. */
+function postureLabelForVerdict(
+  verdict: OverallVerdict,
+  posture: TodayPosture,
+  phase: DailyPhase,
+): string | null {
   if (phase === 'END_OF_DAY' || phase === 'SESSION_COMPLETED') {
     return null;
   }
-
-  switch (posture) {
-    case 'protect':
-      return phase === 'MORNING' ? 'Récup d’abord' : 'Récup fragile';
-    case 'steady':
-      return 'Forme stable';
-    case 'push':
-      return 'Feu vert';
-    default:
-      return 'À préciser';
+  if (verdict === 'RECOVER' && posture === 'protect' && phase !== 'MORNING') {
+    return 'Repos fragile';
   }
+  return VERDICT_TAG[verdict];
 }
 
 /** Rest-day equivalent of RECOVERY_WINDOW's reminders. No session to reference. */
@@ -337,18 +338,19 @@ function postTrainingHeadline(
 function morningHeadline(verdict: OverallVerdict): string {
   switch (verdict) {
     case 'RECOVER':
-      return 'Récupération prioritaire';
+      return 'Priorité au repos';
     case 'TRAIN_HARD':
-    case 'RACE_READY':
       return 'Journée propice à l’effort';
+    case 'RACE_READY':
+      return 'Fenêtre de performance';
     case 'TRAIN_EASY':
-      return 'Journée modérée';
+      return 'Journée légère';
     case 'CAUTION':
-      return 'Journée à ménager';
+      return 'Signaux à ménager';
     case 'TRAIN_SMART':
-      return 'Journée ciblée';
+      return 'Journée qualité';
     default:
-      return 'Lis ton état avant d’agir';
+      return 'Pas encore de verdict fiable';
   }
 }
 
@@ -488,7 +490,7 @@ export function buildPhaseNarrative(input: PhaseNarrativeInput): PhaseNarrative 
     heroSubline: sublineForPhase(input, focusPriority),
     whyFocus: input.resolution.whyFocus,
     posture,
-    postureLabel: postureLabelForPhase(posture, phase) ?? '',
+    postureLabel: postureLabelForVerdict(input.verdict, posture, phase) ?? '',
     focusPriority,
     goalLine,
     adaptationReminders,

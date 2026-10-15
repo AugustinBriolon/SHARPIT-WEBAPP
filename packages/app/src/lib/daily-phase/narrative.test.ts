@@ -4,6 +4,7 @@ import {
   assertPhaseNarrativeConsistency,
   buildPhaseNarrative,
   pickAdaptationReminders,
+  VERDICT_STATUS_TAG,
 } from '@sharpit/app/lib/daily-phase/narrative';
 import { resolveDailyPhase } from '@sharpit/app/lib/daily-phase/resolve';
 import type {
@@ -12,6 +13,7 @@ import type {
   DailyPhase,
 } from '@sharpit/app/lib/daily-phase/types';
 import { DAILY_PHASE_PRIMARY_QUESTION } from '@sharpit/app/lib/daily-phase/types';
+import type { OverallVerdict } from '@sharpit/app/lib/today/dashboard/today-mapping';
 
 function minutesSinceLastActivityForPhase(phase: DailyPhase): number | null {
   if (phase === 'SESSION_COMPLETED') {
@@ -434,5 +436,70 @@ describe('pickAdaptationReminders', () => {
   it('returns reminders only for recovery and end of day', () => {
     expect(pickAdaptationReminders('RECOVERY_WINDOW').length).toBeGreaterThan(0);
     expect(pickAdaptationReminders('MORNING')).toHaveLength(0);
+  });
+});
+
+describe('verdict status tags', () => {
+  const ALL_VERDICTS = Object.keys(VERDICT_STATUS_TAG) as OverallVerdict[];
+
+  function morningNarrative(verdict: OverallVerdict) {
+    const ref = new Date('2026-07-07T10:00:00');
+    const dayContext = buildDailyPhaseDayContext(ref, [], []);
+    const resolution = resolveDailyPhase(
+      {
+        dayContext,
+        athlete: {
+          recommendationAvailable: true,
+          adviceActionable: true,
+          dailyStrainAvailable: false,
+          newSessionSincePriorSnapshot: false,
+          newInferenceSincePriorSnapshot: false,
+          newObservationsSincePriorSnapshot: false,
+          minutesSinceLastActivity: null,
+          minutesSinceSnapshotGenerated: 60,
+          priorPhase: null,
+          sleepLoggedTonight: false,
+        },
+        localHour: 10,
+      },
+      ref,
+    );
+    return buildPhaseNarrative({
+      resolution,
+      verdict,
+      adviceActionable: true,
+      actionLine: null,
+      sportLabel: null,
+      totalTssToday: null,
+      dailyStrainScore: null,
+      dailyStrainAvailable: false,
+    });
+  }
+
+  it('maps every verdict state to its own distinct existing tag', () => {
+    const tags = ALL_VERDICTS.map((v) => VERDICT_STATUS_TAG[v]);
+    expect(tags).toHaveLength(ALL_VERDICTS.length);
+    expect(new Set(tags).size).toBe(ALL_VERDICTS.length);
+
+    const morningTags = ALL_VERDICTS.map((v) => morningNarrative(v).postureLabel);
+    expect(new Set(morningTags).size).toBe(ALL_VERDICTS.length);
+  });
+
+  it('CAUTION uses Prudence — never RECOVER’s Repos', () => {
+    expect(VERDICT_STATUS_TAG.CAUTION).toBe('Prudence');
+    expect(VERDICT_STATUS_TAG.RECOVER).toBe('Repos');
+    expect(morningNarrative('RECOVER').postureLabel).toBe('Repos');
+    expect(morningNarrative('CAUTION').postureLabel).toBe('Prudence');
+    expect(morningNarrative('CAUTION').postureLabel).not.toMatch(/repos/i);
+  });
+
+  it('tags follow soft→strong order (Repos → Pic) with En attente apart', () => {
+    expect(VERDICT_STATUS_TAG.RECOVER).toBe('Repos');
+    expect(VERDICT_STATUS_TAG.CAUTION).toBe('Prudence');
+    expect(VERDICT_STATUS_TAG.TRAIN_EASY).toBe('Léger');
+    expect(VERDICT_STATUS_TAG.TRAIN_SMART).toBe('Qualité');
+    expect(VERDICT_STATUS_TAG.TRAIN_HARD).toBe('Intense');
+    expect(VERDICT_STATUS_TAG.RACE_READY).toBe('Pic');
+    expect(VERDICT_STATUS_TAG.INSUFFICIENT_DATA).toBe('En attente');
   });
 });

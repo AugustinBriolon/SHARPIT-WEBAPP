@@ -103,7 +103,7 @@ describe('buildGlobalDecisionContext', () => {
     const ctx = buildGlobalDecisionContext(minimalSnapshot(decision), 'RECOVERY');
     expect(ctx.visible).toBe(true);
     expect(ctx.domainRole).toBe('driving');
-    expect(ctx.verdictLabel).toBe('Entraîne-toi finement');
+    expect(ctx.verdictLabel).toBe('Qualité');
   });
 
   it('hides when decision is missing', () => {

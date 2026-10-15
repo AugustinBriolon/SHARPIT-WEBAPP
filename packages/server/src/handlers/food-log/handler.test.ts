@@ -124,7 +124,9 @@ describe('/api/food-log', () => {
     vi.mocked(log.addFoodLogEntries).mockResolvedValue([{ id: 'e1' }, { id: 'e2' }] as never);
     const item = { trainingDayId: '2026-10-01', meal: 'LUNCH', grams: 120, productId: 'p1' };
 
-    const created = await POST(json('POST', '/entries/batch', { entries: [item, { ...item, grams: 80 }] }));
+    const created = await POST(
+      json('POST', '/entries/batch', { entries: [item, { ...item, grams: 80 }] }),
+    );
     expect(created.status).toBe(201);
     expect(await created.json()).toEqual({ entries: [{ id: 'e1' }, { id: 'e2' }] });
     expect(log.addFoodLogEntries).toHaveBeenCalledWith(
@@ -134,7 +136,9 @@ describe('/api/food-log', () => {
     );
 
     const refused = await POST(
-      json('POST', '/entries/batch', { entries: [item, { trainingDayId: '2026-10-01', meal: 'LUNCH' }] }),
+      json('POST', '/entries/batch', {
+        entries: [item, { trainingDayId: '2026-10-01', meal: 'LUNCH' }],
+      }),
     );
     expect(refused.status).toBe(400);
     const empty = await POST(json('POST', '/entries/batch', { entries: [] }));
