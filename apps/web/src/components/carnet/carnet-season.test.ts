@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { closedAdherence, seasonWeeks } from './carnet-season';
+import { closedAdherence, seasonWeeks, upcomingSeasonSessions } from './carnet-season';
 import { dayOf } from './carnet-time';
 
 const MONDAYS = [dayOf('2026-09-28'), dayOf('2026-10-05')];
@@ -52,6 +52,36 @@ describe('seasonWeeks', () => {
 
   it('has no adherence for a week with nothing planned', () => {
     expect(seasonWeeks([], MONDAYS, '2026-10-05')[0]?.adherence).toBeNull();
+  });
+});
+
+describe('upcomingSeasonSessions', () => {
+  it('keeps open sessions from today on, soonest first, and drops done or linked ones', () => {
+    expect(
+      upcomingSeasonSessions(
+        [
+          {
+            id: 'done',
+            date: '2026-10-16',
+            completed: true,
+            title: 'Seuil',
+            startTime: '07:00',
+          },
+          {
+            id: 'linked',
+            date: '2026-10-16',
+            completed: false,
+            activity: { id: 'a1' },
+            startTime: '08:00',
+          },
+          { id: 'later', date: '2026-10-18', completed: false, title: 'Long', startTime: '09:00' },
+          { id: 'today-late', date: '2026-10-16', completed: false, startTime: '18:00' },
+          { id: 'today-early', date: '2026-10-16', completed: false, startTime: '07:00' },
+          { date: '2026-10-17', completed: false },
+        ],
+        '2026-10-16',
+      ).map((session) => session.id),
+    ).toEqual(['today-early', 'today-late', 'later']);
   });
 });
 

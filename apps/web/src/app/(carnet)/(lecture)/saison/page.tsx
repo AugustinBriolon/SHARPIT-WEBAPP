@@ -19,10 +19,12 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection, readViewModel } from '@/components/carnet/carnet-read';
+import { UpcomingSessions } from '@/components/carnet/carnet-upcoming-sessions';
 import {
   closedAdherence,
   type SeasonSession,
   seasonWeeks,
+  upcomingSeasonSessions,
 } from '@/components/carnet/carnet-season';
 import {
   countdownLabel,
@@ -142,6 +144,70 @@ function Brief({ brief }: { brief: WeeklyCoachingBriefViewModel }) {
   );
 }
 
+function nextRaceLead(goals: ClientGoal[] | null, today: Date): string {
+  const nextRace = goals
+    ?.filter((g) => g.kind === 'RACE' && !g.achieved && g.targetDate && g.targetDate >= today)
+    .sort((a, b) => (a.targetDate?.getTime() ?? 0) - (b.targetDate?.getTime() ?? 0))[0];
+  return nextRace?.targetDate
+    ? `${nextRace.title}, ${countdownLabel(nextRace.targetDate, today)}.`
+    : 'Les semaines passées, celle en cours et la suivante.';
+}
+
+function Adherence({
+  sessions,
+  weeks,
+  adherence,
+}: {
+  sessions: SeasonSession[] | null;
+  weeks: ReturnType<typeof seasonWeeks>;
+  adherence: number | null;
+}) {
+  if (!sessions) {
+    return <Unreadable what="Le plan" />;
+  }
+  return (
+    <>
+      <Figures>
+        <Figure
+          hint={`sur les ${WEEKS_BACK} dernières semaines`}
+          label="Séances faites"
+          unit={adherence === null ? null : '%'}
+          value={percent(adherence)}
+        />
+      </Figures>
+      <CarnetBarChart
+        data={weeks.map((w) => ({ label: w.label, planned: w.planned, done: w.done }))}
+        title="Séances par semaine"
+        series={[
+          {
+            key: 'planned',
+            name: 'Prévues',
+            stroke: 'var(--muted-foreground)',
+            dashed: true,
+          },
+          { key: 'done', name: 'Faites', stroke: CHART_BASE_STROKE },
+        ]}
+      />
+    </>
+  );
+}
+
+function Adaptation({ adaptation }: { adaptation: AdaptationViewModel | null }) {
+  if (!adaptation) {
+    return <Unreadable what="L'adaptation" />;
+  }
+  return (
+    <>
+      <p className="text-sm leading-relaxed">
+        <span className="font-medium">{adaptation.verdictLabel}</span>
+        {adaptation.trendLabel ? ` · ${adaptation.trendLabel}` : ''}
+      </p>
+      {adaptation.limitingFactor ? <Quiet>Frein : {adaptation.limitingFactor}</Quiet> : null}
+      <Reasons items={[...adaptation.rationale, ...adaptation.keyEvidence]} />
+    </>
+  );
+}
+
 function Load({ effort }: { effort: EffortViewModel }) {
   return (
     <>
@@ -208,21 +274,11 @@ export default async function CarnetSeasonPage() {
   ]);
 
   const weeks = sessions ? seasonWeeks(sessions, mondays, todayId) : [];
+  const upcoming = sessions ? upcomingSeasonSessions(sessions, todayId) : null;
   const adherence = closedAdherence(weeks);
-  const nextRace = goals
-    ?.filter((g) => g.kind === 'RACE' && !g.achieved && g.targetDate && g.targetDate >= today)
-    .sort((a, b) => (a.targetDate?.getTime() ?? 0) - (b.targetDate?.getTime() ?? 0))[0];
 
   return (
-    <CarnetPage
-      kicker="La saison"
-      title="Où tu en es"
-      lead={
-        nextRace?.targetDate
-          ? `${nextRace.title}, ${countdownLabel(nextRace.targetDate, today)}.`
-          : 'Les semaines passées, celle en cours et la suivante.'
-      }
-    >
+    <CarnetPage kicker="La saison" lead={nextRaceLead(goals, today)} title="Où tu en es">
       <CarnetSection
         label="La semaine"
         title={brief ? `${brief.weekStartLabel} – ${brief.weekEndLabel}` : undefined}
@@ -230,34 +286,16 @@ export default async function CarnetSeasonPage() {
         {brief ? <Brief brief={brief} /> : <Unreadable what="La semaine" />}
       </CarnetSection>
 
-      <CarnetSection label="La régularité" title="Séances prévues, séances faites">
-        {sessions ? (
-          <>
-            <Figures>
-              <Figure
-                hint={`sur les ${WEEKS_BACK} dernières semaines`}
-                label="Séances faites"
-                unit={adherence === null ? null : '%'}
-                value={percent(adherence)}
-              />
-            </Figures>
-            <CarnetBarChart
-              data={weeks.map((w) => ({ label: w.label, planned: w.planned, done: w.done }))}
-              title="Séances par semaine"
-              series={[
-                {
-                  key: 'planned',
-                  name: 'Prévues',
-                  stroke: 'var(--muted-foreground)',
-                  dashed: true,
-                },
-                { key: 'done', name: 'Faites', stroke: CHART_BASE_STROKE },
-              ]}
-            />
-          </>
+      <CarnetSection label="Prochaines séances" title="À venir, dans le plan">
+        {upcoming ? (
+          <UpcomingSessions sessions={upcoming} today={todayId} />
         ) : (
-          <Unreadable what="Le plan" />
+          <Unreadable what="Les prochaines séances" />
         )}
+      </CarnetSection>
+
+      <CarnetSection label="La régularité" title="Séances prévues, séances faites">
+        <Adherence adherence={adherence} sessions={sessions} weeks={weeks} />
       </CarnetSection>
 
       <CarnetSection label="La charge" title="Ce que l'entraînement coûte">
@@ -265,18 +303,7 @@ export default async function CarnetSeasonPage() {
       </CarnetSection>
 
       <CarnetSection label="L'adaptation" title={adaptation?.statusLabel}>
-        {adaptation ? (
-          <>
-            <p className="text-sm leading-relaxed">
-              <span className="font-medium">{adaptation.verdictLabel}</span>
-              {adaptation.trendLabel ? ` · ${adaptation.trendLabel}` : ''}
-            </p>
-            {adaptation.limitingFactor ? <Quiet>Frein : {adaptation.limitingFactor}</Quiet> : null}
-            <Reasons items={[...adaptation.rationale, ...adaptation.keyEvidence]} />
-          </>
-        ) : (
-          <Unreadable what="L'adaptation" />
-        )}
+        <Adaptation adaptation={adaptation} />
       </CarnetSection>
 
       <CarnetSection label="Les objectifs" title="Vers quoi tu vas">

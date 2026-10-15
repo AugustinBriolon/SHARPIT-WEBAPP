@@ -1,12 +1,23 @@
+import { ActivityType, SessionIntensity } from '@prisma/client';
 import { addDays } from 'date-fns';
+import { comparePlannedSessionsBySchedule } from '@sharpit/app/lib/planned-session/planned-session-dates';
 import { dayIdOf, weekLabel } from './carnet-time';
 
 /** What the season page needs of a planned session, as `/api/v1/planned-sessions` sends it. */
 export type SeasonSession = {
+  id?: string;
   date: string;
   completed: boolean;
   isKey?: boolean;
   activity?: { id: string } | null;
+  title?: string | null;
+  type?: ActivityType;
+  intensity?: SessionIntensity | null;
+  durationMin?: number | null;
+  startTime?: string | null;
+  description?: string | null;
+  load?: number | null;
+  rationale?: string | null;
 };
 
 export type SeasonWeek = {
@@ -56,6 +67,19 @@ export function seasonWeeks(
       open: to >= today,
     };
   });
+}
+
+/** Planned, still open sessions from today on — the list the season page opens. */
+export function upcomingSeasonSessions(
+  sessions: readonly SeasonSession[],
+  today: string,
+): SeasonSession[] {
+  return sessions
+    .filter(
+      (session): session is SeasonSession & { id: string } =>
+        Boolean(session.id) && !isDone(session) && session.date.slice(0, 10) >= today,
+    )
+    .sort(comparePlannedSessionsBySchedule);
 }
 
 /** Planned sessions done over the closed weeks, the number the beta is judged on. */
