@@ -49,7 +49,8 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
                 className={cn(
                   'relative block rounded-md px-3 py-1.5 text-sm transition-colors duration-150',
                   current
-                    ? 'text-foreground font-medium'
+                    ? // highlight fill + paired ink (dark lime would fail with text-foreground/snow)
+                      'text-highlight-foreground font-medium'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >

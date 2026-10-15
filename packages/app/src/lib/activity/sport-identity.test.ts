@@ -3,9 +3,11 @@ import { ActivityType } from '@prisma/client';
 
 import {
   SPORT_IDENTITY_PANEL,
+  SPORT_IDENTITY_SOLID,
   SPORT_IDENTITY_SURFACE,
   SPORT_IDENTITY_TEXT,
   sportIdentityHex,
+  sportIdentitySolid,
 } from './sport-identity';
 
 const SPORTS = [
@@ -57,6 +59,17 @@ describe('sport identity', () => {
   it('gives sport panels a dark-mode tint, not a light-only wash', () => {
     for (const type of SPORTS) {
       expect(SPORT_IDENTITY_PANEL[type]).toContain('dark:');
+    }
+  });
+
+  it('pairs solid sport fills with on-sport foreground tokens (no text-white)', () => {
+    expect(sportIdentitySolid(ActivityType.RUN)).toBe('bg-sport-run text-on-sport-run');
+    expect(sportIdentitySolid(ActivityType.STRENGTH)).toBe(
+      'bg-sport-strength text-on-sport-strength',
+    );
+    for (const type of [...SPORTS, ActivityType.OTHER]) {
+      expect(SPORT_IDENTITY_SOLID[type]).not.toMatch(/text-white|text-black/);
+      expect(SPORT_IDENTITY_SOLID[type]).toMatch(/^bg-sport-\w+ text-on-sport-\w+$/);
     }
   });
 });

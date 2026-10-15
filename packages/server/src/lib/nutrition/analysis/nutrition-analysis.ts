@@ -23,7 +23,7 @@ import {
   formatNutritionAnalysisPrompt,
 } from './nutrition-analysis-prompt';
 import { nutritionDayReadingSchema, type NutritionDayReading } from './nutrition-analysis-schema';
-import { decideNutritionReading } from './nutrition-analysis-state';
+import { decideNutritionReading, parseStoredReading } from './nutrition-analysis-state';
 import {
   claimNutritionAnalysis,
   findNutritionAnalysisRow,
@@ -96,15 +96,32 @@ export async function prepareNutritionCoachReading(
     return { view: null, generate: null };
   }
   const isPastDay = trainingDayId < format(now, 'yyyy-MM-dd');
-  if (!isPastDay) {
-    return { view: { state: 'awaiting_day_end' }, generate: null };
-  }
   const facts = buildNutritionAnalysisFacts(input);
   const hash = nutritionAnalysisInputHash(facts);
   const [row, canGenerate] = await Promise.all([
     findNutritionAnalysisRow(athleteId, trainingDayId),
     canGenerateNutritionAnalysis(athleteId),
   ]);
+  // Mid-day: never generate, but still surface a stored FINAL reading (demo seed / replay).
+  if (!isPastDay) {
+    const stored = parseStoredReading(row);
+    if (stored && row?.status === 'FINAL') {
+      return {
+        view: {
+          state: 'ready',
+          status: stored.status,
+          refreshing: false,
+          generatedAt: stored.generatedAt.toISOString(),
+          verdict: stored.reading.verdict,
+          findings: stored.reading.findings,
+          action: stored.reading.action,
+          flaggedEntries: stored.reading.flaggedEntries,
+        },
+        generate: null,
+      };
+    }
+    return { view: { state: 'awaiting_day_end' }, generate: null };
+  }
   const decision = decideNutritionReading({ row, currentHash: hash, now, isPastDay, canGenerate });
   if (!decision.shouldGenerate) {
     return { view: decision.view, generate: null };

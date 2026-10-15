@@ -43,7 +43,7 @@ export const CALORIE_RING = {
   bar: 'bg-primary',
   track: 'bg-primary/15',
   ring: 'stroke-primary',
-  text: 'text-black dark:text-white',
+  text: 'text-foreground',
 } as const;
 
 export const MACRO_LABELS: Record<MacroKind, string> = {
