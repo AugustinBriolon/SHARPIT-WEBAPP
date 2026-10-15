@@ -1,5 +1,5 @@
 {
-  "version": 2,
+  "version": 3,
   "stateCodesOrdered": [
     "RECOVER",
     "CAUTION",
@@ -41,6 +41,9 @@
   "vsYesterday": {
     "same": "Comme hier",
     "changed": "Changé depuis hier"
+  },
+  "vsYesterdayVerdictLabel": {
+    "template": "Hier : {tag}"
   },
   "limiterSignals": {
     "hrv_low": {
@@ -119,6 +122,14 @@
   "supportCountLabel": {
     "template": "{n} signaux",
     "minCount": 2
+  },
+  "limiterOverflowLabel": {
+    "template": "+{n}",
+    "visibleMax": 2
+  },
+  "explanationCiteLimits": {
+    "maxLimiters": 2,
+    "maxSupports": 1
   },
   "chipPrefixes": {
     "limiter": "Frein",

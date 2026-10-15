@@ -173,6 +173,10 @@ export type TodayViewModel = {
       >;
       /** « 2 signaux » — null below 2 freins. */
       limiterCountLabel: string | null;
+      /** Glossary labels for at most 2 frein chips (essential / expert). */
+      limiterChipLabels: { essential: string[]; expert: string[] };
+      /** « +N » when more than 2 freins — null otherwise. */
+      limiterOverflowLabel: string | null;
       /** Additive « Porté par » code — first of `supportSignals`. */
       supportSignal:
         | 'hrv_ok'
@@ -212,7 +216,10 @@ export type TodayViewModel = {
       showHeadline: false | null;
       /** Compared to yesterday's verdict for this athlete only. */
       vsYesterday: 'same' | 'changed' | null;
+      /** Legacy comparative label — keep for installed iOS. */
       vsYesterdayLabel: string | null;
+      /** Additive. Yesterday's verdict tag, e.g. « Hier : Prudence ». */
+      vsYesterdayVerdictLabel: string | null;
     };
     /** Science Sport reliability V0 — packTier soft-hero + provenance. */
     reliability: {
