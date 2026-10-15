@@ -9,6 +9,7 @@ import type {
   IntegrationProviderView,
   IntegrationsHubPayload,
 } from '@sharpit/app/lib/web/payloads';
+import { GoogleTargetCalendarButton } from '@/components/carnet/carnet-google-target-calendar';
 import {
   CarnetPage,
   CarnetSection,
@@ -60,6 +61,36 @@ function sinceLine(view: IntegrationProviderView): string {
     : 'Relié';
 }
 
+function sourceAction(
+  source: Source,
+  view: IntegrationsHubPayload[Source['key']],
+  linked: boolean,
+  canLink: boolean,
+) {
+  if (!linked && canLink) {
+    return (
+      <ConnectLink
+        className="pressable bg-foreground text-background shrink-0 rounded-full px-3 py-1.5 text-sm font-medium"
+        href={`${source.connectPath}?returnTo=${RETURN_TO}`}
+      >
+        {view.needsReconnect ? 'Relier à nouveau' : 'Relier'}
+      </ConnectLink>
+    );
+  }
+  if (linked && source.key === 'google') {
+    return (
+      <GoogleTargetCalendarButton
+        targetCalendarId={view.account?.targetCalendarId}
+        targetCalendarName={view.account?.targetCalendarName}
+      />
+    );
+  }
+  if (!linked) {
+    return <span className="text-muted-foreground shrink-0 text-xs">Dans l&apos;app</span>;
+  }
+  return null;
+}
+
 /**
  * Linking a source whose OAuth runs in the browser stays on the web (ADR-072). The OAuth
  * callbacks of `api.` still answer `/settings/integrations?…`, which redirects here with its
@@ -105,8 +136,9 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
             {SOURCES.map((source) => {
               const view = hub[source.key];
               const linked = Boolean(view.account) && !view.needsReconnect;
-              const canLink =
-                source.connectPath && (!('configured' in view) || view.configured !== false);
+              const canLink = Boolean(
+                source.connectPath && (!('configured' in view) || view.configured !== false),
+              );
               return (
                 <li key={source.key} className="flex items-center justify-between gap-6 py-3">
                   <div className="flex min-w-0 items-center gap-3">
@@ -118,16 +150,7 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
                       </p>
                     </div>
                   </div>
-                  {!linked && canLink ? (
-                    <ConnectLink
-                      className="pressable bg-foreground text-background shrink-0 rounded-full px-3 py-1.5 text-sm font-medium"
-                      href={`${source.connectPath}?returnTo=${RETURN_TO}`}
-                    >
-                      {view.needsReconnect ? 'Relier à nouveau' : 'Relier'}
-                    </ConnectLink>
-                  ) : !linked ? (
-                    <span className="text-muted-foreground shrink-0 text-xs">Dans l&apos;app</span>
-                  ) : null}
+                  {sourceAction(source, view, linked, canLink)}
                 </li>
               );
             })}
@@ -144,7 +167,10 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
         ) : (
           <Unreadable what="L'état de tes sources" />
         )}
-        <Quiet>Garmin et Apple Santé se relient depuis ton iPhone.</Quiet>
+        <Quiet>
+          Garmin et Apple Santé se relient depuis ton iPhone. Pour Google, choisis l&apos;agenda
+          cible ici une fois relié.
+        </Quiet>
         <InApp>Délier une source, choisir la source principale de chaque donnée</InApp>
       </CarnetSection>
     </CarnetPage>
