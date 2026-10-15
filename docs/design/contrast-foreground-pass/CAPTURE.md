@@ -1,7 +1,14 @@
 # Design — Contrast foreground pass (dark / light)
 
-Binary PNG evidence for the accent/onAccent token pass. Example data only
-(fixture HTML, no live athlete session).
+Binary PNG evidence for the accent/onAccent token pass.
+
+**All athlete data in these captures is fictional.** Screens were taken against a
+local ephemeral Postgres (`docker`-less apt Postgres on `127.0.0.1`) seeded with
+`yarn api db:seed:demo` (demo athlete renamed for `DEV_BYPASS_CLERK`). No user
+account, no production database, and no shared Neon branch were used. No real
+health data is committed.
+
+## Fixture surfaces (synthetic chips)
 
 | File                               | State                                                             |
 | ---------------------------------- | ----------------------------------------------------------------- |
@@ -12,10 +19,23 @@ Binary PNG evidence for the accent/onAccent token pass. Example data only
 | `*-destructive.png`                | Destructive + accent + highlight buttons                          |
 | `*-before-after.png`               | Hardcoded white vs semantic pairs (dark mode is the failure case) |
 
-## Capture method
+Local HTML fixture: `fixtures/contrast-surfaces.html`. Run:
+`node docs/design/contrast-foreground-pass/capture.mjs` (local `playwright`).
 
-Local HTML fixture (`fixtures/contrast-surfaces.html`) with `:root` / `.dark`
-token blocks from `packages/ui/src/styles/globals.css`, rendered via Playwright
+## Real app screens (`captures/screens/`)
 
-- Chromium. Run: `node docs/design/contrast-foreground-pass/capture.mjs`
-  (requires a local `playwright` install).
+Plan in the carnet IA is `/saison` (legacy `/plan` redirects there).
+
+| File                                                         | Screen                         |
+| ------------------------------------------------------------ | ------------------------------ |
+| `screens/light-today.png` / `screens/dark-today.png`         | Aujourd'hui — verdict card     |
+| `screens/light-nutrition.png` / `screens/dark-nutrition.png` | Nutrition — coach reading card |
+| `screens/light-plan.png` / `screens/dark-plan.png`           | Plan / La saison               |
+
+Run (web + api on local DB with `DEV_BYPASS_CLERK`):
+`node docs/design/contrast-foreground-pass/capture-screens.mjs`
+
+### Bug found during capture
+
+Carnet nav active tab used `text-foreground` over `bg-highlight`. In dark mode
+that is snow on Lime Pulse (~1.2:1). Fixed to `text-highlight-foreground`.
