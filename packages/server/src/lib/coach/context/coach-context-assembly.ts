@@ -18,6 +18,7 @@ import {
   loadDailyTrainingStressEntries,
 } from '@sharpit/server/lib/training/pmc/pmc-server';
 import { pmcTsb } from '@sharpit/app/lib/training/pmc/pmc';
+import { effectivePriority, toPrioritizedRaces } from '@sharpit/app/lib/goals/goal-priority';
 import {
   categoryLabels,
   sideLabels,
@@ -232,15 +233,21 @@ function buildHealthFromEntries(healthEntries: Awaited<ReturnType<typeof getHeal
   };
 }
 
-function buildGoalsContext(goals: Awaited<ReturnType<typeof getGoals>>, today: Date) {
+export function buildGoalsContext(goals: Awaited<ReturnType<typeof getGoals>>, today: Date) {
   const activeGoals = goals.filter((g) => !g.achieved);
+  // ADR-084: the suggested priority when none is set, so plans and chat read races as the macro plan does.
+  const prioritized = toPrioritizedRaces(goals);
+  const priorityOf = (id: string) => {
+    const race = prioritized.find((r) => r.id === id);
+    return race ? effectivePriority(race, prioritized) : null;
+  };
   const races = activeGoals
     .filter((g) => g.kind === 'RACE' && g.targetDate)
     .map((g) => ({
       title: g.title,
       date: g.targetDate!,
       location: g.location,
-      priority: g.priority,
+      priority: priorityOf(g.id),
       raceFormat: g.raceFormat,
       targetPerformance: g.targetPerformance,
       daysToGo: differenceInCalendarDays(new Date(g.targetDate!), today),
