@@ -32,6 +32,20 @@ describe('stravaWallClockStart', () => {
     ).toEqual(new Date(Date.UTC(2026, 6, 7, 9, 0, 0)));
   });
 
+  it('projects a virtual ride into the athlete timezone, Zwift stamping it in UTC', () => {
+    // Zwift ride at 12:48 in Paris: Strava's local digits are the UTC ones.
+    expect(
+      stravaWallClockStart(
+        {
+          start_date: '2026-10-16T10:48:07Z',
+          start_date_local: '2026-10-16T10:48:07Z',
+          sport_type: 'VirtualRide',
+        },
+        'Europe/Paris',
+      ),
+    ).toEqual(new Date(Date.UTC(2026, 9, 16, 12, 48, 7)));
+  });
+
   it('projects start_date into the athlete timezone when local is missing', () => {
     expect(stravaWallClockStart({ start_date: '2026-07-07T07:00:00Z' }, 'Europe/Paris')).toEqual(
       new Date(Date.UTC(2026, 6, 7, 9, 0, 0)),

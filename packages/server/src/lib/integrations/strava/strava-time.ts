@@ -39,15 +39,26 @@ export function stravaLocalWallClockAsUtc(startDateLocal: string): Date | null {
  * athlete's timezone (same path as Apple Health when the offset is lost).
  */
 export function stravaWallClockStart(
-  activity: { start_date: string; start_date_local?: string | null },
+  activity: {
+    start_date: string;
+    start_date_local?: string | null;
+    type?: string | null;
+    sport_type?: string | null;
+  },
   fallbackTimeZone: string,
 ): Date {
   const local = activity.start_date_local?.trim();
-  if (local) {
+  // Zwift and other virtual rides are stamped in UTC, so their local digits are the UTC ones:
+  // the athlete's own timezone is the only wall clock that matches Garmin's copy.
+  if (local && !isVirtual(activity)) {
     const fromLocal = stravaLocalWallClockAsUtc(local);
     if (fromLocal) {
       return fromLocal;
     }
   }
   return appleHealthWallClockStart(activity.start_date, fallbackTimeZone);
+}
+
+function isVirtual(activity: { type?: string | null; sport_type?: string | null }): boolean {
+  return [activity.sport_type, activity.type].some((kind) => kind?.startsWith('Virtual'));
 }
