@@ -26,6 +26,10 @@ vi.mock('@sharpit/server/lib/rate-limit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ ok: true }),
   rateLimiters: { apiGeneral: {} },
   rateLimitResponseBody: vi.fn(),
+  rateLimitJsonResponse: vi.fn((result: { retryAfterSeconds: number; cause: string }) => ({
+    body: { error: 'limited', retryAfterSeconds: result.retryAfterSeconds },
+    status: result.cause === 'unavailable' ? 503 : 429,
+  })),
 }));
 
 async function run(url: string, headers: Record<string, string> = {}) {
@@ -41,12 +45,14 @@ describe('apiProxy', () => {
 
   it('authenticates the native contract with Clerk and seals the answer', async () => {
     state.userId = 'user_1';
+    const { checkRateLimit } = await import('@sharpit/server/lib/rate-limit');
     const response = await run('https://api.sharpit.app/api/v1/today', {
       authorization: 'Bearer t',
     });
     expect(response.status).toBe(200);
     expect(state.authCalls).toBe(1);
     expect(response.headers.get('cache-control')).toBe('private, no-store');
+    expect(checkRateLimit).toHaveBeenCalledWith(expect.anything(), 'user_1', { failClosed: true });
   });
 
   it('refuses a Bearer Clerk rejects', async () => {
