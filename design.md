@@ -24,29 +24,41 @@ Pages within a family share the family's shape; they vary only in component arch
 - App pages: **causal column** — State → Evidence → Recommendation → Projection → Limit → Confidence
 - Content pages: document density with `text-label` eyebrows + `analysis-panel` surfaces
 
-## Theme
+## Theme — Ink & Lime (ADR-085)
 
-Tokens live in [`src/app/globals.css`](src/app/globals.css). Do not invent a parallel `tokens.css`.
+Tokens live in [`packages/ui/src/styles/globals.css`](packages/ui/src/styles/globals.css); hex
+primitives in `packages/app/src/lib/brand/brand-tokens.ts`. Do not invent a parallel `tokens.css`.
+The look is the seven cards in [`docs/design/reference/ink-and-lime/`](docs/design/reference/ink-and-lime/) — match them.
 
-- Paper / surfaces: `--background`, `--card`, `--analysis-surface`, `--analysis-surface-alt`
-- Ink: `--foreground`, `--muted-foreground`
-- Accent (sage): `--primary` / SHARPIT sage green
-- Focus: `--ring`
-- Semantic signals (data only): `--signal-recovery`, `--signal-base`, `--signal-tempo`, `--signal-threshold`, `--signal-vo2`, `--signal-caution`, `--signal-risk`, `--signal-neutral`
+- Canvas `--background` #f7f8fa, flat · Cards `--card` white, `rounded-card` (28px), `shadow-card`, no border
+- Ink `--foreground` / `--primary` / `--ink-surface` #0e0e0e — titles, figures, primary action, icon tiles, tooltips
+- Lime `--highlight` #cdf21e — the only hue: progress, records, checks, the live part of a gauge, chart lines
+- Soft lime `--accent` — comparison pills · Neutral chip `--chip-surface` · Inset group `--inset-group` · Track `--track`
+- Sport identity is the icon, never a colour (`--sport-*` all ink, `--on-sport-*` lime)
+- Intensity ramp `--chart-1..5`: grey → ink → lime · Caution / risk keep amber / red, alerts only
+- Dark: canvas #0b0b0c, card #161618, graphite tiles, lime unchanged
+
+Primitives (`@utility`): `card-surface`, `inset-group`, `inset-row`, `icon-tile`, `number-chip`,
+`pill-lime`, `pill-neutral`, `pill-soft`, `progress-track`, `text-hero`. Buttons: `default` (ink),
+`accent` (lime), `secondary` (chip), `dashed`; size `xl` is the 52px full-width action.
 
 ## Typography
 
-Utilities in `globals.css` (never reinvent with ad-hoc `text-[11px] uppercase`):
+Inter everywhere on the web (SF Pro on iOS). Utilities in `globals.css`:
 
-- Display / verdict: `text-verdict` — Syne, weight 600
-- Page title: `text-page-title` — Syne
-- Section title: `text-section-title` — Syne
-- Card title: `text-card-title` — Syne
-- Body: IBM Plex Sans (`--font-sans`)
-- Data / instrument: `text-data` / `text-instrument` — JetBrains Mono, tabular nums
-- Labels: `text-label` — uppercase, tracked, muted
+- Hero figure: `text-hero` — 800, tight, tabular; its unit beside it in `text-muted-foreground`
+- Display / verdict: `text-verdict` — 700
+- Page title: `text-page-title` — 700 · Section title: `text-section-title` — 700 · Card title: `text-card-title` — 600
+- Data / instrument: `text-data` (700) / `text-instrument` (600) — tabular nums
+- Labels: `text-label` — uppercase, tracked 0.06em, muted
 
 One `<h1>` per page. Headings are roman (no italic display).
+
+## Geometry
+
+Card padding 24 · section gap 24 · inset group padding 12 · row gap 8 · row height 56 · button 52 ·
+icon tile 44 · number chip 30 · bar 8. Radii: card 28 · inset 24 · row 18 · control 16 · tile 14 · chip 8.
+All are tokens (`--space-*`, `--size-*`, `rounded-*`), exported to iOS by `yarn tokens:ios`.
 
 ## Spacing
 
@@ -66,7 +78,7 @@ No celebratory toasts, no pulse/bounce on chrome.
 
 ## CTA voice
 
-- Primary: sage fill / primary button, short imperative French
+- Primary: ink fill (`Button` default / `xl`), short imperative French; lime `accent` for a live positive action
 - Secondary: outline / ghost, never competing with the verdict
 
 ## Physio drill-downs — native mobile shell

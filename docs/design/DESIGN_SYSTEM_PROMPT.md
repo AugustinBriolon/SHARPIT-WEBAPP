@@ -2,6 +2,13 @@
 
 > Agent-facing design prompt: the operational rules for generating UI. For the underlying philosophy, see [DESIGN_LANGUAGE.md](./DESIGN_LANGUAGE.md).
 
+> **Ink & Lime ([ADR-085](../adr/ADR-085-ink-and-lime-brand-replaces-botanical-clinical.md)) overrides every colour, font and elevation rule below.**
+> Canvas #f7f8fa · white cards `card-surface` (28px, soft shadow, no border) · ink #0e0e0e · lime #cdf21e
+> (only hue) · Inter · icon tiles `icon-tile` (ink, lime glyph) · rows in `inset-group` / `inset-row` ·
+> pills `pill-lime` / `pill-neutral` / `pill-soft` · bars `progress-track` · hero figures `text-hero`.
+> Sports are told by icon, never colour. Match `docs/design/reference/ink-and-lime/`. Mentions of Forest,
+> Snow, leaf green, Lime Pulse, Syne, IBM Plex or JetBrains Mono below are historical.
+
 ## Brand identity
 
 SHARPIT is an Athlete State Intelligence system — not a fitness tracker, not a dashboard. It is a clinically precise instrument that models an athlete's physiological state to improve decision quality over time.

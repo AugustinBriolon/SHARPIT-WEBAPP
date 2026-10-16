@@ -4,6 +4,12 @@
 
 ---
 
+> **Brand: Ink & Lime ([ADR-085](../adr/ADR-085-ink-and-lime-brand-replaces-botanical-clinical.md)).**
+> Colour, type and elevation values below follow the new system — canvas #f7f8fa, white cards
+> (28px, soft shadow, no border), ink #0e0e0e, lime #cdf21e as the only hue, Inter. Where an older
+> passage names Forest, Snow, sage/leaf green, Syne, IBM Plex or JetBrains Mono, or forbids shadows,
+> ADR-085 wins. The references are in `docs/design/reference/ink-and-lime/`.
+
 ## 1. Design Philosophy
 
 SHARPIT is not a fitness tracker. It is not a dashboard. It is not an AI chatbot with a pretty interface.
@@ -76,20 +82,20 @@ The visual layout follows the logic of explanation. Each block flows causally fr
 
 ### 4.1 Type Stack
 
-**Display / Verdict** — utility `text-verdict` (`font-heading` / Syne)
+**Display / Verdict** — utility `text-verdict` (`font-heading` / Inter)
 
 - Role: the single most important signal on any screen
 - Usage: Today hero headline, physio drill-down heroes, coach narrative headlines
 - Treatment: weight 600, 1.25rem (1.55rem from `sm`), tight tracking; rarely used
 
-**Page title** — utility `text-page-title` (`font-heading` / Syne)
+**Page title** — utility `text-page-title` (`font-heading` / Inter)
 
 - Role: the one page-level identity
 - Usage: sticky headers, settings / training / corps hubs
 - Treatment: weight 600, 1.5rem (`text-2xl`), tight tracking
 - Markup: exactly one `<h1>` per page
 
-**Section title** — utility `text-section-title` (`font-heading` / Syne)
+**Section title** — utility `text-section-title` (`font-heading` / Inter)
 
 - Role: named blocks within a page
 - Usage: coach-memory blocks, profile subsections, panel section heads
@@ -97,13 +103,13 @@ The visual layout follows the logic of explanation. Each block flows causally fr
 - Markup: `<h2>` (or `<h3>` for nested subsections)
 - Note: uppercase list headers (e.g. goals « Courses à venir ») stay on `text-label`, not this utility
 
-**Card / panel title** — utility `text-card-title` (`font-heading` / Syne)
+**Card / panel title** — utility `text-card-title` (`font-heading` / Inter)
 
 - Role: titled cards and modal panels
 - Usage: `CardTitle`, session panel titles
 - Treatment: weight 500, 1rem
 
-**Body** — `font-sans` (IBM Plex Sans)
+**Body** — `font-sans` (Inter)
 
 - Role: explanatory text, evidence, reasoning
 - Usage: everything the athlete reads to understand why
@@ -113,7 +119,7 @@ The visual layout follows the logic of explanation. Each block flows causally fr
 
 - Role: metadata, secondary classification, dimension names, page eyebrows
 - Usage: section labels, signal labels, sticky header eyebrows
-- Treatment: **always** `text-label` — 0.6875rem, weight **600**, letter-spacing 0.14em, uppercase, muted-foreground. Do not reinvent with `text-[11px] … uppercase`.
+- Treatment: **always** `text-label` — 0.75rem, weight **600**, letter-spacing 0.06em, uppercase, muted-foreground. Do not reinvent with `text-[11px] … uppercase`.
 
 **Data / Numeric** — utilities `text-data` / `text-instrument`
 
@@ -124,14 +130,15 @@ The visual layout follows the logic of explanation. Each block flows causally fr
 ### 4.2 Scale (CSS utilities)
 
 ```
-text-verdict:       1.25rem → 1.55rem (sm) — font-heading, weight 600
-text-page-title:    1.5rem                 — font-heading, weight 600
-text-section-title: 1.125rem               — font-heading, weight 600
-text-card-title:    1rem                   — font-heading, weight 500
+text-hero:          4rem                   — data, weight 800, tracked -0.04em
+text-verdict:       1.25rem → 1.55rem (sm) — font-heading, weight 700
+text-page-title:    1.625rem               — font-heading, weight 700
+text-section-title: 1.125rem               — font-heading, weight 700
+text-card-title:    1.0625rem              — font-heading, weight 600
 Body primary:       0.875rem               — sans, regular (14px)
 Body secondary:     0.8125rem              — sans, regular (13px)
-text-label:         0.6875rem              — 11px, uppercase, tracked 0.14em, weight 600
-text-meta:          0.75rem                — 12px, size + leading only (caption / meta tier)
+text-label:         0.75rem                — 12px, uppercase, tracked 0.06em, weight 600
+text-meta:          0.8125rem              — 13px, size + leading only (caption / meta tier)
 ```
 
 ### 4.3 Typographic Rules
@@ -142,7 +149,7 @@ text-meta:          0.75rem                — 12px, size + leading only (captio
 - **Uppercase is reserved for labels.** Never use all-caps for body text or headings.
 - **Tracking (letter-spacing) on body text is always 0.** Only labels and uppercase elements receive tracked spacing.
 - **Verdicts and hero text always left-aligned.** Center alignment is only for empty states and loading placeholders.
-- **`font-heading` (Syne) is the title voice** for `text-page-title`, `text-section-title`, `text-card-title`, and `text-verdict` (+ brand/logo / system chrome). Body and labels stay on sans.
+- **`font-heading` (Inter, bold) is the title voice** for `text-page-title`, `text-section-title`, `text-card-title`, and `text-verdict` (+ brand/logo / system chrome). Body and labels stay on sans.
 - **One `<h1>` per page.** Sections use `<h2>`; nested panels use `<h3>`.
 - **Uppercase section headers** (goals lists, etc.) use `text-label` on `<h2>`, not `text-section-title`.
 
