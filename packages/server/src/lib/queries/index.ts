@@ -64,13 +64,15 @@ export async function getActivitiesList(
     sinceDays?: number;
     /** Page cursor: only activities started strictly before this instant. */
     before?: Date;
+    /** Lower bound: only activities started at or after this instant. */
+    after?: Date;
   },
 ) {
   const where: Prisma.ActivityWhereInput = { athleteId, ...visibleActivityWhere };
   if (params?.type) {
     where.type = params.type;
   }
-  where.date = activityDateWindow(params?.sinceDays, params?.before);
+  where.date = activityDateWindow(params?.sinceDays, params?.before, params?.after);
   return prisma.activity.findMany({
     where,
     select: activityListSelect,
@@ -80,14 +82,20 @@ export async function getActivitiesList(
   });
 }
 
-/** The list's date bounds: a look-back window and a page cursor, either or both. */
+/** The list's date bounds: a look-back window, a lower bound and a page cursor, in any mix. */
 export function activityDateWindow(
   sinceDays?: number,
   before?: Date,
+  after?: Date,
 ): Prisma.DateTimeFilter | undefined {
   const window: Prisma.DateTimeFilter = {};
-  if (sinceDays) {
-    window.gte = startOfDay(addDays(new Date(), -sinceDays));
+  const lowerBounds = [
+    sinceDays ? startOfDay(addDays(new Date(), -sinceDays)) : null,
+    after && !Number.isNaN(after.getTime()) ? after : null,
+  ].filter((date): date is Date => date !== null);
+  if (lowerBounds.length) {
+    // Both given (a demo's clamp and a requested window): the later one holds.
+    window.gte = new Date(Math.max(...lowerBounds.map((date) => date.getTime())));
   }
   if (before && !Number.isNaN(before.getTime())) {
     window.lt = before;

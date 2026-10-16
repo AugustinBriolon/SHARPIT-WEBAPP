@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
   const limit = searchParams.get('limit');
   const sinceDays = searchParams.get('sinceDays');
   const before = searchParams.get('before');
+  const after = searchParams.get('after');
 
   try {
     // Weather / narrative enrichment runs on athlete-state refresh & provider sync —
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
       limit: limit ? Number(limit) : undefined,
       sinceDays: effectiveSinceDays,
       before: before ? new Date(before) : undefined,
+      after: after ? new Date(after) : undefined,
     });
 
     return NextResponse.json(activities);
