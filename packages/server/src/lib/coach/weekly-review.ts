@@ -10,7 +10,7 @@ import {
   subDays,
 } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { COACH_MODEL, coachGatewayOptions, isCoachConfigured } from '@sharpit/server/lib/ai';
+import { COACH_MODEL, coachAsyncGatewayOptions, isCoachConfigured } from '@sharpit/server/lib/ai';
 import {
   buildCoachContext,
   formatCoachContext,
@@ -311,7 +311,7 @@ Rédige la rétrospective hebdomadaire en suivant la structure imposée. Mets l'
     model: COACH_MODEL,
     system: buildWeeklySystem(toDisplayMode(profile?.displayMode)),
     prompt,
-    providerOptions: coachGatewayOptions,
+    providerOptions: coachAsyncGatewayOptions,
     telemetry: { functionId: 'coach-weekly-review' },
   });
   void recordAiUsage(athleteId, 'coach', usage);

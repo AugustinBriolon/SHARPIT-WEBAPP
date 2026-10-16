@@ -147,6 +147,21 @@ export const coachAnalysisGatewayOptions = {
   },
 };
 
+/**
+ * Background coach jobs (daily briefing, weekly review): same model and cache as chat,
+ * on the gateway Flex tier (~0.5× token price, higher latency). Interactive chat / plan /
+ * adapt stay on the default tier so the athlete does not wait longer for the same answer.
+ */
+export const coachAsyncGatewayOptions = {
+  ...googleThinkingOptions,
+  gateway: {
+    ...gatewayCaching,
+    models: [...COACH_FALLBACK_MODELS],
+    serviceTier: 'flex' as const,
+    tags: ['feature:coach', 'tier:flex'],
+  },
+};
+
 /** Indique si une clé d'accès au gateway est configurée. */
 export function isCoachConfigured(): boolean {
   return Boolean(process.env.AI_GATEWAY_API_KEY || process.env.VERCEL_OIDC_TOKEN);
