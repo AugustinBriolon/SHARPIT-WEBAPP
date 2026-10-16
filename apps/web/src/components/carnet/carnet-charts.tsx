@@ -107,7 +107,7 @@ export function CarnetLineChart({
       </p>
       <ChartFigure height={height} series={toChartSeries(data, series)} title={title}>
         <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.12} vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.16} />
           <XAxis {...AXIS} dataKey="label" interval="preserveStartEnd" minTickGap={24} />
           <YAxis {...AXIS} domain={['auto', 'auto']} hide={!showYAxis} width={36} />
           {zeroLine ? <ReferenceLine stroke={CHART_REFERENCE_LINE} y={0} /> : null}
@@ -117,15 +117,15 @@ export function CarnetLineChart({
               key={s.key}
               animationDuration={300}
               animationEasing="ease-out"
+              connectNulls={s.connectNulls ?? true}
               dataKey={s.key}
               dot={false}
               isAnimationActive={!reduceMotion}
               name={s.name}
               stroke={s.stroke}
               strokeDasharray={s.dashed ? '5 3' : undefined}
-              strokeWidth={2}
+              strokeWidth={3}
               type="monotone"
-              connectNulls={s.connectNulls ?? true}
             />
           ))}
           {series.length > 1 ? <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} /> : null}
@@ -158,7 +158,7 @@ export function CarnetBarChart({
       </p>
       <ChartFigure height={height} series={toChartSeries(data, series)} title={title}>
         <BarChart barGap={2} data={data} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.12} vertical={false} />
+          <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.16} />
           <XAxis {...AXIS} dataKey="label" interval="preserveStartEnd" minTickGap={16} />
           <YAxis {...AXIS} width={36} />
           {average ? (
@@ -178,7 +178,7 @@ export function CarnetBarChart({
               fillOpacity={s.dashed ? 0.3 : 1}
               isAnimationActive={!reduceMotion}
               name={s.name}
-              radius={[3, 3, 0, 0]}
+              radius={[6, 6, 6, 6]}
             />
           ))}
           {series.length > 1 ? <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} /> : null}

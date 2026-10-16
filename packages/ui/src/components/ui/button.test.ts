@@ -7,7 +7,7 @@ import { buttonTapScale, buttonVariants } from '@sharpit/ui/components/ui/button
 
 const globalsCss = readFileSync(join(process.cwd(), 'src/styles/globals.css'), 'utf8');
 
-describe('buttonVariants (Seed ink CTA)', () => {
+describe('buttonVariants (Ink & Lime, ADR-085)', () => {
   it('uses foreground ink for the default filled CTA', () => {
     const classes = buttonVariants({ variant: 'default' });
     expect(classes).toContain('bg-foreground');
@@ -15,10 +15,26 @@ describe('buttonVariants (Seed ink CTA)', () => {
     expect(classes).not.toContain('bg-primary');
   });
 
-  it('keeps accent as chromatic primary for rare emphasis', () => {
+  it('paints accent lime with ink text', () => {
     const classes = buttonVariants({ variant: 'accent' });
-    expect(classes).toContain('bg-primary');
-    expect(classes).toContain('text-primary-foreground');
+    expect(classes).toContain('bg-highlight');
+    expect(classes).toContain('text-highlight-foreground');
+  });
+
+  it('paints secondary as the flat neutral chip', () => {
+    const classes = buttonVariants({ variant: 'secondary' });
+    expect(classes).toContain('bg-chip-surface');
+    expect(classes).not.toContain('border-border');
+  });
+
+  it('draws the add action as a dashed outline', () => {
+    expect(buttonVariants({ variant: 'dashed' })).toContain('border-dashed');
+  });
+
+  it('offers the 52px full-width action of the references', () => {
+    const classes = buttonVariants({ size: 'xl' });
+    expect(classes).toContain('h-13');
+    expect(classes).toContain('w-full');
   });
 
   it('uses solid destructive with the paired foreground token', () => {
@@ -29,10 +45,11 @@ describe('buttonVariants (Seed ink CTA)', () => {
     expect(classes).not.toContain('bg-destructive/10');
   });
 
-  it('uses rounded-full for all button sizes', () => {
-    expect(buttonVariants({ size: 'default' })).toContain('rounded-full');
-    expect(buttonVariants({ size: 'sm' })).toContain('rounded-full');
-    expect(buttonVariants({ variant: 'highlight' })).toContain('rounded-full');
+  it('uses the 16px control corner for all button sizes', () => {
+    expect(buttonVariants({ size: 'default' })).toContain('rounded-lg');
+    expect(buttonVariants({ size: 'sm' })).toContain('rounded-lg');
+    expect(buttonVariants({ variant: 'highlight' })).toContain('rounded-lg');
+    expect(buttonVariants({ size: 'default' })).not.toContain('rounded-full');
   });
 
   it('keeps instrument visual height at every viewport', () => {
