@@ -32,7 +32,7 @@ import {
 } from '@sharpit/server/lib/access/ai-budget';
 import { requireAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
 import {
-  checkRateLimit,
+  checkRateLimits,
   rateLimitJsonResponse,
   rateLimiters,
 } from '@sharpit/server/lib/rate-limit';
@@ -101,7 +101,9 @@ async function guardCoachChat(
 ): Promise<{ blocked: Response } | { budgetWarning: BudgetWarning }> {
   const [aiBlocked, rateLimit, budget] = await Promise.all([
     requireAiProcessingConsent(athleteId),
-    checkRateLimit(rateLimiters.coachChat, athleteId, { failClosed: true }),
+    checkRateLimits([rateLimiters.coachChatBurst, rateLimiters.coachChat], athleteId, {
+      failClosed: true,
+    }),
     ensureFreeAiBudget(athleteId),
   ]);
   if (aiBlocked) {
