@@ -44,6 +44,19 @@ describe('GET /api/activities — demo sinceDays clamp', () => {
     );
   });
 
+  it('passes the page cursor through as a date', async () => {
+    isDemoSessionMock.mockResolvedValue(false);
+    const { getActivitiesList } = await import('@sharpit/server/lib/queries');
+    const { GET } = await importRoute();
+
+    await GET(getRequest('?limit=60&before=2026-10-01T00:00:00.000Z'));
+
+    expect(getActivitiesList).toHaveBeenCalledWith(
+      'athlete-1',
+      expect.objectContaining({ limit: 60, before: new Date('2026-10-01T00:00:00.000Z') }),
+    );
+  });
+
   it('leaves an unbounded request unbounded for a real athlete', async () => {
     isDemoSessionMock.mockResolvedValue(false);
     const { getActivitiesList } = await import('@sharpit/server/lib/queries');

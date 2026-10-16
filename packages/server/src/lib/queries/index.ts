@@ -62,21 +62,37 @@ export async function getActivitiesList(
     type?: ActivityType;
     limit?: number;
     sinceDays?: number;
+    /** Page cursor: only activities started strictly before this instant. */
+    before?: Date;
   },
 ) {
   const where: Prisma.ActivityWhereInput = { athleteId, ...visibleActivityWhere };
   if (params?.type) {
     where.type = params.type;
   }
-  if (params?.sinceDays) {
-    where.date = { gte: startOfDay(addDays(new Date(), -params.sinceDays)) };
-  }
+  where.date = activityDateWindow(params?.sinceDays, params?.before);
   return prisma.activity.findMany({
     where,
     select: activityListSelect,
-    orderBy: { date: 'desc' },
+    // shortcut: the cursor is a start time, so two sessions starting the same second across a page edge would lose one; use a (date, id) cursor if that ever shows.
+    orderBy: [{ date: 'desc' }, { id: 'desc' }],
     take: params?.limit,
   });
+}
+
+/** The list's date bounds: a look-back window and a page cursor, either or both. */
+export function activityDateWindow(
+  sinceDays?: number,
+  before?: Date,
+): Prisma.DateTimeFilter | undefined {
+  const window: Prisma.DateTimeFilter = {};
+  if (sinceDays) {
+    window.gte = startOfDay(addDays(new Date(), -sinceDays));
+  }
+  if (before && !Number.isNaN(before.getTime())) {
+    window.lt = before;
+  }
+  return Object.keys(window).length ? window : undefined;
 }
 
 /** Slim activities for Coach context assembly (prompt + PMC). */

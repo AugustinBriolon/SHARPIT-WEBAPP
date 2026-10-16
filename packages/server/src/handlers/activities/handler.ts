@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type') as ActivityType | null;
   const limit = searchParams.get('limit');
   const sinceDays = searchParams.get('sinceDays');
+  const before = searchParams.get('before');
 
   try {
     // Weather / narrative enrichment runs on athlete-state refresh & provider sync —
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
       type: type && Object.values(ActivityType).includes(type) ? type : undefined,
       limit: limit ? Number(limit) : undefined,
       sinceDays: effectiveSinceDays,
+      before: before ? new Date(before) : undefined,
     });
 
     return NextResponse.json(activities);
