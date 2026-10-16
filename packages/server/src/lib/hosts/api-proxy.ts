@@ -15,7 +15,7 @@ import {
 import {
   checkRateLimit,
   rateLimiters,
-  rateLimitResponseBody,
+  rateLimitJsonResponse,
 } from '@sharpit/server/lib/rate-limit';
 
 /** Flooding backstop for every authenticated API call — generous, per athlete. */
@@ -26,11 +26,15 @@ export async function rateLimitApiUser(
   if (!pathname.startsWith('/api/')) {
     return null;
   }
-  const result = await checkRateLimit(rateLimiters.apiGeneral, userId);
+  // Fail closed: without Upstash the whole authenticated API must not become
+  // an unbounded flood/cost surface. Local `development` still bypasses via
+  // isRateLimitBypassed().
+  const result = await checkRateLimit(rateLimiters.apiGeneral, userId, { failClosed: true });
   if (result.ok) {
     return null;
   }
-  return NextResponse.json(rateLimitResponseBody(result.retryAfterSeconds), { status: 429 });
+  const limited = rateLimitJsonResponse(result);
+  return NextResponse.json(limited.body, { status: limited.status });
 }
 
 // Bearer only: no page, no sign-in redirect, no handshake — a missing or rejected token is a
