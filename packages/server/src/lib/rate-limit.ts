@@ -6,21 +6,19 @@ import { redis } from '@sharpit/server/lib/redis';
  * generous enough that real use never approaches them, tight enough to cap
  * worst-case AI/DB cost from a single account.
  *
- * Default posture is fail-OPEN (allow) when Upstash isn't configured or Redis
- * errors — used by the global `apiGeneral` flood backstop so a Redis blip
- * doesn't take the whole app down.
- *
- * Sensitive routes (coach / AI, provider sync, session analyze) pass
- * `{ failClosed: true }` and receive 503 when protection is unavailable —
- * except in local `development`, where limits are skipped entirely so coaches
- * and syncs stay usable without Upstash.
+ * Default posture for `checkRateLimit` is fail-OPEN when Upstash isn't
+ * configured or Redis errors. Callers that must not become an unbounded
+ * surface (including `apiGeneral` via `rateLimitApiUser`, plus coach / AI /
+ * sync / analyze) pass `{ failClosed: true }` and receive 503 when protection
+ * is unavailable — except in local `development`, where limits are skipped
+ * entirely so coaches and syncs stay usable without Upstash.
  *
  * Production must set `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN`.
  */
 
 if (!redis && process.env.NODE_ENV !== 'development') {
   console.error(
-    '[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not configured — sensitive routes fail closed; apiGeneral fails open.',
+    '[rate-limit] UPSTASH_REDIS_REST_URL/TOKEN not configured — failClosed callers (incl. apiGeneral) reject with 503.',
   );
 }
 
