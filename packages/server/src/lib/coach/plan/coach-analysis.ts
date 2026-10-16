@@ -514,7 +514,7 @@ export async function analyzePlannedSession(
     prompt,
     providerOptions: coachAnalysisGatewayOptions,
   });
-  void recordAiUsage(athleteId, 'analysis', usage);
+  void recordAiUsage(athleteId, 'analysis', { ...usage, model: COACH_MODEL });
 
   if (!output) {
     return null;
@@ -705,7 +705,7 @@ ${transitions.length ? transitions.join('\n') : 'Aucune donnée de transition ex
     prompt,
     providerOptions: coachAnalysisGatewayOptions,
   });
-  void recordAiUsage(athleteId, 'analysis', usage);
+  void recordAiUsage(athleteId, 'analysis', { ...usage, model: COACH_MODEL });
 
   return output ? sanitizeBrickAnalysisCopy(output) : output;
 }

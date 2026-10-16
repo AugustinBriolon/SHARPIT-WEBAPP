@@ -64,7 +64,7 @@ export async function generateNutritionDayReading(input: {
       prompt: formatNutritionAnalysisPrompt(input.facts),
       providerOptions: coachAnalysisGatewayOptions,
     });
-    void recordAiUsage(input.athleteId, 'analysis', usage);
+    void recordAiUsage(input.athleteId, 'analysis', { ...usage, model: COACH_MODEL });
     if (!output) {
       return;
     }

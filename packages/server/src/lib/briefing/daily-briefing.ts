@@ -144,7 +144,7 @@ Rédige le ${dayCtx.phaseLabel} en suivant la structure imposée et les règles 
     providerOptions: coachAsyncGatewayOptions,
     telemetry: { functionId: 'coach-briefing' },
   });
-  void recordAiUsage(athleteId, 'coach', usage);
+  void recordAiUsage(athleteId, 'coach', { ...usage, model: COACH_MODEL });
 
   const llmContent = text.trim();
   const validation = validateBriefingContent(llmContent, dayCtx, ctx);

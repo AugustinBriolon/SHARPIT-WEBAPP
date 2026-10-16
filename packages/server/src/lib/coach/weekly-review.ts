@@ -314,7 +314,7 @@ Rédige la rétrospective hebdomadaire en suivant la structure imposée. Mets l'
     providerOptions: coachAsyncGatewayOptions,
     telemetry: { functionId: 'coach-weekly-review' },
   });
-  void recordAiUsage(athleteId, 'coach', usage);
+  void recordAiUsage(athleteId, 'coach', { ...usage, model: COACH_MODEL });
 
   return { content: sanitizeCoachCopy(text.trim()), stats };
 }

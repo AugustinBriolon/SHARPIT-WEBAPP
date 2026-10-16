@@ -4,7 +4,11 @@ import { withCoachTrace } from '@sharpit/server/lib/ai/coach-trace';
 import { addDays, format, startOfDay } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { NextResponse } from 'next/server';
-import { COACH_REASONING_LEVEL, isCoachConfigured } from '@sharpit/server/lib/ai';
+import {
+  COACH_REASONING_LEVEL,
+  COACH_STRUCTURED_MODEL,
+  isCoachConfigured,
+} from '@sharpit/server/lib/ai';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
 import {
@@ -340,7 +344,7 @@ function createAdaptProgressStream(input: {
               onPartial: (value) => send({ type: 'partial', value }),
             }),
         );
-        void recordAiUsage(athleteId, 'coach', usage);
+        void recordAiUsage(athleteId, 'coach', { ...usage, model: COACH_STRUCTURED_MODEL });
         send({
           type: 'result',
           value: await finalizeAdapt({

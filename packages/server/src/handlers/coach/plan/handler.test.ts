@@ -5,6 +5,7 @@ import { decisionState, physicalHealthData } from '@sharpit/server/lib/plan-gate
 
 vi.mock('@sharpit/server/lib/ai', () => ({
   COACH_MODEL: 'mock-model',
+  COACH_STRUCTURED_MODEL: 'mock-structured-model',
   COACH_REASONING_LEVEL: { structured: 'medium', plan: 'low' },
   coachGatewayOptions: {},
   isCoachConfigured: () => true,

@@ -8,6 +8,8 @@ export type AiUsageTokens = {
   totalTokens?: number | null;
   /** Prompt-cache hits (gateway / provider). Same answer; cheaper input. */
   inputTokenDetails?: { cacheReadTokens?: number | null } | null;
+  /** Model id that served this call, when the caller knows it. */
+  model?: string | null;
 };
 
 /**
@@ -23,18 +25,21 @@ export async function recordAiUsage(
   const inputTokens = usage?.inputTokens ?? null;
   const outputTokens = usage?.outputTokens ?? null;
   const totalTokens = usage?.totalTokens ?? null;
-  const cacheReadTokens = usage?.inputTokenDetails?.cacheReadTokens ?? 0;
+  const cacheReadTokens = usage?.inputTokenDetails?.cacheReadTokens ?? null;
+  const model = usage?.model ?? null;
   const input = inputTokens ?? 0;
+  const cacheRead = cacheReadTokens ?? 0;
 
-  // Structured for log drains / FinOps: cache hit ratio without a schema migration.
+  // Structured for log drains; columns below for SQL FinOps.
   console.info('[ai-usage]', {
     athleteId,
     feature,
+    model,
     inputTokens,
     outputTokens,
     totalTokens,
-    cacheReadTokens,
-    cacheHitRatio: input > 0 ? Math.round((cacheReadTokens / input) * 1000) / 1000 : null,
+    cacheReadTokens: cacheRead,
+    cacheHitRatio: input > 0 ? Math.round((cacheRead / input) * 1000) / 1000 : null,
   });
 
   try {
@@ -45,6 +50,8 @@ export async function recordAiUsage(
         inputTokens,
         outputTokens,
         totalTokens,
+        cacheReadTokens,
+        model,
       },
     });
   } catch (error) {

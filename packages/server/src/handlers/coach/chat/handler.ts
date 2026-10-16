@@ -267,7 +267,7 @@ async function coachGenerator(input: CoachReplyInput, abortSignal: AbortSignal) 
       },
       onEnd: (event) => {
         const { usage, steps } = event;
-        void recordAiUsage(athleteId, 'coach', usage);
+        void recordAiUsage(athleteId, 'coach', { ...usage, model: attempt.model });
         timing.note('steps', steps.length);
         timing.note('inputTokens', usage.inputTokens ?? 0);
         // Read from the provider's prompt cache: whether consecutive turns reuse their prefix.

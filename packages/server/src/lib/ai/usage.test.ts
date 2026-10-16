@@ -21,6 +21,7 @@ describe('recordAiUsage', () => {
       outputTokens: 200,
       totalTokens: 1200,
       inputTokenDetails: { cacheReadTokens: 800 },
+      model: 'google/gemini-3-flash',
     });
 
     expect(create).toHaveBeenCalledWith({
@@ -30,12 +31,15 @@ describe('recordAiUsage', () => {
         inputTokens: 1000,
         outputTokens: 200,
         totalTokens: 1200,
+        cacheReadTokens: 800,
+        model: 'google/gemini-3-flash',
       },
     });
     expect(info).toHaveBeenCalledWith(
       '[ai-usage]',
       expect.objectContaining({
         athleteId: 'athlete-1',
+        model: 'google/gemini-3-flash',
         cacheReadTokens: 800,
         cacheHitRatio: 0.8,
       }),
