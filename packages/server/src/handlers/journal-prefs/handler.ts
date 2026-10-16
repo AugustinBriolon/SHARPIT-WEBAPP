@@ -9,6 +9,10 @@ import {
 } from '@sharpit/app/lib/journal/journal-prefs';
 import { awaitRequest } from '@sharpit/app/lib/next/await-request';
 import { prisma } from '@sharpit/db/client';
+import {
+  journalPrefsPutBodySchema,
+  journalPrefsWriteErrorCode,
+} from '@sharpit/server/lib/validators/journal-prefs';
 
 export async function GET() {
   // Outside try: Cache Components prerender interrupt must not be swallowed.
@@ -26,7 +30,7 @@ export async function GET() {
       : defaultJournalPrefs();
     return NextResponse.json({ prefs, isPro });
   } catch (error) {
-    console.error(error);
+    console.error('[journal-prefs]', error instanceof Error ? error.name : 'unknown');
     return NextResponse.json(
       { error: 'Impossible de charger les préférences journal' },
       { status: 500 },
@@ -44,15 +48,25 @@ export async function PUT(request: NextRequest) {
       select: { tier: true },
     });
     const isPro = hasProAccess(profile?.tier ?? 'FREE');
-    const body = (await request.json()) as { prefs?: unknown };
-    const prefs = sanitizeJournalPrefsForPersist(body.prefs, isPro);
+    const body = await request.json();
+    const parsed = journalPrefsPutBodySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: 'Préférences journal invalides',
+          code: journalPrefsWriteErrorCode(parsed.error),
+        },
+        { status: 400 },
+      );
+    }
+    const prefs = sanitizeJournalPrefsForPersist(parsed.data.prefs, isPro);
     await prisma.athleteProfile.update({
       where: { id: athleteId },
       data: { journalPrefs: prefs as Prisma.InputJsonValue },
     });
     return NextResponse.json({ prefs, isPro });
   } catch (error) {
-    console.error(error);
+    console.error('[journal-prefs]', error instanceof Error ? error.name : 'unknown');
     return NextResponse.json(
       { error: 'Impossible d’enregistrer les préférences journal' },
       { status: 500 },

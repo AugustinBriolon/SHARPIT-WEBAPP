@@ -1,43 +1,11 @@
 name: GitGuardian secret scan
 
-# Path-filtered ggshield Action (saves minutes on docs-only PRs).
-# The GitGuardian GitHub App check ("GitGuardian Security Checks") remains the
-# always-on secret audit when GITGUARDIAN_API_KEY is not configured for Actions.
-#
-# MUST scan via this workflow when the API key is set and src/, lockfiles,
-# .env*, or other non-docs paths change. Pure docs/screenshot PRs are skipped.
+# Always-on ggshield on PRs and main. Fails closed when GITGUARDIAN_API_KEY is
+# missing — never skip silently. Never echo the secret.
 on:
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - 'README.md'
-      - 'ARCHITECTURE.md'
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
-      - 'CODE_MAP.md'
-      - 'FEATURE_EXTRACTION.md'
-      - '**/*.md'
-      - '**/*.png'
-      - '**/*.jpg'
-      - '**/*.jpeg'
-      - '**/*.webp'
-      - '**/*.gif'
   push:
     branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - 'README.md'
-      - 'ARCHITECTURE.md'
-      - 'AGENTS.md'
-      - 'CLAUDE.md'
-      - 'CODE_MAP.md'
-      - 'FEATURE_EXTRACTION.md'
-      - '**/*.md'
-      - '**/*.png'
-      - '**/*.jpg'
-      - '**/*.jpeg'
-      - '**/*.webp'
-      - '**/*.gif'
   workflow_dispatch:
 
 concurrency:
@@ -49,30 +17,23 @@ jobs:
     name: GitGuardian scan
     runs-on: ubuntu-latest
     steps:
-      # Do not put secrets in job-level `if:` — both arms can skip and the
-      # workflow fails with zero jobs. Detect the key inside the job instead.
-      - name: Detect GitGuardian API key
-        id: gg
+      - name: Require GitGuardian API key
         env:
           GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
         run: |
-          if [ -n "$GITGUARDIAN_API_KEY" ]; then
-            echo "enabled=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::GITGUARDIAN_API_KEY is not set — ggshield Action skipped on this run."
-            echo "Secret audit on code changes still relies on the GitGuardian GitHub App check."
-            echo "Add GITGUARDIAN_API_KEY under repository secrets to enable path-filtered ggshield CI."
+          if [ -z "$GITGUARDIAN_API_KEY" ]; then
+            echo "::error::GITGUARDIAN_API_KEY is not set in repository secrets."
+            echo "Add GITGUARDIAN_API_KEY under Settings → Secrets and variables → Actions."
+            exit 1
           fi
 
       - name: Checkout
-        if: steps.gg.outputs.enabled == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: GitGuardian scan (ggshield)
-        if: steps.gg.outputs.enabled == 'true'
+        # Official Action path shipped by GitGuardian (ggshield-action / monorepo secret action).
         uses: GitGuardian/ggshield/actions/secret@v1.54.0
         env:
           GITHUB_PUSH_BEFORE_SHA: ${{ github.event.before }}

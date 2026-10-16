@@ -349,11 +349,32 @@ describe('morning-push', () => {
       toDescription: null,
     };
 
-    it('leads the morning push with the proposal while it waits', () => {
+    const DIGIT_OR_HEALTH =
+      /\d|VFC|HRV|FC\b|bpm|Réserve|Stress|min\b|récupéré|lever le pied|monter d/i;
+
+    it('uses a fixed lock-screen body with no duration or health values', () => {
       const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app', proposal);
+      expect(payload.title).toBe('Intense');
       expect(payload.body).toBe(
-        'Ta nuit invite à lever le pied : Endurance → Récupération · 40 → 30 min',
+        "Ton coach propose un ajustement pour ta séance. Ouvre l'app pour le voir.",
       );
+      expect(payload.body).not.toMatch(DIGIT_OR_HEALTH);
+      expect(payload.title).not.toMatch(DIGIT_OR_HEALTH);
+      expect(payload.url).toContain('discuss=morning-brief');
+    });
+
+    it('keeps the same fixed body for an upgrade proposal', () => {
+      const up = {
+        ...proposal,
+        direction: 'UP' as const,
+        changeSummary: 'Récupération → Endurance · 30 → 45 min',
+      };
+      const payload = buildMorningPushPayload(dummySnapshot, 'https://sharpit.app', up);
+      expect(payload.body).toBe(
+        "Ton coach propose un ajustement pour ta séance. Ouvre l'app pour le voir.",
+      );
+      expect(payload.body).not.toMatch(DIGIT_OR_HEALTH);
+      expect(payload.title).not.toMatch(/\d/);
     });
 
     it('says nothing of a proposal already answered', () => {

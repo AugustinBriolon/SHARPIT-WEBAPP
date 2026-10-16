@@ -3,22 +3,31 @@ import { NextRequest } from 'next/server';
 
 vi.mock('server-only', () => ({}));
 vi.mock('@sharpit/server/lib/auth/current-athlete', () => ({
-  getCurrentAthleteId: vi.fn().mockResolvedValue('athlete-a'),
+  getCurrentAthleteId: vi.fn().mockResolvedValue('athlete-lea-demo'),
 }));
 vi.mock('@sharpit/server/lib/journal/wellness-checkin', () => ({
   getMorningWellnessCheckin: vi.fn(),
   hasMorningWellnessCheckin: vi.fn(),
   submitMorningWellnessCheckin: vi.fn(),
-  todayTrainingDayIdForAthlete: vi.fn().mockResolvedValue('2026-10-15'),
+}));
+vi.mock('@sharpit/server/lib/validators/training-day-window', () => ({
+  resolveAllowedTrainingDayId: vi.fn(),
 }));
 
 const URL = 'https://api.sharpit.app/api/v1/wellness-checkin';
 const service = () => import('@sharpit/server/lib/journal/wellness-checkin');
+const dayWindow = () => import('@sharpit/server/lib/validators/training-day-window');
+const auth = () => import('@sharpit/server/lib/auth/current-athlete');
 
 describe('POST /api/v1/wellness-checkin', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
     vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.mocked((await dayWindow()).resolveAllowedTrainingDayId).mockResolvedValue({
+      ok: true,
+      trainingDayId: '2026-10-15',
+    });
+    vi.mocked((await auth()).getCurrentAthleteId).mockResolvedValue('athlete-lea-demo');
   });
 
   it('returns additive verdict codes after save (no scale values)', async () => {
@@ -89,6 +98,62 @@ describe('POST /api/v1/wellness-checkin', () => {
     expect(response.status).toBe(200);
     expect(body.alreadyCompleted).toBe(true);
     expect(body.verdict?.limiter).toBe('subjective');
+  });
+
+  it('rejects a training day outside today/yesterday', async () => {
+    vi.mocked((await dayWindow()).resolveAllowedTrainingDayId).mockResolvedValue({
+      ok: false,
+      code: 'TRAINING_DAY_OUT_OF_RANGE',
+    });
+    const { POST } = await import('./handler');
+
+    const response = await POST(
+      new NextRequest(URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          mood: 2,
+          energyLevel: 2,
+          perceivedSoreness: 6,
+          stressLevel: 4,
+          trainingDayId: '2026-10-01',
+        }),
+      }),
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.code).toBe('TRAINING_DAY_OUT_OF_RANGE');
+    expect((await service()).submitMorningWellnessCheckin).not.toHaveBeenCalled();
+  });
+
+  it('ignores client athleteId and keeps the session athlete', async () => {
+    const { POST } = await import('./handler');
+    const submit = vi.mocked((await service()).submitMorningWellnessCheckin).mockResolvedValue({
+      alreadyCompleted: false,
+      localDate: '2026-10-15',
+      verdict: null,
+    });
+
+    await POST(
+      new NextRequest(URL, {
+        method: 'POST',
+        body: JSON.stringify({
+          mood: 2,
+          energyLevel: 2,
+          perceivedSoreness: 6,
+          stressLevel: 4,
+          athleteId: 'other-athlete',
+          trainingDayId: '2026-10-15',
+        }),
+      }),
+    );
+
+    expect((await auth()).getCurrentAthleteId).toHaveBeenCalled();
+    expect(submit).toHaveBeenCalledWith(
+      'athlete-lea-demo',
+      '2026-10-15',
+      expect.objectContaining({ mood: 2 }),
+    );
   });
 
   it('logs failures without health values', async () => {
