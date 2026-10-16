@@ -5,6 +5,7 @@ import {
   formatJournalHabitFinding,
   formatLagLabel,
   formatMediansLine,
+  formatOutcomeValue,
   formatSignedDelta,
 } from '@sharpit/app/lib/journal/journal-habit-finding-copy';
 
@@ -130,5 +131,12 @@ describe('journal-habit-finding-copy', () => {
       'Les 4 jours avec l’habitude sont tous sous la médiane sans : l’écart est net et régulier.',
     );
     expect(formatMediansLine({ ...base, yesValues: [] })).toBe('sans 7 h 04 → avec 6 h 12');
+  });
+});
+
+describe('formatOutcomeValue', () => {
+  it('rounds sleep to the minute before splitting hours', () => {
+    expect(formatOutcomeValue('sleepMinutes', 479.6)).toBe('8 h 00');
+    expect(formatOutcomeValue('sleepMinutes', 408.2)).toBe('6 h 48');
   });
 });
