@@ -3,9 +3,13 @@ import { prisma } from '@sharpit/db/client';
 export type AiUsageFeature = 'coach' | 'analysis';
 
 export type AiUsageTokens = {
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens?: number;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  totalTokens?: number | null;
+  /** Prompt-cache hits (gateway / provider). Same answer; cheaper input. */
+  inputTokenDetails?: { cacheReadTokens?: number | null } | null;
+  /** Model id that served this call, when the caller knows it. */
+  model?: string | null;
 };
 
 /**
@@ -18,14 +22,36 @@ export async function recordAiUsage(
   feature: AiUsageFeature,
   usage: AiUsageTokens | undefined,
 ): Promise<void> {
+  const inputTokens = usage?.inputTokens ?? null;
+  const outputTokens = usage?.outputTokens ?? null;
+  const totalTokens = usage?.totalTokens ?? null;
+  const cacheReadTokens = usage?.inputTokenDetails?.cacheReadTokens ?? null;
+  const model = usage?.model ?? null;
+  const input = inputTokens ?? 0;
+  const cacheRead = cacheReadTokens ?? 0;
+
+  // Structured for log drains; columns below for SQL FinOps.
+  console.info('[ai-usage]', {
+    athleteId,
+    feature,
+    model,
+    inputTokens,
+    outputTokens,
+    totalTokens,
+    cacheReadTokens: cacheRead,
+    cacheHitRatio: input > 0 ? Math.round((cacheRead / input) * 1000) / 1000 : null,
+  });
+
   try {
     await prisma.aiUsageEvent.create({
       data: {
         athleteId,
         feature,
-        inputTokens: usage?.inputTokens ?? null,
-        outputTokens: usage?.outputTokens ?? null,
-        totalTokens: usage?.totalTokens ?? null,
+        inputTokens,
+        outputTokens,
+        totalTokens,
+        cacheReadTokens,
+        model,
       },
     });
   } catch (error) {

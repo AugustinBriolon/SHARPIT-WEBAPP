@@ -13,7 +13,7 @@ import {
   validateBriefingContent,
 } from '@sharpit/server/lib/briefing/briefing-validation';
 import { generateText } from 'ai';
-import { COACH_MODEL, coachGatewayOptions, isCoachConfigured } from '@sharpit/server/lib/ai';
+import { COACH_MODEL, coachAsyncGatewayOptions, isCoachConfigured } from '@sharpit/server/lib/ai';
 import {
   buildCoachContext,
   formatCoachContext,
@@ -141,10 +141,10 @@ Rédige le ${dayCtx.phaseLabel} en suivant la structure imposée et les règles 
     model: COACH_MODEL,
     system: buildBriefingSystem(phase),
     prompt,
-    providerOptions: coachGatewayOptions,
+    providerOptions: coachAsyncGatewayOptions,
     telemetry: { functionId: 'coach-briefing' },
   });
-  void recordAiUsage(athleteId, 'coach', usage);
+  void recordAiUsage(athleteId, 'coach', { ...usage, model: COACH_MODEL });
 
   const llmContent = text.trim();
   const validation = validateBriefingContent(llmContent, dayCtx, ctx);

@@ -55,7 +55,7 @@ export async function describeMealFromText(input: {
     prompt: formatFoodDescribePrompt(input.description),
     providerOptions: coachAnalysisGatewayOptions,
   });
-  void recordAiUsage(input.athleteId, 'analysis', usage);
+  void recordAiUsage(input.athleteId, 'analysis', { ...usage, model: COACH_STRUCTURED_MODEL });
 
   if (!output?.items?.length) {
     throw new FoodDescribeEmptyError();

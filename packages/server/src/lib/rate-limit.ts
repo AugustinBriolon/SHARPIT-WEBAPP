@@ -36,7 +36,17 @@ function limiter(requests: number, window: `${number} ${'s' | 'm' | 'h'}`, prefi
 
 export const rateLimiters = {
   apiGeneral: limiter(300, '5 m', 'api'),
+  /**
+   * Sustained volume: real chat never approaches this. Agent loops that fire dozens of
+   * turns in a few minutes still hit it; the short burst limiter below stops parallel storms.
+   */
   coachChat: limiter(30, '10 m', 'coach-chat'),
+  /**
+   * Parallel stampede guard — Upstash counts atomically, so N concurrent starts only N pass.
+   * 4 / 20 s ≈ a human sending / approving while a stream ends; blocks 8–13 req/min agent bursts
+   * that otherwise burn the token budget without changing answer quality.
+   */
+  coachChatBurst: limiter(4, '20 s', 'coach-chat-burst'),
   coachPlan: limiter(10, '1 h', 'coach-plan'),
   coachAdapt: limiter(10, '1 h', 'coach-adapt'),
   coachReview: limiter(5, '1 h', 'coach-review'),
@@ -138,6 +148,19 @@ export async function checkRateLimit(
   } catch (error) {
     return resolveLimitError(failClosed, error);
   }
+}
+
+/**
+ * Run several limiters in parallel; return the first refusal (burst before sustained when
+ * both fire — the short window is what athletes should see on a stampede).
+ */
+export async function checkRateLimits(
+  limiters: ReadonlyArray<Ratelimit | null>,
+  key: string,
+  options?: CheckRateLimitOptions,
+): Promise<RateLimitResult> {
+  const results = await Promise.all(limiters.map((entry) => checkRateLimit(entry, key, options)));
+  return results.find((result) => !result.ok) ?? { ok: true };
 }
 
 export function rateLimitResponseBody(

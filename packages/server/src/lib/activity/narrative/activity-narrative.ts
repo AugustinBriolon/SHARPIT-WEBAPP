@@ -120,7 +120,7 @@ async function generateAndStoreNarrative(
     prompt: facts,
     providerOptions: coachAnalysisGatewayOptions,
   });
-  void recordAiUsage(athleteId, 'analysis', usage);
+  void recordAiUsage(athleteId, 'analysis', { ...usage, model: COACH_MODEL });
 
   if (!output) {
     return false;

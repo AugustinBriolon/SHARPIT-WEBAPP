@@ -2002,14 +2002,18 @@ model AnalysisEvidenceSnapshot {
 /// Frequency is capped separately by the rate limiters (see src/lib/rate-limit.ts);
 /// this table exists so real spend-per-athlete can be queried directly.
 model AiUsageEvent {
-  id           String         @id @default(cuid())
-  athleteId    String
-  athlete      AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  feature      String // 'coach' | 'analysis'
-  inputTokens  Int?
-  outputTokens Int?
-  totalTokens  Int?
-  createdAt    DateTime       @default(now())
+  id              String         @id @default(cuid())
+  athleteId       String
+  athlete         AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  feature         String // 'coach' | 'analysis'
+  inputTokens     Int?
+  outputTokens    Int?
+  totalTokens     Int?
+  /// Prompt-cache hits billed cheaper than full input — FinOps, not a spend gate.
+  cacheReadTokens Int?
+  /// Model id that served the call (incl. empty-answer retry / failover).
+  model           String?
+  createdAt       DateTime       @default(now())
 
   @@index([athleteId, createdAt])
 }

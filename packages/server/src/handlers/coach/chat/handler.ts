@@ -32,7 +32,7 @@ import {
 } from '@sharpit/server/lib/access/ai-budget';
 import { requireAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
 import {
-  checkRateLimit,
+  checkRateLimits,
   rateLimitJsonResponse,
   rateLimiters,
 } from '@sharpit/server/lib/rate-limit';
@@ -101,7 +101,9 @@ async function guardCoachChat(
 ): Promise<{ blocked: Response } | { budgetWarning: BudgetWarning }> {
   const [aiBlocked, rateLimit, budget] = await Promise.all([
     requireAiProcessingConsent(athleteId),
-    checkRateLimit(rateLimiters.coachChat, athleteId, { failClosed: true }),
+    checkRateLimits([rateLimiters.coachChatBurst, rateLimiters.coachChat], athleteId, {
+      failClosed: true,
+    }),
     ensureFreeAiBudget(athleteId),
   ]);
   if (aiBlocked) {
@@ -265,7 +267,7 @@ async function coachGenerator(input: CoachReplyInput, abortSignal: AbortSignal) 
       },
       onEnd: (event) => {
         const { usage, steps } = event;
-        void recordAiUsage(athleteId, 'coach', usage);
+        void recordAiUsage(athleteId, 'coach', { ...usage, model: attempt.model });
         timing.note('steps', steps.length);
         timing.note('inputTokens', usage.inputTokens ?? 0);
         // Read from the provider's prompt cache: whether consecutive turns reuse their prefix.

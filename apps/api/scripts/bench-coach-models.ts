@@ -4,18 +4,17 @@
  * Markdown report (latency, empty answers, answers side by side) under `.bench/`.
  *
  * Run against a local or disposable database: read tools execute, write tools stop at approval.
- * Every run is a billed model call through the AI gateway.
+ * Every run is a billed model call through the AI gateway — always pass `--athlete` so a prod
+ * account (e.g. `default`) is never auto-picked and billed by a bench storm.
  *
  * Usage:
- *   yarn api bench:coach-models
- *   yarn api bench:coach-models --models google/gemini-3-flash,anthropic/claude-haiku-4.5 --limit 5
- *   yarn api bench:coach-models --athlete <athleteId>
+ *   yarn api bench:coach-models --athlete <disposableAthleteId>
+ *   yarn api bench:coach-models --athlete <id> --models google/gemini-3-flash,anthropic/claude-haiku-4.5 --limit 5
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { streamText } from 'ai';
 import { prisma } from '@sharpit/db/client';
-import { DEMO_CLERK_USER_ID } from '@sharpit/app/lib/demo/demo-session';
 import { coachGatewayOptions } from '@sharpit/server/lib/ai';
 import { createCoachTools } from '@sharpit/server/lib/coach/chat/tools/coach-tools';
 import { buildCoachSystemPrompt } from '@sharpit/server/lib/coach/chat/coach-system-prompt';
@@ -57,14 +56,23 @@ function parseOptions(): BenchOptions {
 }
 
 async function resolveAthleteId(requested: string | null): Promise<string> {
-  if (requested) {
-    return requested;
+  if (!requested) {
+    throw new Error(
+      'Pass --athlete <id> (disposable profile). Auto-pick was removed: benches were billing prod athletes.',
+    );
   }
-  const athlete = await prisma.athleteProfile.findFirstOrThrow({
-    where: { deletedAt: null, NOT: { clerkUserId: DEMO_CLERK_USER_ID } },
-    orderBy: { createdAt: 'asc' },
+  if (requested === 'default' && process.env.ALLOW_BENCH_DEFAULT_ATHLETE !== '1') {
+    throw new Error(
+      'Refusing athlete "default" (prod owner). Use a disposable --athlete, or set ALLOW_BENCH_DEFAULT_ATHLETE=1.',
+    );
+  }
+  const athlete = await prisma.athleteProfile.findFirst({
+    where: { id: requested, deletedAt: null },
     select: { id: true },
   });
+  if (!athlete) {
+    throw new Error(`No athlete found for --athlete ${requested}`);
+  }
   return athlete.id;
 }
 

@@ -2,6 +2,7 @@ import type { Ratelimit } from '@upstash/ratelimit';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   checkRateLimit,
+  checkRateLimits,
   isRateLimitBypassed,
   rateLimitHttpStatus,
   rateLimitResponseBody,
@@ -93,6 +94,31 @@ describe('checkRateLimit', () => {
       ok: true,
     });
     expect(limiter.limit).not.toHaveBeenCalled();
+  });
+});
+
+describe('checkRateLimits', () => {
+  it('allows when every limiter allows', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const a = fakeLimiter(vi.fn().mockResolvedValue({ success: true, reset: 0 }));
+    const b = fakeLimiter(vi.fn().mockResolvedValue({ success: true, reset: 0 }));
+
+    await expect(checkRateLimits([a, b], 'athlete-1')).resolves.toEqual({ ok: true });
+  });
+
+  it('returns the first refusal among parallel checks', async () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    const reset = Date.now() + 20_000;
+    const burst = fakeLimiter(vi.fn().mockResolvedValue({ success: false, reset }));
+    const sustained = fakeLimiter(vi.fn().mockResolvedValue({ success: true, reset: 0 }));
+
+    const result = await checkRateLimits([burst, sustained], 'athlete-1');
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.cause).toBe('limited');
+      expect(result.retryAfterSeconds).toBeGreaterThan(0);
+    }
   });
 });
 
