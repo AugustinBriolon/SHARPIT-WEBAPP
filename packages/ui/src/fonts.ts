@@ -1,22 +1,10 @@
-import { IBM_Plex_Sans, JetBrains_Mono, Syne } from 'next/font/google';
+import { Inter } from 'next/font/google';
 
-/** The three brand families, as CSS variables every app puts on `<html>`. */
-const syne = Syne({
-  variable: '--font-syne',
+/** The brand family (ADR-085), as a CSS variable every app puts on `<html>`. */
+const inter = Inter({
+  variable: '--font-inter',
   subsets: ['latin'],
-  weight: ['500', '600', '700'],
+  weight: ['400', '500', '600', '700', '800'],
 });
 
-const ibmPlexSans = IBM_Plex_Sans({
-  variable: '--font-ibm-plex-sans',
-  subsets: ['latin'],
-  weight: ['400', '500', '600'],
-});
-
-const jetBrainsMono = JetBrains_Mono({
-  variable: '--font-jetbrains-mono',
-  subsets: ['latin'],
-  weight: ['400', '500'],
-});
-
-export const FONT_VARIABLES = [syne.variable, ibmPlexSans.variable, jetBrainsMono.variable];
+export const FONT_VARIABLES = [inter.variable];

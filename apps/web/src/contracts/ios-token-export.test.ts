@@ -26,19 +26,15 @@ function toHex({ red, green, blue }: Rgba): string {
 }
 
 describe('parseColor', () => {
-  // The OKLCH values in globals.css were authored from the hex primitives in
-  // brand-tokens.ts. Round-tripping them back to hex is what proves the
-  // conversion is the web's color and not merely a plausible green.
-  it('converts the OKLCH canvas back to Snow White', () => {
-    expect(toHex(parseColor('oklch(0.99 0.007 106.5)'))).toBe(BRAND.snowWhite);
+  it('reads hex tokens exactly', () => {
+    const { red, green, blue } = parseColor(BRAND.lime);
+    expect([red, green, blue].map((c) => Math.round(c * 255))).toEqual([0xcd, 0xf2, 0x1e]);
   });
 
-  it('converts the OKLCH ink back to Forest Depths', () => {
-    expect(toHex(parseColor('oklch(0.315 0.073 139)'))).toBe(BRAND.forestDepths);
-  });
-
-  it('converts the OKLCH highlight back to Lime Pulse', () => {
-    expect(toHex(parseColor('oklch(0.936 0.13 126.6)'))).toBe(BRAND.limePulse);
+  it('converts a neutral OKLCH lightness to a grey', () => {
+    const { red, green, blue } = parseColor('oklch(0.5 0 0)');
+    expect(red).toBeCloseTo(green, 3);
+    expect(green).toBeCloseTo(blue, 3);
   });
 
   it('reads the percentage alpha used by border and input tokens', () => {
@@ -89,8 +85,8 @@ describe('readDeclarations', () => {
     const light = readDeclarations(GLOBALS_CSS, ':root');
     const dark = readDeclarations(GLOBALS_CSS, '.dark');
 
-    expect(light.get('background')).toBe('oklch(0.99 0.007 106.5)');
-    expect(dark.get('background')).toBe('oklch(0.22 0.045 139)');
+    expect(light.get('background')).toBe(BRAND.canvas);
+    expect(dark.get('background')).toBe(BRAND.canvasDark);
   });
 
   it('fails loudly when a block is renamed', () => {
@@ -111,6 +107,12 @@ describe('renderIosTokens', () => {
 
   it('exports the brand radius in points', () => {
     expect(swift).toContain('static let radius: CGFloat = 16.0000');
+  });
+
+  it('exports the card geometry in points', () => {
+    expect(swift).toContain('static let cardRadius: CGFloat = 28.0000');
+    expect(swift).toContain('static let cardPadding: CGFloat = 24.0000');
+    expect(swift).toContain('static let controlHeight: CGFloat = 52.0000');
   });
 
   it('emits fixed-precision literals so the committed file is stable', () => {

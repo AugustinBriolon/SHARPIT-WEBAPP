@@ -5,19 +5,18 @@
 @source '../../../../packages/app/src';
 
 /*
- * The landing's two grounds. `canvas` is the app's own texture (iOS `SharpitCanvasTexture`: a
- * 20 px micro-dot grid at 4 % and two faint brand halos), `night` the instrument's dark display,
- * Forest in both themes so a band never turns into a Lime slab.
+ * The landing's two grounds (ADR-085). `canvas` is the app's flat cool off-white, `night` the
+ * ink band — near-black in both themes, the lime reading on it.
  */
 :root {
-  --landing-night: oklch(0.285 0.068 139);
-  --landing-night-foreground: oklch(0.99 0.007 106.5);
-  --landing-night-muted: oklch(0.99 0.007 106.5 / 62%);
-  --landing-night-rule: oklch(0.99 0.007 106.5 / 14%);
+  --landing-night: #0e0e0e;
+  --landing-night-foreground: #f5f5f7;
+  --landing-night-muted: oklch(0.98 0 0 / 62%);
+  --landing-night-rule: oklch(0.98 0 0 / 14%);
 }
 
 .dark {
-  --landing-night: oklch(0.17 0.035 139);
+  --landing-night: #161618;
 }
 
 /* `landing-canvas` lives in `@sharpit/ui` so auth and the landing share one ground. */

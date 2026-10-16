@@ -10,10 +10,11 @@
   --breakpoint-wide: 73.75rem;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
-  --font-data: var(--font-jetbrains-mono), 'JetBrains Mono', var(--font-mono);
-  --font-heading: var(--font-syne), var(--font-ibm-plex-sans), sans-serif;
+  /* Figures stay Inter; tabular numerals come from the text-data utilities. */
+  --font-data: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -106,147 +107,139 @@
   --radius-analysis-sm: calc(var(--radius) * 0.5);
   --radius-analysis: calc(var(--radius) * 0.875);
   --radius-analysis-lg: calc(var(--radius) * 1.125);
+  /* Geometry read from the references (ADR-085) */
+  --radius-card: 1.75rem;
+  --radius-inset: 1.5rem;
+  --radius-row: 1.125rem;
+  --radius-tile: 0.875rem;
+  --radius-chip: 0.5rem;
+  --color-inset-group: var(--inset-group);
+  --color-track: var(--track);
+  --shadow-card: var(--card-shadow);
 }
 
 /*
-  Botanical-clinical palette (Seed-inspired).
-  - Ink / canvas: Forest Depths + Snow White (authority, contrast)
-  - Interactive primary: vivid leaf green (links, icons, selected) — not Forest
-    (Forest as primary made every text-primary/bg-primary/10 read as mud)
-  - Lime Pulse: highlight punctuation (badges, nav active, icon wells) — keep vivid
-  - Surfaces / signals lean into Lime hue family for continuity (do not mute highlight)
-  Hex sources: src/lib/brand-tokens.ts
+  Ink & Lime palette (ADR-085).
+  - Canvas cool off-white, cards pure white with a soft wide shadow
+  - Ink: titles, figures, primary CTA, icon tiles, numbered chips, tooltips
+  - Lime: the only hue — progress, records, the live part of a gauge
+  - Intensity reads as an ink→lime ramp; caution/risk stay amber/red for alerts
+  Hex sources: packages/app/src/lib/brand/brand-tokens.ts
 */
 :root {
-  /* Snow White #fcfcf7 — page canvas only */
-  --background: oklch(0.99 0.007 106.5);
-  /* Forest Depths #1c3a13 — body ink */
-  --foreground: oklch(0.315 0.073 139);
-  /* Pure white plates — cards, outline buttons, chip wells (lift off canvas) */
-  --card: #fff;
-  --card-foreground: oklch(0.315 0.073 139);
-  --popover: #fff;
-  --popover-foreground: oklch(0.315 0.073 139);
-  /*
-    Interactive brand green — Seed hue family, enough chroma to read at /10–/15.
-    Filled CTAs use this; body text stays Forest via --foreground.
-  */
-  --primary: oklch(0.48 0.13 142);
-  --primary-foreground: oklch(0.99 0.007 106.5);
-  /* Warm Stone #f0f1e8 — slight lime cast toward highlight */
-  --secondary: oklch(0.955 0.012 115);
-  --secondary-foreground: oklch(0.315 0.073 139);
-  --muted: oklch(0.955 0.012 115);
-  /* Pewter #666666 */
-  --muted-foreground: oklch(0.51 0 0);
-  /* Soft Lime wash — Seed softAccent, continues highlight */
-  --accent: oklch(0.955 0.055 127);
-  --accent-foreground: oklch(0.315 0.073 139);
-  /* Lime Pulse #d3fa99 — nav active, badges, icon wells (keep vivid) */
-  --highlight: oklch(0.936 0.13 126.6);
-  --highlight-foreground: oklch(0.315 0.073 139);
-  /* Forest Depths band — empty states, hub callouts (Seed dark section, inset) */
-  --ink-surface: oklch(0.315 0.073 139);
-  --ink-surface-foreground: oklch(0.99 0.007 106.5);
-  /* Accent legible *on* the ink band in both themes: Lime punctuation on Forest
-     here, inverted to Forest-on-Lime in dark. Exists as a variable (not a
-     `dark:` class) because SVG/recharts color props take a raw color string. */
+  --background: #f7f8fa;
+  --foreground: #0e0e0e;
+  --card: #ffffff;
+  --card-foreground: #0e0e0e;
+  --popover: #ffffff;
+  --popover-foreground: #0e0e0e;
+  --primary: #0e0e0e;
+  --primary-foreground: #ffffff;
+  --secondary: #f2f2f2;
+  --secondary-foreground: #0e0e0e;
+  --muted: #f2f2f2;
+  /* #737378 clears AA on white and on the canvas */
+  --muted-foreground: #737378;
+  /* Soft lime wash — delta pills ("↑ 8 vs avg") */
+  --accent: #ecfac0;
+  --accent-foreground: #4f6b00;
+  --highlight: #cdf21e;
+  --highlight-foreground: #0e0e0e;
+  /* Icon tiles, number chips, tooltips, selected segment */
+  --ink-surface: #0e0e0e;
+  --ink-surface-foreground: #ffffff;
+  /* Raw color for SVG/recharts props on the ink surface */
   --ink-accent: var(--highlight);
-  /* Chip / analysis plates share card white so they lift off Snow White canvas */
-  --chip-surface: var(--card);
+  /* Neutral chip — "+5 kg", "+15s", segmented track */
+  --chip-surface: #f2f2f2;
+  /* Grey container holding white rows */
+  --inset-group: #f4f4f2;
+  /* Progress, ring and gauge tracks */
+  --track: #ebebeb;
   --destructive: oklch(0.58 0.2 27);
-  /* Snow on destructive — white passes AA on both themes after dark-mode darken. */
-  --destructive-foreground: oklch(0.99 0.007 106.5);
-  --border: oklch(0.315 0.073 139 / 12%);
-  --input: oklch(0.315 0.073 139 / 14%);
-  --ring: oklch(0.48 0.13 142);
-  /*
-    Semantic charts — same botanical orbit as Lime Pulse (hue ~120–142),
-    then warm effort spectrum. Avoid cool sage / brown tan that fights highlight.
-  */
-  --chart-1: oklch(0.56 0.09 148); /* recovery — leaf-eucalyptus toward lime */
-  --chart-2: oklch(0.48 0.13 142); /* base — matches interactive primary */
-  --chart-3: oklch(0.72 0.11 122); /* tempo — olive-lime (moderate days) */
-  --chart-4: oklch(0.74 0.12 95); /* threshold — warm gold, still lime-adjacent */
-  --chart-5: oklch(0.66 0.15 55); /* VO2max / charge — warm orange (data) */
+  --destructive-foreground: #ffffff;
+  --border: oklch(0.15 0 0 / 8%);
+  --input: oklch(0.15 0 0 / 12%);
+  --ring: #0e0e0e;
+  /* Intensity ramp: grey → ink → lime at the top */
+  --chart-1: #c9c9cd; /* recovery */
+  --chart-2: #8a8a8e; /* base */
+  --chart-3: #4a4a4f; /* tempo */
+  --chart-4: #0e0e0e; /* threshold */
+  --chart-5: #cdf21e; /* VO2max */
   --analysis-surface: var(--card);
-  --analysis-surface-alt: oklch(0.955 0.012 115);
-  --analysis-border: oklch(0.315 0.073 139 / 16%);
-  --analysis-grid: oklch(0.315 0.073 139 / 8%);
-  /*
-    Accent/onAccent pairs: filled signal plates never use raw text-white.
-    Light: snow when white ≥ 4.5:1, else dark-canvas ink (or pure black on mid fills).
-    Dark: accents go light → ink (dark canvas) always.
-  */
+  --analysis-surface-alt: #f4f4f2;
+  --analysis-border: oklch(0.15 0 0 / 8%);
+  --analysis-grid: oklch(0.15 0 0 / 6%);
   --signal-recovery: var(--chart-1);
-  --signal-recovery-foreground: oklch(0 0 0); /* mid fill — snow 4.35 fails, black 4.70 */
+  --signal-recovery-foreground: #0e0e0e;
   --signal-base: var(--chart-2);
-  --signal-base-foreground: oklch(0.99 0.007 106.5);
+  --signal-base-foreground: #0e0e0e;
   --signal-tempo: var(--chart-3);
-  --signal-tempo-foreground: oklch(0.22 0.045 139);
+  --signal-tempo-foreground: #ffffff;
   --signal-threshold: var(--chart-4);
-  --signal-threshold-foreground: oklch(0.22 0.045 139);
+  --signal-threshold-foreground: #ffffff;
   --signal-vo2: var(--chart-5);
-  --signal-vo2-foreground: oklch(0.22 0.045 139);
-  --signal-neutral: oklch(0.51 0 0);
-  --signal-neutral-foreground: oklch(0.99 0.007 106.5);
-  /*
-    Caution and risk are state, not palette. They used to sit inside the botanical
-    hue orbit at low chroma — caution at hue 98 was a yellow-green, three degrees
-    of separation from the brand, and measured 2.40:1 on the light canvas. It is
-    used as *text* in 28 places, so a marker out of range was the least legible
-    thing on the screen.
-
-    Both now clear 4.5:1 on their own ground, and caution leaves the green orbit
-    for true amber (98 → 75). Luminance cannot carry the separation on a near-white
-    canvas — three tiers of 3:1 need a 27:1 range and white only offers 21 — so
-    hue and chroma do the work, backed as always by the word beside the colour.
-  */
-  --signal-caution: oklch(0.55 0.135 75); /* 4.81:1 on canvas */
-  --signal-caution-foreground: oklch(0.99 0.007 106.5);
-  --signal-risk: oklch(0.5 0.2 28); /* 6.48:1 on canvas */
-  --signal-risk-foreground: oklch(0.99 0.007 106.5);
-  --health-status-ok: oklch(0.52 0.09 140);
-  --health-status-ok-foreground: oklch(0.99 0.007 106.5);
+  --signal-vo2-foreground: #0e0e0e;
+  --signal-neutral: #8a8a8e;
+  --signal-neutral-foreground: #0e0e0e;
+  /* Caution and risk are state, not palette: they keep hue so alerts stand out
+     in a monochrome UI, and both clear 4.5:1 on the canvas. */
+  --signal-caution: oklch(0.55 0.135 75);
+  --signal-caution-foreground: #ffffff;
+  --signal-risk: oklch(0.5 0.2 28);
+  --signal-risk-foreground: #ffffff;
+  --health-status-ok: #4f6b00;
+  --health-status-ok-foreground: #ffffff;
   --health-status-watch: var(--signal-caution);
   --health-status-watch-foreground: var(--signal-caution-foreground);
-  --health-status-verify: oklch(0.56 0.09 148);
-  --health-status-verify-foreground: oklch(0 0 0);
+  --health-status-verify: #8a8a8e;
+  --health-status-verify-foreground: #0e0e0e;
   --health-status-attention: var(--signal-risk);
   --health-status-attention-foreground: var(--signal-risk-foreground);
-  --record-accent: var(--chart-5);
-  --record-accent-foreground: oklch(0.22 0.045 139); /* snow fails on warm orange */
+  --record-accent: #cdf21e;
+  --record-accent-foreground: #0e0e0e;
   /*
-    Sport identity fills (fixed — do not flip with theme). Hex mirrors
-    SPORT_IDENTITY_HEX. on-sport: ink on run/bike/swim/triathlon (white fails
-    ~3.6–4.1), snow on strength/hike/other. Ink is one step deeper than the dark
-    canvas so swim clears AA 4.5:1.
+    Sport identity is the icon, not the colour (ADR-085): every sport tile is ink
+    with a lime glyph. Hex mirrors SPORT_IDENTITY_HEX.
   */
-  --sport-run: #ea580c;
-  --on-sport-run: oklch(0.18 0.045 139);
-  --sport-bike: #059669;
-  --on-sport-bike: oklch(0.18 0.045 139);
-  --sport-swim: #0284c7;
-  --on-sport-swim: oklch(0.18 0.045 139);
-  --sport-strength: #e11d48;
-  --on-sport-strength: oklch(0.99 0.007 106.5);
-  --sport-triathlon: #0d9488;
-  --on-sport-triathlon: oklch(0.18 0.045 139);
-  --sport-hike: #b45309;
-  --on-sport-hike: oklch(0.99 0.007 106.5);
-  --sport-other: #2f6b28;
-  --on-sport-other: oklch(0.99 0.007 106.5);
-  --radial-track: oklch(0.955 0.012 115);
-  --radial-empty: oklch(0.826 0.005 145.5); /* Frosted Glass */
+  --sport-run: #0e0e0e;
+  --on-sport-run: #cdf21e;
+  --sport-bike: #0e0e0e;
+  --on-sport-bike: #cdf21e;
+  --sport-swim: #0e0e0e;
+  --on-sport-swim: #cdf21e;
+  --sport-strength: #0e0e0e;
+  --on-sport-strength: #cdf21e;
+  --sport-triathlon: #0e0e0e;
+  --on-sport-triathlon: #cdf21e;
+  --sport-hike: #0e0e0e;
+  --on-sport-hike: #cdf21e;
+  --sport-other: #0e0e0e;
+  --on-sport-other: #cdf21e;
+  --radial-track: #ebebeb;
+  --radial-empty: #d6d6d6;
   --radius: 1rem;
-  --sidebar: oklch(0.955 0.012 115);
-  --sidebar-foreground: oklch(0.315 0.073 139);
-  --sidebar-primary: oklch(0.48 0.13 142);
-  --sidebar-primary-foreground: oklch(0.99 0.007 106.5);
-  --sidebar-accent: oklch(0.955 0.055 127);
-  --sidebar-accent-foreground: oklch(0.315 0.073 139);
-  --sidebar-border: oklch(0.315 0.073 139 / 10%);
-  --sidebar-ring: oklch(0.48 0.13 142);
+  --card-shadow: 0 12px 40px -12px oklch(0 0 0 / 8%), 0 1px 2px oklch(0 0 0 / 3%);
+  /* Card rhythm read from the references (ADR-085); radii live in @theme. */
+  --space-card: 1.5rem; /* card padding */
+  --space-section: 1.5rem; /* gap between card sections */
+  --space-inset: 0.75rem; /* inset group padding */
+  --space-row-gap: 0.5rem; /* gap between rows */
+  --space-row-x: 1rem; /* row horizontal padding */
+  --size-tile: 2.75rem; /* icon tile */
+  --size-chip: 1.875rem; /* number chip */
+  --size-control: 3.25rem; /* button height */
+  --size-row: 3.5rem; /* row min height */
+  --size-bar: 0.5rem; /* progress bar thickness */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #0e0e0e;
+  --sidebar-primary: #0e0e0e;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f2f2f2;
+  --sidebar-accent-foreground: #0e0e0e;
+  --sidebar-border: oklch(0.15 0 0 / 8%);
+  --sidebar-ring: #0e0e0e;
 
   /*
     Floating bottom-nav contract (every viewport). `--bottom-nav-height` is the
@@ -279,83 +272,81 @@
 }
 
 .dark {
-  /* Near-ink forest — deeper than Seed product-band green for app density */
-  --background: oklch(0.22 0.045 139);
-  --foreground: oklch(0.99 0.007 106.5);
-  --card: oklch(0.28 0.05 139);
-  --card-foreground: oklch(0.99 0.007 106.5);
-  --popover: oklch(0.28 0.05 139);
-  --popover-foreground: oklch(0.99 0.007 106.5);
-  /* Lime Pulse — full chromatic punch on dark */
-  --primary: oklch(0.936 0.13 126.6);
-  --primary-foreground: oklch(0.28 0.05 139);
-  --secondary: oklch(0.32 0.045 139);
-  --secondary-foreground: oklch(0.99 0.007 106.5);
-  --muted: oklch(0.32 0.045 139);
-  --muted-foreground: oklch(0.78 0.02 145);
-  --accent: oklch(0.36 0.055 130);
-  --accent-foreground: oklch(0.99 0.007 106.5);
-  --highlight: oklch(0.936 0.13 126.6);
-  --highlight-foreground: oklch(0.28 0.05 139);
-  /* Lime band on dark — Seed punctuation as inverted section */
-  --ink-surface: oklch(0.936 0.13 126.6);
-  --ink-surface-foreground: oklch(0.22 0.045 139);
-  --ink-accent: var(--ink-surface-foreground);
-  --chip-surface: var(--card);
-  /* Darkened so snow (destructive-foreground) clears WCAG AA 4.5:1. */
+  --background: #0b0b0c;
+  --foreground: #f5f5f7;
+  --card: #161618;
+  --card-foreground: #f5f5f7;
+  --popover: #1e1e20;
+  --popover-foreground: #f5f5f7;
+  /* Ink and white swap; lime stays */
+  --primary: #f5f5f7;
+  --primary-foreground: #0e0e0e;
+  --secondary: #1e1e20;
+  --secondary-foreground: #f5f5f7;
+  --muted: #1e1e20;
+  --muted-foreground: #9a9aa0;
+  --accent: #2a3510;
+  --accent-foreground: #cdf21e;
+  --highlight: #cdf21e;
+  --highlight-foreground: #0e0e0e;
+  --ink-surface: #2a2a2e;
+  --ink-surface-foreground: #f5f5f7;
+  --ink-accent: var(--highlight);
+  --chip-surface: #26262a;
+  --inset-group: #1e1e20;
+  --track: #2c2c2e;
   --destructive: oklch(0.55 0.2 27);
-  --destructive-foreground: oklch(0.99 0.007 106.5);
-  --border: oklch(0.99 0.007 106.5 / 12%);
-  --input: oklch(0.99 0.007 106.5 / 14%);
-  --ring: oklch(0.936 0.13 126.6);
-  --chart-1: oklch(0.74 0.08 148);
-  --chart-2: oklch(0.936 0.13 126.6);
-  --chart-3: oklch(0.82 0.1 122);
-  --chart-4: oklch(0.82 0.11 95);
-  --chart-5: oklch(0.74 0.14 55);
+  --destructive-foreground: #ffffff;
+  --border: oklch(0.98 0 0 / 10%);
+  --input: oklch(0.98 0 0 / 14%);
+  --ring: #cdf21e;
+  --chart-1: #48484c;
+  --chart-2: #8a8a8e;
+  --chart-3: #c9c9cd;
+  --chart-4: #f5f5f7;
+  --chart-5: #cdf21e;
   --analysis-surface: var(--card);
-  --analysis-surface-alt: oklch(0.3 0.05 139);
-  --analysis-border: oklch(0.99 0.007 106.5 / 14%);
-  --analysis-grid: oklch(0.99 0.007 106.5 / 8%);
-  /* Dark accents are light → ink (dark canvas) on every filled plate. */
+  --analysis-surface-alt: #1e1e20;
+  --analysis-border: oklch(0.98 0 0 / 12%);
+  --analysis-grid: oklch(0.98 0 0 / 8%);
   --signal-recovery: var(--chart-1);
-  --signal-recovery-foreground: oklch(0.22 0.045 139);
+  --signal-recovery-foreground: #f5f5f7;
   --signal-base: var(--chart-2);
-  --signal-base-foreground: oklch(0.22 0.045 139);
+  --signal-base-foreground: #0e0e0e;
   --signal-tempo: var(--chart-3);
-  --signal-tempo-foreground: oklch(0.22 0.045 139);
+  --signal-tempo-foreground: #0e0e0e;
   --signal-threshold: var(--chart-4);
-  --signal-threshold-foreground: oklch(0.22 0.045 139);
+  --signal-threshold-foreground: #0e0e0e;
   --signal-vo2: var(--chart-5);
-  --signal-vo2-foreground: oklch(0.22 0.045 139);
-  --signal-neutral: oklch(0.78 0.02 145);
-  --signal-neutral-foreground: oklch(0.22 0.045 139);
-  /* Same move on the dark ground: out of the green orbit, chroma up. */
-  --signal-caution: oklch(0.85 0.15 82); /* 10.71:1 on canvas */
-  --signal-caution-foreground: oklch(0.22 0.045 139);
-  --signal-risk: oklch(0.72 0.19 28); /* 6.15:1 on canvas */
-  --signal-risk-foreground: oklch(0.22 0.045 139);
-  --health-status-ok: oklch(0.74 0.09 140);
-  --health-status-ok-foreground: oklch(0.22 0.045 139);
+  --signal-vo2-foreground: #0e0e0e;
+  --signal-neutral: #9a9aa0;
+  --signal-neutral-foreground: #0e0e0e;
+  --signal-caution: oklch(0.85 0.15 82);
+  --signal-caution-foreground: #0e0e0e;
+  --signal-risk: oklch(0.72 0.19 28);
+  --signal-risk-foreground: #0e0e0e;
+  --health-status-ok: #cdf21e;
+  --health-status-ok-foreground: #0e0e0e;
   --health-status-watch: var(--signal-caution);
   --health-status-watch-foreground: var(--signal-caution-foreground);
-  --health-status-verify: oklch(0.74 0.08 148);
-  --health-status-verify-foreground: oklch(0.22 0.045 139);
+  --health-status-verify: #9a9aa0;
+  --health-status-verify-foreground: #0e0e0e;
   --health-status-attention: var(--signal-risk);
   --health-status-attention-foreground: var(--signal-risk-foreground);
-  --record-accent: oklch(0.74 0.14 55);
-  --record-accent-foreground: oklch(0.22 0.045 139);
+  --record-accent: #cdf21e;
+  --record-accent-foreground: #0e0e0e;
   /* Sport + on-sport stay fixed (inherited from :root). */
-  --radial-track: oklch(0.32 0.045 139);
-  --radial-empty: oklch(0.42 0.05 139);
-  --sidebar: oklch(0.2 0.042 139);
-  --sidebar-foreground: oklch(0.99 0.007 106.5);
-  --sidebar-primary: oklch(0.936 0.13 126.6);
-  --sidebar-primary-foreground: oklch(0.28 0.05 139);
-  --sidebar-accent: oklch(0.32 0.045 139);
-  --sidebar-accent-foreground: oklch(0.99 0.007 106.5);
-  --sidebar-border: oklch(0.99 0.007 106.5 / 10%);
-  --sidebar-ring: oklch(0.936 0.13 126.6);
+  --radial-track: #2c2c2e;
+  --radial-empty: #3a3a3e;
+  --card-shadow: 0 0 0 1px oklch(0.98 0 0 / 6%);
+  --sidebar: #111113;
+  --sidebar-foreground: #f5f5f7;
+  --sidebar-primary: #f5f5f7;
+  --sidebar-primary-foreground: #0e0e0e;
+  --sidebar-accent: #1e1e20;
+  --sidebar-accent-foreground: #f5f5f7;
+  --sidebar-border: oklch(0.98 0 0 / 10%);
+  --sidebar-ring: #cdf21e;
 }
 
 @layer base {
@@ -562,8 +553,8 @@
 @utility text-label {
   color: var(--color-muted-foreground);
   font-weight: 600;
-  font-size: 0.6875rem;
-  letter-spacing: 0.14em;
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   text-wrap: balance;
 }
@@ -574,21 +565,21 @@
    Reach for this instead of an arbitrary `text-[10px]`, which sits under the
    §4.3 minimum and reads as anxiety. */
 @utility text-meta {
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   line-height: 1.4;
 }
 
 @utility text-page-title {
-  font-weight: 600;
-  font-size: 1.5rem;
-  line-height: 1.2;
+  font-weight: 700;
+  font-size: 1.625rem;
+  line-height: 1.15;
   font-family: var(--font-heading);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 
 @utility text-section-title {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1.125rem;
   line-height: 1.25;
   font-family: var(--font-heading);
@@ -597,32 +588,30 @@
 }
 
 @utility text-card-title {
-  font-weight: 500;
-  font-size: 1rem;
-  line-height: 1.35;
+  font-weight: 600;
+  font-size: 1.0625rem;
+  line-height: 1.3;
   font-family: var(--font-heading);
   letter-spacing: -0.01em;
   text-wrap: balance;
 }
 
 @utility text-data {
+  font-weight: 700;
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
 @utility text-instrument {
-  font-weight: 400;
+  font-weight: 600;
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
-  font-feature-settings:
-    'tnum' 1,
-    'zero' 1;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 @utility text-verdict {
-  font-weight: 600;
+  font-weight: 700;
   font-size: 1.25rem;
   line-height: 1.2;
   font-family: var(--font-heading);
@@ -632,6 +621,122 @@
     font-size: 1.55rem;
     letter-spacing: -0.025em;
   }
+}
+
+/* ── Ink & Lime primitives (ADR-085) ─────────────────────────────────────── */
+
+/* White card on the canvas: 28px corner, soft wide shadow, 24px padding. */
+@utility card-surface {
+  padding: var(--space-card);
+  border-radius: var(--radius-card);
+  background-color: var(--color-card);
+  box-shadow: var(--card-shadow);
+  color: var(--color-card-foreground);
+}
+
+/* Grey group holding white rows inside a card. */
+@utility inset-group {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-inset);
+  gap: var(--space-row-gap);
+  border-radius: var(--radius-inset);
+  background-color: var(--color-inset-group);
+}
+
+/* A white row inside an inset group. */
+@utility inset-row {
+  display: flex;
+  align-items: center;
+  min-height: var(--size-row);
+  padding-inline: var(--space-row-x);
+  gap: 0.75rem;
+  border-radius: var(--radius-row);
+  background-color: var(--color-card);
+  &:is(.dark *) {
+    background-color: var(--color-chip-surface);
+  }
+}
+
+/* Ink squircle with a lime glyph, 44px. */
+@utility icon-tile {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-tile);
+  height: var(--size-tile);
+  border-radius: var(--radius-tile);
+  background-color: var(--color-ink-surface);
+  color: var(--color-ink-accent);
+}
+
+/* Ordinal: white numeral on a small ink squircle. */
+@utility number-chip {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-chip);
+  height: var(--size-chip);
+  border-radius: var(--radius-chip);
+  background-color: var(--color-ink-surface);
+  color: var(--color-ink-surface-foreground);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pills: lime for an achievement, neutral for a delta, soft lime for a comparison. */
+@utility pill-lime {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3125rem 0.625rem;
+  border-radius: calc(infinity* 1px);
+  background-color: var(--color-highlight);
+  color: var(--color-highlight-foreground);
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+@utility pill-neutral {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3125rem 0.625rem;
+  border-radius: calc(infinity* 1px);
+  background-color: var(--color-chip-surface);
+  color: var(--color-foreground);
+  font-weight: 700;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@utility pill-soft {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.3125rem 0.75rem;
+  border-radius: calc(infinity* 1px);
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* Capsule track for progress bars; the fill is a child with bg-highlight. */
+@utility progress-track {
+  height: var(--size-bar);
+  overflow: hidden;
+  border-radius: calc(infinity* 1px);
+  background-color: var(--color-track);
+}
+
+/* The one figure a card stands on: heavy, tight, tabular. */
+@utility text-hero {
+  font-weight: 800;
+  font-size: 4rem;
+  line-height: 1;
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
 }
 
 /**
@@ -767,15 +872,16 @@
 }
 
 @utility analysis-panel {
-  border: 1px solid var(--color-analysis-border);
-  border-radius: var(--radius-analysis);
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
   background-color: var(--color-analysis-surface);
+  box-shadow: var(--card-shadow);
 }
 
 @utility analysis-panel-alt {
-  border: 1px solid var(--color-analysis-border);
-  border-radius: var(--radius-analysis-lg);
-  background-color: var(--color-analysis-surface-alt);
+  border: 1px solid transparent;
+  border-radius: var(--radius-inset);
+  background-color: var(--color-inset-group);
 }
 
 @utility surface-shell {
@@ -787,14 +893,14 @@
 /* Seed dark-section band (inset) — Forest on light, Lime on dark */
 @utility surface-ink {
   border: 1px solid transparent;
-  border-radius: var(--radius-analysis-lg);
+  border-radius: var(--radius-card);
   background-color: var(--color-ink-surface);
   color: var(--color-ink-surface-foreground);
 }
 
-/* Preset: pressSmall — chip-surface compact controls */
+/* Preset: pressSmall — chip-surface compact controls (neutral chip, flat) */
 @utility chip-surface {
-  border: 1px solid color-mix(in oklch, var(--color-analysis-border) 81%, transparent);
+  border: 1px solid transparent;
   background-color: var(--color-chip-surface);
   color: var(--color-card-foreground);
   transition-duration: 150ms;
@@ -807,10 +913,11 @@
   }
 }
 
-/* Preset: pressSurface — wide chip rows/cards */
+/* Preset: pressSurface — wide rows/cards: a white card with the soft shadow */
 @utility chip-surface-lg {
-  border: 1px solid color-mix(in oklch, var(--color-analysis-border) 81%, transparent);
-  background-color: var(--color-chip-surface);
+  border: 1px solid transparent;
+  background-color: var(--color-card);
+  box-shadow: var(--card-shadow);
   color: var(--color-card-foreground);
   transition-duration: 150ms;
   transition-property: color, background-color, border-color, opacity, transform;
@@ -842,18 +949,16 @@
   }
 }
 
-/* Lime Pulse icon well — brand punctuation, not primary/10 mud.
-   Radius owned here (always a circle) so every consumer stays in sync —
-   previously each call site picked its own rounded-* and they drifted
-   (rounded-lg/xl/analysis-lg mixed across the app for the same role). */
+/* Icon tile (ADR-085) — ink squircle, lime glyph. Radius owned here so every
+   consumer stays in sync. */
 @utility icon-well {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  border-radius: calc(infinity* 1px);
-  background-color: var(--color-highlight);
-  color: var(--color-highlight-foreground);
+  border-radius: var(--radius-tile);
+  background-color: var(--color-ink-surface);
+  color: var(--color-ink-accent);
 }
 
 /* The app icon as a tile — white deepening to grey, as SharpIt.icon draws it — behind
@@ -879,26 +984,7 @@
   Kept here so AuthShell on apps/web matches the public site without hub CSS.
 */
 @utility landing-canvas {
-  background-image:
-    radial-gradient(
-      circle at 1px 1px,
-      color-mix(in oklch, var(--color-foreground) 7%, transparent) 1px,
-      transparent 0
-    ),
-    radial-gradient(
-      ellipse 60% 50% at 0% 0%,
-      color-mix(in oklch, var(--color-primary) 7%, transparent),
-      transparent
-    ),
-    radial-gradient(
-      ellipse 50% 45% at 100% 100%,
-      color-mix(in oklch, var(--color-highlight) 9%, transparent),
-      transparent
-    );
-  background-size:
-    20px 20px,
-    100% 100%,
-    100% 100%;
+  /* Flat canvas (ADR-085): the white cards are the only depth. */
   background-color: var(--color-background);
 }
 

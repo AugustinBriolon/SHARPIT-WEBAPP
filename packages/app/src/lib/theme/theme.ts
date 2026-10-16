@@ -7,8 +7,8 @@ export const THEME_STORAGE_KEY = 'sharpit-theme';
 export const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
 
 /** Must match `html` / `--background` so overscroll + theme-color paint the same canvas. */
-export const THEME_LIGHT_COLOR = BRAND.snowWhite;
-export const THEME_DARK_COLOR = BRAND.forestNight;
+export const THEME_LIGHT_COLOR = BRAND.canvas;
+export const THEME_DARK_COLOR = BRAND.canvasDark;
 
 export function isThemePreference(value: string | null | undefined): value is ThemePreference {
   return value === 'light' || value === 'dark' || value === 'system';

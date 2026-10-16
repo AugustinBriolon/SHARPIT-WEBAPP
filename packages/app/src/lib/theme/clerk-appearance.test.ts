@@ -17,9 +17,9 @@ describe('clerkAppearance theme bridge', () => {
     expect(variables.borderRadius).toBe(BRAND.radius);
   });
 
-  it('does not hard-code Forest Depths as Clerk primary (illegible on dark)', () => {
+  it('does not hard-code ink as Clerk primary (illegible on dark)', () => {
     const values = Object.values(clerkAppearance.variables);
-    expect(values).not.toContain(BRAND.forestDepths);
+    expect(values).not.toContain(BRAND.ink);
     expect(values.some((v) => typeof v === 'string' && /^#[0-9a-fA-F]{3,8}$/.test(v))).toBe(false);
   });
 });

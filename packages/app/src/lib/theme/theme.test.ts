@@ -63,8 +63,8 @@ afterEach(() => {
 
 describe('theme-color canvas tokens', () => {
   it('matches brand page canvases (Craft HTML background)', () => {
-    expect(THEME_LIGHT_COLOR).toBe(BRAND.snowWhite);
-    expect(THEME_DARK_COLOR).toBe(BRAND.forestNight);
+    expect(THEME_LIGHT_COLOR).toBe(BRAND.canvas);
+    expect(THEME_DARK_COLOR).toBe(BRAND.canvasDark);
   });
 });
 
