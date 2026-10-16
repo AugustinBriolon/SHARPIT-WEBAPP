@@ -29,7 +29,8 @@ vi.mock('@sharpit/server/lib/auth/current-athlete', () => ({
 vi.mock('@sharpit/server/lib/rate-limit', () => ({
   checkRateLimit: vi.fn().mockResolvedValue({ ok: true }),
   rateLimitJsonResponse: vi.fn(),
-  rateLimiters: { coachChat: {} },
+  rateLimiters: { coachChat: {}, coachChatBurst: {} },
+  checkRateLimits: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
 // Mocked wholesale — ai-budget.ts imports @/lib/prisma, which must not run here.
@@ -461,7 +462,7 @@ describe('POST /api/coach/chat · guard', () => {
   it('starts the consent, rate limit and budget reads together', async () => {
     const { requireAiProcessingConsent } =
       await import('@sharpit/server/lib/privacy/consent-store');
-    const { checkRateLimit } = await import('@sharpit/server/lib/rate-limit');
+    const { checkRateLimits } = await import('@sharpit/server/lib/rate-limit');
     const { ensureFreeAiBudget } = await import('@sharpit/server/lib/access/ai-budget');
     let grantConsent: (value: null) => void = () => undefined;
     vi.mocked(requireAiProcessingConsent).mockReturnValueOnce(
@@ -473,7 +474,7 @@ describe('POST /api/coach/chat · guard', () => {
     const { POST } = await importRoute();
     const pending = POST(chatRequest());
     await vi.waitFor(() => expect(ensureFreeAiBudget).toHaveBeenCalled());
-    expect(checkRateLimit).toHaveBeenCalled();
+    expect(checkRateLimits).toHaveBeenCalled();
 
     grantConsent(null);
     expect((await pending).status).toBe(200);
@@ -482,12 +483,12 @@ describe('POST /api/coach/chat · guard', () => {
   it('answers a missing consent first, even when the other checks refuse too', async () => {
     const { requireAiProcessingConsent } =
       await import('@sharpit/server/lib/privacy/consent-store');
-    const { checkRateLimit } = await import('@sharpit/server/lib/rate-limit');
+    const { checkRateLimits } = await import('@sharpit/server/lib/rate-limit');
     const { ensureFreeAiBudget } = await import('@sharpit/server/lib/access/ai-budget');
     vi.mocked(requireAiProcessingConsent).mockResolvedValueOnce(
       new Response(null, { status: 403 }) as never,
     );
-    vi.mocked(checkRateLimit).mockResolvedValueOnce({ ok: false } as never);
+    vi.mocked(checkRateLimits).mockResolvedValueOnce({ ok: false } as never);
     vi.mocked(ensureFreeAiBudget).mockResolvedValueOnce({ allowed: false } as never);
 
     const { POST } = await importRoute();
