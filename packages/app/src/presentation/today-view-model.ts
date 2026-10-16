@@ -294,6 +294,8 @@ export type TodayViewModel = {
       purpose?: string | null;
       /** Key KPIs for session preview cards (done + planned — max 3). */
       metrics?: Array<{ label: string; value: string; unit: string }> | null;
+      /** A done session's match to its plan, 0–100; null before the analysis or off-plan. */
+      complianceScore?: number | null;
       /** Morning choice annotation on this session (post-choice). */
       morningChoiceLabel?: string | null;
       /** Set for a brick line — render one card with each leg behind a dropdown. */

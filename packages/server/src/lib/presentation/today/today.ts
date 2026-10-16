@@ -337,6 +337,7 @@ function mapDaySummaryLineForView(
     morningChoiceLabel: morningChoiceForLine(plannedId, sessionChoice),
     brickLegs: line.brickLegs ?? null,
     brickTransitionsSec: line.brickTransitionsSec ?? null,
+    complianceScore: line.complianceScore ?? null,
   };
 }
 

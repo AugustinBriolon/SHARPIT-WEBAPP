@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildTodayDaySummary } from './today-day-summary';
+import { buildTodayDaySummary, readComplianceScore } from './today-day-summary';
 import type { ClientActivity, ClientPlannedSession } from '@sharpit/app/lib/query/types';
 
 const TODAY = new Date('2026-07-03T10:00:00');
@@ -295,5 +295,14 @@ describe('buildTodayDaySummary · a brick under way', () => {
     );
 
     expect(summary.lines.map((line) => line.id)).toEqual(['act-morning', 'brick-1']);
+  });
+});
+
+describe('readComplianceScore', () => {
+  it('reads a rounded score from a stored analysis and nothing from anything else', () => {
+    expect(readComplianceScore({ complianceScore: 97.6, verdict: 'AS_PLANNED' })).toBe(98);
+    expect(readComplianceScore({ verdict: 'AS_PLANNED' })).toBeNull();
+    expect(readComplianceScore(null)).toBeNull();
+    expect(readComplianceScore('97')).toBeNull();
   });
 });

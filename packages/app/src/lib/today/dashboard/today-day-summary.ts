@@ -37,7 +37,16 @@ export type DaySummaryLine = {
   brickLegs?: BrickLegSummary[];
   /** Set for a brick under way: seconds from each leg's end to the next's start, null if unknown. */
   brickTransitionsSec?: Array<number | null>;
+  /** A done session's match to its plan, 0–100, once the analysis ran; null otherwise. */
+  complianceScore?: number | null;
 };
+
+/** The compliance score out of a planned session's stored analysis, when it holds one. */
+export function readComplianceScore(analysis: unknown): number | null {
+  if (!analysis || typeof analysis !== 'object') return null;
+  const score = (analysis as { complianceScore?: unknown }).complianceScore;
+  return typeof score === 'number' && Number.isFinite(score) ? Math.round(score) : null;
+}
 
 export type TodayDaySummary = {
   sectionLabel: string;
@@ -97,6 +106,7 @@ function buildDoneActivityLine(a: ClientActivity): DaySummaryLine {
       hikeMetrics: a.hikeMetrics,
       strengthSets: a.strengthSets ?? [],
     }),
+    complianceScore: readComplianceScore(a.plannedSession?.analysis),
   };
 }
 

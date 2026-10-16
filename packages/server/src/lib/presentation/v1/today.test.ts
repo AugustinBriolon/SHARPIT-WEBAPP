@@ -104,6 +104,7 @@ describe('projectV1Today', () => {
         brickLegs: null,
         brickTransitionsSec: null,
         brickGroupId: null,
+        complianceScore: null,
       },
     ]);
     expect(json.signals.map((s) => s.key)).toEqual(['sleep', 'recovery']);

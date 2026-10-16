@@ -120,6 +120,7 @@ export type V1TodaySource = {
       metrics?: Array<{ label: string; value: string; unit: string }> | null;
       brickLegs?: ReadonlyArray<BrickLegSource> | null;
       brickTransitionsSec?: ReadonlyArray<number | null> | null;
+      complianceScore?: number | null;
     }>;
     morningRecalibration?: TodayViewModel['actionRow']['morningRecalibration'];
   };
@@ -277,6 +278,8 @@ export type V1TodayResponse = {
     brickGroupId?: string | null;
     /** Set on a brick under way: seconds from each leg's end to the next's start (T2, …). */
     brickTransitionsSec?: Array<number | null> | null;
+    /** A done session's match to its plan, 0–100; null before the analysis or off-plan. */
+    complianceScore?: number | null;
   }>;
   signals: Array<{
     key: 'sleep' | 'recovery' | 'effort' | 'adaptation' | 'stress';
@@ -475,6 +478,7 @@ function projectSessions(
       })) ?? null,
     brickTransitionsSec: line.brickTransitionsSec ? [...line.brickTransitionsSec] : null,
     brickGroupId: line.brickLegs?.length ? line.id : null,
+    complianceScore: line.kind === 'done' ? (line.complianceScore ?? null) : null,
   }));
 }
 
@@ -671,6 +675,7 @@ function sourceFromViewModel(vm: TodayViewModel): V1TodaySource {
         metrics: line.metrics,
         brickLegs: line.brickLegs,
         brickTransitionsSec: line.brickTransitionsSec,
+        complianceScore: line.complianceScore,
       })),
       morningRecalibration: vm.actionRow.morningRecalibration,
     },
