@@ -286,7 +286,7 @@ function buildPopulatedEffortViewModel(input: {
     dimensions: metrics.dimensions,
     missingDimCount: 5 - metrics.availableDimCount,
     dominantDimension: fatigue.dominantDimension,
-    primaryLimitingFactor: fatigue.primaryLimitingFactor,
+    primaryLimitingFactor: limitingFactorLabel,
     isLowFatigue: metrics.isLowFatigue,
     pmcSeries,
     weeklyTss,
