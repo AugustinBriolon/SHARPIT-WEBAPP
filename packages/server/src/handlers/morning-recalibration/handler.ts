@@ -4,18 +4,33 @@ import {
   ensureMorningRecalibration,
   getMorningRecalibrationPresentation,
 } from '@sharpit/server/lib/morning-recalibration/service';
-import { todayTrainingDayId } from '@sharpit/server/lib/journal/wellness-checkin';
+import { resolveAllowedTrainingDayId } from '@sharpit/server/lib/validators/training-day-window';
+
+function trainingDayErrorResponse(code: string) {
+  return NextResponse.json({ error: 'Jour d’entraînement invalide', code }, { status: 400 });
+}
 
 /** Evaluate / return today's morning session recalibration proposal (idempotent write). */
 export async function POST(request: Request) {
   try {
-    const body = (await request.json().catch(() => ({}))) as { trainingDayId?: string };
-    const trainingDayId = body.trainingDayId ?? todayTrainingDayId();
     const athleteId = await getCurrentAthleteId();
-    const { presentation: proposal } = await ensureMorningRecalibration(athleteId, trainingDayId);
+    const body = (await request.json().catch(() => ({}))) as {
+      trainingDayId?: string;
+      athleteId?: string;
+    };
+    // Athlete always from session — ignore any client-supplied athleteId.
+    void body.athleteId;
+    const day = await resolveAllowedTrainingDayId(athleteId, body.trainingDayId);
+    if (!day.ok) {
+      return trainingDayErrorResponse(day.code);
+    }
+    const { presentation: proposal } = await ensureMorningRecalibration(
+      athleteId,
+      day.trainingDayId,
+    );
     return NextResponse.json({ proposal });
   } catch (error) {
-    console.error('[morning-recalibration]', error);
+    console.error('[morning-recalibration]', error instanceof Error ? error.name : 'unknown');
     return NextResponse.json({ error: 'Impossible d’évaluer l’ajustement' }, { status: 500 });
   }
 }
@@ -24,14 +39,18 @@ export async function POST(request: Request) {
 export async function GET(request: Request) {
   // Read search params before try so Cache Components prerender interrupts propagate.
   const { searchParams } = new URL(request.url);
-  const trainingDayId = searchParams.get('trainingDayId') ?? todayTrainingDayId();
+  const candidate = searchParams.get('trainingDayId');
 
   try {
     const athleteId = await getCurrentAthleteId();
-    const proposal = await getMorningRecalibrationPresentation(athleteId, trainingDayId);
+    const day = await resolveAllowedTrainingDayId(athleteId, candidate);
+    if (!day.ok) {
+      return trainingDayErrorResponse(day.code);
+    }
+    const proposal = await getMorningRecalibrationPresentation(athleteId, day.trainingDayId);
     return NextResponse.json({ proposal });
   } catch (error) {
-    console.error('[morning-recalibration]', error);
+    console.error('[morning-recalibration]', error instanceof Error ? error.name : 'unknown');
     return NextResponse.json({ error: 'Impossible d’évaluer l’ajustement' }, { status: 500 });
   }
 }

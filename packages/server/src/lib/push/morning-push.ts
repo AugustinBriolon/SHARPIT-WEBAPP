@@ -76,7 +76,8 @@ export function buildMorningPushPayload(
     instruction = VERDICT_INSTRUCTION[verdict as VerdictStateCode];
   }
 
-  // Proposal while it waits, else fixed instruction (never explanation / scores).
+  // Proposal while it waits, else fixed instruction (never explanation / scores /
+  // durations / HRV). Lock-screen body must stay free of digits and health values.
   const rawBody =
     morningProposalLine(proposal) ||
     instruction ||
@@ -101,18 +102,20 @@ export function buildMorningPushPayload(
   };
 }
 
-/** « Ta nuit invite à lever le pied : Endurance → Récupération · 40 → 30 min », while it waits. */
+/**
+ * Fixed lock-screen body while a morning proposal waits.
+ * Never includes changeSummary, durations, scores, HR/HRV, or direction wording.
+ */
+export const MORNING_PROPOSAL_PUSH_BODY =
+  "Ton coach propose un ajustement pour ta séance. Ouvre l'app pour le voir.";
+
 export function morningProposalLine(
   proposal: MorningRecalibrationPresentation | null,
 ): string | null {
   if (!proposal || proposal.status !== 'PRESENTED') {
     return null;
   }
-  const lead =
-    proposal.direction === 'DOWN'
-      ? 'Ta nuit invite à lever le pied'
-      : 'Tu as bien récupéré, on peut monter d’un cran';
-  return `${lead} : ${proposal.changeSummary}`;
+  return MORNING_PROPOSAL_PUSH_BODY;
 }
 
 export function toApnsPayload(morning: MorningPushPayload): ApnsPayload {
