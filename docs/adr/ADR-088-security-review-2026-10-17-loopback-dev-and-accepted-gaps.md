@@ -1,6 +1,6 @@
 # ADR-088: Security review 2026-10-17 — loopback dev servers, one analysis budget, accepted gaps
 
-**Status:** Accepted — partly superseded by [ADR-089](./ADR-089-enforced-csp-and-ai-input-caps.md)
+**Status:** Accepted — partly superseded by [ADR-089](./ADR-089-enforced-csp-and-ai-input-caps.md) and [ADR-090](./ADR-090-athlete-text-delimiting-and-request-bounds.md)
 **Date:** 2026-10-17
 **Author:** Augustin Briolon
 **Supersedes:** N/A

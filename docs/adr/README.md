@@ -90,6 +90,7 @@
 | [ADR-087](./ADR-087-the-coach-reads-strength-sessions-on-request.md)                    | The coach reads strength sessions on request; imports stay endurance-only; 422 for other types                    | Accepted                          |
 | [ADR-088](./ADR-088-security-review-2026-10-17-loopback-dev-and-accepted-gaps.md)       | Security review: loopback dev servers, one session-analysis budget, accepted gaps pinned by `it.fails`            | Accepted                          |
 | [ADR-089](./ADR-089-enforced-csp-and-ai-input-caps.md)                                  | Enforced host-exact CSP (no nonce, keeps prerendered shells); caps on coach thread, note text, nutrition readings | Accepted                          |
+| [ADR-090](./ADR-090-athlete-text-delimiting-and-request-bounds.md)                      | Athlete-written text delimited in prompts (⟦ ⟧ + rule); list reads clamped; client goalId must be own             | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
