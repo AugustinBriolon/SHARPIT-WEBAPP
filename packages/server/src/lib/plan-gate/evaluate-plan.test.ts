@@ -79,16 +79,19 @@ describe('evaluatePlan', () => {
     expect(result.sessions[0]?.requiredAssumptions).toHaveLength(1);
   });
 
-  it('rejects the whole batch when decision data is missing or low-confidence', () => {
+  // A new account has no decision yet: its first week keeps the easy sessions, only the hard
+  // one is withheld (ADR-091).
+  it('keeps easy sessions and withholds hard ones when decision data is missing', () => {
     const context = baseContext({ decision: null });
     const proposals = [
       baseProposal({ intensity: 'ENDURANCE' }),
       baseProposal({ date: '2026-07-18', intensity: 'RECOVERY' }),
+      baseProposal({ date: '2026-07-19', intensity: 'VO2MAX' }),
     ];
 
     const result = evaluatePlan(context, proposals);
 
-    expect(result.sessions.every((s) => s.status === 'REJECTED')).toBe(true);
+    expect(result.sessions.map((s) => s.status)).toEqual(['WARNING', 'WARNING', 'REJECTED']);
     expect(
       result.sessions.every((s) =>
         s.findings.some((f) => f.ruleCode === 'DECISION_INSUFFICIENT_DATA'),

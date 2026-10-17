@@ -9,23 +9,40 @@ import { PLAN_GATE_HIGH_INTENSITY } from '@sharpit/server/lib/plan-gate/high-int
 
 const HIGH_INTENSITY = PLAN_GATE_HIGH_INTENSITY;
 
-function insufficientDecisionFinding(): RuleFinding {
+/**
+ * Without a reliable reading of the body (a new account, no synced nights yet) the Gate only
+ * withholds the hard sessions, offering an endurance version, and lets the rest through with a
+ * warning: rejecting everything left a new athlete with no first week at all (ADR-091).
+ */
+function unreliableDecisionFinding(
+  proposal: GateProposal,
+  isHighIntensity: boolean,
+  ruleCode: 'DECISION_INSUFFICIENT_DATA' | 'DECISION_LOW_CONFIDENCE',
+): RuleFinding {
+  const evidenceRefs =
+    ruleCode === 'DECISION_LOW_CONFIDENCE'
+      ? ['decision.confidenceTier', 'decision.confidence']
+      : ['decision.confidenceTier'];
+  if (!isHighIntensity) {
+    return {
+      ruleCode,
+      severity: 'WARNING',
+      rationale:
+        "Peu de données sur ta forme pour l'instant : la séance reste modérée. Synchronise tes nuits pour que le coach ajuste mieux.",
+      evidenceRefs,
+    };
+  }
   return {
-    ruleCode: 'DECISION_INSUFFICIENT_DATA',
+    ruleCode,
     severity: 'REJECTED',
     rationale:
-      "L'état physiologique du jour n'est pas assez fiable pour prescrire cette séance. Synchronise tes données ou attends que le Twin soit calibré avant de planifier.",
-    evidenceRefs: ['decision.confidenceTier'],
-  };
-}
-
-function lowConfidenceDecisionFinding(): RuleFinding {
-  return {
-    ruleCode: 'DECISION_LOW_CONFIDENCE',
-    severity: 'REJECTED',
-    rationale:
-      "La confiance dans la décision du jour est trop faible pour prescrire cette séance. Privilegie le repos ou une séance déjà validée jusqu'à ce que les signaux soient plus stables.",
-    evidenceRefs: ['decision.confidenceTier', 'decision.confidence'],
+      'Pas assez de données sur ta forme pour prescrire une séance intense. Une version en endurance est proposée en attendant que tes signaux soient fiables.',
+    evidenceRefs,
+    saferAlternative: {
+      ...proposal,
+      intensity: 'ENDURANCE',
+      load: isSet(proposal.load) ? Math.round(proposal.load * 0.6) : null,
+    },
   };
 }
 
@@ -98,11 +115,11 @@ export const decisionCompatibilityRule: PlanGateRule = (
   const isHighIntensity = isSet(proposal.intensity) && HIGH_INTENSITY.has(proposal.intensity);
 
   if (!decision || decision.confidenceTier === 'INSUFFICIENT') {
-    return [insufficientDecisionFinding()];
+    return [unreliableDecisionFinding(proposal, isHighIntensity, 'DECISION_INSUFFICIENT_DATA')];
   }
 
   if (decision.confidenceTier === 'LOW') {
-    return [lowConfidenceDecisionFinding()];
+    return [unreliableDecisionFinding(proposal, isHighIntensity, 'DECISION_LOW_CONFIDENCE')];
   }
 
   const findings: RuleFinding[] = [];

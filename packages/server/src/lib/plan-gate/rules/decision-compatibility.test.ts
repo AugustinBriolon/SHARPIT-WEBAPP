@@ -52,7 +52,7 @@ describe('decisionCompatibilityRule', () => {
     expect(decisionCompatibilityRule(context, proposal)).toEqual([]);
   });
 
-  it('rejects when decision is missing (insufficient data is not a decision)', () => {
+  it('rejects a hard session when decision is missing (insufficient data is not a decision)', () => {
     const context = baseContext({ decision: null });
     const proposal = baseProposal({ intensity: 'THRESHOLD' });
 
@@ -63,7 +63,7 @@ describe('decisionCompatibilityRule', () => {
     expect(findings[0]?.severity).toBe('REJECTED');
   });
 
-  it('rejects when confidence tier is INSUFFICIENT', () => {
+  it('rejects a race when confidence tier is INSUFFICIENT', () => {
     const context = baseContext({
       decision: decisionState({ confidenceTier: 'INSUFFICIENT', overallVerdict: 'TRAIN_HARD' }),
     });
@@ -76,18 +76,50 @@ describe('decisionCompatibilityRule', () => {
     expect(findings[0]?.severity).toBe('REJECTED');
   });
 
-  it('rejects when confidence tier is LOW', () => {
+  it('rejects a hard session when confidence tier is LOW, offering endurance', () => {
     const context = baseContext({
       decision: decisionState({ confidenceTier: 'LOW', overallVerdict: 'TRAIN_HARD' }),
     });
-    const proposal = baseProposal({ intensity: 'ENDURANCE' });
+    const proposal = baseProposal({ intensity: 'THRESHOLD' });
 
     const findings = decisionCompatibilityRule(context, proposal);
 
     expect(findings).toHaveLength(1);
     expect(findings[0]?.ruleCode).toBe('DECISION_LOW_CONFIDENCE');
     expect(findings[0]?.severity).toBe('REJECTED');
+    expect(findings[0]?.saferAlternative?.intensity).toBe('ENDURANCE');
     expect(findings[0]?.evidenceRefs).toContain('decision.confidenceTier');
+  });
+
+  // A new account has no nights or history yet: its first week must not be rejected whole.
+  it.each([
+    ['LOW', 'DECISION_LOW_CONFIDENCE'],
+    ['INSUFFICIENT', 'DECISION_INSUFFICIENT_DATA'],
+  ] as const)(
+    'only warns on easy, endurance and strength sessions when confidence is %s',
+    (confidenceTier, ruleCode) => {
+      const context = baseContext({ decision: decisionState({ confidenceTier }) });
+      for (const proposal of [
+        baseProposal({ intensity: 'ENDURANCE' }),
+        baseProposal({ intensity: 'RECOVERY' }),
+        baseProposal({ type: 'STRENGTH', intensity: null }),
+      ]) {
+        const findings = decisionCompatibilityRule(context, proposal);
+        expect(findings).toHaveLength(1);
+        expect(findings[0]?.ruleCode).toBe(ruleCode);
+        expect(findings[0]?.severity).toBe('WARNING');
+      }
+    },
+  );
+
+  it('only warns on a strength session when there is no decision yet', () => {
+    const context = baseContext({ decision: null });
+    const findings = decisionCompatibilityRule(
+      context,
+      baseProposal({ type: 'STRENGTH', intensity: null }),
+    );
+
+    expect(findings[0]?.severity).toBe('WARNING');
   });
 
   it('does not reject an endurance session on MEDIUM confidence under RECOVER', () => {
