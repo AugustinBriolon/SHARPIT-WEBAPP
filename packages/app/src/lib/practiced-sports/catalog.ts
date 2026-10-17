@@ -83,7 +83,8 @@ export function hasCorePracticedSport(sports: readonly PracticedSportId[]): bool
 
 /**
  * Read-path normalize. Null / invalid / empty → all core sports
- * (existing athletes must not be blocked; see design note).
+ * (existing athletes must not be blocked; see design note). A complement-only selection
+ * (strength alone) is a real profile and stays as saved — ADR-086.
  */
 export function normalizeAthletePracticedSports(raw: unknown): AthletePracticedSports {
   if (!raw || typeof raw !== 'object') {
@@ -99,7 +100,7 @@ export function normalizeAthletePracticedSports(raw: unknown): AthletePracticedS
     record.sports.filter((value): value is PracticedSportId => isPracticedSportId(value)),
   );
 
-  if (sports.length === 0 || !hasCorePracticedSport(sports)) {
+  if (sports.length === 0) {
     return { version: 1, sports: [...DEFAULT_CORE_PRACTICED_SPORTS] };
   }
 

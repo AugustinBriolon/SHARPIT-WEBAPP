@@ -81,6 +81,12 @@ describe('normalizeAthletePracticedSports — existing users', () => {
     });
     expect(normalized.sports).toEqual(['run', 'strength']);
   });
+
+  it('keeps a strength-only athlete as saved', () => {
+    expect(normalizeAthletePracticedSports({ version: 1, sports: ['strength'] }).sports).toEqual([
+      'strength',
+    ]);
+  });
 });
 
 describe('equipmentSportsForPracticed', () => {

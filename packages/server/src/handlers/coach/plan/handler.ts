@@ -95,6 +95,7 @@ Règles :
 - Module selon TSB et récupération : fatigué (TSB très négatif, readiness basse) → récup/endurance ; frais → séances clés.
 - Respecte les jours d'entraînement habituels ; repos ailleurs. Ne duplique pas ce qui est déjà planifié.
 - 80/20 : majorité d'endurance, 2-3 séances qualité/semaine max, surcharge progressive.
+- Athlète musculation seule (aucun sport d'endurance dans les sports pratiqués) : le programme est fait de séances STRENGTH (et de mobilité si pratiquée), réparties par groupes musculaires avec récupération entre deux séances sur les mêmes muscles et surcharge progressive en volume puis en charge ; ignore 80/20, TSB et cibles FC/allure/puissance.
 - Cibles concrètes depuis les seuils (FC via LTHR/FC max, puissance via FTP, allure via allure seuil). Seuil manquant → RPE/zones, et signale-le.
 - TSS réaliste par séance. Aucun texte de description : le déroulé structuré suffit.
 - Exploite la conformité prévu/réalisé et le ressenti (RPE, feeling).
