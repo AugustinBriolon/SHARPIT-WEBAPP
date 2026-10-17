@@ -1,3 +1,4 @@
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import type { RaceAnalysis, RaceAnalysisLeg } from '@sharpit/app/lib/activity/race-analysis-types';
 import { formatDistance, formatDuration } from '@sharpit/app/lib/format';
 
@@ -60,7 +61,7 @@ export function buildRaceNarrativeLines(
   goalTitle: string | null,
 ): string[] {
   return [
-    goalTitle ? `Course visée : ${goalTitle}` : 'Course (sans objectif rattaché)',
+    goalTitle ? `Course visée : ${athleteText(goalTitle)}` : 'Course (sans objectif rattaché)',
     totalLine(analysis),
     'Étapes :',
     ...analysis.legs.map(legLine),

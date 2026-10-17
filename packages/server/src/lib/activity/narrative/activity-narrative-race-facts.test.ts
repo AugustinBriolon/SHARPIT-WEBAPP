@@ -25,7 +25,7 @@ describe('buildRaceNarrativeLines', () => {
       'Half IronMan Versailles',
     );
     const text = lines.join('\n');
-    expect(text).toContain('Course visée : Half IronMan Versailles');
+    expect(text).toContain('Course visée : ⟦Half IronMan Versailles⟧');
     expect(text).toContain('au-dessus de la cible');
     expect(text).toContain('ralentissement 6.2 %');
     expect(text).toContain('Z2 43 %');

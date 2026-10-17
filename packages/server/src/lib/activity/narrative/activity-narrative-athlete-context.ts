@@ -1,3 +1,4 @@
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import type { ActivityType } from '@prisma/client';
 import { isSet } from '@sharpit/shared/value';
 import { differenceInCalendarDays, format, startOfDay } from 'date-fns';
@@ -410,14 +411,14 @@ export function buildPhysicalConditionFacts(notes: NarrativePhysicalNote[]): str
     const trend = physicalNoteTrend(note.checkins);
 
     const bits = [
-      `${categoryLabels[note.category]} · ${note.title}`,
+      `${categoryLabels[note.category]} · ${athleteText(note.title)}`,
       note.bodyPart
-        ? `zone ${note.bodyPart}${note.side !== 'NA' ? ` (${sideLabels[note.side]})` : ''}`
+        ? `zone ${athleteText(note.bodyPart)}${note.side !== 'NA' ? ` (${sideLabels[note.side]})` : ''}`
         : null,
       isSet(note.severity) ? `sévérité ${note.severity}/10` : null,
       `statut ${statusLabels[note.status]}`,
       trend,
-      note.description ? `note : ${note.description}` : null,
+      note.description ? `note : ${athleteText(note.description)}` : null,
     ].filter(Boolean);
     return `- ${bits.join(' · ')}`;
   });

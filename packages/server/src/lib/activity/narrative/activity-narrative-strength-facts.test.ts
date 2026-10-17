@@ -26,7 +26,7 @@ describe('buildStrengthFacts', () => {
     ).toEqual([
       '2 exercices, 7 séries au total.',
       '- Squat : 4 × 8 rép. à 60 kg, RPE 8/10, repos 90 s',
-      '- Gainage : 3 × 45 s (dos ok)',
+      '- Gainage : 3 × 45 s (⟦dos ok⟧)',
     ]);
   });
 

@@ -1,3 +1,4 @@
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import { ActivityType } from '@prisma/client';
 import { isSet } from '@sharpit/shared/value';
 import { differenceInCalendarDays, startOfDay, subDays } from 'date-fns';
@@ -144,14 +145,14 @@ function activityEnvironmentLine(activity: ActivityRow): string | null {
 function describeActivityCoreBits(activity: ActivityRow): string[] {
   return [
     `Sport : ${TYPE_FR[activity.type] ?? activity.type}`,
-    activity.title ? `Titre : ${activity.title}` : null,
+    activity.title ? `Titre : ${athleteText(activity.title)}` : null,
     `Date : ${activity.date.toISOString().slice(0, 10)}`,
     activity.duration ? `Durée : ${formatDuration(activity.duration)}` : null,
     isSet(activity.load) ? `Charge : ${Math.round(activity.load)} TSS` : null,
     isSet(activity.rpe) ? `RPE : ${activity.rpe}/10` : null,
     activity.feeling ? `Ressenti déclaré : ${activity.feeling}` : null,
     activityEnvironmentLine(activity),
-    activity.notes ? `Notes athlète : ${activity.notes}` : null,
+    activity.notes ? `Notes athlète : ${athleteText(activity.notes)}` : null,
   ].filter(Boolean) as string[];
 }
 
@@ -346,7 +347,7 @@ function strengthSetLine(set: NarrativeStrengthSet): string {
     isSet(set.weightKg) && set.weightKg > 0 ? ` à ${set.weightKg} kg` : '',
     isSet(set.rpe) ? `, RPE ${set.rpe}/10` : '',
     isSet(set.restSec) ? `, repos ${set.restSec} s` : '',
-    set.notes ? ` (${set.notes})` : '',
+    set.notes ? ` (${athleteText(set.notes)})` : '',
   ].join('');
 }
 
@@ -625,7 +626,7 @@ function buildGoalNarrativeLines(goalHits: GoalHitWithGoal[]): string[] {
     ...goalHits.map((g) => {
       const cfg = parseGoalMetricConfig(g.goal.metricKey);
       const val = formatGoalDisplayValue(g.value, g.goal.unit, cfg);
-      return `- ${g.goal.title} (${val})`;
+      return `- ${athleteText(g.goal.title)} (${val})`;
     }),
   ];
 }

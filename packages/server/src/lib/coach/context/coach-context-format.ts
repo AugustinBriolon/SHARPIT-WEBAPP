@@ -2,6 +2,7 @@
  * The coach context written as the prompt's text, section by section.
  */
 import { isSet } from '@sharpit/shared/value';
+import { ATHLETE_TEXT_RULE, athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import { PRIORITY_CONSEQUENCES, PRIORITY_ROLES } from '@sharpit/app/lib/goals/goal-priority';
 import { travelTrainingConstraintLabel } from '@sharpit/app/lib/travel-context/training-constraint';
 import { travelDisciplineLabels } from '@sharpit/app/lib/travel-context/disciplines';
@@ -165,14 +166,14 @@ export function formatDecisionSection(decision: CoachContext['decision']): strin
  * as the travel block, without the location/logistics dimension.
  */
 function formatConstraintEntry(c: CoachContext['constraints'][number]): string {
-  const label = c.label?.trim() || 'Contrainte';
+  const label = c.label?.trim() ? athleteText(c.label) : 'Contrainte';
   const constraintLabel =
     travelTrainingConstraintLabel(c.trainingConstraint)?.toLowerCase() ?? 'entraînement normal';
   const sports =
     c.allowedDisciplines.length > 0
       ? ` · sports : ${travelDisciplineLabels(c.allowedDisciplines).join(', ')}`
       : '';
-  return `- ${label} : ${c.startDate} → ${c.endDate}${c.isActiveNow ? ' [en cours]' : ' [à venir]'} · contrainte ${c.trainingConstraint} (${constraintLabel})${sports}${c.note ? ` — ${c.note}` : ''}`;
+  return `- ${label} : ${c.startDate} → ${c.endDate}${c.isActiveNow ? ' [en cours]' : ' [à venir]'} · contrainte ${c.trainingConstraint} (${constraintLabel})${sports}${c.note ? ` — ${athleteText(c.note)}` : ''}`;
 }
 
 export function formatConstraintsSection(constraints: CoachContext['constraints']): string[] {
@@ -432,15 +433,15 @@ function formatPrimaryRaceLine(primaryRace: NonNullable<CoachContext['primaryRac
     primaryRace.raceFormat,
     primaryRace.targetPerformance ? `objectif visé : ${primaryRace.targetPerformance}` : null,
   ].filter(Boolean);
-  return `Course principale : ${primaryRace.title}${primaryRace.location ? ` (${primaryRace.location})` : ''} le ${raceDate(primaryRace)}, dans ${primaryRace.daysToGo} jours (~${Math.round(primaryRace.daysToGo / 7)} semaines)${extras.length ? ` — ${extras.join(', ')}` : ''}.`;
+  return `Course principale : ${athleteText(primaryRace.title)}${primaryRace.location ? ` (${athleteText(primaryRace.location)})` : ''} le ${raceDate(primaryRace)}, dans ${primaryRace.daysToGo} jours (~${Math.round(primaryRace.daysToGo / 7)} semaines)${extras.length ? ` — ${extras.join(', ')}` : ''}.`;
 }
 
 export function formatMetricGoalLine(goal: CoachContext['metricGoals'][number]): string {
   if (goal.target === undefined || goal.target === null) {
-    return `Objectif métrique : ${goal.title}.`;
+    return `Objectif métrique : ${athleteText(goal.title)}.`;
   }
   const current = isSet(goal.current) ? ` (actuel ${goal.current})` : '';
-  return `Objectif métrique : ${goal.title} → cible ${goal.target}${goal.unit ?? ''}${current}.`;
+  return `Objectif métrique : ${athleteText(goal.title)} → cible ${goal.target}${goal.unit ?? ''}${current}.`;
 }
 
 function formatGoalsSection(ctx: CoachContext): string[] {
@@ -456,7 +457,7 @@ function formatGoalsSection(ctx: CoachContext): string[] {
       race.targetPerformance ? `objectif : ${race.targetPerformance}` : null,
     ].filter(Boolean);
     lines.push(
-      `${raceRole(race)} : ${race.title} le ${raceDate(race)}, dans ${race.daysToGo} j${extras.length ? ` (${extras.join(' ; ')})` : ''}.`,
+      `${raceRole(race)} : ${athleteText(race.title)} le ${raceDate(race)}, dans ${race.daysToGo} j${extras.length ? ` (${extras.join(' ; ')})` : ''}.`,
     );
   }
   lines.push(...ctx.metricGoals.map(formatMetricGoalLine));
@@ -472,7 +473,7 @@ function formatRecentActivityLine(a: CoachContext['recent'][number]): string {
   ]
     .filter(Boolean)
     .join(' · ');
-  return `- ${a.date}${a.relativeDay ? ` (${a.relativeDay})` : ''} · ${a.type} ${a.title} (${a.duration})${extra ? ` — ${extra}` : ''}`;
+  return `- ${a.date}${a.relativeDay ? ` (${a.relativeDay})` : ''} · ${a.type} ${athleteText(a.title)} (${a.duration})${extra ? ` — ${extra}` : ''}`;
 }
 
 /** One activity in the « Séances récentes » line format. */
@@ -500,15 +501,15 @@ function formatPhysicalSection(physical: CoachContext['physical']): string[] {
     'Les estimations SHARPIT sont des aides à la décision — jamais un diagnostic médical.',
     ...physical.map((p) => {
       const bits = [
-        `${p.category} : ${p.title}`,
-        p.bodyPart ? `zone ${p.bodyPart}${p.side ? ` (${p.side})` : ''}` : null,
+        `${p.category} : ${athleteText(p.title)}`,
+        p.bodyPart ? `zone ${athleteText(p.bodyPart)}${p.side ? ` (${p.side})` : ''}` : null,
         isSet(p.severity) ? `sévérité inférée ${p.severity}/10` : null,
         `statut ${p.status}`,
         p.strategy ? `conduite ${p.strategy}` : null,
         p.trend ? `tendance ${p.trend}` : null,
         p.functionalCapacity ? `capacité fonctionnelle ${p.functionalCapacity}` : null,
         isSet(p.confidence) ? `confiance ${Math.round(p.confidence * 100)}%` : null,
-        p.description || null,
+        p.description ? athleteText(p.description) : null,
       ]
         .filter(Boolean)
         .join(' · ');
@@ -527,14 +528,14 @@ function formatTravelSection(travel: CoachContext['travel']): string[] {
     'Respecte aussi la contrainte d’entraînement du voyage (FULL / REDUCED / MOBILITY_ONLY / NONE) : MOBILITY_ONLY = mobilité/étirements uniquement ; NONE = pas de séance structurée ; REDUCED = volume/intensité réduits.',
     'Quand une ligne indique « sports : … », cette liste est une contrainte STRICTE choisie par l’athlète : ne crée, ne déplace ni ne propose AUCUNE séance d’un autre sport pendant ces dates (une séance de mobilité n’est pas du renfo). Ces déplacements sont DÉJÀ enregistrés : ne les recrée pas et ne modifie pas leurs sports.',
     ...travel.map((t) => {
-      const label = t.label?.trim() || t.locationLabel;
+      const label = athleteText(t.label?.trim() || t.locationLabel || 'Déplacement');
       const constraintLabel =
         travelTrainingConstraintLabel(t.trainingConstraint)?.toLowerCase() ?? 'entraînement normal';
       const sports =
         t.allowedDisciplines.length > 0
           ? ` · sports : ${travelDisciplineLabels(t.allowedDisciplines).join(', ')}`
           : '';
-      return `- ${label} (${t.locationLabel}) : ${t.startDate} → ${t.endDate}${t.isActiveNow ? ' [en cours]' : ' [à venir]'} · contrainte ${t.trainingConstraint} (${constraintLabel})${sports}${t.note ? ` — ${t.note}` : ''}`;
+      return `- ${label} (${t.locationLabel}) : ${t.startDate} → ${t.endDate}${t.isActiveNow ? ' [en cours]' : ' [à venir]'} · contrainte ${t.trainingConstraint} (${constraintLabel})${sports}${t.note ? ` — ${athleteText(t.note)}` : ''}`;
     }),
   ];
 }
@@ -546,7 +547,7 @@ function formatPersonalNoteSection(note: string | null): string[] {
   return [
     "\n## Contexte personnel (défini par l'athlète — priorité haute)",
     'Prends impérativement en compte ces contraintes/préférences pour la pertinence des propositions (dispos, charge de travail, jours propices aux grosses séances, etc.) :',
-    note,
+    athleteText(note),
   ];
 }
 
@@ -608,7 +609,7 @@ function formatRealizedSessionsSection(
     '\n## Exécution des séances prévues récentes (prévu vs réalisé)',
     ...realizedSessions.map(
       (r) =>
-        `- ${r.date} · ${r.type} ${r.title} → conformité ${r.score ?? '?'}/100${r.verdict ? ` (${r.verdict})` : ''}${r.summary ? ` — ${r.summary}` : ''}`,
+        `- ${r.date} · ${r.type} ${athleteText(r.title)} → conformité ${r.score ?? '?'}/100${r.verdict ? ` (${r.verdict})` : ''}${r.summary ? ` — ${r.summary}` : ''}`,
     ),
   ];
 }
@@ -662,7 +663,7 @@ function formatUpcomingPlannedSection(upcomingPlanned: CoachContext['upcomingPla
       ]
         .filter(Boolean)
         .join(' ');
-      return `- id=${p.id} · ${p.dateIso} (${p.date}) · ${p.type} ${p.title}${extras ? ` ${extras}` : ''}`;
+      return `- id=${p.id} · ${p.dateIso} (${p.date}) · ${p.type} ${athleteText(p.title)}${extras ? ` ${extras}` : ''}`;
     }),
   ];
 }
@@ -746,7 +747,7 @@ export function formatCoachContext(
   ctx: CoachContext,
   sections?: ReadonlySet<CoachContextSection>,
 ): string {
-  return collectCoachContextLines(ctx, sections).join('\n');
+  return [ATHLETE_TEXT_RULE, ...collectCoachContextLines(ctx, sections)].join('\n');
 }
 
 /** @deprecated Use VERDICT_TAG from verdict-copy — kept for any stray import. */

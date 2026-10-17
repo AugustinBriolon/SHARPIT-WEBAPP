@@ -437,10 +437,10 @@ describe('formatCoachContext bricks', () => {
     const text = formatCoachContext(context);
 
     expect(text).toContain(
-      'id=ps_bike · 2026-10-01 (jeu. 1 oct.) · Vélo Vélo enchaîné (brick B1 · jambe 1/2)',
+      'id=ps_bike · 2026-10-01 (jeu. 1 oct.) · Vélo ⟦Vélo enchaîné⟧ (brick B1 · jambe 1/2)',
     );
     expect(text).toContain(
-      'id=ps_run · 2026-10-01 (jeu. 1 oct.) · Course Course enchaîné (brick B1 · jambe 2/2)',
+      'id=ps_run · 2026-10-01 (jeu. 1 oct.) · Course ⟦Course enchaîné⟧ (brick B1 · jambe 2/2)',
     );
     expect(text).toContain(
       'pour le déplacer, change la date d’une jambe avec updatePlannedSession',
@@ -470,9 +470,9 @@ describe('formatCoachContext race roles (ADR-084)', () => {
       minimalContext({ primaryRace: ironman, races: [triL, ironman] }),
     );
 
-    expect(text).toContain('Course principale : Ironman le 10 octobre 2027');
+    expect(text).toContain('Course principale : ⟦Ironman⟧ le 10 octobre 2027');
     expect(text).toContain('Objectif principal (A), cible du plan');
-    expect(text).toContain('Course étape (B) : Triathlon L le 18 avril 2027');
+    expect(text).toContain('Course étape (B) : ⟦Triathlon L⟧ le 18 avril 2027');
     expect(text).toContain('Mini-affûtage');
   });
 });

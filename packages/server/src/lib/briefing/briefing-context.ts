@@ -1,3 +1,4 @@
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import { differenceInCalendarDays, format, isSameDay, startOfDay, subDays } from 'date-fns';
 import { isSet } from '@sharpit/shared/value';
 import { fr } from 'date-fns/locale';
@@ -102,7 +103,7 @@ function formatActivityLine(a: ActivityWithMetrics, refDate: Date): string {
     ...(a.swimMetrics?.distanceM ? [`${a.swimMetrics.distanceM} m`] : []),
   ];
   const extra = formatActivityExtra(a, parts, refDate);
-  const titleSuffix = a.title ? ` · ${a.title}` : '';
+  const titleSuffix = a.title ? ` · ${athleteText(a.title)}` : '';
   return `- ${TYPE_FR[a.type] ?? a.type}${titleSuffix} (${formatMin(a.duration)}) — ${extra}`;
 }
 
@@ -156,13 +157,13 @@ export async function buildBriefingDayContext(
       ? stillPlanned.map((p) => {
           const bits = [
             TYPE_FR[p.type] ?? p.type,
-            p.title ?? null,
+            p.title ? athleteText(p.title) : null,
             p.startTime ? `à ${p.startTime}` : null,
             p.intensity ? intensityLabels[p.intensity] : null,
             p.durationMin ? `${p.durationMin} min` : null,
           ].filter(Boolean);
           const line = `- ${bits.join(' · ')}`;
-          return p.description ? `${line}\n  Consigne : ${p.description}` : line;
+          return p.description ? `${line}\n  Consigne : ${athleteText(p.description)}` : line;
         })
       : [],
     hasSessionsDoneToday: doneToday.length > 0,

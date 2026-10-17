@@ -139,7 +139,7 @@ describe('activity block', () => {
     const block = await loadActivityDiscussBlock(OWNER, activity.id, TODAY);
 
     expect(block).toContain('## Séance réalisée discutée');
-    expect(block).toContain('(hier) · Course Sortie longue (90 min)');
+    expect(block).toContain('(hier) · Course ⟦Sortie longue⟧ (90 min)');
     expect(block).toContain('18.0 km · 5:00/km · 148 bpm');
     expect(block).toContain('Records personnels détenus : Plus longue sortie.');
   });
@@ -202,7 +202,7 @@ describe('goal block', () => {
       TODAY,
     );
 
-    expect(block).toContain('Objectif métrique : VMA → cible 18km/h (actuel 17).');
+    expect(block).toContain('Objectif métrique : ⟦VMA⟧ → cible 18km/h (actuel 17).');
     expect(block).toContain('Objectif déjà atteint.');
   });
 
