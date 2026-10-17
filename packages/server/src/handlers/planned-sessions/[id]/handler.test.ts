@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 vi.mock('@sharpit/server/lib/queries', () => ({
+  isOwnGoalOrNone: vi.fn().mockResolvedValue(true),
   getPlannedSessionById: vi.fn(),
   updatePlannedSession: vi.fn(),
   deletePlannedSession: vi.fn(),
@@ -102,6 +103,21 @@ describe('PATCH /api/planned-sessions/[id]', () => {
       resultingPlannedSessionId: 'session-1',
     });
     expect(findDecisionForPlannedSession).not.toHaveBeenCalled();
+  });
+
+  it("refuses to point the session at another athlete's goal", async () => {
+    const { updatePlannedSession, getPlannedSessionById, isOwnGoalOrNone } =
+      await import('@sharpit/server/lib/queries');
+    vi.mocked(getPlannedSessionById).mockResolvedValue(EXISTING as never);
+    vi.mocked(isOwnGoalOrNone).mockResolvedValueOnce(false);
+
+    const { PATCH } = await importRoute();
+    const response = await PATCH(patchRequest({ goalId: 'goal-of-b' }), {
+      params: Promise.resolve({ id: 'session-1' }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(updatePlannedSession).not.toHaveBeenCalled();
   });
 
   it('rejects the write with 422 and never updates the session when the decision was Gate-REJECTED', async () => {

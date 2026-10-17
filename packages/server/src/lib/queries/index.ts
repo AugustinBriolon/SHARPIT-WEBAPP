@@ -368,6 +368,11 @@ export async function getGoalById(athleteId: string, id: string) {
   return prisma.goal.findFirst({ where: { id, athleteId } });
 }
 
+/** A goal id a client sends is the athlete's own, or none at all: never another athlete's. */
+export async function isOwnGoalOrNone(athleteId: string, goalId: string | null | undefined) {
+  return !goalId || (await getGoalById(athleteId, goalId)) !== null;
+}
+
 /** Visible activities done for a goal, latest first (race results). */
 export async function getGoalActivities(athleteId: string, goalId: string) {
   return prisma.activity.findMany({

@@ -67,8 +67,12 @@ async function logItems(
     return [];
   }
   const date = foodLogDayDate(trainingDayId);
+  // Same rule as a new entry (`productForEntry`): a catalogue food, or one of the athlete's own.
   const products = await prisma.foodProduct.findMany({
-    where: { id: { in: items.flatMap(({ item }) => (item.productId ? [item.productId] : [])) } },
+    where: {
+      id: { in: items.flatMap(({ item }) => (item.productId ? [item.productId] : [])) },
+      OR: [{ source: { in: ['OFF', 'CIQUAL'] } }, { ownerId: athleteId }],
+    },
     select: { id: true },
   });
   const existing = new Set(products.map((product) => product.id));

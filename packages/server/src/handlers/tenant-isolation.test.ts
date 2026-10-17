@@ -409,4 +409,78 @@ describe.skipIf(!databaseUrl)("tenant isolation: athlete A against B's records",
     const stored = await prisma.plannedSession.findUnique({ where: { id: own.id } });
     expect(stored?.activityId).toBeNull();
   });
+
+  async function post(
+    route: Promise<Record<string, unknown>>,
+    method: string,
+    body: unknown,
+    id?: string,
+  ) {
+    const { NextRequest } = await import('next/server');
+    const handler = (await route)[method] as (
+      request: InstanceType<typeof NextRequest>,
+      context: { params: Promise<Record<string, string>> },
+    ) => Promise<Response>;
+    return handler(
+      new NextRequest('http://localhost/api/tenant-isolation', {
+        method,
+        body: JSON.stringify(body),
+      }),
+      { params: Promise.resolve({ id: id ?? '' }) },
+    );
+  }
+
+  it("refuses a planned session, a brick or an edit pointing at B's goal", async () => {
+    const before = await prisma.plannedSession.count({ where: { athleteId: ATHLETE_A } });
+    const created = await post(import('./planned-sessions/handler'), 'POST', {
+      type: 'RUN',
+      date: '2026-09-02',
+      goalId: ids.goal,
+    });
+    const brick = await post(import('./planned-sessions/brick/handler'), 'POST', {
+      date: '2026-09-02',
+      goalId: ids.goal,
+      legs: [{ type: 'BIKE' }, { type: 'RUN' }],
+    });
+    const own = await prisma.plannedSession.create({
+      data: { athleteId: ATHLETE_A, type: 'RUN', date: new Date('2026-09-03T00:00:00.000Z') },
+    });
+    const patched = await post(
+      import('./planned-sessions/[id]/handler'),
+      'PATCH',
+      { goalId: ids.goal },
+      own.id,
+    );
+
+    expect([created.status, brick.status, patched.status]).toEqual([404, 404, 404]);
+    expect(await prisma.plannedSession.count({ where: { athleteId: ATHLETE_A } })).toBe(before + 1);
+    expect((await prisma.plannedSession.findUnique({ where: { id: own.id } }))?.goalId).toBeNull();
+  });
+
+  it("drops a link to B's food when A copies a day", async () => {
+    // A legacy entry pointing at B's custom food: today's API refuses to write one.
+    await prisma.foodLogEntry.create({
+      data: {
+        athleteId: ATHLETE_A,
+        date: new Date('2026-09-05T00:00:00.000Z'),
+        meal: 'LUNCH',
+        name: 'copie',
+        grams: 100,
+        kcal: 1,
+        protein: 1,
+        carbs: 1,
+        fat: 1,
+        productId: ids.customFood,
+      },
+    });
+    const response = await post(import('./food-log/copy/handler'), 'POST', {
+      fromTrainingDayId: '2026-09-05',
+      toTrainingDayId: '2026-09-06',
+    });
+    expect(response.ok).toBe(true);
+    const copied = await prisma.foodLogEntry.findMany({
+      where: { athleteId: ATHLETE_A, date: new Date('2026-09-06T00:00:00.000Z') },
+    });
+    expect(copied.map((entry) => entry.productId)).toEqual([null]);
+  });
 });

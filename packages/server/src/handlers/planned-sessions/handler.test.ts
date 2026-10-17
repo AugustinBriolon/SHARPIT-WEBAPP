@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { NextRequest } from 'next/server';
 
 vi.mock('@sharpit/server/lib/queries', () => ({
+  isOwnGoalOrNone: vi.fn().mockResolvedValue(true),
   createPlannedSession: vi.fn(),
   getPlannedSessionById: vi.fn(),
   getPlannedSessions: vi.fn(),
@@ -60,6 +61,23 @@ describe('POST /api/planned-sessions', () => {
 
     expect(response.status).toBe(201);
     expect(recordDecisionAction).not.toHaveBeenCalled();
+  });
+
+  it("refuses another athlete's goal and creates nothing", async () => {
+    const { createPlannedSession, isOwnGoalOrNone } = await import('@sharpit/server/lib/queries');
+    vi.mocked(isOwnGoalOrNone).mockResolvedValueOnce(false);
+
+    const { POST } = await importRoute();
+    const response = await POST(
+      new NextRequest('http://localhost/api/planned-sessions', {
+        method: 'POST',
+        body: JSON.stringify({ ...BASE_BODY, goalId: 'goal-of-b' }),
+      }),
+    );
+
+    expect(response.status).toBe(404);
+    expect(isOwnGoalOrNone).toHaveBeenCalledWith('default', 'goal-of-b');
+    expect(createPlannedSession).not.toHaveBeenCalled();
   });
 
   it('records an ACCEPTED action linked to the new session when decisionId is given', async () => {

@@ -8,6 +8,7 @@ import {
 import {
   deletePlannedSession,
   getPlannedSessionById,
+  isOwnGoalOrNone,
   updatePlannedSession,
 } from '@sharpit/server/lib/queries';
 import { refreshAndPersistPlannedSessionContext } from '@sharpit/server/lib/planned-session/resolve-context';
@@ -134,6 +135,10 @@ async function validatePatchRequest(
   const existing = await getPlannedSessionById(athleteId, id);
   if (!existing) {
     return { ok: false, response: invalidPatchResponse('Séance planifiée introuvable', 404) };
+  }
+
+  if (!(await isOwnGoalOrNone(athleteId, parsed.data.goalId))) {
+    return { ok: false, response: invalidPatchResponse('Objectif introuvable', 404) };
   }
 
   const rejectedResponse = await validateRejectedDecision(athleteId, decisionId);

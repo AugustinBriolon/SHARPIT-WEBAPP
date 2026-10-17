@@ -7,6 +7,7 @@ import {
   getAthleteProfile,
   getPlannedSessionById,
   getPlannedSessions,
+  isOwnGoalOrNone,
 } from '@sharpit/server/lib/queries';
 import {
   athleteThresholds,
@@ -130,6 +131,12 @@ export async function createPlannedSessionFromBody(
         { error: 'Données invalides', details: parsed.error.flatten() },
         { status: 400 },
       ),
+    };
+  }
+
+  if (!(await isOwnGoalOrNone(athleteId, parsed.data.goalId))) {
+    return {
+      response: NextResponse.json({ error: 'Objectif introuvable' }, { status: 404 }),
     };
   }
 

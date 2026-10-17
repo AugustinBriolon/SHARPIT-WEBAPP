@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { pushBrickToGoogleInBackground } from '@sharpit/server/lib/integrations/google/google-sync';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { chainBrickLegStartTimes } from '@sharpit/server/lib/planned-session/brick/brick-schedule';
-import { createBrickSessions, getPlannedSessionById } from '@sharpit/server/lib/queries';
+import {
+  createBrickSessions,
+  getPlannedSessionById,
+  isOwnGoalOrNone,
+} from '@sharpit/server/lib/queries';
 import { createBrickSchema } from '@sharpit/server/lib/validators/planned-session';
 
 export async function POST(request: NextRequest) {
@@ -19,6 +23,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { date, startTime, goalId, legs } = parsed.data;
+    if (!(await isOwnGoalOrNone(athleteId, goalId))) {
+      return NextResponse.json({ error: 'Objectif introuvable' }, { status: 404 });
+    }
     // A brick is a chain, not a stack: each leg starts when the previous ends.
     const legStartTimes = chainBrickLegStartTimes(startTime, legs);
     const created = await createBrickSessions(
