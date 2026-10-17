@@ -65,6 +65,8 @@ const nextConfig: NextConfig = {
               'geolocation=(self), camera=(), microphone=(), payment=(), usb=(), midi=(), magnetometer=(), gyroscope=()',
           },
           { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+          // Vercel's CDN answers `*` by default; nothing on another origin reads these pages.
+          { key: 'Access-Control-Allow-Origin', value: 'https://web.sharpit.app' },
         ],
       },
     ];

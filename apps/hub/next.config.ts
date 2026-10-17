@@ -46,6 +46,8 @@ const nextConfig: NextConfig = {
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Content-Security-Policy', value: contentSecurityPolicy },
+          // Vercel's CDN answers `*` by default; nothing on another origin reads these pages.
+          { key: 'Access-Control-Allow-Origin', value: 'https://sharpit.app' },
         ],
       },
     ];
