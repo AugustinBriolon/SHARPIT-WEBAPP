@@ -1121,7 +1121,10 @@ export class FeatureEngine {
     trainingDayId: string,
   ): Promise<ConditionHistory> {
     if (this.conditionRepo) {
-      const history = await this.conditionRepo.getConditionHistoryForFeatures(trainingDayId);
+      const history = await this.conditionRepo.getConditionHistoryForFeatures(
+        athleteId,
+        trainingDayId,
+      );
       return {
         activeConditions: history.activeConditions.map(
           (c) =>

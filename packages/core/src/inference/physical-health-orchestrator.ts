@@ -68,7 +68,7 @@ export class PhysicalHealthInferenceOrchestrator {
     const computedAt = new Date();
     const referenceAt = new Date(`${trainingDayId}T23:59:59.999Z`);
 
-    const conditions = await this.deps.conditionRepo.findAllForInference(trainingDayId);
+    const conditions = await this.deps.conditionRepo.findAllForInference(athleteId, trainingDayId);
 
     const context: PhysicalHealthModelContext = {
       athleteId,
@@ -119,6 +119,7 @@ export class PhysicalHealthInferenceOrchestrator {
 
     try {
       await this.deps.conditionRepo.applyInferredUpdates(
+        athleteId,
         output.conditionUpdates.map((u) => ({
           ...u,
           lastObservationAt: latestObservationAt(conditions, u.conditionId),

@@ -21,10 +21,14 @@ function trainingDayEnd(trainingDayId: string): Date {
 export class PrismaConditionRepository implements ConditionRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async findAllForInference(referenceTrainingDayId: string): Promise<ConditionInferenceInput[]> {
+  async findAllForInference(
+    athleteId: string,
+    referenceTrainingDayId: string,
+  ): Promise<ConditionInferenceInput[]> {
     const referenceAt = trainingDayEnd(referenceTrainingDayId);
 
     const rows = await this.prisma.condition.findMany({
+      where: { athleteId },
       include: {
         observations: {
           where: { observedAt: { lte: referenceAt } },
@@ -74,7 +78,10 @@ export class PrismaConditionRepository implements ConditionRepository {
     }));
   }
 
-  async getConditionHistoryForFeatures(referenceTrainingDayId: string): Promise<{
+  async getConditionHistoryForFeatures(
+    athleteId: string,
+    referenceTrainingDayId: string,
+  ): Promise<{
     activeConditions: Array<{ id: string; severity: number; affectsTraining: boolean }>;
     severityHistory14d: Array<{ severity: number; timestamp: Date }>;
   }> {
@@ -83,7 +90,7 @@ export class PrismaConditionRepository implements ConditionRepository {
     const fromAt = new Date(`${from14d}T00:00:00Z`);
 
     const rows = await this.prisma.condition.findMany({
-      where: { status: { not: 'RESOLVED' } },
+      where: { athleteId, status: { not: 'RESOLVED' } },
       include: {
         observations: {
           where: {
@@ -115,11 +122,13 @@ export class PrismaConditionRepository implements ConditionRepository {
   }
 
   async applyInferredUpdates(
-    updates: Parameters<ConditionRepository['applyInferredUpdates']>[0],
+    athleteId: string,
+    updates: Parameters<ConditionRepository['applyInferredUpdates']>[1],
   ): Promise<void> {
     for (const u of updates) {
-      await this.prisma.condition.update({
-        where: { id: u.conditionId },
+      // updateMany so the athlete scope is part of the match: another athlete's row is untouched.
+      await this.prisma.condition.updateMany({
+        where: { id: u.conditionId, athleteId },
         data: {
           severity: u.severity,
           status: u.status as import('@prisma/client').ConditionStatus,
