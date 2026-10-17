@@ -39,6 +39,9 @@ export function scheduleBackgroundTasks(params: {
   }
 }
 
+/** A sync keeps a briefing written in the last quarter hour rather than paying the model again. */
+const BACKGROUND_BRIEFING_MIN_INTERVAL_MINUTES = 15;
+
 type BackgroundTaskParams = {
   athleteId: string;
   activityIds: string[];
@@ -131,7 +134,9 @@ async function runBackgroundTasks(params: BackgroundTaskParams): Promise<void> {
   if (regenerateBriefing) {
     const refDate = new Date(`${dayId}T12:00:00.000Z`);
     // Deterministic fallback when AI consent missing — Twin engines stay OK.
-    await generateAndStoreDailyBriefing(athleteId, refDate);
+    await generateAndStoreDailyBriefing(athleteId, refDate, {
+      minIntervalMinutes: BACKGROUND_BRIEFING_MIN_INTERVAL_MINUTES,
+    });
     await regenerateAthleteSnapshotAfterBriefing(athleteId, dayId);
   }
 }

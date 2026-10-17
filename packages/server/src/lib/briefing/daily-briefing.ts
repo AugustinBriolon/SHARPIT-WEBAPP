@@ -144,7 +144,9 @@ Rédige le ${dayCtx.phaseLabel} en suivant la structure imposée et les règles 
     providerOptions: coachAsyncGatewayOptions,
     telemetry: { functionId: 'coach-briefing' },
   });
-  void recordAiUsage(athleteId, 'coach', { ...usage, model: COACH_MODEL });
+  // Written for the athlete, never asked by them: its own ledger, so it cannot spend the coach
+  // budget their plan and questions need.
+  void recordAiUsage(athleteId, 'briefing', { ...usage, model: COACH_MODEL });
 
   const llmContent = text.trim();
   const validation = validateBriefingContent(llmContent, dayCtx, ctx);
@@ -173,9 +175,28 @@ export async function getDailyBriefing(athleteId: string, refDate: Date = new Da
   return presentDailyBriefing(row);
 }
 
+/** Whether a briefing generated at `generatedAt` is recent enough to keep as it is. */
+export function isBriefingFresh(generatedAt: Date, now: Date, minIntervalMinutes: number): boolean {
+  return now.getTime() - generatedAt.getTime() < minIntervalMinutes * 60_000;
+}
+
 /** Génère le bilan du jour et le stocke (upsert sur la date).
- * Without AI consent (or without AI gateway), stores the deterministic fallback only. */
-export async function generateAndStoreDailyBriefing(athleteId: string, refDate: Date = new Date()) {
+ * Without AI consent (or without AI gateway), stores the deterministic fallback only.
+ * `minIntervalMinutes` keeps a briefing written that recently instead of asking the model again:
+ * a history import syncs in batches, and each batch regenerated it (ADR-092). */
+export async function generateAndStoreDailyBriefing(
+  athleteId: string,
+  refDate: Date = new Date(),
+  options: { minIntervalMinutes?: number } = {},
+) {
+  if (options.minIntervalMinutes) {
+    const existing = await prisma.dailyBriefing.findUnique({
+      where: { athleteId_date: { athleteId, date: utcDateOnly(refDate) } },
+    });
+    if (existing && isBriefingFresh(existing.generatedAt, new Date(), options.minIntervalMinutes)) {
+      return existing;
+    }
+  }
   const hasAiConsent = await athleteHasAiProcessingConsent(athleteId);
   const allowLlm = hasAiConsent && isCoachConfigured();
   const { content, readiness, phaseAtGeneration } = await generateDailyBriefingContent(

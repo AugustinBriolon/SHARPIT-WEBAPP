@@ -2005,7 +2005,7 @@ model AiUsageEvent {
   id              String         @id @default(cuid())
   athleteId       String
   athlete         AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  feature         String // 'coach' | 'analysis'
+  feature         String // 'coach' | 'analysis' | 'briefing'
   inputTokens     Int?
   outputTokens    Int?
   totalTokens     Int?

@@ -1,6 +1,8 @@
 import { prisma } from '@sharpit/db/client';
 
-export type AiUsageFeature = 'coach' | 'analysis';
+/** `coach` is what the athlete asks for and counts against their budget; `analysis` and
+ * `briefing` are written for them in the background and have their own ledgers. */
+export type AiUsageFeature = 'coach' | 'analysis' | 'briefing';
 
 export type AiUsageTokens = {
   inputTokens?: number | null;
