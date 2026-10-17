@@ -9,6 +9,7 @@ import {
 import { prisma } from '@sharpit/db/client';
 import { withAnalysisRun } from '@sharpit/server/lib/analysis/analysis-run-store';
 import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
+import { checkRateLimit, rateLimiters } from '@sharpit/server/lib/rate-limit';
 
 export { scorePlannedActivityMatch } from '@sharpit/app/lib/planned-session/linking/session-link-match-score';
 
@@ -122,6 +123,13 @@ export async function analyzeLinkedPlannedSessions(
 
   let analyzed = 0;
   for (const sessionId of sessionIds) {
+    // Same budget as `/analyze`: unlink → relink (or → today's auto-link) must not loop model calls.
+    const limit = await checkRateLimit(rateLimiters.sessionAnalyze, athleteId, {
+      failClosed: true,
+    });
+    if (!limit.ok) {
+      break;
+    }
     try {
       const ran = await withAnalysisRun(
         { athleteId, kind: 'SESSION_COMPLIANCE', targetId: sessionId },

@@ -1,14 +1,9 @@
 import { NextRequest, NextResponse, after } from 'next/server';
-import { isCoachConfigured } from '@sharpit/server/lib/ai';
 import { enrichActivityObservedContext } from '@sharpit/server/lib/activity/detail/enrich-observed-context';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
-import { analyzePlannedSession } from '@sharpit/server/lib/coach/plan/coach-analysis';
+import { analyzeLinkedPlannedSessions } from '@sharpit/server/lib/planned-session/linking/session-linking';
 import { prisma } from '@sharpit/db/client';
-import {
-  getPlannedSessionById,
-  linkPlannedSessionActivity,
-  setPlannedSessionAnalysis,
-} from '@sharpit/server/lib/queries';
+import { getPlannedSessionById, linkPlannedSessionActivity } from '@sharpit/server/lib/queries';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -39,17 +34,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
         } catch (error) {
           console.error('[planned-sessions/link/enrich]', error);
         }
-        if (!isCoachConfigured()) {
-          return;
-        }
-        try {
-          const analysis = await analyzePlannedSession(athleteId, id);
-          if (analysis) {
-            await setPlannedSessionAnalysis(athleteId, id, analysis);
-          }
-        } catch (error) {
-          console.error('[planned-sessions/link/analyze]', error);
-        }
+        await analyzeLinkedPlannedSessions(athleteId, [id]);
       });
     }
     return NextResponse.json(session);
