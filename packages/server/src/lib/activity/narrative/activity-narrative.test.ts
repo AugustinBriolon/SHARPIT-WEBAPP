@@ -35,6 +35,7 @@ import { runActivityNarrativeAnalysis } from '@sharpit/server/lib/activity/narra
 
 /** Shaped like the prod race: a Garmin triathlon from a few days ago, never analyzed. */
 const pastTriathlon = {
+  type: 'TRIATHLON',
   date: subDays(new Date(), 3),
   narrativeAnalyzedAt: null,
   narrativeAnalysis: null,
@@ -70,5 +71,37 @@ describe('runActivityNarrativeAnalysis — a past triathlon', () => {
         }),
       }),
     );
+  });
+});
+
+describe('runActivityNarrativeAnalysis — a strength session', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.findFirst.mockResolvedValue({
+      type: 'STRENGTH',
+      date: new Date(),
+      narrativeAnalyzedAt: null,
+      narrativeAnalysis: null,
+    });
+    mocks.buildFacts.mockResolvedValue('# Cette séance\nSport : Renforcement');
+    mocks.generateText.mockResolvedValue({
+      output: { headline: 'Volume tenu', narrative: 'Charges stables.' },
+      usage: {},
+    });
+  });
+
+  it('is not read on import, so imports do not spend tokens on it', async () => {
+    expect(await runActivityNarrativeAnalysis('athlete-1', 'strength')).toBe(false);
+    expect(mocks.buildFacts).not.toHaveBeenCalled();
+  });
+
+  it('is read when the athlete asks for it', async () => {
+    const created = await runActivityNarrativeAnalysis('athlete-1', 'strength', {
+      allowHistorical: true,
+      onRequest: true,
+    });
+
+    expect(created).toBe(true);
+    expect(mocks.generateText).toHaveBeenCalled();
   });
 });

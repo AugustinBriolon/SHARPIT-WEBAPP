@@ -13,6 +13,7 @@ import { requireAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-
 import { prisma } from '@sharpit/db/client';
 import { getActivityById } from '@sharpit/server/lib/queries';
 import { loadRaceAnalysis } from '@sharpit/server/lib/activity/multisport/load-race-analysis';
+import { narrativeReadsActivityType } from '@sharpit/app/lib/activity/narrative/activity-narrative-config';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -37,9 +38,10 @@ async function checkNarrativeRateLimit(
   return NextResponse.json(limited.body, { status: limited.status });
 }
 
-// The athlete asked for it: the today-only rule is for the automatic ingest path, not this one.
+// The athlete asked for it: the today-only rule and the endurance-only list are for the
+// automatic ingest path, not this one.
 function narrativeOptions(force: boolean) {
-  return { force, allowHistorical: true };
+  return { force, allowHistorical: true, onRequest: true };
 }
 
 async function runNarrativeAndRespond(athleteId: string, id: string, force: boolean) {
@@ -72,10 +74,16 @@ async function validateNarrativePost(
 
   const existing = await prisma.activity.findFirst({
     where: { id, athleteId },
-    select: { id: true, date: true },
+    select: { id: true, date: true, type: true },
   });
   if (!existing) {
     return NextResponse.json({ error: 'Activité introuvable' }, { status: 404 });
+  }
+  if (!narrativeReadsActivityType(existing.type, true)) {
+    return NextResponse.json(
+      { error: 'Le coach ne sait pas encore analyser ce type de séance.' },
+      { status: 422 },
+    );
   }
 
   const body = await request.json().catch(() => ({}));

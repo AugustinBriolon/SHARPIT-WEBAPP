@@ -47,6 +47,7 @@ const TYPE_FR: Record<string, string> = {
   BIKE: 'Vélo',
   SWIM: 'Natation',
   TRIATHLON: 'Triathlon',
+  STRENGTH: 'Renforcement',
 };
 
 type PeerRow = {
@@ -327,13 +328,49 @@ function mapPhysicalNotes(
   }));
 }
 
-function isEnduranceNarrativeActivity(type: ActivityType): boolean {
-  return (
-    type === ActivityType.RUN ||
-    type === ActivityType.BIKE ||
-    type === ActivityType.SWIM ||
-    type === ActivityType.TRIATHLON
-  );
+export type NarrativeStrengthSet = {
+  exercise: string;
+  sets: number;
+  reps: number;
+  durationSec: number | null;
+  weightKg: number | null;
+  rpe: number | null;
+  restSec: number | null;
+  notes: string | null;
+};
+
+function strengthSetLine(set: NarrativeStrengthSet): string {
+  const effort = set.durationSec ? `${set.durationSec} s` : `${set.reps} rép.`;
+  return [
+    `- ${set.exercise} : ${set.sets} × ${effort}`,
+    isSet(set.weightKg) && set.weightKg > 0 ? ` à ${set.weightKg} kg` : '',
+    isSet(set.rpe) ? `, RPE ${set.rpe}/10` : '',
+    isSet(set.restSec) ? `, repos ${set.restSec} s` : '',
+    set.notes ? ` (${set.notes})` : '',
+  ].join('');
+}
+
+const STRENGTH_SET_FACTS_QUERY = {
+  select: {
+    exercise: true,
+    sets: true,
+    reps: true,
+    durationSec: true,
+    weightKg: true,
+    rpe: true,
+    restSec: true,
+    notes: true,
+  },
+  orderBy: { order: 'asc' },
+} as const;
+
+/** One line per exercise, in the order done; empty when no set was logged. */
+export function buildStrengthFacts(sets: NarrativeStrengthSet[]): string[] {
+  if (!sets.length) {
+    return [];
+  }
+  const totalSets = sets.reduce((sum, set) => sum + set.sets, 0);
+  return [`${sets.length} exercices, ${totalSets} séries au total.`, ...sets.map(strengthSetLine)];
 }
 
 /** A triathlon, or an activity done for a goal, is read as a race. Empty otherwise. */
@@ -388,13 +425,11 @@ export async function buildActivityNarrativeFacts(
       swimMetrics: {
         select: { distanceM: true, avgPaceSecPer100m: true, swolf: true },
       },
+      strengthSets: STRENGTH_SET_FACTS_QUERY,
     },
   });
 
   if (!activity) {
-    return null;
-  }
-  if (!isEnduranceNarrativeActivity(activity.type)) {
     return null;
   }
 
@@ -530,6 +565,7 @@ export async function buildActivityNarrativeFacts(
     streamPayload,
     goalLines: buildGoalNarrativeLines(goalHits),
     raceLines,
+    strengthLines: buildStrengthFacts(activity.strengthSets),
   });
 }
 
@@ -608,10 +644,12 @@ function assembleActivityNarrativeSections(input: {
   streamPayload: Awaited<ReturnType<typeof getCachedActivityStreams>>;
   goalLines: string[];
   raceLines: string[];
+  strengthLines: string[];
 }): string {
+  const isStrength = input.activity.type === ActivityType.STRENGTH;
   // A triathlon's own stream mixes three sports: its technique is read per leg in the race section.
   const technicalLines =
-    input.activity.type === ActivityType.TRIATHLON
+    input.activity.type === ActivityType.TRIATHLON || isStrength
       ? []
       : buildTechnicalSessionFacts({
           sport: input.activity.type as 'RUN' | 'BIKE' | 'SWIM',
@@ -631,9 +669,20 @@ function assembleActivityNarrativeSections(input: {
     '# Charge d’entraînement (contexte au jour de la séance)',
     ...buildTrainingLoadFacts(input.activity.date, input.dailyStress),
     ...buildPmcFacts(input.pmcAnchor),
-    '',
-    '# Seuils personnels & interprétation de la performance',
-    ...buildThresholdPerformanceFacts(input.metrics, input.athleteProfile),
+    // Endurance thresholds (FTP, LTHR, pace) say nothing about a strength session.
+    ...(isStrength
+      ? [
+          '',
+          '# Renforcement (exercices réalisés)',
+          ...(input.strengthLines.length
+            ? input.strengthLines
+            : ['Aucun exercice détaillé enregistré.']),
+        ]
+      : [
+          '',
+          '# Seuils personnels & interprétation de la performance',
+          ...buildThresholdPerformanceFacts(input.metrics, input.athleteProfile),
+        ]),
     '',
     '# Conditions physiques actives',
     ...buildPhysicalConditionFacts(mapPhysicalNotes(input.physicalNotes)),

@@ -1,4 +1,3 @@
-import { ActivityType } from '@prisma/client';
 import { generateText, Output } from 'ai';
 import {
   COACH_MODEL,
@@ -8,8 +7,10 @@ import {
 import { canGenerateNarrativeForActivity } from '@sharpit/server/lib/access/narrative-trial';
 import { isActivityToday } from '@sharpit/app/lib/activity/list/activity-day';
 import {
+  AUTO_NARRATIVE_ACTIVITY_TYPES,
   isEligibleForActivityNarrative,
   NARRATIVE_ANALYSIS_SINCE,
+  narrativeReadsActivityType,
 } from '@sharpit/app/lib/activity/narrative/activity-narrative-config';
 import { buildActivityNarrativeFacts } from '@sharpit/server/lib/activity/narrative/activity-narrative-facts';
 import { withAnalysisRun } from '@sharpit/server/lib/analysis/analysis-run-store';
@@ -26,7 +27,7 @@ import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
 /** Parallel LLM narratives after multi-activity import — keep low to avoid gateway bursts. */
 const NARRATIVE_CONCURRENCY = 3;
 
-const NARRATIVE_SYSTEM = `Tu es un entraîneur expert en endurance pour l'application SHARPIT.
+const NARRATIVE_SYSTEM = `Tu es un entraîneur expert en endurance et en renforcement pour l'application SHARPIT.
 
 On te fournit des FAITS structurés sur la séance ET le contexte athlète (récupération, sommeil, charge, seuils personnels, conditions physiques, environnement). Tu rédiges une analyse narrative courte en français.
 
@@ -44,6 +45,7 @@ RÈGLES :
 - narrative : 2 à 4 phrases fluides avec au moins une connexion entre systèmes (pas une liste de stats). Intègre les chiffres clés dans le texte plutôt que sous forme de liste.
 - Si peu de données contextuelles, dis-le honnêtement et concentre-toi sur ce qui est disponible.
 - Mentionne les objectifs validés si présents.
+- Si une section « Renforcement » est présente, c'est une séance de musculation : lis le volume, les charges et le RPE par exercice, relie-les à la récupération et à la charge récente. Ne parle ni d'allure ni de zones cardiaques.
 - Si une section « Course » est présente, c'est une course préparée : dis d'abord ce qui a marché, puis où progresser (une ou deux pistes concrètes tirées des étapes, de la gestion d'effort ou de l'écart à l'objectif). Ton de coach, chaleureux et sobre : pas de superlatifs ni d'emphase.
 
 ${COACH_COPY_DASH_RULE}`;
@@ -70,6 +72,13 @@ export async function setActivityNarrativeAnalysis(
  * Goal achievements are read from DB inside facts — no enrichGoalsWithProgress
  * on this path (achievements are already written at activity/goal sync time).
  */
+/** `onRequest`: the athlete tapped « Générer », which also opens strength sessions. */
+export type NarrativeRunOptions = {
+  force?: boolean;
+  allowHistorical?: boolean;
+  onRequest?: boolean;
+};
+
 function narrativeAlreadyAnalyzed(
   existing: { narrativeAnalyzedAt: Date | null },
   force?: boolean,
@@ -79,7 +88,7 @@ function narrativeAlreadyAnalyzed(
 
 function narrativeBlockedByDatePolicy(
   existing: { date: Date },
-  options?: { force?: boolean; allowHistorical?: boolean },
+  options?: NarrativeRunOptions,
 ): boolean {
   if (options?.force || options?.allowHistorical) {
     return false;
@@ -90,13 +99,16 @@ function narrativeBlockedByDatePolicy(
 async function shouldSkipNarrativeAnalysis(
   athleteId: string,
   activityId: string,
-  options?: { force?: boolean; allowHistorical?: boolean },
+  options?: NarrativeRunOptions,
 ): Promise<{ skip: true } | { skip: false; activityDate: Date }> {
   const existing = await prisma.activity.findFirst({
     where: { id: activityId, athleteId },
-    select: { narrativeAnalyzedAt: true, date: true, narrativeAnalysis: true },
+    select: { narrativeAnalyzedAt: true, date: true, type: true, narrativeAnalysis: true },
   });
   if (!existing || !isEligibleForActivityNarrative(existing.date)) {
+    return { skip: true };
+  }
+  if (!narrativeReadsActivityType(existing.type, Boolean(options?.onRequest))) {
     return { skip: true };
   }
   if (narrativeAlreadyAnalyzed(existing, options?.force)) {
@@ -136,7 +148,7 @@ async function generateAndStoreNarrative(
 export async function runActivityNarrativeAnalysis(
   athleteId: string,
   activityId: string,
-  options?: { force?: boolean; allowHistorical?: boolean },
+  options?: NarrativeRunOptions,
 ): Promise<boolean> {
   if (!isCoachConfigured()) {
     return false;
@@ -202,9 +214,7 @@ export async function backfillActivityNarratives(athleteId: string): Promise<{
       ...visibleActivityWhere,
       narrativeAnalyzedAt: null,
       date: { gte: NARRATIVE_ANALYSIS_SINCE },
-      type: {
-        in: [ActivityType.RUN, ActivityType.BIKE, ActivityType.SWIM, ActivityType.TRIATHLON],
-      },
+      type: { in: [...AUTO_NARRATIVE_ACTIVITY_TYPES] },
     },
     select: { id: true },
     orderBy: { date: 'asc' },

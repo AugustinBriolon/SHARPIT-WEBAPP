@@ -38,7 +38,9 @@ vi.mock('@sharpit/server/lib/privacy/consent-store', () => ({
 vi.mock('@sharpit/db/client', () => ({
   prisma: {
     activity: {
-      findFirst: vi.fn().mockResolvedValue({ id: 'activity-1', date: new Date('2026-08-20') }),
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ id: 'activity-1', date: new Date('2026-08-20'), type: 'TRIATHLON' }),
     },
   },
 }));
@@ -89,6 +91,7 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
     expect(runActivityNarrativeAnalysisMock).toHaveBeenCalledWith('athlete-1', 'activity-1', {
       force: false,
       allowHistorical: true,
+      onRequest: true,
     });
   });
 
@@ -109,6 +112,7 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
     expect(runActivityNarrativeAnalysisMock).toHaveBeenCalledWith('athlete-1', 'activity-1', {
       force: true,
       allowHistorical: true,
+      onRequest: true,
     });
   });
 
@@ -148,6 +152,7 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
     expect(runActivityNarrativeAnalysisMock).toHaveBeenCalledWith('athlete-1', 'activity-1', {
       force: true,
       allowHistorical: true,
+      onRequest: true,
     });
   });
 
@@ -162,5 +167,49 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
       multisportLegs: [{ kind: 'swim' }],
       raceAnalysis: { legs: [] },
     });
+  });
+});
+
+describe('POST /api/activities/[id]/narrative — activity type', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    runActivityNarrativeAnalysisMock.mockResolvedValue(true);
+  });
+
+  async function mockActivityType(type: string) {
+    const { prisma } = await import('@sharpit/db/client');
+    vi.mocked(prisma.activity.findFirst).mockResolvedValueOnce({
+      id: 'activity-1',
+      date: new Date('2026-08-20'),
+      type,
+    } as never);
+  }
+
+  // Regression: a strength session answered 500 « Synthèse impossible » on every tap.
+  it('reads a strength session the athlete asks about', async () => {
+    await mockActivityType('STRENGTH');
+    const { POST } = await importRoute();
+
+    const response = await POST(postRequest({ wait: true }), context);
+
+    expect(response.status).toBe(200);
+    expect(runActivityNarrativeAnalysisMock).toHaveBeenCalledWith('athlete-1', 'activity-1', {
+      force: false,
+      allowHistorical: true,
+      onRequest: true,
+    });
+  });
+
+  it('answers 422 with a reason for a type the coach cannot read yet', async () => {
+    await mockActivityType('OTHER');
+    const { POST } = await importRoute();
+
+    const response = await POST(postRequest({ wait: true }), context);
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toEqual({
+      error: 'Le coach ne sait pas encore analyser ce type de séance.',
+    });
+    expect(runActivityNarrativeAnalysisMock).not.toHaveBeenCalled();
   });
 });
