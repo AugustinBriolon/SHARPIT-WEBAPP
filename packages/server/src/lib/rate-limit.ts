@@ -64,8 +64,12 @@ export const rateLimiters = {
 
   /** Journal taps are debounced on every client: a minute's worth is far above real use. */
   dayJournal: limiter(60, '1 m', 'day-journal'),
-  /** Apple Health is sent by the phone in batches — a first import spans a year. */
-  appleHealth: limiter(30, '10 m', 'apple-health'),
+  /**
+   * Apple Health is sent by the phone in batches — a first import spans a year: 12 batches of
+   * days and one per 5 workouts, so ~70 calls for 300 sessions. 30 stopped a new athlete's
+   * history months short (ADR-094); the background work per batch is bounded (ADR-092).
+   */
+  appleHealth: limiter(150, '10 m', 'apple-health'),
   /** Live strength sessions with HR — one POST per finished workout. */
   strengthLiveHr: limiter(30, '10 m', 'strength-live-hr'),
   /** « Donner un avis »: a few notes an hour is a talkative tester, more is a stuck button. */
