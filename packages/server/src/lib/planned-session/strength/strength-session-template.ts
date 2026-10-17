@@ -35,11 +35,11 @@ export const STRENGTH_BLOCKS: readonly StrengthBlock[] = [
   },
   {
     role: 'PREHAB',
-    label: 'Renfo articulaire ciblé',
+    label: 'Renfo ciblé',
     share: 0.35,
     minExercises: 3,
     guidance:
-      'Toute la chaîne autour de l’articulation sensible : agonistes, antagonistes, stabilisateurs, et au moins un exercice unilatéral.',
+      'Avec une zone sensible déclarée : toute la chaîne autour de l’articulation (agonistes, antagonistes, stabilisateurs, au moins un exercice unilatéral). Sans zone sensible : exercices accessoires et progressions au service de l’objectif.',
   },
   {
     role: 'STRENGTH',
@@ -208,8 +208,9 @@ export function formatStrengthSessionRules(): string {
   return [
     '## Séances STRENGTH (renfo / prévention)',
     `- Structure obligatoire, dans cet ordre : ${blocks}`,
+    "- Chaque exercice sert l'objectif déclaré. Pour un objectif de force ou de skill (muscle-up, traction, squat, handstand…), la force et les progressions spécifiques de ce geste sont le cœur de la séance ; la mobilité et les étirements visent les articulations qu'il sollicite.",
     "- Le nombre d'exercices suit durationMin (~1 exercice par 4 min) : 30 min ≈ 6-10, 45 min ≈ 9-13, 60 min ≈ 13-17. Une séance de 3 à 5 exercices au-delà de 20 min est un échec.",
-    '- Prévention articulaire : couvre toute la chaîne autour de la zone sensible (agonistes, antagonistes, stabilisateurs), avec du travail unilatéral et au moins un exercice excentrique.',
+    "- Prévention articulaire, seulement pour une zone sensible déclarée dans le contexte : couvre toute la chaîne autour (agonistes, antagonistes, stabilisateurs), avec du travail unilatéral et au moins un exercice excentrique. Sans zone sensible, n'invente pas de pathologie à prévenir.",
     '- Libellés FR proches du catalogue Garmin Connect — vérifie avec searchWatchExercises quand tu hésites, sinon la montre affichera un nom générique.',
     "- Pour CHAQUE exercice, déclare intent et pattern : c'est ce qui permet de vérifier qu'un étirement n'est pas compté comme une mise en charge, et qu'aucune zone sensible n'est chargée. Un étirement ou un auto-massage est intent=MOBILITY, pattern=null.",
   ].join('\n');

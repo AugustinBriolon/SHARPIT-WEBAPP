@@ -130,4 +130,11 @@ describe('formatStrengthSessionRules', () => {
     }
     expect(rules).toContain('searchWatchExercises');
   });
+
+  // A muscle-up goal got clamshells and psoas stretches: prehab is for a declared zone only.
+  it('ties the session to the goal and keeps prehab to declared sensitive zones', () => {
+    const rules = formatStrengthSessionRules();
+    expect(rules).toContain("Chaque exercice sert l'objectif déclaré");
+    expect(rules).toContain('seulement pour une zone sensible déclarée');
+  });
 });
