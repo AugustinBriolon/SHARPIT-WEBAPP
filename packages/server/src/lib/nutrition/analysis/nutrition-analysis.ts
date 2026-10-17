@@ -7,6 +7,7 @@ import {
   isCoachConfigured,
 } from '@sharpit/server/lib/ai';
 import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
+import { checkRateLimit, rateLimiters } from '@sharpit/server/lib/rate-limit';
 import { sanitizeCoachCopy } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import {
   athleteHasAiProcessingConsent,
@@ -125,6 +126,20 @@ export async function prepareNutritionCoachReading(
   const decision = decideNutritionReading({ row, currentHash: hash, now, isPastDay, canGenerate });
   if (!decision.shouldGenerate) {
     return { view: decision.view, generate: null };
+  }
+  // Each edit of a past day changes the hash: without a budget, edit → read loops model calls.
+  const limit = await checkRateLimit(rateLimiters.nutritionReading, athleteId, {
+    failClosed: true,
+  });
+  if (!limit.ok) {
+    const lastStored = decideNutritionReading({
+      row,
+      currentHash: hash,
+      now,
+      isPastDay,
+      canGenerate: false,
+    });
+    return { view: lastStored.view, generate: null };
   }
   const claimed = await claimNutritionAnalysis({ athleteId, trainingDayId, hash, now });
   return {

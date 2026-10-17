@@ -57,6 +57,8 @@ export const rateLimiters = {
   foodSearch: limiter(20, '1 m', 'food-search'),
   /** A MyFitnessPal export rewrites years of days: a few tries an hour is plenty. */
   nutritionImport: limiter(5, '1 h', 'nutrition-import'),
+  /** Coach reading of a past food-log day (LLM): regenerated per edit, a few an hour is real use. */
+  nutritionReading: limiter(10, '1 h', 'nutrition-reading'),
   /** Free-text meal → foods (LLM): a handful of tries per hour is real use. */
   foodDescribe: limiter(20, '1 h', 'food-describe'),
 
