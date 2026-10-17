@@ -339,6 +339,25 @@ describe('POST /api/coach/chat · conversation sent by the client', () => {
     expect(streamText).not.toHaveBeenCalled();
   });
 
+  it('refuses an oversized conversation with 413 before any model call', async () => {
+    const { streamText } = await import('ai');
+    const { POST, COACH_THREAD_TOO_LARGE_COPY } = await importRoute();
+    const text = 'x'.repeat(400_000);
+
+    const response = await POST(
+      new Request('http://localhost/api/coach/chat', {
+        method: 'POST',
+        body: JSON.stringify({
+          messages: [{ id: 'm-1', role: 'user', parts: [{ type: 'text', text }] }],
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: COACH_THREAD_TOO_LARGE_COPY });
+    expect(streamText).not.toHaveBeenCalled();
+  });
+
   it('refuses a body that is not JSON', async () => {
     const { POST } = await importRoute();
     const response = await POST(

@@ -14,7 +14,21 @@ import { dismissUnresolvedCalendarTools } from '@sharpit/app/lib/coach/chat/tool
  */
 export type CoachChatHistory =
   | { ok: true; messages: UIMessage[]; conversationId: string | null }
-  | { ok: false; reason: 'malformed' | 'not-found' };
+  | { ok: false; reason: 'malformed' | 'not-found' | 'too-large' };
+
+/**
+ * What a client may send in one request, measured before any model work: a thread past this costs
+ * one oversized model call before the AI budget can refuse the next. Far above a real thread
+ * (a long one is ~40 messages, ~60 k characters with its tool results).
+ */
+export const COACH_CLIENT_THREAD_LIMITS = { messages: 120, characters: 300_000 } as const;
+
+function exceedsClientLimits(messages: unknown[]): boolean {
+  return (
+    messages.length > COACH_CLIENT_THREAD_LIMITS.messages ||
+    JSON.stringify(messages).length > COACH_CLIENT_THREAD_LIMITS.characters
+  );
+}
 
 /** Reads the messages of a conversation the athlete owns; null when there is none. */
 export type LoadStoredConversation = (conversationId: string) => Promise<unknown[] | null>;
@@ -48,6 +62,9 @@ async function readServerHistory(
   message: unknown,
   loadStored: LoadStoredConversation,
 ): Promise<CoachChatHistory> {
+  if (exceedsClientLimits([message])) {
+    return { ok: false, reason: 'too-large' };
+  }
   const [incoming] = (await validated([message])) ?? [];
   if (!incoming) {
     return { ok: false, reason: 'malformed' };
@@ -74,6 +91,9 @@ export async function readCoachChatHistory(
   };
   if (typeof conversationId === 'string' && conversationId && message !== undefined) {
     return readServerHistory(conversationId, message, loadStored);
+  }
+  if (Array.isArray(messages) && exceedsClientLimits(messages)) {
+    return { ok: false, reason: 'too-large' };
   }
   const thread = await validated(messages);
   return thread

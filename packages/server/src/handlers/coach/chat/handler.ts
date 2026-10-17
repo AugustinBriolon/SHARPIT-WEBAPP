@@ -85,9 +85,24 @@ export function coachStreamErrorCopy(error: unknown): string {
 export const COACH_CONVERSATION_NOT_FOUND_COPY =
   'Cette conversation est introuvable. Ouvre une nouvelle conversation.';
 
+/** What the athlete reads when the conversation sent is past what one request may carry. */
+export const COACH_THREAD_TOO_LARGE_COPY =
+  'Cette conversation est trop longue pour le coach. Ouvre une nouvelle conversation.';
+
 /** What the athlete reads when the conversation sent is malformed. */
 export const COACH_UNREADABLE_HISTORY_COPY =
   'Cette conversation ne peut pas être relue par le coach. Ouvre une nouvelle conversation.';
+
+const HISTORY_ERRORS = {
+  'not-found': { error: COACH_CONVERSATION_NOT_FOUND_COPY, status: 404 },
+  'too-large': { error: COACH_THREAD_TOO_LARGE_COPY, status: 413 },
+  malformed: { error: COACH_UNREADABLE_HISTORY_COPY, status: 400 },
+} as const;
+
+function historyErrorResponse(reason: keyof typeof HISTORY_ERRORS): Response {
+  const { error, status } = HISTORY_ERRORS[reason];
+  return NextResponse.json({ error }, { status });
+}
 
 type BudgetWarning = Awaited<ReturnType<typeof ensureFreeAiBudget>>['warning'];
 
@@ -312,9 +327,7 @@ export async function POST(req: Request) {
     loadStoredMessages(athleteId, id),
   );
   if (!history.ok) {
-    return history.reason === 'not-found'
-      ? NextResponse.json({ error: COACH_CONVERSATION_NOT_FOUND_COPY }, { status: 404 })
-      : NextResponse.json({ error: COACH_UNREADABLE_HISTORY_COPY }, { status: 400 });
+    return historyErrorResponse(history.reason);
   }
   const { messages, conversationId } = history;
 

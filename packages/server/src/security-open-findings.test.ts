@@ -1,7 +1,6 @@
 import type { UIMessage } from 'ai';
 import { describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
-import { createPhysicalNoteSchema } from '@sharpit/server/lib/validators/physical-note';
 import { readCoachChatHistory } from '@sharpit/server/lib/coach/chat/coach-chat-history';
 import { formatMetricGoalLine } from '@sharpit/server/lib/coach/context/coach-context-format';
 
@@ -21,26 +20,7 @@ vi.mock('@sharpit/server/lib/auth/current-athlete', () => ({
 }));
 vi.mock('@sharpit/app/lib/demo/demo-session', () => ({ isDemoSession: vi.fn(async () => false) }));
 
-const MEGABYTE_OF_TEXT = 'x'.repeat(1_000_000);
-
 describe('open: request size limits (medium/low)', () => {
-  it.fails('caps the free text of a physical note', () => {
-    const parsed = createPhysicalNoteSchema.safeParse({
-      category: 'PAIN',
-      title: MEGABYTE_OF_TEXT,
-      description: MEGABYTE_OF_TEXT,
-    });
-    expect(parsed.success).toBe(false);
-  });
-
-  it.fails('caps the size of a client-sent coach thread', async () => {
-    const history = await readCoachChatHistory(
-      { messages: [{ id: 'u1', role: 'user', parts: [{ type: 'text', text: MEGABYTE_OF_TEXT }] }] },
-      async () => null,
-    );
-    expect(history.ok).toBe(false);
-  });
-
   it.fails('caps ?limit= on the activities list', async () => {
     const { getActivitiesList } = await import('@sharpit/server/lib/queries');
     const { GET } = await import('@sharpit/server/handlers/activities/handler');

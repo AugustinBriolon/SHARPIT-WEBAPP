@@ -2,6 +2,7 @@ import type { UIMessage } from 'ai';
 import { describe, expect, it } from 'vitest';
 import {
   closeUnansweredProposals,
+  COACH_CLIENT_THREAD_LIMITS,
   readCoachChatHistory,
   withIncomingMessage,
 } from '@sharpit/server/lib/coach/chat/coach-chat-history';
@@ -136,5 +137,47 @@ describe('readCoachChatHistory · server history', () => {
       async () => [{ id: 'broken' }],
     );
     expect(history.ok && history.messages.map((m) => m.id)).toEqual(['u2']);
+  });
+});
+
+describe('readCoachChatHistory · client size limits', () => {
+  const said = (id: string, text: string) => ({
+    id,
+    role: 'user',
+    parts: [{ type: 'text', text }],
+  });
+
+  it('refuses a client thread with too many messages', async () => {
+    const messages = Array.from({ length: COACH_CLIENT_THREAD_LIMITS.messages + 1 }, (_, i) =>
+      said(`u${i}`, 'ok'),
+    );
+    expect(await readCoachChatHistory({ messages }, noStoredConversation)).toEqual({
+      ok: false,
+      reason: 'too-large',
+    });
+  });
+
+  it('refuses a client thread past the character limit', async () => {
+    const messages = [said('u1', 'x'.repeat(COACH_CLIENT_THREAD_LIMITS.characters))];
+    expect(await readCoachChatHistory({ messages }, noStoredConversation)).toEqual({
+      ok: false,
+      reason: 'too-large',
+    });
+  });
+
+  it('refuses an oversized message without reading the stored conversation', async () => {
+    let read = false;
+    const message = said('u2', 'x'.repeat(COACH_CLIENT_THREAD_LIMITS.characters));
+    const history = await readCoachChatHistory({ conversationId: 'c1', message }, async () => {
+      read = true;
+      return [];
+    });
+    expect(history).toEqual({ ok: false, reason: 'too-large' });
+    expect(read).toBe(false);
+  });
+
+  it('accepts a long but real thread', async () => {
+    const messages = Array.from({ length: 40 }, (_, i) => said(`u${i}`, 'x'.repeat(1_500)));
+    expect((await readCoachChatHistory({ messages }, noStoredConversation)).ok).toBe(true);
   });
 });
