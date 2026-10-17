@@ -12,10 +12,12 @@ const read = (file: string) => readFileSync(path.join(repoRoot, file), 'utf8');
  */
 describe('local dev servers stay on loopback', () => {
   it.each(['apps/api/package.json', 'apps/web/package.json', 'apps/hub/package.json'])(
-    '%s dev script binds 127.0.0.1',
+    // `localhost`, not 127.0.0.1: Clerk's proxy rewrites to `http://localhost:…`, which Next
+    // proxies as an external host (and hangs) when it differs from the bound hostname.
+    '%s dev script binds localhost',
     (file) => {
       const { scripts } = JSON.parse(read(file)) as { scripts: Record<string, string> };
-      expect(scripts.dev).toMatch(/-H 127\.0\.0\.1\b/);
+      expect(scripts.dev).toMatch(/-H localhost\b/);
     },
   );
 

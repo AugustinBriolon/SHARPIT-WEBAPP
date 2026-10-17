@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 127.0.0.1",
+    "dev": "next dev -H localhost",
     "dev:lan": "next dev -H 0.0.0.0",
     "build": "prisma generate && next build",
     "tokens:ios": "tsx scripts/export-ios-tokens.ts",

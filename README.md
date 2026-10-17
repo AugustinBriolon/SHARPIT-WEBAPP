@@ -137,7 +137,7 @@ yarn dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-> Dev servers and the docker Postgres listen on loopback only: with `DEV_BYPASS_CLERK` a dev
+> Dev servers and the docker Postgres listen on loopback only (`localhost`): with `DEV_BYPASS_CLERK` a dev
 > server answers anyone as the local athlete. To test from a phone on the LAN, run
 > `yarn web dev:lan` and `yarn api dev:lan` explicitly, and never with the bypass on.
 
