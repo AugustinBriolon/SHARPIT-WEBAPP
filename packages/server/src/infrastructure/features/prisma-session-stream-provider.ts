@@ -161,8 +161,9 @@ export class PrismaSessionStreamProvider implements SessionStreamProvider {
       return null;
     }
 
+    // Provider ids are unique per athlete, not across athletes: scope the match.
     const activity = await this.prisma.activity.findFirst({
-      where,
+      where: { ...where, athleteId: ctx.athleteId },
       select: {
         id: true,
         type: true,
