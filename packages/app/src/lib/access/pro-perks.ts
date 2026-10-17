@@ -67,13 +67,6 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
     href: '/plan/semaine',
   },
   {
-    id: 'calendar-sync',
-    title: 'Synchro calendrier',
-    description:
-      'Tes séances planifiées s’écrivent toutes seules dans le calendrier de ton iPhone, et suivent chaque changement de ton plan.',
-    status: 'pro',
-  },
-  {
     id: 'extra-widgets',
     title: 'Widgets supplémentaires',
     description:

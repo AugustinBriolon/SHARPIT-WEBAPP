@@ -15,4 +15,8 @@ describe('projectV1Pro', () => {
     const ids = ALL_PRO_PERKS.map((p) => p.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it('does not sell the iPhone calendar copy: it is free once Apple Calendar is linked', () => {
+    expect(ALL_PRO_PERKS.map((p) => p.id)).not.toContain('calendar-sync');
+  });
 });
