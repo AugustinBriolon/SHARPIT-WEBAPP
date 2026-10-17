@@ -56,6 +56,22 @@ async function runPlannedSessionSideEffects(athleteId: string, session: PlannedS
   ]);
 }
 
+/** The widest client window is a year either side (goals); a wider one is clamped from `from`. */
+export const MAX_PLANNED_RANGE_DAYS = 1100;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function dateParam(raw: string | null): Date | undefined {
+  const date = raw ? new Date(raw) : undefined;
+  return date && !Number.isNaN(date.getTime()) ? date : undefined;
+}
+
+export function plannedSessionsRange(fromParam: string | null, toParam: string | null) {
+  const from = dateParam(fromParam);
+  const to = dateParam(toParam);
+  const widest = from && new Date(from.getTime() + MAX_PLANNED_RANGE_DAYS * DAY_MS);
+  return { from, to: widest && (!to || to > widest) ? widest : to };
+}
+
 export async function GET(request: NextRequest) {
   // Read search params before try so Cache Components prerender interrupts propagate.
   const { searchParams } = new URL(request.url);
@@ -65,10 +81,7 @@ export async function GET(request: NextRequest) {
   try {
     const athleteId = await getCurrentAthleteId();
     const [sessions, profile] = await Promise.all([
-      getPlannedSessions(athleteId, {
-        from: fromParam ? new Date(fromParam) : undefined,
-        to: toParam ? new Date(toParam) : undefined,
-      }),
+      getPlannedSessions(athleteId, plannedSessionsRange(fromParam, toParam)),
       getAthleteProfile(athleteId),
     ]);
 

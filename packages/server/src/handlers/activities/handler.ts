@@ -12,6 +12,16 @@ import { prisma } from '@sharpit/db/client';
 import { updateRecordsForTypesSafe } from '@sharpit/server/lib/training/records/records';
 import { createActivitySchema } from '@sharpit/app/lib/validators/activity';
 
+/** Clients page by 60; a full list is asked without `limit`. Larger pages are clamped. */
+export const MAX_ACTIVITY_PAGE = 500;
+
+function pageLimit(raw: string | null): number | undefined {
+  const value = Number(raw);
+  return raw && Number.isFinite(value) && value > 0
+    ? Math.min(value, MAX_ACTIVITY_PAGE)
+    : undefined;
+}
+
 export async function GET(request: NextRequest) {
   // Read search params before try so Cache Components prerender interrupts propagate.
   const { searchParams } = new URL(request.url);
@@ -36,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     const activities = await getActivitiesList(athleteId, {
       type: type && Object.values(ActivityType).includes(type) ? type : undefined,
-      limit: limit ? Number(limit) : undefined,
+      limit: pageLimit(limit),
       sinceDays: effectiveSinceDays,
       before: before ? new Date(before) : undefined,
       after: after ? new Date(after) : undefined,

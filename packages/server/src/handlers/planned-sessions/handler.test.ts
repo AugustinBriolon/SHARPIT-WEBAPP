@@ -145,3 +145,24 @@ describe('POST /api/planned-sessions', () => {
     expect(response.status).toBe(201);
   });
 });
+
+describe('plannedSessionsRange', () => {
+  it('keeps a client window (a year either side)', async () => {
+    const { plannedSessionsRange } = await import('./handler');
+    expect(plannedSessionsRange('2025-10-17', '2027-10-17')).toEqual({
+      from: new Date('2025-10-17'),
+      to: new Date('2027-10-17'),
+    });
+  });
+
+  it('clamps a wider window from its start', async () => {
+    const { plannedSessionsRange, MAX_PLANNED_RANGE_DAYS } = await import('./handler');
+    const { from, to } = plannedSessionsRange('2000-01-01', '2099-01-01');
+    expect((to!.getTime() - from!.getTime()) / 86_400_000).toBe(MAX_PLANNED_RANGE_DAYS);
+  });
+
+  it('ignores a date it cannot read', async () => {
+    const { plannedSessionsRange } = await import('./handler');
+    expect(plannedSessionsRange('not-a-date', null)).toEqual({ from: undefined, to: undefined });
+  });
+});

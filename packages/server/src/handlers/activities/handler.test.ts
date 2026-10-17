@@ -57,6 +57,19 @@ describe('GET /api/activities — demo sinceDays clamp', () => {
     );
   });
 
+  it('clamps an oversized page', async () => {
+    isDemoSessionMock.mockResolvedValue(false);
+    const { getActivitiesList } = await import('@sharpit/server/lib/queries');
+    const { GET, MAX_ACTIVITY_PAGE } = await importRoute();
+
+    await GET(getRequest('?limit=1000000'));
+
+    expect(getActivitiesList).toHaveBeenCalledWith(
+      'athlete-1',
+      expect.objectContaining({ limit: MAX_ACTIVITY_PAGE }),
+    );
+  });
+
   it('leaves an unbounded request unbounded for a real athlete', async () => {
     isDemoSessionMock.mockResolvedValue(false);
     const { getActivitiesList } = await import('@sharpit/server/lib/queries');
