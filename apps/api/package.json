@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -H 0.0.0.0 -p 3001",
+    "dev": "next dev -H 127.0.0.1 -p 3001",
+    "dev:lan": "next dev -H 0.0.0.0 -p 3001",
     "build": "prisma generate && next build",
     "db:migrate:deploy": "tsx scripts/repair-failed-migrations.ts && prisma migrate deploy",
     "start": "next start -p 3001",
