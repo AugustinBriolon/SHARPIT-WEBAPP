@@ -1,5 +1,13 @@
 import path from 'node:path';
 import type { NextConfig } from 'next';
+import { buildContentSecurityPolicy } from '@sharpit/app/lib/security/content-security-policy';
+
+/** Enforced, built from the hosts this deployment talks to (ADR-088). */
+const contentSecurityPolicy = buildContentSecurityPolicy({
+  apiOrigin: process.env.NEXT_PUBLIC_API_ORIGIN,
+  clerkPublishableKey: process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
+  isDev: process.env.NODE_ENV === 'development',
+});
 
 /**
  * sharpit.app, the apex (ADR-048 phase 4, ADR-051): the Apple app-site association, the native
@@ -20,20 +28,6 @@ const APPLE_NOTIFICATIONS_PATH = '/api/billing/apple/notifications';
 const HUB_PATHS =
   '\\.well-known|aide|connect|privacy|terms|sign-in|api/|_next|__clerk|favicon\\.ico|icon|apple-icon';
 
-const csp = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://clerk.sharpit.app",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https:",
-  "font-src 'self' data:",
-  "connect-src 'self' https://api.sharpit.app https://clerk.sharpit.app https://*.clerk.accounts.dev https://*.clerk.com",
-  "frame-src 'self' https://clerk.sharpit.app https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com https://sso.garmin.com",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-].join('; ');
-
 const nextConfig: NextConfig = {
   cacheComponents: true,
   poweredByHeader: false,
@@ -51,7 +45,7 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Content-Security-Policy-Report-Only', value: csp },
+          { key: 'Content-Security-Policy', value: contentSecurityPolicy },
         ],
       },
     ];
