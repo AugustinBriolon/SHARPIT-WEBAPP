@@ -1,6 +1,6 @@
+import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
 import { cache } from 'react';
 import { auth, clerkClient } from '@clerk/nextjs/server';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { DEMO_CLERK_USER_ID, isDemoSession } from '@sharpit/app/lib/demo/demo-session';
 import { ensureDemoSeedFresh } from '@sharpit/server/lib/demo/seed-demo-data';
 import { prisma } from '@sharpit/db/client';
@@ -95,7 +95,7 @@ async function createAthleteProfile(userId: string): Promise<string> {
   } catch (error) {
     // Two concurrent first-requests from the same brand-new user raced the
     // create — the loser reads back what the winner just inserted.
-    if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (isUniqueViolation(error)) {
       const raced = await prisma.athleteProfile.findUniqueOrThrow({
         where: { clerkUserId: userId },
         select: { id: true, deletedAt: true },

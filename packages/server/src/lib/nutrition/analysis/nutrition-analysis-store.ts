@@ -1,3 +1,4 @@
+import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@sharpit/db/client';
 import type { NutritionAnalysisFacts } from './nutrition-analysis-facts';
@@ -23,10 +24,6 @@ export async function findNutritionAnalysisRow(
       attemptedAt: true,
     },
   });
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
 /**

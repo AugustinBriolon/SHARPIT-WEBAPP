@@ -1,4 +1,5 @@
-import { Prisma, type AnalysisKind } from '@prisma/client';
+import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
+import type { AnalysisKind } from '@prisma/client';
 import { prisma } from '@sharpit/db/client';
 import {
   ANALYSIS_RUN_STALE_MS,
@@ -9,10 +10,6 @@ import {
 const RECENT_WINDOW_MS = 60 * 60_000;
 
 type RunTarget = { athleteId: string; kind: AnalysisKind; targetId: string };
-
-function isUniqueViolation(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
-}
 
 /**
  * Takes the right to run this analysis. Returns false when another request is

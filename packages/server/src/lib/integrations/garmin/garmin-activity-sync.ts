@@ -1,6 +1,6 @@
+import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
 import { ActivityType, Prisma } from '@prisma/client';
 import { isSet } from '@sharpit/shared/value';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { syncSinceFromLastSync } from '@sharpit/server/lib/integrations/shared/sync-since';
 import { findMatchingActivity } from '@sharpit/server/lib/activity/list/activity-dedup';
 import {
@@ -341,7 +341,7 @@ async function importGarminActivityRecord(
       changed: [{ id: created.id, type }],
     };
   } catch (error) {
-    if (error instanceof PrismaClientKnownRequestError && error.code === 'P2002') {
+    if (isUniqueViolation(error)) {
       return { ...EMPTY_OUTCOME, skipped: 1 };
     }
     throw error;

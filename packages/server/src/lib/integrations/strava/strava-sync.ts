@@ -1,5 +1,5 @@
+import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
 import { ActivityType, Prisma } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import {
   findMatchingActivity,
   mergedSource,
@@ -299,10 +299,6 @@ type StravaProcessOutcome =
   | { kind: 'merged'; type: ActivityType; activityId: string }
   | { kind: 'imported'; type: ActivityType; activityId: string };
 
-function isDuplicateKeyError(error: unknown): boolean {
-  return error instanceof PrismaClientKnownRequestError && error.code === 'P2002';
-}
-
 type MergeStravaMatchInput = {
   athleteId: string;
   match: NonNullable<Awaited<ReturnType<typeof findMatchingActivity>>>;
@@ -325,7 +321,7 @@ async function mergeStravaIntoMatch(input: MergeStravaMatchInput): Promise<Strav
           data: { stravaId },
         });
       } catch (error) {
-        if (isDuplicateKeyError(error)) {
+        if (isUniqueViolation(error)) {
           return { kind: 'skipped' };
         }
         throw error;
@@ -360,7 +356,7 @@ async function mergeStravaIntoMatch(input: MergeStravaMatchInput): Promise<Strav
     }
     return { kind: 'merged', type, activityId: match.id };
   } catch (error) {
-    if (isDuplicateKeyError(error)) {
+    if (isUniqueViolation(error)) {
       return { kind: 'skipped' };
     }
     throw error;
@@ -380,7 +376,7 @@ async function importNewStravaActivity(
     await ingestStravaActivity(athleteId, strava);
     return { kind: 'imported', type, activityId: created.id };
   } catch (error) {
-    if (isDuplicateKeyError(error)) {
+    if (isUniqueViolation(error)) {
       return { kind: 'skipped' };
     }
     throw error;

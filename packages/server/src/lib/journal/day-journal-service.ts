@@ -1,5 +1,5 @@
+import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
 import type { PrismaClient } from '@prisma/client';
-import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import {
   emptyDayJournalEntry,
   type DayJournalEntry,
@@ -104,10 +104,6 @@ function mergeDayJournalWrite(
     caffeineMg: resolveOptionalField(input.caffeineMg, existing?.caffeineMg),
     drivingMinutes: resolveOptionalField(input.drivingMinutes, existing?.drivingMinutes),
   };
-}
-
-function isUniqueViolation(error: unknown): boolean {
-  return error instanceof PrismaClientKnownRequestError && error.code === 'P2002';
 }
 
 /**

@@ -1,3 +1,4 @@
+import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@sharpit/db/client';
 import {
@@ -26,10 +27,6 @@ export type LogFoodsResult = {
 };
 
 export type LogFoodsFailure = { ok: false; error: string };
-
-function isUniqueViolation(error: unknown): boolean {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002';
-}
 
 function asStoredResult(value: unknown): LogFoodsResult | null {
   if (!value || typeof value !== 'object') {
