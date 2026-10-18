@@ -27,8 +27,21 @@ export function scrubSentryEvent(event: ErrorEvent, _hint?: EventHint): ErrorEve
   return event;
 }
 
+/**
+ * What a browser says when a request never completed — offline, a tab closed mid-fetch, a crawler
+ * cutting the connection. Nothing in the app to fix, and each one paged as a new issue
+ * (SHARPIT-WEBAPP-9: a Google crawler on /start).
+ */
+export const BROWSER_TRANSPORT_ERRORS = [
+  /^(TypeError: )?network error$/i,
+  /^(TypeError: )?Failed to fetch$/,
+  /^(TypeError: )?Load failed$/,
+  /NetworkError when attempting to fetch resource/,
+];
+
 export function sentryOptions(app: 'web' | 'api') {
   return {
+    ...(app === 'web' ? { ignoreErrors: BROWSER_TRANSPORT_ERRORS } : {}),
     dsn: SENTRY_DSN,
     enabled: process.env.NODE_ENV === 'production',
     environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV,

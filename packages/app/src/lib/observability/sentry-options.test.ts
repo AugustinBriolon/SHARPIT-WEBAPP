@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { ErrorEvent } from '@sentry/nextjs';
-import { SENTRY_DSN, scrubSentryEvent, sentryOptions } from './sentry-options';
+import {
+  BROWSER_TRANSPORT_ERRORS,
+  SENTRY_DSN,
+  scrubSentryEvent,
+  sentryOptions,
+} from './sentry-options';
 
 describe('sentryOptions', () => {
   it('sends errors only, to the EU region, without personal data', () => {
@@ -38,5 +43,23 @@ describe('scrubSentryEvent', () => {
       user: { id: 'athlete-1', email: 'a@b.c', ip_address: '1.2.3.4' },
     } as ErrorEvent);
     expect(event.user).toEqual({ id: 'athlete-1' });
+  });
+});
+
+describe('browser transport errors', () => {
+  const matches = (message: string) =>
+    BROWSER_TRANSPORT_ERRORS.some((pattern) => pattern.test(message));
+
+  it('drops a request that never completed, on the web only (SHARPIT-WEBAPP-9)', () => {
+    expect(matches('TypeError: network error')).toBe(true);
+    expect(matches('Failed to fetch')).toBe(true);
+    expect(matches('Load failed')).toBe(true);
+    expect(sentryOptions('web').ignoreErrors).toBe(BROWSER_TRANSPORT_ERRORS);
+    expect('ignoreErrors' in sentryOptions('api')).toBe(false);
+  });
+
+  it('keeps real errors', () => {
+    expect(matches("TypeError: Cannot read properties of undefined (reading 'id')")).toBe(false);
+    expect(matches('network error while parsing the plan')).toBe(false);
   });
 });
