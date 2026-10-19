@@ -18,7 +18,7 @@ vi.mock('@sharpit/server/lib/ai', () => ({
   isCoachConfigured: () => true,
 }));
 vi.mock('@sharpit/server/lib/ai/usage', () => ({ recordAiUsage: vi.fn() }));
-vi.mock('@sharpit/server/lib/access/narrative-trial', () => ({
+vi.mock('@sharpit/server/lib/access/narrative-access', () => ({
   canGenerateNarrativeForActivity: vi.fn().mockResolvedValue({ allowed: true, isPro: true }),
 }));
 vi.mock('@sharpit/server/lib/activity/narrative/activity-narrative-facts', () => ({

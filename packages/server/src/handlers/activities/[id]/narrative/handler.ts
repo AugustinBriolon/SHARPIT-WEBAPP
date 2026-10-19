@@ -2,7 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { isCoachConfigured } from '@sharpit/server/lib/ai';
 import { runActivityNarrativeAnalysis } from '@sharpit/server/lib/activity/narrative/activity-narrative';
-import { canGenerateNarrativeForActivity } from '@sharpit/server/lib/access/narrative-trial';
+import { canGenerateNarrativeForActivity } from '@sharpit/server/lib/access/narrative-access';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import {
   checkRateLimit,
@@ -64,7 +64,7 @@ async function validateNarrativePost(
   athleteId: string,
   id: string,
   request: NextRequest,
-): Promise<{ force: boolean; wait: boolean; activityDate: Date } | NextResponse> {
+): Promise<{ force: boolean; wait: boolean } | NextResponse> {
   if (!isCoachConfigured()) {
     return NextResponse.json(
       { error: 'Coach IA non configuré. Ajoute AI_GATEWAY_API_KEY dans .env.' },
@@ -74,7 +74,7 @@ async function validateNarrativePost(
 
   const existing = await prisma.activity.findFirst({
     where: { id, athleteId },
-    select: { id: true, date: true, type: true },
+    select: { id: true, type: true },
   });
   if (!existing) {
     return NextResponse.json({ error: 'Activité introuvable' }, { status: 404 });
@@ -95,7 +95,6 @@ async function validateNarrativePost(
   return {
     force: parsed.data.force ?? false,
     wait: parsed.data.wait ?? false,
-    activityDate: existing.date,
   };
 }
 
@@ -112,12 +111,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
     if (validated instanceof NextResponse) {
       return validated;
     }
-    const { force, wait, activityDate } = validated;
+    const { force, wait } = validated;
 
-    // Pre-check so a FREE athlete outside their free window (old activity, or
-    // already used today's free analysis) gets a clean "locked" response
-    // instead of a generic 500 from deep inside runActivityNarrativeAnalysis.
-    const access = await canGenerateNarrativeForActivity(athleteId, activityDate);
+    // Pre-check so a Free athlete gets a clean "locked" response instead of a
+    // generic 500 from deep inside runActivityNarrativeAnalysis.
+    const access = await canGenerateNarrativeForActivity(athleteId);
     if (!access.allowed) {
       return NextResponse.json({ error: 'locked' }, { status: 402 });
     }

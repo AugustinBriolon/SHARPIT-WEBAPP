@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, beforeAll } from 'vitest';
+import { NextResponse } from 'next/server';
 import { consumeCoachProgressStream } from '@sharpit/app/lib/coach/chat/transcript/coach-progress-stream';
 import type { PlanPayload } from './handler';
 import { decisionState, physicalHealthData } from '@sharpit/server/lib/plan-gate/test-fixtures';
@@ -92,6 +93,11 @@ vi.mock('@sharpit/server/lib/privacy/consent-store', () => ({
 async function importRoute() {
   return await import('./handler');
 }
+
+vi.mock('@sharpit/server/lib/access/require-pro', () => ({
+  PRO_REQUIRED: 'pro_required',
+  requirePro: vi.fn().mockResolvedValue(null),
+}));
 
 describe('POST /api/coach/plan', () => {
   beforeEach(async () => {
@@ -495,5 +501,33 @@ describe('POST /api/coach/plan', () => {
     await expect(consumeCoachProgressStream(response)).rejects.toThrow(
       /pas pu terminer ta semaine/i,
     );
+  });
+});
+
+describe('POST /api/coach/plan · Pro (ADR-097)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('opens the onboarding preview to the gate, and stops a Free athlete before the coach', async () => {
+    const { requirePro } = await import('@sharpit/server/lib/access/require-pro');
+    const { runStructuredCoachStream } =
+      await import('@sharpit/server/lib/coach/stream-structured-generation');
+    vi.mocked(requirePro).mockResolvedValueOnce(
+      NextResponse.json({ error: 'pro_required' }, { status: 403 }),
+    );
+
+    const { POST } = await importRoute();
+    const response = await POST(
+      new Request('http://localhost/api/coach/plan', {
+        method: 'POST',
+        body: JSON.stringify({ days: 7 }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: 'pro_required' });
+    expect(requirePro).toHaveBeenCalledWith(expect.any(String), { allowOnboardingPreview: true });
+    expect(runStructuredCoachStream).not.toHaveBeenCalled();
   });
 });

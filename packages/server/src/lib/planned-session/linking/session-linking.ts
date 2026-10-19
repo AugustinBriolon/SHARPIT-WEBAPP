@@ -1,5 +1,6 @@
 import { addDays, startOfDay } from 'date-fns';
 import { isCoachConfigured } from '@sharpit/server/lib/ai';
+import { isProAthlete } from '@sharpit/server/lib/access/is-pro-athlete';
 import { analyzePlannedSession } from '@sharpit/server/lib/coach/plan/coach-analysis';
 import { scorePlannedActivityMatch } from '@sharpit/app/lib/planned-session/linking/session-link-match-score';
 import {
@@ -118,6 +119,10 @@ export async function analyzeLinkedPlannedSessions(
   sessionIds: string[],
 ): Promise<number> {
   if (!isCoachConfigured() || sessionIds.length === 0) {
+    return 0;
+  }
+  // Compliance analysis is coaching: Pro-only (ADR-097).
+  if (!(await isProAthlete(athleteId))) {
     return 0;
   }
 

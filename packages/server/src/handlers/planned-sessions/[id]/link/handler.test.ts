@@ -58,6 +58,10 @@ async function linkAndRunAfter() {
   return response;
 }
 
+vi.mock('@sharpit/server/lib/access/is-pro-athlete', () => ({
+  isProAthlete: vi.fn().mockResolvedValue(true),
+}));
+
 describe('POST /api/planned-sessions/[id]/link', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -90,5 +94,24 @@ describe('POST /api/planned-sessions/[id]/link', () => {
     await linkAndRunAfter();
 
     expect(analyzePlannedSession).toHaveBeenCalledWith('athlete-a', 'session-1');
+  });
+});
+
+describe('POST /api/planned-sessions/[id]/link · Pro (ADR-097)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('links for a Free athlete but never asks the coach to analyse', async () => {
+    const { checkRateLimit } = await import('@sharpit/server/lib/rate-limit');
+    vi.mocked(checkRateLimit).mockResolvedValue({ ok: true });
+    const { isProAthlete } = await import('@sharpit/server/lib/access/is-pro-athlete');
+    vi.mocked(isProAthlete).mockResolvedValueOnce(false);
+    const { analyzePlannedSession } = await import('@sharpit/server/lib/coach/plan/coach-analysis');
+
+    const response = await linkAndRunAfter();
+
+    expect(response.status).toBe(200);
+    expect(analyzePlannedSession).not.toHaveBeenCalled();
   });
 });

@@ -6,7 +6,7 @@ import {
   coachAnalysisGatewayOptions,
   isCoachConfigured,
 } from '@sharpit/server/lib/ai';
-import { canGenerateNarrativeForActivity } from '@sharpit/server/lib/access/narrative-trial';
+import { canGenerateNarrativeForActivity } from '@sharpit/server/lib/access/narrative-access';
 import { isActivityToday } from '@sharpit/app/lib/activity/list/activity-day';
 import {
   AUTO_NARRATIVE_ACTIVITY_TYPES,
@@ -104,24 +104,18 @@ async function shouldSkipNarrativeAnalysis(
   athleteId: string,
   activityId: string,
   options?: NarrativeRunOptions,
-): Promise<{ skip: true } | { skip: false; activityDate: Date }> {
+): Promise<boolean> {
   const existing = await prisma.activity.findFirst({
     where: { id: activityId, athleteId },
     select: { narrativeAnalyzedAt: true, date: true, type: true, narrativeAnalysis: true },
   });
-  if (!existing || !isEligibleForActivityNarrative(existing.date)) {
-    return { skip: true };
-  }
-  if (!narrativeReadsActivityType(existing.type, Boolean(options?.onRequest))) {
-    return { skip: true };
-  }
-  if (narrativeAlreadyAnalyzed(existing, options?.force)) {
-    return { skip: true };
-  }
-  if (narrativeBlockedByDatePolicy(existing, options)) {
-    return { skip: true };
-  }
-  return { skip: false, activityDate: existing.date };
+  return (
+    !existing ||
+    !isEligibleForActivityNarrative(existing.date) ||
+    !narrativeReadsActivityType(existing.type, Boolean(options?.onRequest)) ||
+    narrativeAlreadyAnalyzed(existing, options?.force) ||
+    narrativeBlockedByDatePolicy(existing, options)
+  );
 }
 
 async function generateAndStoreNarrative(
@@ -158,16 +152,11 @@ export async function runActivityNarrativeAnalysis(
     return false;
   }
 
-  const gate = await shouldSkipNarrativeAnalysis(athleteId, activityId, options);
-  if (gate.skip) {
+  if (await shouldSkipNarrativeAnalysis(athleteId, activityId, options)) {
     return false;
   }
 
-  // Pro athletes always pass. FREE athletes only pass on activities dated
-  // after they joined SHARPIT (older imports stay Pro-only), and at most
-  // once a day — applies uniformly to every path (auto sync, manual
-  // "Générer" tap, backfill), no separate spend/credit bookkeeping needed.
-  const access = await canGenerateNarrativeForActivity(athleteId, gate.activityDate);
+  const access = await canGenerateNarrativeForActivity(athleteId);
   if (!access.allowed) {
     return false;
   }

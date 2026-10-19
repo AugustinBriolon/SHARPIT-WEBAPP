@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextResponse } from 'next/server';
 
 vi.mock('ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('ai')>();
@@ -118,6 +119,11 @@ async function systemPromptSent(): Promise<string> {
   const [call] = vi.mocked(streamText).mock.calls;
   return (call?.[0] as { system: string }).system;
 }
+
+vi.mock('@sharpit/server/lib/access/require-pro', () => ({
+  PRO_REQUIRED: 'pro_required',
+  requirePro: vi.fn().mockResolvedValue(null),
+}));
 
 describe('POST /api/coach/chat · journal analyses gate', () => {
   // Dynamic import of the coach chat handler graph; CI with --maxWorkers=4
@@ -691,5 +697,20 @@ describe('coachStreamErrorCopy', () => {
   it('keeps the broken-answer message for anything else', async () => {
     const { coachStreamErrorCopy, COACH_STREAM_ERROR_COPY } = await importRoute();
     expect(coachStreamErrorCopy(new Error('upstream 503'))).toBe(COACH_STREAM_ERROR_COPY);
+  });
+});
+
+describe('POST /api/coach/chat · Pro (ADR-097)', () => {
+  it('refuses a Free athlete with pro_required once the consent is there', async () => {
+    const { requirePro } = await import('@sharpit/server/lib/access/require-pro');
+    vi.mocked(requirePro).mockResolvedValueOnce(
+      NextResponse.json({ error: 'pro_required' }, { status: 403 }),
+    );
+
+    const { POST } = await importRoute();
+    const response = await POST(chatRequest());
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: 'pro_required' });
   });
 });

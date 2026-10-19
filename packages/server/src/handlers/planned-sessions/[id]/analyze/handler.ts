@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { isCoachConfigured } from '@sharpit/server/lib/ai';
+import { requirePro } from '@sharpit/server/lib/access/require-pro';
 import { withAnalysisRun } from '@sharpit/server/lib/analysis/analysis-run-store';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { analyzePlannedSession } from '@sharpit/server/lib/coach/plan/coach-analysis';
@@ -31,6 +32,10 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     }
 
     const athleteId = await getCurrentAthleteId();
+    const proBlocked = await requirePro(athleteId);
+    if (proBlocked) {
+      return proBlocked;
+    }
     const existing = await getPlannedSessionById(athleteId, id);
     if (!existing) {
       return NextResponse.json({ error: 'Séance planifiée introuvable' }, { status: 404 });

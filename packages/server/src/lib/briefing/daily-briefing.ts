@@ -26,6 +26,7 @@ import {
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
 import { athleteHasAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
+import { isProAthlete } from '@sharpit/server/lib/access/is-pro-athlete';
 import { prisma } from '@sharpit/db/client';
 import { getActivities, getPlannedSessions } from '@sharpit/server/lib/queries';
 import { startOfDay } from 'date-fns';
@@ -182,7 +183,7 @@ export function isBriefingFresh(generatedAt: Date, now: Date, minIntervalMinutes
 }
 
 /** Génère le bilan du jour et le stocke (upsert sur la date).
- * Without AI consent (or without AI gateway), stores the deterministic fallback only.
+ * Without AI consent, Pro or the AI gateway, stores the deterministic fallback only.
  * `minIntervalMinutes` keeps a briefing written that recently instead of asking the model again:
  * a history import syncs in batches, and each batch regenerated it (ADR-092). */
 export async function generateAndStoreDailyBriefing(
@@ -198,8 +199,12 @@ export async function generateAndStoreDailyBriefing(
       return existing;
     }
   }
-  const hasAiConsent = await athleteHasAiProcessingConsent(athleteId);
-  const allowLlm = hasAiConsent && isCoachConfigured();
+  // The coach-written briefing is Pro (ADR-097); a Free athlete keeps the deterministic one.
+  const [hasAiConsent, isPro] = await Promise.all([
+    athleteHasAiProcessingConsent(athleteId),
+    isProAthlete(athleteId),
+  ]);
+  const allowLlm = hasAiConsent && isPro && isCoachConfigured();
   const { content, readiness, phaseAtGeneration } = await generateDailyBriefingContent(
     athleteId,
     refDate,

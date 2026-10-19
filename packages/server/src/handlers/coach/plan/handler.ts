@@ -15,6 +15,7 @@ import {
   ensureFreeAiBudget,
   withAiBudgetWarningHeader,
 } from '@sharpit/server/lib/access/ai-budget';
+import { requirePro } from '@sharpit/server/lib/access/require-pro';
 import { requireAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
 import {
   checkRateLimit,
@@ -380,7 +381,7 @@ export async function prepareScheduledPlan(
 
 /**
  * Everything checked before the coach is asked: configuration, the request, the AI consent,
- * the rate limit and the AI budget. Shared by the streamed route and the background job.
+ * Pro (or the onboarding preview, ADR-097), the rate limit and the AI budget. Shared by the streamed route and the background job.
  */
 export async function preparePlanRequest(
   req: Request,
@@ -413,6 +414,10 @@ export async function preparePlanRequest(
   const aiBlocked = await requireAiProcessingConsent(athleteId);
   if (aiBlocked) {
     return { ok: false, response: aiBlocked };
+  }
+  const proBlocked = await requirePro(athleteId, { allowOnboardingPreview: true });
+  if (proBlocked) {
+    return { ok: false, response: proBlocked };
   }
   const prepared = await preparePlanGeneration(athleteId, parsed.data);
   if (!prepared.ok) {

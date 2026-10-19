@@ -26,7 +26,7 @@ vi.mock('@sharpit/server/lib/rate-limit', () => ({
   rateLimiters: { activityNarrative: {} },
 }));
 
-vi.mock('@sharpit/server/lib/access/narrative-trial', () => ({
+vi.mock('@sharpit/server/lib/access/narrative-access', () => ({
   canGenerateNarrativeForActivity: vi.fn().mockResolvedValue({ allowed: true, isPro: true }),
 }));
 
@@ -76,7 +76,7 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
     vi.clearAllMocks();
     runActivityNarrativeAnalysisMock.mockResolvedValue(true);
     const { canGenerateNarrativeForActivity } =
-      await import('@sharpit/server/lib/access/narrative-trial');
+      await import('@sharpit/server/lib/access/narrative-access');
     vi.mocked(canGenerateNarrativeForActivity).mockResolvedValue({ allowed: true, isPro: true });
     const { requireAiProcessingConsent } =
       await import('@sharpit/server/lib/privacy/consent-store');
@@ -127,7 +127,7 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
 
   it('returns 402 locked when a FREE athlete is outside their free window', async () => {
     const { canGenerateNarrativeForActivity } =
-      await import('@sharpit/server/lib/access/narrative-trial');
+      await import('@sharpit/server/lib/access/narrative-access');
     vi.mocked(canGenerateNarrativeForActivity).mockResolvedValue({
       allowed: false,
       isPro: false,
@@ -142,7 +142,7 @@ describe('POST /api/activities/[id]/narrative — force default', () => {
 
   it('allows a FREE athlete within their free window to generate', async () => {
     const { canGenerateNarrativeForActivity } =
-      await import('@sharpit/server/lib/access/narrative-trial');
+      await import('@sharpit/server/lib/access/narrative-access');
     vi.mocked(canGenerateNarrativeForActivity).mockResolvedValue({ allowed: true, isPro: false });
     const { POST } = await importRoute();
 

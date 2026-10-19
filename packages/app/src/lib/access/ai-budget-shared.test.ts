@@ -43,10 +43,10 @@ describe('questionsFor', () => {
 });
 
 describe('Pro perks', () => {
-  it('sells the extended coach with the real budgets', () => {
-    const perk = PRO_ONLY_PERKS.find((candidate) => candidate.id === 'extended-coach');
+  it('sells the coach with the real Pro budget, and no Free coach since ADR-097', () => {
+    const perk = PRO_ONLY_PERKS.find((candidate) => candidate.id === 'coach');
     expect(perk?.status).toBe('pro');
-    expect(perk?.description).toContain('62 questions');
-    expect(perk?.description).toContain('contre 6 sans Pro');
+    expect(perk?.description).toContain('environ 62 par 24 h');
+    expect(PRO_ONLY_PERKS.map((candidate) => candidate.id)).not.toContain('extended-coach');
   });
 });

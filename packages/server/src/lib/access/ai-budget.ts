@@ -15,9 +15,10 @@ import {
  * Global cost ceiling for the coach conversation surface (chat/plan/adapt),
  * distinct from the per-endpoint rate limiters in rate-limit.ts (those cap
  * request *frequency*; this caps daily *spend* in tokens). Scoped to the
- * 'coach' AiUsageEvent feature only — session-narrative analysis has its own,
- * separate, tighter gate (narrative-trial.ts: 1/day, post-signup activities
- * only) and must not eat into or be eaten into by this budget. The budgets
+ * 'coach' AiUsageEvent feature only — session-narrative analysis is gated by
+ * Pro alone (narrative-access.ts) and must not eat into or be eaten into by
+ * this budget. Coaching is Pro-only (ADR-097): the Free budget only caps the
+ * onboarding's first-week preview. The budgets
  * themselves live in ai-budget-shared.ts, so the Pro page can quote them.
  */
 
@@ -111,6 +112,16 @@ export async function ensureFreeAiBudget(athleteId: string): Promise<AiBudgetSta
 /** What is left of the coach budget, in questions — the coach's gauge reads it. */
 export async function coachQuota(athleteId: string): Promise<CoachQuota> {
   const { since, isPro, budget, usedRecently } = await readCoachSpend(athleteId);
+  if (!isPro) {
+    // No coach questions without Pro (ADR-097): the Free budget is the onboarding preview's.
+    return {
+      isPro,
+      dailyQuestions: 0,
+      remainingQuestions: 0,
+      usedRatio: 1,
+      retryAfterSeconds: null,
+    };
+  }
   const spent = usedRecently >= budget;
   return {
     isPro,

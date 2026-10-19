@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isCoachConfigured } from '@sharpit/server/lib/ai';
+import { requirePro } from '@sharpit/server/lib/access/require-pro';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { analyzeBrick } from '@sharpit/server/lib/coach/plan/coach-analysis';
 import {
@@ -65,6 +66,10 @@ export async function POST(request: NextRequest) {
     }
 
     const athleteId = await getCurrentAthleteId();
+    const proBlocked = await requirePro(athleteId);
+    if (proBlocked) {
+      return proBlocked;
+    }
     const body = await request.json().catch(() => ({}));
     const groupId = readBrickGroupId(body);
     if (!groupId) {

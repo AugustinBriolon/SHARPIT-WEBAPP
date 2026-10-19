@@ -46,6 +46,11 @@ async function insert(body: unknown) {
   );
 }
 
+vi.mock('@sharpit/server/lib/access/require-pro', () => ({
+  PRO_REQUIRED: 'pro_required',
+  requirePro: vi.fn().mockResolvedValue(null),
+}));
+
 describe('coach plan insert', () => {
   beforeEach(() => {
     created.bodies = [];
@@ -101,5 +106,19 @@ describe('coach plan insert', () => {
     created.fail = true;
     const response = await insert({ sessions: [session({ decisionId: 'd1' })] });
     expect(response.status).toBe(422);
+  });
+});
+
+describe('coach plan insert · Pro (ADR-097)', () => {
+  it('keeps the onboarding preview from a Free athlete: nothing is written', async () => {
+    const { requirePro } = await import('@sharpit/server/lib/access/require-pro');
+    vi.mocked(requirePro).mockResolvedValueOnce(
+      NextResponse.json({ error: 'pro_required' }, { status: 403 }),
+    );
+
+    const response = await insert({ goalId: 'goal-1', sessions: [session()] });
+
+    expect(response.status).toBe(403);
+    expect(created.bodies).toEqual([]);
   });
 });

@@ -12,9 +12,9 @@ import { format } from 'date-fns';
 export const AI_BUDGET_WARNING_HEADER = 'X-Ai-Budget-Warning';
 
 /**
- * The coach's daily spend, in tokens over a rolling 24 h: a real limit for Free, sized to several
- * exchanges and one plan run; ten times that for Pro (« Volume de coach étendu »), a soft ceiling
- * that only stops a runaway loop.
+ * The coach's daily spend, in tokens over a rolling 24 h. The coach is Pro-only (ADR-097): Free's
+ * budget only caps the onboarding's first-week preview (one plan run and a retry); Pro's is a soft
+ * ceiling that only stops a runaway loop.
  */
 export const FREE_DAILY_TOKEN_BUDGET = 50_000;
 export const PRO_DAILY_TOKEN_BUDGET = 500_000;

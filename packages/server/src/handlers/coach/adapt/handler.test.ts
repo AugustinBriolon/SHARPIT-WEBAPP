@@ -1,4 +1,5 @@
 import { describe, expect, it, vi, beforeEach, beforeAll } from 'vitest';
+import { NextResponse } from 'next/server';
 import { decisionState, physicalHealthData } from '@sharpit/server/lib/plan-gate/test-fixtures';
 import { consumeCoachProgressStream } from '@sharpit/app/lib/coach/chat/transcript/coach-progress-stream';
 import type { AdaptPayload } from './handler';
@@ -94,6 +95,11 @@ vi.mock('@sharpit/server/lib/privacy/consent-store', () => ({
 async function importRoute() {
   return await import('./handler');
 }
+
+vi.mock('@sharpit/server/lib/access/require-pro', () => ({
+  PRO_REQUIRED: 'pro_required',
+  requirePro: vi.fn().mockResolvedValue(null),
+}));
 
 describe('POST /api/coach/adapt', () => {
   beforeEach(async () => {
@@ -515,5 +521,29 @@ describe('POST /api/coach/adapt', () => {
     expect(call.source).toBe('PLAN_ADAPTER');
     expect(call.gateResult.status).toBe('REJECTED');
     expect(call.snapshotIdAtRecommendation).toBe('snap-adapt-3');
+  });
+});
+
+describe('POST /api/coach/adapt · Pro (ADR-097)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('refuses a Free athlete before the coach', async () => {
+    const { requirePro } = await import('@sharpit/server/lib/access/require-pro');
+    const { runStructuredCoachStream } =
+      await import('@sharpit/server/lib/coach/stream-structured-generation');
+    vi.mocked(requirePro).mockResolvedValueOnce(
+      NextResponse.json({ error: 'pro_required' }, { status: 403 }),
+    );
+
+    const { POST } = await importRoute();
+    const response = await POST(
+      new Request('http://localhost/api/coach/adapt', { method: 'POST', body: JSON.stringify({}) }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(requirePro).toHaveBeenCalledWith(expect.any(String));
+    expect(runStructuredCoachStream).not.toHaveBeenCalled();
   });
 });

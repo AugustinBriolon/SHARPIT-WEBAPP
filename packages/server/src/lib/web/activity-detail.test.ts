@@ -13,7 +13,7 @@ vi.mock('@sharpit/server/lib/goals/goal-achievements', () => ({
 vi.mock('@sharpit/server/lib/training/records/records', () => ({
   getPerformanceRecordsForActivity: async () => ['record'],
 }));
-vi.mock('@sharpit/server/lib/access/narrative-trial', () => ({
+vi.mock('@sharpit/server/lib/access/narrative-access', () => ({
   canGenerateNarrativeForActivity: async () => ({ isPro: false, allowed: true }),
 }));
 vi.mock('@sharpit/server/lib/ai', () => ({ isCoachConfigured: () => true }));

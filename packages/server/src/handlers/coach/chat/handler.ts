@@ -30,6 +30,7 @@ import {
   ensureFreeAiBudget,
   withAiBudgetWarningHeader,
 } from '@sharpit/server/lib/access/ai-budget';
+import { requirePro } from '@sharpit/server/lib/access/require-pro';
 import { requireAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
 import {
   checkRateLimits,
@@ -107,15 +108,16 @@ function historyErrorResponse(reason: keyof typeof HISTORY_ERRORS): Response {
 type BudgetWarning = Awaited<ReturnType<typeof ensureFreeAiBudget>>['warning'];
 
 /**
- * Consent, rate limit and free AI budget, answered in that order before any model work. The three
+ * Consent, Pro (ADR-097), rate limit and AI budget, answered in that order before any model work. The three
  * reads run at once: sequential, they cost ~840 ms of the athlete's wait. A refused consent still
  * spends one rate-limit token, which is harmless: without consent there is no coach to spam.
  */
 async function guardCoachChat(
   athleteId: string,
 ): Promise<{ blocked: Response } | { budgetWarning: BudgetWarning }> {
-  const [aiBlocked, rateLimit, budget] = await Promise.all([
+  const [aiBlocked, proBlocked, rateLimit, budget] = await Promise.all([
     requireAiProcessingConsent(athleteId),
+    requirePro(athleteId),
     checkRateLimits([rateLimiters.coachChatBurst, rateLimiters.coachChat], athleteId, {
       failClosed: true,
     }),
@@ -123,6 +125,9 @@ async function guardCoachChat(
   ]);
   if (aiBlocked) {
     return { blocked: aiBlocked };
+  }
+  if (proBlocked) {
+    return { blocked: proBlocked };
   }
   if (!rateLimit.ok) {
     const limited = rateLimitJsonResponse(rateLimit);

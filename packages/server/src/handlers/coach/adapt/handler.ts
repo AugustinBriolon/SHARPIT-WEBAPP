@@ -17,6 +17,7 @@ import {
   ensureFreeAiBudget,
   withAiBudgetWarningHeader,
 } from '@sharpit/server/lib/access/ai-budget';
+import { requirePro } from '@sharpit/server/lib/access/require-pro';
 import { requireAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
 import {
   checkRateLimit,
@@ -377,6 +378,10 @@ async function ensureAdaptAccess(athleteId: string): Promise<NextResponse | Adap
   const aiBlocked = await requireAiProcessingConsent(athleteId);
   if (aiBlocked) {
     return aiBlocked;
+  }
+  const proBlocked = await requirePro(athleteId);
+  if (proBlocked) {
+    return proBlocked;
   }
   return checkAdaptAccess(athleteId);
 }

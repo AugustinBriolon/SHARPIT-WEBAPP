@@ -1,4 +1,4 @@
-import { FREE_DAILY_TOKEN_BUDGET, PRO_DAILY_TOKEN_BUDGET, questionsFor } from './ai-budget-shared';
+import { PRO_DAILY_TOKEN_BUDGET, questionsFor } from './ai-budget-shared';
 
 /**
  * SharpIt Pro perks — the one list, shared by the web Pro page and `/api/v1/pro` (the
@@ -19,8 +19,24 @@ export type ProPerkData = {
   href?: string;
 };
 
-/** Réservé au palier Pro aujourd'hui — vérifié dans le code avant chaque ajout ici. */
+/**
+ * Réservé au palier Pro aujourd'hui — vérifié dans le code avant chaque ajout ici. Le coaching
+ * entier est Pro (ADR-097) : tes données, elles, restent ouvertes à tous.
+ */
 export const PRO_ONLY_PERKS: ProPerkData[] = [
+  {
+    id: 'coach',
+    title: 'Coach',
+    description: `Pose tes questions au coach qui connaît tes données : environ ${questionsFor(PRO_DAILY_TOKEN_BUDGET)} par 24 h.`,
+    status: 'pro',
+  },
+  {
+    id: 'adaptive-plan',
+    title: 'Plan qui s’adapte',
+    description:
+      'Ta semaine écrite par le coach, réajustée quand ta forme ou ton agenda change, et la suivante prête avant la fin de celle-ci.',
+    status: 'pro',
+  },
   {
     id: 'weekly-review',
     title: 'Bilan hebdomadaire',
@@ -33,7 +49,7 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
     id: 'session-analysis',
     title: 'Analyse de séance',
     description:
-      "Interprétation approfondie de chaque entraînement : ce qui a marché, ce qui a coûté cher, ce que ça change pour la suite. Gratuit à raison d'une séance par jour depuis ton inscription ; illimité et sur tes séances passées avec Pro.",
+      'Interprétation approfondie de chaque entraînement : ce qui a marché, ce qui a coûté cher, ce que ça change pour la suite.',
     status: 'pro',
     href: '/activite',
   },
@@ -71,12 +87,6 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
     title: 'Widgets supplémentaires',
     description:
       'Sommeil, poids, volume de la semaine, régularité et prochain objectif sur ton écran d’accueil. Séance du jour, verdict et nutrition restent gratuits.',
-    status: 'pro',
-  },
-  {
-    id: 'extended-coach',
-    title: 'Volume de coach étendu',
-    description: `Environ ${questionsFor(PRO_DAILY_TOKEN_BUDGET)} questions au coach par 24 h, contre ${questionsFor(FREE_DAILY_TOKEN_BUDGET)} sans Pro.`,
     status: 'pro',
   },
   {

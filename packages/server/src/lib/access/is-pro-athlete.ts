@@ -1,5 +1,3 @@
-import 'server-only';
-
 import { hasProAccess } from '@sharpit/app/lib/access/tier';
 import { prisma } from '@sharpit/db/client';
 

@@ -5,6 +5,7 @@ import {
   type GeneratedSessionInput,
 } from '@sharpit/app/lib/planned-session/generated-session-payload';
 import { chooseKeySessions } from '@sharpit/app/lib/planned-session/key-sessions';
+import { requirePro } from '@sharpit/server/lib/access/require-pro';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { createPlannedSessionFromBody } from '@sharpit/server/handlers/planned-sessions/handler';
 import {
@@ -106,6 +107,11 @@ export function parseGeneratedWeek(raw: unknown): GeneratedWeekBody | null {
 export async function POST(request: NextRequest) {
   try {
     const athleteId = await getCurrentAthleteId();
+    // The onboarding preview is free to read, not to keep: adding it is the Pro step (ADR-097).
+    const proBlocked = await requirePro(athleteId);
+    if (proBlocked) {
+      return proBlocked;
+    }
     const parsed = insertBodySchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
       return NextResponse.json(

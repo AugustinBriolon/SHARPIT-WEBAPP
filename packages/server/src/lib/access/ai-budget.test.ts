@@ -201,23 +201,20 @@ describe('coachQuota', () => {
     expect(findManyMock).not.toHaveBeenCalled();
   });
 
-  it('says when a spent Free budget frees up, with nothing left', async () => {
+  it('gives a Free athlete no coach questions: the coach is Pro-only (ADR-097)', async () => {
     findUniqueMock.mockResolvedValue({ tier: 'FREE' });
-    aggregateMock.mockResolvedValue({ _sum: { totalTokens: 60_000 } });
-    findManyMock.mockResolvedValue([
-      { createdAt: new Date(Date.now() - 22 * 60 * 60 * 1000), totalTokens: 60_000 },
-    ]);
+    aggregateMock.mockResolvedValue({ _sum: { totalTokens: 0 } });
     const { coachQuota } = await importModule();
 
     const quota = await coachQuota('athlete-1');
 
-    expect(quota).toMatchObject({
+    expect(quota).toEqual({
       isPro: false,
-      dailyQuestions: 6,
+      dailyQuestions: 0,
       remainingQuestions: 0,
       usedRatio: 1,
+      retryAfterSeconds: null,
     });
-    expect(quota.retryAfterSeconds).toBeGreaterThan(60 * 60);
-    expect(quota.retryAfterSeconds).toBeLessThanOrEqual(2 * 60 * 60 + 5);
+    expect(findManyMock).not.toHaveBeenCalled();
   });
 });

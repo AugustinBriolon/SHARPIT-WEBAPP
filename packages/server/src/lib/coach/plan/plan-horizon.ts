@@ -25,6 +25,7 @@ import {
 import { getActivityStatusStoreDb } from '@sharpit/server/lib/health/activity-status-service';
 import { resolveNotificationPrefs } from '@sharpit/server/lib/notifications/notification-prefs';
 import { athleteHasAiProcessingConsent } from '@sharpit/server/lib/privacy/consent-store';
+import { isProAthlete } from '@sharpit/server/lib/access/is-pro-athlete';
 import { sendPushToAthlete } from '@sharpit/server/lib/push/athlete-push';
 import { redis } from '@sharpit/server/lib/redis';
 
@@ -196,7 +197,15 @@ export async function runPlanHorizonFor(
   today: string,
 ): Promise<PlanHorizonStep['kind'] | 'skipped'> {
   const status = await getActivityStatusStoreDb(prisma, athleteId, today);
-  if (status.status !== 'active' || !(await athleteHasAiProcessingConsent(athleteId))) {
+  if (status.status !== 'active') {
+    return 'skipped';
+  }
+  // The automatic next week is coaching: Pro-only (ADR-097).
+  const [hasAiConsent, isPro] = await Promise.all([
+    athleteHasAiProcessingConsent(athleteId),
+    isProAthlete(athleteId),
+  ]);
+  if (!hasAiConsent || !isPro) {
     return 'skipped';
   }
   const [last, state] = await Promise.all([lastPlannedDay(athleteId, today), readState(athleteId)]);

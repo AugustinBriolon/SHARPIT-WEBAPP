@@ -1,6 +1,6 @@
 import type { ActivityDetailPayload } from '@sharpit/app/lib/web/payloads';
 import { ActivityType } from '@prisma/client';
-import { canGenerateNarrativeForActivity } from '@sharpit/server/lib/access/narrative-trial';
+import { canGenerateNarrativeForActivity } from '@sharpit/server/lib/access/narrative-access';
 import { isCoachConfigured } from '@sharpit/server/lib/ai';
 import { getGoalAchievementsForActivity } from '@sharpit/server/lib/goals/goal-achievements';
 import { resolveBrickSiblingActivityLinks } from '@sharpit/app/lib/planned-session/brick/brick-sessions';
@@ -33,7 +33,7 @@ export async function loadActivityDetail(
     activity.type === ActivityType.TRIATHLON
       ? getMultisportLegsForActivity(athleteId, activity)
       : Promise.resolve(null),
-    canGenerateNarrativeForActivity(athleteId, activity.date),
+    canGenerateNarrativeForActivity(athleteId),
     brickGroupId ? getBrickSessions(athleteId, brickGroupId) : Promise.resolve([]),
     loadRaceAnalysis(athleteId, activity),
   ]);
