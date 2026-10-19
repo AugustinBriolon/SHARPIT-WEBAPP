@@ -41,6 +41,10 @@
     {
       "path": "/api/cron/privacy-purge",
       "schedule": "15 3 * * *"
+    },
+    {
+      "path": "/api/cron/plan-horizon",
+      "schedule": "0 6 * * *"
     }
   ],
   "functions": {
@@ -81,6 +85,9 @@
       "maxDuration": 300
     },
     "src/app/api/myfitnesspal/connect/route.ts": {
+      "maxDuration": 300
+    },
+    "src/app/api/cron/plan-horizon/route.ts": {
       "maxDuration": 300
     }
   }

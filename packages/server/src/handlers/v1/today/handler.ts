@@ -18,6 +18,8 @@ import { projectV1Consistency } from '@sharpit/server/lib/presentation/v1/consis
 import { loadV1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores';
 import { loadV1DayTimeline } from '@sharpit/server/lib/presentation/v1/day-timeline';
 import { projectV1TodayFromViewModel } from '@sharpit/server/lib/presentation/v1/today';
+import { readPlanHorizonView } from '@sharpit/server/lib/coach/plan/plan-horizon';
+import { todayIsoDate } from '@sharpit/app/lib/health/activity-status';
 
 function isValidTrainingDayId(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -140,7 +142,15 @@ export async function GET(request: NextRequest) {
       console.error('[api/v1/today/timeline]', error);
       return [];
     });
-    return NextResponse.json({ ...projected, timeline });
+    // Only today speaks of the plan's end: a past day reads as it was.
+    const planHorizon =
+      trainingDayId === todayIsoDate()
+        ? await readPlanHorizonView(athleteId, trainingDayId).catch((error) => {
+            console.error('[api/v1/today/plan-horizon]', error);
+            return null;
+          })
+        : null;
+    return NextResponse.json({ ...projected, timeline, planHorizon });
   } catch (error) {
     console.error('[api/v1/today]', error);
     return NextResponse.json({ error: 'Impossible de produire la vue Today' }, { status: 500 });

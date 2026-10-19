@@ -524,6 +524,11 @@ export type V1TodayProjectionInput = {
   targetBand?: V1TodayTargetBand | null;
   /** Day timeline — computed outside the Today view model. */
   timeline?: V1DayTimelineEvent[];
+  /**
+   * The plan horizon (ADR-095): a week SharpIt wrote because the plan was running out, waiting
+   * for the athlete to look at it. Today only; null otherwise.
+   */
+  planHorizon?: { startDate: string; sessionCount: number } | null;
 };
 
 function stressCaption(value: number): string {
