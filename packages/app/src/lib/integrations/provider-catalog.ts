@@ -54,7 +54,7 @@ export const DATA_CLASSES: DataClassDefinition[] = [
     id: 'calendar',
     label: 'Agenda',
     description:
-      'Tes créneaux Google (réunions, blocages). Ce n’est pas le calendrier des séances Sharpit (onglet Plan).',
+      'Tes créneaux occupés, lus pour placer tes séances. La source principale reçoit aussi tes séances planifiées.',
   },
 ];
 
