@@ -1,1 +1,3 @@
-export { GET } from '@sharpit/server/handlers/v1/training-load/handler';
+import { inAppLocale } from '@sharpit/server/lib/locale/locale-context';
+import { GET as getHandler } from '@sharpit/server/handlers/v1/training-load/handler';
+export const GET = inAppLocale(getHandler);

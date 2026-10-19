@@ -1,3 +1,4 @@
+import { currentLocale, inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import { generateText } from 'ai';
 import { isSet } from '@sharpit/shared/value';
 import { formatSeances } from '@sharpit/shared/french-plural';
@@ -255,6 +256,13 @@ function formatWeeklyRecoveryLine(recovery: WeeklyStats['recovery']): string | n
   return recBits.length ? `Récupération : ${recBits.join(' · ')}.` : null;
 }
 
+/** The app sorts the review by its headings: in English they must be exactly these. */
+function englishHeadings(): string {
+  return currentLocale() === 'en'
+    ? `\nUse exactly these English headings, in this order: ## Training summary, ## Sleep & recovery, ## What went well, ## Gaps to watch, ## Focus for next week, ## One action.`
+    : '';
+}
+
 function formatWeeklyStats(stats: WeeklyStats): string {
   const lines: string[] = [];
   const start = new Date(`${stats.weekStart}T00:00:00`);
@@ -309,7 +317,8 @@ Rédige la rétrospective hebdomadaire en suivant la structure imposée. Mets l'
 
   const { text, usage } = await generateText({
     model: COACH_MODEL,
-    system: buildWeeklySystem(toDisplayMode(profile?.displayMode)),
+    system:
+      inAnswerLanguage(buildWeeklySystem(toDisplayMode(profile?.displayMode))) + englishHeadings(),
     prompt,
     providerOptions: coachAsyncGatewayOptions,
     telemetry: { functionId: 'coach-weekly-review' },

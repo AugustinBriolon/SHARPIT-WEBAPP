@@ -1,3 +1,4 @@
+import { inAthleteLocale } from '@sharpit/server/lib/locale/locale-context';
 import { sendPushToDevices } from '@sharpit/server/lib/push/athlete-push';
 import { appOrigin } from '@sharpit/server/lib/app-origin';
 import { mapWithConcurrency } from '@sharpit/server/lib/async/map-with-concurrency';
@@ -366,10 +367,12 @@ export async function sendMorningVerdictPushes(options?: {
   const concurrency = options?.concurrency ?? DEFAULT_CONCURRENCY;
 
   const results = await mapWithConcurrency(athletes, concurrency, (athlete) =>
-    sendMorningPushForAthlete(athlete.id, {
-      trainingDayId: dayId,
-      origin: options?.origin,
-    }),
+    inAthleteLocale(athlete.id, () =>
+      sendMorningPushForAthlete(athlete.id, {
+        trainingDayId: dayId,
+        origin: options?.origin,
+      }),
+    ),
   );
 
   let sentCount = 0;

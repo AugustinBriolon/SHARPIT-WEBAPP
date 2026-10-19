@@ -30,6 +30,11 @@ vi.mock('@sharpit/db/client', () => ({
   },
 }));
 
+// The language lookup reads the profile too: kept out of the queued profile reads below.
+vi.mock('@sharpit/server/lib/locale/locale-context', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sharpit/server/lib/locale/locale-context')>()),
+  inAthleteLocale: (_athleteId: string, work: () => Promise<unknown>) => work(),
+}));
 vi.mock('@sharpit/server/lib/morning-recalibration/service', () => ({
   ensureMorningRecalibration: vi.fn().mockResolvedValue({ presentation: null, created: false }),
 }));

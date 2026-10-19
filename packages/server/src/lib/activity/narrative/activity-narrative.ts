@@ -1,3 +1,4 @@
+import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import { generateText, Output } from 'ai';
 import { ATHLETE_TEXT_RULE } from '@sharpit/server/lib/ai/athlete-text';
 import {
@@ -131,7 +132,7 @@ async function generateAndStoreNarrative(
   const { output, usage } = await generateText({
     model: COACH_MODEL,
     output: Output.object({ schema: activityNarrativeSchema }),
-    system: NARRATIVE_SYSTEM,
+    system: inAnswerLanguage(NARRATIVE_SYSTEM),
     prompt: facts,
     providerOptions: coachAnalysisGatewayOptions,
   });

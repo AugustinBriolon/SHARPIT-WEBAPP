@@ -1,3 +1,4 @@
+import { inAthleteLocale } from '@sharpit/server/lib/locale/locale-context';
 import {
   notifyMissedSessions,
   notifySessionsDone,
@@ -164,7 +165,7 @@ export async function GET(request: Request) {
   const breaker = new DecryptCircuitBreaker();
 
   const results = await mapWithConcurrency(athletes, ATHLETE_CONCURRENCY, (athlete) =>
-    syncOneAthlete(athlete.id, breaker),
+    inAthleteLocale(athlete.id, () => syncOneAthlete(athlete.id, breaker)),
   );
 
   if (breaker.isTripped()) {

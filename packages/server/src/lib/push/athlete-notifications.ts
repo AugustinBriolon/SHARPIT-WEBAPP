@@ -12,6 +12,7 @@ import {
   sessionDoneAlert,
   type NextPlannedSession,
 } from '@sharpit/server/lib/push/session-alerts';
+import { resolveAthleteLocale, type AthleteLocale } from '@sharpit/shared/locale';
 
 /** Where a tap on each push lands in the app. */
 export const WEEKLY_REVIEW_PATH = '/plan/review';
@@ -33,14 +34,16 @@ type NotificationKind =
 /** Once per training day when strain first enters/exceeds the target band. */
 const TARGET_STRAIN_ALERT_TTL_SECONDS = 24 * 3600;
 
-async function wants(athleteId: string, kind: NotificationKind): Promise<boolean> {
+/** The language to say it in when the athlete wants this push, else null (ADR-096). */
+async function wantedIn(athleteId: string, kind: NotificationKind): Promise<AthleteLocale | null> {
   const profile = await prisma.athleteProfile.findUnique({
     where: { id: athleteId },
-    select: { notificationPrefs: true, deletedAt: true },
+    select: { notificationPrefs: true, deletedAt: true, locale: true },
   });
-  return (
-    !!profile && !profile.deletedAt && resolveNotificationPrefs(profile.notificationPrefs)[kind]
-  );
+  if (!profile || profile.deletedAt || !resolveNotificationPrefs(profile.notificationPrefs)[kind]) {
+    return null;
+  }
+  return resolveAthleteLocale(profile.locale);
 }
 
 /**
@@ -54,9 +57,21 @@ async function firstTime(key: string, ttlSeconds: number): Promise<boolean> {
   return (await redis.set(key, 1, { nx: true, ex: ttlSeconds })) === 'OK';
 }
 
+const WEEKLY_REVIEW_ALERT: Record<AthleteLocale, { title: string; body: string }> = {
+  fr: {
+    title: 'Ta semaine en revue est prête',
+    body: 'Ce qui a bien marché, ce qu’on garde à l’œil et ce qui t’attend la semaine prochaine.',
+  },
+  en: {
+    title: 'Your week in review is ready',
+    body: 'What went well, what we’re keeping an eye on and what’s waiting for you next week.',
+  },
+};
+
 /** « Ta semaine en revue est prête » — once per week, for an athlete who wants it. */
 export async function notifyWeeklyReviewReady(athleteId: string, weekStart: string) {
-  if (!(await wants(athleteId, 'weeklyReview'))) {
+  const locale = await wantedIn(athleteId, 'weeklyReview');
+  if (!locale) {
     return;
   }
   if (
@@ -69,10 +84,7 @@ export async function notifyWeeklyReviewReady(athleteId: string, weekStart: stri
   }
   const delivery = await sendPushToAthlete(athleteId, {
     aps: {
-      alert: {
-        title: 'Ta semaine en revue est prête',
-        body: 'Ce qui a bien marché, ce qu’on garde à l’œil et ce qui t’attend la semaine prochaine.',
-      },
+      alert: WEEKLY_REVIEW_ALERT[locale],
       sound: 'default',
       'thread-id': 'weekly-review',
       category: 'WEEKLY_REVIEW',
@@ -92,7 +104,8 @@ export async function notifySessionsDone(
   sessionIds: readonly string[],
   today: string = trainingDayIdForNow(),
 ) {
-  if (sessionIds.length === 0 || !(await wants(athleteId, 'sessionDone'))) {
+  const locale = sessionIds.length === 0 ? null : await wantedIn(athleteId, 'sessionDone');
+  if (!locale) {
     return;
   }
   const recentDays = new Set([today, addTrainingDays(today, -1)]);
@@ -127,6 +140,7 @@ export async function notifySessionsDone(
     await nextPlannedSession(athleteId, today),
     today,
     await loadWeekProgress(athleteId, today),
+    locale,
   );
   const delivery = await sendPushToAthlete(athleteId, {
     aps: { alert, sound: 'default', 'thread-id': 'session-done', category: 'SESSION_DONE' },
@@ -145,7 +159,8 @@ export async function notifyMissedSessions(
   athleteId: string,
   today: string = trainingDayIdForNow(),
 ) {
-  if (!(await wants(athleteId, 'missedSession'))) {
+  const locale = await wantedIn(athleteId, 'missedSession');
+  if (!locale) {
     return;
   }
   const yesterday = addTrainingDays(today, -1);
@@ -170,13 +185,13 @@ export async function notifyMissedSessions(
   }
   const delivery = await sendPushToAthlete(athleteId, {
     aps: {
-      alert: missedSessionAlert(missed),
+      alert: missedSessionAlert(missed, locale),
       sound: 'default',
       'thread-id': 'missed-session',
       category: 'MISSED_SESSION',
     },
     url: CATCH_UP_PATH,
-    catchUp: { label: missedSessionLabel(missed), day: yesterday },
+    catchUp: { label: missedSessionLabel(missed, locale), day: yesterday },
   });
   console.info('[push] missed session', delivery);
 }
@@ -237,7 +252,8 @@ function dayOf(date: Date): string {
 
 /** Tells the athlete which sources stopped syncing — each at most every three days. */
 export async function notifySourcesToReconnect(athleteId: string, providers: readonly string[]) {
-  if (providers.length === 0 || !(await wants(athleteId, 'syncAlerts'))) {
+  const locale = providers.length === 0 ? null : await wantedIn(athleteId, 'syncAlerts');
+  if (!locale) {
     return;
   }
   const fresh: string[] = [];
@@ -251,7 +267,7 @@ export async function notifySourcesToReconnect(athleteId: string, providers: rea
   }
   const delivery = await sendPushToAthlete(athleteId, {
     aps: {
-      alert: reconnectAlert(fresh),
+      alert: reconnectAlert(fresh, locale),
       sound: 'default',
       'thread-id': 'sync-alerts',
       category: 'SYNC_RECONNECT',
@@ -268,12 +284,22 @@ export function reconnectableSources(providers: readonly string[]): string[] {
   return [...new Set(providers.map((provider) => provider.replace(/ activities$/i, '')))];
 }
 
-export function reconnectAlert(sources: readonly string[]): { title: string; body: string } {
+export function reconnectAlert(
+  sources: readonly string[],
+  locale: AthleteLocale = 'fr',
+): { title: string; body: string } {
+  const and = locale === 'en' ? 'and' : 'et';
   const names =
     sources.length === 1
       ? sources[0]
-      : `${sources.slice(0, -1).join(', ')} et ${sources[sources.length - 1]}`;
+      : `${sources.slice(0, -1).join(', ')} ${and} ${sources[sources.length - 1]}`;
   const one = sources.length === 1;
+  if (locale === 'en') {
+    return {
+      title: `${names} got disconnected`,
+      body: `Reconnect ${one ? 'it' : 'them'} in Data sources, or your data stops reaching me.`,
+    };
+  }
   return {
     title: `${names} ${one ? 's’est déconnecté' : 'se sont déconnectés'}`,
     body: `Reconnecte-${one ? 'le' : 'les'} dans Sources de données, sinon tes données ne m’arrivent plus.`,
@@ -289,7 +315,8 @@ export async function notifyTargetStrainReached(
   athleteId: string,
   trainingDayId: string = trainingDayIdForNow(),
 ) {
-  if (!(await wants(athleteId, 'targetStrain'))) {
+  const locale = await wantedIn(athleteId, 'targetStrain');
+  if (!locale) {
     return;
   }
 
@@ -312,14 +339,15 @@ export async function notifyTargetStrainReached(
     return;
   }
 
+  const range = `${band.low}–${band.high}`;
   const statusLine =
-    band.status === 'above'
-      ? `Au-dessus de la bande (${band.low}–${band.high}).`
-      : `Dans la bande (${band.low}–${band.high}).`;
+    locale === 'en'
+      ? `${band.status === 'above' ? 'Above' : 'Within'} the band (${range}).`
+      : `${band.status === 'above' ? 'Au-dessus de la bande' : 'Dans la bande'} (${range}).`;
   const delivery = await sendPushToAthlete(athleteId, {
     aps: {
       alert: {
-        title: 'Cible du jour atteinte',
+        title: locale === 'en' ? 'Today’s target reached' : 'Cible du jour atteinte',
         body: statusLine,
       },
       sound: 'default',

@@ -1,3 +1,4 @@
+import { inAthleteLocale } from '@sharpit/server/lib/locale/locale-context';
 import { prisma } from '@sharpit/db/client';
 import { dayKeyFromDate } from '@sharpit/app/lib/date/day-key';
 import { todayIsoDate } from '@sharpit/app/lib/health/activity-status';
@@ -228,10 +229,12 @@ export async function runPlanHorizon(now: Date = new Date()) {
   const today = todayIsoDate(now);
   const summary: Record<string, number> = {};
   for (const athleteId of await athletesWithRunningPlan(today)) {
-    const kind = await runPlanHorizonFor(athleteId, today).catch((error) => {
-      console.error('[plan-horizon]', athleteId, error);
-      return 'error' as const;
-    });
+    const kind = await inAthleteLocale(athleteId, () => runPlanHorizonFor(athleteId, today)).catch(
+      (error) => {
+        console.error('[plan-horizon]', athleteId, error);
+        return 'error' as const;
+      },
+    );
     summary[kind] = (summary[kind] ?? 0) + 1;
   }
   return summary;

@@ -1,3 +1,4 @@
+import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import { generateText, Output } from 'ai';
 import { isSet } from '@sharpit/shared/value';
 import { COACH_MODEL, coachAnalysisGatewayOptions } from '@sharpit/server/lib/ai';
@@ -510,7 +511,7 @@ export async function analyzePlannedSession(
   const { output, usage } = await generateText({
     model: COACH_MODEL,
     output: Output.object({ schema: sessionAnalysisSchema }),
-    system: ANALYSIS_SYSTEM,
+    system: inAnswerLanguage(ANALYSIS_SYSTEM),
     prompt,
     providerOptions: coachAnalysisGatewayOptions,
   });
@@ -701,7 +702,7 @@ ${transitions.length ? transitions.join('\n') : 'Aucune donnée de transition ex
   const { output, usage } = await generateText({
     model: COACH_MODEL,
     output: Output.object({ schema: brickAnalysisSchema }),
-    system: BRICK_SYSTEM,
+    system: inAnswerLanguage(BRICK_SYSTEM),
     prompt,
     providerOptions: coachAnalysisGatewayOptions,
   });

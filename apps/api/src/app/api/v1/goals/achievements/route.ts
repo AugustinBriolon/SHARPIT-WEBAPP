@@ -1,2 +1,4 @@
 /** Native contract for `/api/goals/achievements` (ADR-040) — same handler, same Clerk authz. */
-export { GET } from '@sharpit/server/handlers/goals/achievements/handler';
+import { inAppLocale } from '@sharpit/server/lib/locale/locale-context';
+import { GET as getHandler } from '@sharpit/server/handlers/goals/achievements/handler';
+export const GET = inAppLocale(getHandler);

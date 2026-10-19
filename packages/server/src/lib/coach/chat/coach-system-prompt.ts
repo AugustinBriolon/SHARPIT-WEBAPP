@@ -1,3 +1,4 @@
+import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import { COACH_COPY_DASH_RULE } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import { buildBusySummary } from '@sharpit/server/lib/coach/plan/calendar-availability';
 import {
@@ -130,7 +131,9 @@ export async function buildCoachSystemPrompt(
     : '';
   return {
     practicedSports: ctx.practicedSports,
-    system: `${SYSTEM_PROMPT}\n\n---\n${formatCoachContext(ctx, scope.sections ?? undefined)}${memoryBlock}${playbookKnowledge}${playbookHint}${agendaSection(scope, busySummary)}${discussSection}`,
+    system: inAnswerLanguage(
+      `${SYSTEM_PROMPT}\n\n---\n${formatCoachContext(ctx, scope.sections ?? undefined)}${memoryBlock}${playbookKnowledge}${playbookHint}${agendaSection(scope, busySummary)}${discussSection}`,
+    ),
   };
 }
 

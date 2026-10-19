@@ -7,6 +7,7 @@ import {
   NATIVE_V1_ONLY,
   NATIVE_V1_SURFACES,
 } from '@sharpit/server/lib/api-v1/native-surfaces';
+import { innerHandler } from '@sharpit/server/lib/locale/locale-context';
 
 type RouteModule = Record<string, unknown>;
 
@@ -48,7 +49,8 @@ describe('/api/v1 native surfaces', () => {
       const exported = HTTP_METHODS.filter((method) => method in v1);
       expect(exported).toEqual([...surface.methods].sort(byHttpOrder));
       for (const method of surface.methods) {
-        expect(v1[method]).toBe(legacy[method]);
+        // Wrapped in the app's language (ADR-096), around the very same handler.
+        expect(innerHandler(v1[method])).toBe(legacy[method]);
       }
       expect(v1.maxDuration).toBe(legacy.maxDuration);
       // Loading a handler's whole import graph is slow on a busy machine.

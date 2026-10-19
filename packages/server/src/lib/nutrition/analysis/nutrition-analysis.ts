@@ -1,3 +1,4 @@
+import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import { format } from 'date-fns';
 import { generateText, Output } from 'ai';
 import type { NutritionCoachReadingView } from '@sharpit/app/presentation/nutrition-view-model';
@@ -61,7 +62,7 @@ export async function generateNutritionDayReading(input: {
     const { output, usage } = await generateText({
       model: COACH_MODEL,
       output: Output.object({ schema: nutritionDayReadingSchema }),
-      system: NUTRITION_ANALYSIS_SYSTEM,
+      system: inAnswerLanguage(NUTRITION_ANALYSIS_SYSTEM),
       prompt: formatNutritionAnalysisPrompt(input.facts),
       providerOptions: coachAnalysisGatewayOptions,
     });

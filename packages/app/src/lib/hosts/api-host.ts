@@ -60,7 +60,7 @@ export function isApiHostPath(pathname: string): boolean {
   return API_HOST_PATH.test(pathname);
 }
 
-export function hasBearer(req: NextRequest): boolean {
+export function hasBearer(req: Pick<Request, 'headers'>): boolean {
   return /^Bearer\s+\S+/i.test(req.headers.get('authorization') ?? '');
 }
 

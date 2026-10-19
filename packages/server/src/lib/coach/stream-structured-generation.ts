@@ -1,3 +1,4 @@
+import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import {
   NoObjectGeneratedError,
   Output,
@@ -290,7 +291,7 @@ async function runStructuredCoachStreamOnce({
   const result = streamText({
     model: COACH_STRUCTURED_MODEL,
     ...(schemaInPrompt ? {} : { output: Output.object({ schema }) }),
-    system: schemaInPrompt ? withSchemaInstruction(system, schema) : system,
+    system: inAnswerLanguage(schemaInPrompt ? withSchemaInstruction(system, schema) : system),
     prompt,
     // No maxOutputTokens here on purpose — see COACH_MAX_OUTPUT_TOKENS.
     reasoning,

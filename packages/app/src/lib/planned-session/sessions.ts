@@ -1,3 +1,4 @@
+import type { AthleteLocale } from '@sharpit/shared/locale';
 import { ActivityType, SessionIntensity } from '@prisma/client';
 
 export const intensityOrder: SessionIntensity[] = [
@@ -16,6 +17,19 @@ export const intensityLabels: Record<SessionIntensity, string> = {
   THRESHOLD: 'Seuil',
   VO2MAX: 'VO2max',
   RACE: 'Compétition',
+};
+
+/** The same intensities in each language SharpIt speaks (ADR-096). */
+export const intensityLabelsIn: Record<AthleteLocale, Record<SessionIntensity, string>> = {
+  fr: intensityLabels,
+  en: {
+    RECOVERY: 'Recovery',
+    ENDURANCE: 'Endurance',
+    TEMPO: 'Tempo',
+    THRESHOLD: 'Threshold',
+    VO2MAX: 'VO2max',
+    RACE: 'Race',
+  },
 };
 
 /** Classes Tailwind (texte) par intensité — alignées sur les signaux Seed. */

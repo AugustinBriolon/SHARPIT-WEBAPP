@@ -1,3 +1,4 @@
+import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import { generateText, Output } from 'ai';
 import {
   COACH_STRUCTURED_MODEL,
@@ -51,7 +52,7 @@ export async function describeMealFromText(input: {
   const { output, usage } = await generateText({
     model: COACH_STRUCTURED_MODEL,
     output: Output.object({ schema: foodDescribeResultSchema }),
-    system: FOOD_DESCRIBE_SYSTEM,
+    system: inAnswerLanguage(FOOD_DESCRIBE_SYSTEM),
     prompt: formatFoodDescribePrompt(input.description),
     providerOptions: coachAnalysisGatewayOptions,
   });

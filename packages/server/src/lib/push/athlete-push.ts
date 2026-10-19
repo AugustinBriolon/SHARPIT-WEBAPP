@@ -1,4 +1,6 @@
 import { prisma } from '@sharpit/db/client';
+import { currentLocale } from '@sharpit/server/lib/locale/locale-context';
+import { englishDeep } from '@sharpit/server/lib/locale/translate-copy';
 import {
   apnsConfigFor,
   isTokenExpiredOrInvalid,
@@ -18,10 +20,12 @@ export async function sendPushToDevices(
   payload: ApnsPayload,
 ): Promise<PushDeliveryResult> {
   const result: PushDeliveryResult = { sent: 0, failed: 0, deactivated: 0 };
+  // Pushes are written in French like the rest of the server's copy (ADR-096).
+  const worded = currentLocale() === 'en' ? englishDeep(payload) : payload;
   for (const device of devices) {
     const delivery = await sendApnsNotification({
       deviceToken: device.token,
-      payload,
+      payload: worded,
       config: apnsConfigFor(device.environment),
     });
     if (delivery.success) {

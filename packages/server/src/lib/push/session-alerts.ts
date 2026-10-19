@@ -1,5 +1,6 @@
 import type { ActivityType, SessionIntensity } from '@prisma/client';
-import { intensityLabels } from '@sharpit/app/lib/planned-session/sessions';
+import { intensityLabelsIn } from '@sharpit/app/lib/planned-session/sessions';
+import { intlTag, type AthleteLocale } from '@sharpit/shared/locale';
 
 /**
  * The words of the pushes about planned sessions — done (E1) and missed (F1). Computed from the
@@ -41,6 +42,33 @@ const DAY_MS = 24 * 3600 * 1000;
 const SHORT_OF_PLAN = 80;
 const BEYOND_PLAN = 120;
 
+/** The words of these pushes in one language. French is said « ton vélo seuil », English « your threshold ride ». */
+type AlertWords = {
+  /** The sport as named alone: « course », « run ». */
+  sport: Record<ActivityType, string>;
+  /** « ta course seuil » / « your threshold run ». */
+  sessionName: (sport: ActivityType, intensity: string) => string;
+  /** The catch-up label: « Course seuil » / « Threshold run ». */
+  sessionLabel: (sport: ActivityType, intensity: string) => string;
+  inTheBag: (count: number) => string;
+  ofPlan: (share: number) => string;
+  shortOfPlan: string;
+  beyondPlan: string;
+  weekDone: (planned: number) => string;
+  weekSoFar: (done: number, planned: number) => string;
+  nothingNext: string;
+  today: string;
+  tomorrow: string;
+  later: string;
+  onDate: (date: string) => string;
+  seeYou: (when: string, session: string) => string;
+  missedTitle: string;
+  missedBody: (subject: string) => string;
+  brickMissed: (chain: string) => string;
+  manyMissed: (count: number) => string;
+  oneMissed: (session: string) => string;
+};
+
 /** The sport with its possessive, as said aloud: « ton vélo », « ta course ». */
 const SPORT_WITH_POSSESSIVE: Record<ActivityType, string> = {
   RUN: 'ta course',
@@ -52,14 +80,81 @@ const SPORT_WITH_POSSESSIVE: Record<ActivityType, string> = {
   OTHER: 'ta séance',
 };
 
-const SPORT_NAME: Record<ActivityType, string> = {
-  RUN: 'course',
-  BIKE: 'vélo',
-  SWIM: 'natation',
-  STRENGTH: 'muscu',
+const SESSION_NOUN_EN: Record<ActivityType, string> = {
+  RUN: 'run',
+  BIKE: 'ride',
+  SWIM: 'swim',
+  STRENGTH: 'strength session',
   TRIATHLON: 'triathlon',
-  HIKE: 'rando',
-  OTHER: 'séance',
+  HIKE: 'hike',
+  OTHER: 'session',
+};
+
+const WORDS: Record<AthleteLocale, AlertWords> = {
+  fr: {
+    sport: {
+      RUN: 'course',
+      BIKE: 'vélo',
+      SWIM: 'natation',
+      STRENGTH: 'muscu',
+      TRIATHLON: 'triathlon',
+      HIKE: 'rando',
+      OTHER: 'séance',
+    },
+    sessionName: (sport, intensity) =>
+      `${SPORT_WITH_POSSESSIVE[sport]}${intensity ? ` ${intensity}` : ''}`,
+    sessionLabel: (sport, intensity) =>
+      capitalize(`${WORDS.fr.sport[sport]}${intensity ? ` ${intensity}` : ''}`),
+    inTheBag: (count) => (count > 1 ? `${count} séances dans la boîte` : 'Séance dans la boîte'),
+    ofPlan: (share) => `${share} % du plan`,
+    shortOfPlan: 'Pas tout le plan, mais c’est fait — c’est ce qui compte.',
+    beyondPlan: 'Plus que prévu : pense à bien récupérer.',
+    weekDone: (planned) => `Semaine bouclée : ${planned} sur ${planned}.`,
+    weekSoFar: (done, planned) => `${done} sur ${planned} cette semaine.`,
+    nothingNext: 'Rien d’autre de prévu pour l’instant : profite.',
+    today: 'aujourd’hui',
+    tomorrow: 'demain',
+    later: 'plus tard',
+    onDate: (date) => `le ${date}`,
+    seeYou: (when, session) => `On se retrouve ${when} pour ${session}.`,
+    missedTitle: 'Dommage pour hier',
+    missedBody: (subject) => `${capitalize(subject)}. On réorganise ta semaine ensemble ?`,
+    brickMissed: (chain) => `ton enchaînement ${chain} n’a pas eu lieu`,
+    manyMissed: (count) => `tes ${count} séances n’ont pas eu lieu`,
+    oneMissed: (session) => `${session} n’a pas eu lieu`,
+  },
+  en: {
+    sport: {
+      RUN: 'run',
+      BIKE: 'bike',
+      SWIM: 'swim',
+      STRENGTH: 'strength',
+      TRIATHLON: 'triathlon',
+      HIKE: 'hike',
+      OTHER: 'session',
+    },
+    sessionName: (sport, intensity) =>
+      `your ${intensity ? `${intensity} ` : ''}${SESSION_NOUN_EN[sport]}`,
+    sessionLabel: (sport, intensity) =>
+      capitalize(`${intensity ? `${intensity} ` : ''}${SESSION_NOUN_EN[sport]}`),
+    inTheBag: (count) => (count > 1 ? `${count} sessions in the bag` : 'Session in the bag'),
+    ofPlan: (share) => `${share}% of the plan`,
+    shortOfPlan: 'Not the whole plan, but it’s done — that’s what counts.',
+    beyondPlan: 'More than planned: take your recovery seriously.',
+    weekDone: (planned) => `Week wrapped up: ${planned} of ${planned}.`,
+    weekSoFar: (done, planned) => `${done} of ${planned} this week.`,
+    nothingNext: 'Nothing else planned for now: enjoy it.',
+    today: 'today',
+    tomorrow: 'tomorrow',
+    later: 'later today',
+    onDate: (date) => `on ${date}`,
+    seeYou: (when, session) => `See you ${when} for ${session}.`,
+    missedTitle: 'Shame about yesterday',
+    missedBody: (subject) => `${capitalize(subject)}. Shall we rework your week together?`,
+    brickMissed: (chain) => `your ${chain} brick didn’t happen`,
+    manyMissed: (count) => `your ${count} sessions didn’t happen`,
+    oneMissed: (session) => `${session} didn’t happen`,
+  },
 };
 
 /**
@@ -73,35 +168,40 @@ export function sessionDoneAlert(
   next: NextPlannedSession | null,
   today: string,
   week: WeekProgress | null = null,
+  locale: AthleteLocale = 'fr',
 ): { title: string; body: string } {
-  const lead =
-    counted.length > 1 ? `${counted.length} séances dans la boîte` : 'Séance dans la boîte';
+  const words = WORDS[locale];
+  const lead = words.inTheBag(counted.length);
   const share = planShare(counted);
   return {
-    title: share === null ? lead : `${lead} · ${share} % du plan`,
-    body: [shareRemark(share), weekLine(week), nextSessionLine(next, today)]
+    title: share === null ? lead : `${lead} · ${words.ofPlan(share)}`,
+    body: [shareRemark(share, words), weekLine(week, words), nextSessionLine(next, today, locale)]
       .filter(Boolean)
       .join(' '),
   };
 }
 
 /** « Dommage pour hier » / « Ta course seuil n’a pas eu lieu. On réorganise ta semaine ensemble ? » */
-export function missedSessionAlert(missed: readonly MissedSession[]): {
+export function missedSessionAlert(
+  missed: readonly MissedSession[],
+  locale: AthleteLocale = 'fr',
+): {
   title: string;
   body: string;
 } {
-  return {
-    title: 'Dommage pour hier',
-    body: `${capitalize(missedSubject(missed))}. On réorganise ta semaine ensemble ?`,
-  };
+  const words = WORDS[locale];
+  return { title: words.missedTitle, body: words.missedBody(missedSubject(missed, locale)) };
 }
 
 /** What the coach is asked when the athlete taps through, as « Rattraper ma semaine » names it. */
-export function missedSessionLabel(missed: readonly MissedSession[]): string {
+export function missedSessionLabel(
+  missed: readonly MissedSession[],
+  locale: AthleteLocale = 'fr',
+): string {
   if (isOneBrick(missed)) {
-    return `Brick ${missed.map((leg) => SPORT_NAME[leg.type]).join(' → ')}`;
+    return `Brick ${brickChain(missed, locale)}`;
   }
-  return capitalize(`${SPORT_NAME[missed[0].type]}${intensitySuffix(missed[0])}`);
+  return WORDS[locale].sessionLabel(missed[0].type, intensityWord(missed[0], locale));
 }
 
 /** Recorded over planned time, in percent; null when no session had both. */
@@ -117,81 +217,92 @@ export function planShare(counted: readonly CountedSession[]): number | null {
   return Math.round((doneSec / plannedSec) * 100);
 }
 
-/** « ton vélo endurance », « ta course VO2max » — the sport, then the intensity when planned. */
-export function sessionName(session: SessionKind): string {
-  return `${SPORT_WITH_POSSESSIVE[session.type]}${intensitySuffix(session)}`;
+/** « ton vélo endurance », « your VO2max run » — the sport and the intensity when planned. */
+export function sessionName(session: SessionKind, locale: AthleteLocale = 'fr'): string {
+  return WORDS[locale].sessionName(session.type, intensityWord(session, locale));
 }
 
-/** « seuil », « VO2max » after the sport; nothing for strength, whose intensity is not said. */
-function intensitySuffix(session: SessionKind): string {
+/** « seuil », « VO2max »; nothing for strength, whose intensity is not said. */
+function intensityWord(session: SessionKind, locale: AthleteLocale): string {
   if (!session.intensity || session.type === 'STRENGTH') {
     return '';
   }
   // Lower-cased mid-sentence, except an acronym's capitals (VO2max).
-  const intensity = intensityLabels[session.intensity].replace(/^[A-Z](?![A-Z0-9])/, (letter) =>
+  return intensityLabelsIn[locale][session.intensity].replace(/^[A-Z](?![A-Z0-9])/, (letter) =>
     letter.toLowerCase(),
   );
-  return ` ${intensity}`;
 }
 
 /** « aujourd’hui », « demain », « jeudi » within the week, « le 12 oct. » beyond. */
-export function relativeDay(day: string, today: string): string {
+export function relativeDay(day: string, today: string, locale: AthleteLocale = 'fr'): string {
+  const words = WORDS[locale];
   const date = new Date(`${day}T12:00:00.000Z`);
   const days = Math.round((date.getTime() - new Date(`${today}T12:00:00.000Z`).getTime()) / DAY_MS);
   if (days <= 0) {
-    return 'aujourd’hui';
+    return words.today;
   }
   if (days === 1) {
-    return 'demain';
+    return words.tomorrow;
   }
   if (days < 7) {
-    return new Intl.DateTimeFormat('fr-FR', { weekday: 'long', timeZone: 'UTC' }).format(date);
+    const weekday = new Intl.DateTimeFormat(intlTag(locale), { weekday: 'long', timeZone: 'UTC' });
+    return weekday.format(date);
   }
-  const short = new Intl.DateTimeFormat('fr-FR', {
+  const short = new Intl.DateTimeFormat(intlTag(locale), {
     day: 'numeric',
     month: 'short',
     timeZone: 'UTC',
   }).format(date);
-  return `le ${short}`;
+  return words.onDate(short);
 }
 
-function shareRemark(share: number | null): string | null {
+function shareRemark(share: number | null, words: AlertWords): string | null {
   if (share === null) {
     return null;
   }
   if (share < SHORT_OF_PLAN) {
-    return 'Pas tout le plan, mais c’est fait — c’est ce qui compte.';
+    return words.shortOfPlan;
   }
-  return share > BEYOND_PLAN ? 'Plus que prévu : pense à bien récupérer.' : null;
+  return share > BEYOND_PLAN ? words.beyondPlan : null;
 }
 
 /** Said once the week holds more than one session: one out of one says nothing. */
-function weekLine(week: WeekProgress | null): string | null {
+function weekLine(week: WeekProgress | null, words: AlertWords): string | null {
   if (!week || week.planned < 2) {
     return null;
   }
   return week.done >= week.planned
-    ? `Semaine bouclée : ${week.planned} sur ${week.planned}.`
-    : `${week.done} sur ${week.planned} cette semaine.`;
+    ? words.weekDone(week.planned)
+    : words.weekSoFar(week.done, week.planned);
 }
 
-function nextSessionLine(next: NextPlannedSession | null, today: string): string {
+function nextSessionLine(
+  next: NextPlannedSession | null,
+  today: string,
+  locale: AthleteLocale,
+): string {
+  const words = WORDS[locale];
   if (!next) {
-    return 'Rien d’autre de prévu pour l’instant : profite.';
+    return words.nothingNext;
   }
-  const day = relativeDay(next.day, today);
-  const when = day === 'aujourd’hui' ? 'plus tard' : day;
-  return `On se retrouve ${when} pour ${sessionName(next)}.`;
+  const day = relativeDay(next.day, today, locale);
+  const when = day === words.today ? words.later : day;
+  return words.seeYou(when, sessionName(next, locale));
 }
 
-function missedSubject(missed: readonly MissedSession[]): string {
+function missedSubject(missed: readonly MissedSession[], locale: AthleteLocale): string {
+  const words = WORDS[locale];
   if (isOneBrick(missed)) {
-    return `ton enchaînement ${missed.map((leg) => SPORT_NAME[leg.type]).join(' → ')} n’a pas eu lieu`;
+    return words.brickMissed(brickChain(missed, locale));
   }
   if (missed.length > 1) {
-    return `tes ${missed.length} séances n’ont pas eu lieu`;
+    return words.manyMissed(missed.length);
   }
-  return `${sessionName(missed[0])} n’a pas eu lieu`;
+  return words.oneMissed(sessionName(missed[0], locale));
+}
+
+function brickChain(missed: readonly MissedSession[], locale: AthleteLocale): string {
+  return missed.map((leg) => WORDS[locale].sport[leg.type]).join(' → ');
 }
 
 function isOneBrick(missed: readonly MissedSession[]): boolean {

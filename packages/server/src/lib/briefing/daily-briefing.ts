@@ -1,3 +1,4 @@
+import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import {
   buildBriefingDayContext,
   formatBriefingDayContext,
@@ -139,7 +140,7 @@ Rédige le ${dayCtx.phaseLabel} en suivant la structure imposée et les règles 
 
   const { text, usage } = await generateText({
     model: COACH_MODEL,
-    system: buildBriefingSystem(phase),
+    system: inAnswerLanguage(buildBriefingSystem(phase)),
     prompt,
     providerOptions: coachAsyncGatewayOptions,
     telemetry: { functionId: 'coach-briefing' },

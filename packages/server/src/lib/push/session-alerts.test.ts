@@ -112,3 +112,31 @@ describe('missed session alert', () => {
     ).toBe('Tes 2 séances n’ont pas eu lieu. On réorganise ta semaine ensemble ?');
   });
 });
+
+describe('in English', () => {
+  it('says the session done and the next one in English word order', () => {
+    expect(
+      sessionDoneAlert(
+        [{ plannedMin: 50, doneSec: 46 * 60 }],
+        { type: 'BIKE', intensity: 'ENDURANCE', day: '2026-10-02' },
+        today,
+        { done: 3, planned: 5 },
+        'en',
+      ),
+    ).toEqual({
+      title: 'Session in the bag · 92% of the plan',
+      body: '3 of 5 this week. See you tomorrow for your endurance ride.',
+    });
+  });
+
+  it('names a missed session and its catch-up label', () => {
+    const missed = [{ type: 'RUN' as const, intensity: 'THRESHOLD' as const, brickGroupId: null }];
+    expect(missedSessionAlert(missed, 'en')).toEqual({
+      title: 'Shame about yesterday',
+      body: 'Your threshold run didn’t happen. Shall we rework your week together?',
+    });
+    expect(missedSessionLabel(missed, 'en')).toBe('Threshold run');
+    expect(sessionName({ type: 'RUN', intensity: 'VO2MAX' }, 'en')).toBe('your VO2max run');
+    expect(relativeDay('2026-10-03', today, 'en')).toBe('Saturday');
+  });
+});

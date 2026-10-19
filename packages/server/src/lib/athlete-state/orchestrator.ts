@@ -1,3 +1,4 @@
+import { inAthleteLocale } from '@sharpit/server/lib/locale/locale-context';
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
 import type { DataProvider } from '@sharpit/server/athlete-state/events';
 import {
@@ -150,7 +151,7 @@ async function syncProvidersOnOpen(
   };
 }
 
-export async function refreshAthleteState(
+async function refreshAthleteStateInPlace(
   athleteId: string,
   options?: {
     trainingDayId?: string;
@@ -215,7 +216,7 @@ export async function refreshAthleteState(
   };
 }
 
-export async function onProviderSyncCompleted(
+async function onProviderSyncCompletedInPlace(
   athleteId: string,
   results: ProviderSyncResult[],
   trainingDayId?: string,
@@ -274,6 +275,19 @@ async function runFastInference(
     // Event-driven paths (activity/wellness/explicit inference) default to recompute.
     forceRefresh: options?.forceRefresh ?? true,
   });
+}
+
+/** Refreshes in the athlete's language, so what it writes (briefing, pushes) reads in it. */
+export function refreshAthleteState(
+  ...args: Parameters<typeof refreshAthleteStateInPlace>
+): ReturnType<typeof refreshAthleteStateInPlace> {
+  return inAthleteLocale(args[0], () => refreshAthleteStateInPlace(...args));
+}
+
+export function onProviderSyncCompleted(
+  ...args: Parameters<typeof onProviderSyncCompletedInPlace>
+): ReturnType<typeof onProviderSyncCompletedInPlace> {
+  return inAthleteLocale(args[0], () => onProviderSyncCompletedInPlace(...args));
 }
 
 export async function handleAthleteStateEvent(event: AthleteStateEvent): Promise<void> {
