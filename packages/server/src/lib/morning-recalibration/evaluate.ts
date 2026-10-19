@@ -246,13 +246,13 @@ function isEligibleForRecalibration(input: {
 function protectWhy(strengthLike: boolean, verdict: string, _capacity: string | null): string {
   const protectVerdict = verdict === 'RECOVER' || verdict === 'CAUTION';
   if (strengthLike && protectVerdict) {
-    return `Verdict du matin « ${verdict} ». Alléger les charges et prioriser le contrôle du mouvement.`;
+    return 'Alléger les charges et prioriser le contrôle du mouvement.';
   }
   if (strengthLike) {
     return 'Capacité légère uniquement. Pas de travail exigeant aujourd’hui.';
   }
   if (protectVerdict) {
-    return `Verdict du matin « ${verdict} ». Baisser l’intensité protège le risque blessure sans abandonner le plan.`;
+    return 'Baisser l’intensité protège le risque blessure sans abandonner le plan.';
   }
   return 'Capacité légère uniquement. La haute intensité n’est pas cohérente aujourd’hui.';
 }
@@ -375,7 +375,7 @@ function buildEnduranceDowngrade(
     toIntensity: 'RECOVERY',
     toDuration,
     toLoad,
-    why: `Verdict du matin « ${verdict} ». Garder la sortie, un quart plus courte et en récupération, pour récupérer sans perdre le fil.`,
+    why: 'Garder la sortie, un quart plus courte et en récupération, pour récupérer sans perdre le fil.',
   });
 }
 
