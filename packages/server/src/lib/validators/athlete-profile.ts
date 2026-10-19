@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { ATHLETE_LOCALES } from '@sharpit/shared/locale';
 import { parseBirthDateInput } from '@sharpit/app/lib/profile/athlete-profile-utils';
 import { EQUIPMENT_ITEM_IDS, STRENGTH_VENUES } from '@sharpit/app/lib/equipment/catalog';
 import { DISPLAY_MODES } from '@sharpit/app/lib/preferences/display-mode';
@@ -130,6 +131,7 @@ export const athleteProfileSchema = z
     practicedSports: athletePracticedSportsSchema.nullable(),
     trainingAvailability: athleteTrainingAvailabilitySchema.nullable(),
     displayMode: z.enum(DISPLAY_MODES),
+    locale: z.enum(ATHLETE_LOCALES),
     /** Any subset; merged over what is stored. Null resets to the defaults. */
     notificationPrefs: notificationPrefsPatchSchema.nullable(),
     featurePrefs: featurePrefsPatchSchema.nullable(),

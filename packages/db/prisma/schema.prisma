@@ -299,6 +299,9 @@ model AthleteProfile {
   /// Densité de lecture choisie par l'athlète : 'essential' | 'expert'.
   /// 'expert' déverrouille les métriques techniques (TSS, IF, CTL/ATL/TSB, seuils…).
   displayMode String @default("essential")
+  /// Language the app shows ('fr' | 'en', ADR-096): server copy, pushes and coach answers follow it.
+  /// Null = an older client that never sent it — the request's Accept-Language decides, else French.
+  locale      String?
 
   /// Journal module visibility + diet + auto-checklist thresholds.
   /// Shape: JournalPrefs v1 — see src/lib/health/journal-prefs.ts

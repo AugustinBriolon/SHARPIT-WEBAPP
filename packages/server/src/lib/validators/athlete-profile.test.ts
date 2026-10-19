@@ -69,6 +69,11 @@ describe('athleteProfileSchema', () => {
     expect(() => athleteProfileSchema.parse({ displayMode: null })).toThrow();
   });
 
+  it('carries the app language on its own, only one SharpIt speaks', () => {
+    expect(athleteProfileSchema.parse({ locale: 'en' })).toEqual({ locale: 'en' });
+    expect(() => athleteProfileSchema.parse({ locale: 'de' })).toThrow();
+  });
+
   it('carries practiced sports on their own', () => {
     expect(
       athleteProfileSchema.parse({
