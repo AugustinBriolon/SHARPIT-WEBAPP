@@ -2,7 +2,8 @@ import { prisma } from '@sharpit/db/client';
 
 /** `coach` is what the athlete asks for and counts against their budget; `analysis` and
  * `briefing` are written for them in the background and have their own ledgers. */
-export type AiUsageFeature = 'coach' | 'analysis' | 'briefing';
+/** `autoplan`: the week SharpIt writes on its own when the plan runs out — never the athlete's coach budget. */
+export type AiUsageFeature = 'coach' | 'analysis' | 'briefing' | 'autoplan';
 
 export type AiUsageTokens = {
   inputTokens?: number | null;

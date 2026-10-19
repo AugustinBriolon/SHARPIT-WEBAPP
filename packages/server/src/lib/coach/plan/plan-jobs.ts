@@ -26,7 +26,11 @@ export function isPlanJobStoreConfigured(): boolean {
   return redis !== null;
 }
 
-export async function createPlanJob(athleteId: string, goalId: string | null): Promise<PlanJob> {
+export async function createPlanJob(
+  athleteId: string,
+  goalId: string | null,
+  { ttlSeconds = TTL_SECONDS }: { ttlSeconds?: number } = {},
+): Promise<PlanJob> {
   if (!redis) {
     throw new Error('Plan jobs need Upstash Redis');
   }
@@ -41,8 +45,8 @@ export async function createPlanJob(athleteId: string, goalId: string | null): P
     startedAt: now,
     updatedAt: now,
   };
-  await redis.set(jobKey(athleteId, job.id), job, { ex: TTL_SECONDS });
-  await redis.set(latestKey(athleteId), job.id, { ex: TTL_SECONDS });
+  await redis.set(jobKey(athleteId, job.id), job, { ex: ttlSeconds });
+  await redis.set(latestKey(athleteId), job.id, { ex: ttlSeconds });
   return job;
 }
 
@@ -59,7 +63,8 @@ export async function updatePlanJob(
     return;
   }
   const next: PlanJob = { ...current, ...patch, updatedAt: new Date().toISOString() };
-  await redis.set(jobKey(athleteId, id), next, { ex: TTL_SECONDS });
+  // Keeps the life the job was given: an automatic week waits three days, not one.
+  await redis.set(jobKey(athleteId, id), next, { keepTtl: true });
 }
 
 export async function getPlanJob(athleteId: string, id: string): Promise<PlanJob | null> {

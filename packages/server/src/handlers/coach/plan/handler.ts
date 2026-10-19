@@ -8,7 +8,7 @@ import {
   isCoachConfigured,
 } from '@sharpit/server/lib/ai';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
-import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
+import { recordAiUsage, type AiUsageFeature } from '@sharpit/server/lib/ai/usage';
 import {
   RETRY_AFTER_HEADER,
   aiBudgetResponseBody,
@@ -261,8 +261,12 @@ async function buildPlanGenerationContext(
 async function preparePlanGeneration(
   athleteId: string,
   parsed: z.infer<typeof coachPlanRequestSchema>,
+  { gated = true }: { gated?: boolean } = {},
 ) {
   const start = startOfDay(parsed.startDate ?? new Date());
+  if (!gated) {
+    return buildPreparedPlan(athleteId, parsed, start, false);
+  }
 
   const rateLimit = await checkRateLimit(rateLimiters.coachPlan, athleteId, { failClosed: true });
   if (!rateLimit.ok) {
@@ -284,6 +288,15 @@ async function preparePlanGeneration(
     };
   }
 
+  return buildPreparedPlan(athleteId, parsed, start, budget.warning);
+}
+
+async function buildPreparedPlan(
+  athleteId: string,
+  parsed: z.infer<typeof coachPlanRequestSchema>,
+  start: Date,
+  budgetWarning: boolean,
+) {
   const { ctx, busySummary, goal, days, focus, goalId, travelResolved, planPhase } =
     await buildPlanGenerationContext(athleteId, parsed, start);
 
@@ -344,11 +357,26 @@ async function preparePlanGeneration(
     start,
     goalId: goalId ?? null,
     prompt,
-    budgetWarning: budget.warning,
+    budgetWarning,
   };
 }
 
 type PreparedPlan = Extract<Awaited<ReturnType<typeof preparePlanGeneration>>, { ok: true }>;
+
+/**
+ * A week SharpIt starts on its own (the plan horizon): no request, no rate limit, no coach
+ * budget — the athlete did not ask, so it must not cost them a question.
+ */
+export async function prepareScheduledPlan(
+  athleteId: string,
+  parsed: z.infer<typeof coachPlanRequestSchema>,
+): Promise<PreparedPlan> {
+  const prepared = await preparePlanGeneration(athleteId, parsed, { gated: false });
+  if (!prepared.ok) {
+    throw new Error('Scheduled plan preparation cannot be refused');
+  }
+  return prepared;
+}
 
 /**
  * Everything checked before the coach is asked: configuration, the request, the AI consent,
@@ -398,6 +426,7 @@ export async function generatePlan(
   athleteId: string,
   prepared: PreparedPlan,
   progress: { onPartial: (value: unknown) => void; onReasoning?: (delta: string) => void },
+  feature: AiUsageFeature = 'coach',
 ): Promise<PlanPayload> {
   const { output, usage } = await withCoachTrace(
     { traceName: 'coach-plan', athleteId, tags: ['plan'] },
@@ -412,7 +441,7 @@ export async function generatePlan(
         onPartial: progress.onPartial,
       }),
   );
-  void recordAiUsage(athleteId, 'coach', { ...usage, model: COACH_STRUCTURED_MODEL });
+  void recordAiUsage(athleteId, feature, { ...usage, model: COACH_STRUCTURED_MODEL });
   return finalizePlan(athleteId, output, prepared.start, prepared.goalId ?? null);
 }
 
