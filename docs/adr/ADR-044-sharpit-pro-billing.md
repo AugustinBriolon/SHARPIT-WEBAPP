@@ -42,6 +42,10 @@ access, and the app must never be the authority on it.
      is public, and nothing in the payload is trusted before its signature is verified. The status
      comes from `data.status`. `REFUND` and `REVOKE` end access.
    - Sandbox transactions (TestFlight, App Review) are honoured and stored with their environment.
+   - `Xcode` transactions (the app's local StoreKit configuration, not signed by Apple) are
+     decoded without a signature check only when `NODE_ENV` is not `production` (`next dev`,
+     vitest), so a purchase in the simulator can run end to end against a local API. Every
+     build, preview or production, refuses them.
 5. **Stripe for the web, later.** It will be the same table with `source = 'stripe'`. Its webhook
    writes rows and calls `recomputeAthleteTier`. Nothing else changes.
 

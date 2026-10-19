@@ -44,6 +44,14 @@ function verifierFor(environment: Environment): SignedDataVerifier {
 }
 
 /**
+ * Xcode's StoreKit configuration signs transactions locally, so Apple's library skips the
+ * signature for them. Honoured only by a dev server (`next dev`, vitest), never by a build.
+ */
+function acceptsXcodeTransactions() {
+  return process.env.NODE_ENV !== 'production';
+}
+
+/**
  * The environment the JWS claims, read before verification only to pick the verifier —
  * which then checks the signature *and* that the environment matches. TestFlight and
  * App Review purchases are Sandbox and must be honoured too.
@@ -55,7 +63,11 @@ function claimedEnvironment(jws: string, pick: (payload: Record<string, unknown>
       string,
       unknown
     >;
-    return pick(payload) === Environment.SANDBOX ? Environment.SANDBOX : Environment.PRODUCTION;
+    const claimed = pick(payload);
+    if (claimed === Environment.XCODE && acceptsXcodeTransactions()) {
+      return Environment.XCODE;
+    }
+    return claimed === Environment.SANDBOX ? Environment.SANDBOX : Environment.PRODUCTION;
   } catch {
     return Environment.PRODUCTION;
   }
