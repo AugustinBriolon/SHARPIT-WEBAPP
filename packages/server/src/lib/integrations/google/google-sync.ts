@@ -300,7 +300,9 @@ async function resolvePushStartTime(input: {
         return e > start && s < end;
       })
     : [];
-  const busy = mergeBusyIntervals([...googleBusy, ...appleBusy]);
+  const busy = mergeBusyIntervals(
+    [...googleBusy, ...appleBusy].filter((interval) => !isAllDayBlock(interval)),
+  );
   return findFreeSlot(input.dayKey, input.duration, busy, input.account.timeZone) ?? '07:00';
 }
 
@@ -697,6 +699,38 @@ function busyIntervalsInWindow(
   });
 }
 
+/** An all-day or multi-day event (holiday, trip, birthday) — never a time slot the athlete is in. */
+const ALL_DAY_BLOCK_MS = 20 * 3600_000;
+
+function isAllDayBlock(interval: BusyInterval): boolean {
+  return Date.parse(interval.end) - Date.parse(interval.start) >= ALL_DAY_BLOCK_MS;
+}
+
+type ScheduledSession = Pick<PlannedSession, 'date' | 'startTime'>;
+
+/**
+ * Busy intervals worth planning around. All-day blocks would read as "occupé 00:00–24:00" and,
+ * once merged, swallow every real meeting of the day. The athlete's own planned sessions come
+ * back through the calendars SharpIt writes to (Google target, iPhone copy) and would block the
+ * very slots the plan is regenerated into.
+ */
+export function busyToPlanAround(
+  busy: BusyInterval[],
+  sessions: ScheduledSession[],
+  timeZone: string,
+): BusyInterval[] {
+  const ownSlots = new Set(
+    sessions.filter((s) => s.startTime).map((s) => `${dayKeyFromDate(s.date)}T${s.startTime}`),
+  );
+  return busy.filter((interval) => {
+    if (isAllDayBlock(interval)) {
+      return false;
+    }
+    const start = zonedDayAndMinutes(new Date(interval.start), timeZone);
+    return !ownSlots.has(`${start.dayKey}T${minutesToHHmm(start.minutes)}`);
+  });
+}
+
 function formatBusyForCoach(
   busy: BusyInterval[],
   timeZone: string,
@@ -752,5 +786,16 @@ export async function getUpcomingBusy(
     return [];
   }
 
-  return formatBusyForCoach(mergeBusyIntervals(parts), timeZone);
+  const sessions = await prisma.plannedSession.findMany({
+    where: {
+      athleteId,
+      date: { gte: new Date(now.getTime() - 86400_000), lte: to },
+      startTime: { not: null },
+    },
+    select: { date: true, startTime: true },
+  });
+  return formatBusyForCoach(
+    mergeBusyIntervals(busyToPlanAround(parts, sessions, timeZone)),
+    timeZone,
+  );
 }

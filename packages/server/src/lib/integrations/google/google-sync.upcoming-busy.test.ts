@@ -8,6 +8,9 @@ vi.mock('@sharpit/db/client', () => ({
     athleteProfile: {
       findUnique: vi.fn(),
     },
+    plannedSession: {
+      findMany: vi.fn(),
+    },
   },
 }));
 
@@ -37,7 +40,7 @@ vi.mock('@sharpit/server/lib/integrations/google/calendar-ids-cache', () => ({
   forgetCalendarIds: vi.fn(),
 }));
 
-const { getUpcomingBusy } = await import('./google-sync');
+const { busyToPlanAround, getUpcomingBusy } = await import('./google-sync');
 const { encryptSecret } = await import('@sharpit/server/lib/secret-box');
 const { prisma } = await import('@sharpit/db/client');
 const { loadResolvedSourcePrefs } =
@@ -50,6 +53,7 @@ describe('getUpcomingBusy with Apple upload', () => {
     vi.clearAllMocks();
     process.env.SECRET_ENCRYPTION_KEY = 'upcoming-busy-test';
     getFreeBusy.mockResolvedValue([]);
+    vi.mocked(prisma.plannedSession.findMany).mockResolvedValue([]);
     vi.mocked(prisma.googleAccount.findUnique).mockResolvedValue(null);
     vi.mocked(prisma.athleteProfile.findUnique).mockResolvedValue({
       googleAccount: { timeZone: 'Europe/Paris' },
@@ -121,5 +125,34 @@ describe('getUpcomingBusy with Apple upload', () => {
       { dayKey: '2026-10-10', start: '09:00', end: '10:00' },
       { dayKey: '2026-10-10', start: '16:00', end: '17:00' },
     ]);
+  });
+});
+
+describe('busyToPlanAround', () => {
+  it('drops all-day and multi-day blocks so the real slots of the day stay visible', () => {
+    const busy = busyToPlanAround(
+      [
+        { start: '2026-10-21T22:00:00.000Z', end: '2026-10-22T21:59:59.000Z' },
+        { start: '2026-10-22T22:00:00.000Z', end: '2026-10-25T22:59:59.000Z' },
+        { start: '2026-10-22T07:00:00.000Z', end: '2026-10-22T10:00:00.000Z' },
+      ],
+      [],
+      'Europe/Paris',
+    );
+
+    expect(busy).toEqual([{ start: '2026-10-22T07:00:00.000Z', end: '2026-10-22T10:00:00.000Z' }]);
+  });
+
+  it("drops the calendar copies of the athlete's own planned sessions", () => {
+    const busy = busyToPlanAround(
+      [
+        { start: '2026-10-19T10:30:00.000Z', end: '2026-10-19T11:45:00.000Z' },
+        { start: '2026-10-19T12:00:00.000Z', end: '2026-10-19T15:00:00.000Z' },
+      ],
+      [{ date: new Date('2026-10-19T00:00:00.000Z'), startTime: '12:30' }],
+      'Europe/Paris',
+    );
+
+    expect(busy).toEqual([{ start: '2026-10-19T12:00:00.000Z', end: '2026-10-19T15:00:00.000Z' }]);
   });
 });
