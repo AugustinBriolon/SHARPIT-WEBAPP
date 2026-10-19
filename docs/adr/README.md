@@ -92,6 +92,7 @@
 | [ADR-089](./ADR-089-enforced-csp-and-ai-input-caps.md)                                  | Enforced host-exact CSP (no nonce, keeps prerendered shells); caps on coach thread, note text, nutrition readings              | Accepted                          |
 | [ADR-090](./ADR-090-athlete-text-delimiting-and-request-bounds.md)                      | Athlete-written text delimited in prompts (⟦ ⟧ + rule); list reads clamped; client goalId must be own                          | Accepted                          |
 | [ADR-096](./ADR-096-server-copy-follows-the-athletes-language.md)                       | App requests and athlete pushes in the athlete's language: locale context, French-keyed English at the boundary, LLM directive | Accepted                          |
+| [ADR-097](./ADR-097-free-is-the-athletes-data-coaching-is-pro-only.md)                  | Free is the athlete's data; every AI coaching surface is Pro-only; onboarding ends on a blurred first week and the paywall     | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

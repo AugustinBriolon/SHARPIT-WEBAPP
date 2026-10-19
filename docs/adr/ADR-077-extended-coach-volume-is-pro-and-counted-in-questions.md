@@ -1,6 +1,6 @@
 # ADR-077: Extended coach volume is Pro, and counted in questions
 
-**Status:** Accepted
+**Status:** Accepted — Free budget superseded by [ADR-097](./ADR-097-free-is-the-athletes-data-coaching-is-pro-only.md)
 **Date:** 2026-10-10
 **Author:** Augustin Briolon (with Claude Code)
 **Supersedes:** N/A (turns the `extended-coach` perk from `planned` into `pro`)
