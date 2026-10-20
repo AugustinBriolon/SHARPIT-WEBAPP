@@ -10,7 +10,7 @@
  * Pure: no I/O, no React.
  */
 
-import { zoneStrategy } from '@sharpit/app/lib/physical-health/zone-follow-up';
+import { zoneStrategy, type ZoneStrategy } from '@sharpit/app/lib/physical-health/zone-follow-up';
 
 /** Catalog body groups, as they appear in `src/data/exercises-catalog.json`. */
 export type CatalogBodyPart =
@@ -38,6 +38,8 @@ export type ZoneCondition = {
   affectsTraining?: boolean | null;
   status?: string | null;
   functionalImpact?: string | null;
+  /** A declared zone's closing date: what tells a recent relapse watch from a closed zone. */
+  resolvedAt?: Date | string | null;
 };
 
 export type SensitiveZone = {
@@ -97,27 +99,23 @@ export function catalogGroupsForRegion(region: string | null | undefined): Catal
   return entry ? [...entry.groups] : [];
 }
 
-/**
- * A pain or an injury the plan must not load: its strategy is `protect` (ADR-068). A zone
- * under watch, or open but silent, is loaded progressively and no longer flagged.
- */
-function isProtected(condition: ZoneCondition): boolean {
+/** The strategy of a pain or an injury (ADR-068); `none` for every other kind. */
+function symptomaticStrategy(condition: ZoneCondition, now: Date): ZoneStrategy {
   const kind = (condition.type ?? condition.category ?? '').toUpperCase();
   if (!SYMPTOMATIC.has(kind)) {
-    return false;
+    return 'none';
   }
-  const strategy = zoneStrategy(
+  return zoneStrategy(
     {
       category: kind,
       status: condition.status ?? 'ACTIVE',
       severity: condition.severity ?? null,
       functionalImpact: condition.functionalImpact ?? null,
       affectsTraining: condition.affectsTraining !== false,
-      resolvedAt: null,
+      resolvedAt: condition.resolvedAt ?? null,
     },
-    new Date(),
+    now,
   );
-  return strategy === 'protect';
 }
 
 function zoneSide(side: string | null | undefined): string | null {
@@ -139,17 +137,32 @@ function toZone(condition: ZoneCondition): SensitiveZone | null {
   };
 }
 
-/** Pains and injuries the plan must spare, with their catalog groups. */
-export function sensitiveZonesFrom(
+/** Pains and injuries whose strategy is one of `strategies`, with their catalog groups. */
+export function zonesWithStrategy(
   conditions: readonly ZoneCondition[] | null | undefined,
+  strategies: readonly ZoneStrategy[],
+  now: Date = new Date(),
 ): SensitiveZone[] {
   if (!conditions) {
     return [];
   }
-  return conditions.filter(isProtected).flatMap((condition) => {
-    const zone = toZone(condition);
-    return zone ? [zone] : [];
-  });
+  return conditions
+    .filter((condition) => strategies.includes(symptomaticStrategy(condition, now)))
+    .flatMap((condition) => {
+      const zone = toZone(condition);
+      return zone ? [zone] : [];
+    });
+}
+
+/**
+ * Pains and injuries the plan must not load: strategy `protect` (ADR-068). A zone under watch,
+ * or open but silent, is loaded progressively (`zoneProgressionRule`), not flagged here.
+ */
+export function sensitiveZonesFrom(
+  conditions: readonly ZoneCondition[] | null | undefined,
+  now: Date = new Date(),
+): SensitiveZone[] {
+  return zonesWithStrategy(conditions, ['protect'], now);
 }
 
 /**

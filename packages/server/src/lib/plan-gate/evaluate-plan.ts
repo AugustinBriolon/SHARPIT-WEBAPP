@@ -12,6 +12,7 @@ import { strengthCompletenessRule } from './rules/strength-completeness';
 import { practicedSportsRule } from './rules/practiced-sports';
 import { weeklyLoadRule } from './rules/weekly-load';
 import { intensityDistributionRule } from './rules/intensity-distribution';
+import { zoneRampRule, zoneReturnIntensityRule } from './rules/zone-progression';
 import type {
   GateContext,
   GateProposal,
@@ -37,9 +38,14 @@ const RULES: readonly PlanGateRule[] = [
   calendarConflictRule,
   strengthCompletenessRule,
   sensitiveZoneRule,
+  zoneReturnIntensityRule,
 ];
 
-const PLAN_LEVEL_RULES: readonly PlanLevelGateRule[] = [weeklyLoadRule, intensityDistributionRule];
+const PLAN_LEVEL_RULES: readonly PlanLevelGateRule[] = [
+  weeklyLoadRule,
+  intensityDistributionRule,
+  zoneRampRule,
+];
 
 function worstStatus(findings: readonly RuleFinding[]): GateStatus {
   if (findings.length === 0) {
