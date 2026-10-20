@@ -9,6 +9,7 @@
  *
  * Usage:
  *   yarn api bench:coach-models --athlete <disposableAthleteId>
+ *   yarn api bench:coach-models --athlete <id> --questions coach-bench-off-scope.json
  *   yarn api bench:coach-models --athlete <id> --models google/gemini-3-flash,anthropic/claude-haiku-4.5 --limit 5
  */
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -39,7 +40,12 @@ const DEFAULT_MODELS = [
 /** Twice the chat route's limit: long enough to see how far past it a model goes. */
 const RUN_TIMEOUT_MS = 120_000;
 
-type BenchOptions = { models: string[]; limit: number | null; athleteId: string | null };
+type BenchOptions = {
+  models: string[];
+  limit: number | null;
+  athleteId: string | null;
+  questionsFile: string;
+};
 
 function readOption(name: string): string | null {
   const index = process.argv.indexOf(`--${name}`);
@@ -52,6 +58,7 @@ function parseOptions(): BenchOptions {
     models: readOption('models')?.split(',') ?? DEFAULT_MODELS,
     limit: limit ? Number(limit) : null,
     athleteId: readOption('athlete'),
+    questionsFile: readOption('questions') ?? 'coach-bench-questions.json',
   };
 }
 
@@ -153,8 +160,8 @@ async function runOnce(input: {
   }
 }
 
-async function loadQuestions(limit: number | null): Promise<string[]> {
-  const file = path.join(import.meta.dirname, 'coach-bench-questions.json');
+async function loadQuestions(fileName: string, limit: number | null): Promise<string[]> {
+  const file = path.join(import.meta.dirname, fileName);
   const questions = JSON.parse(await readFile(file, 'utf8')) as string[];
   return limit ? questions.slice(0, limit) : questions;
 }
@@ -171,7 +178,7 @@ async function writeReport(runs: CoachBenchRun[]): Promise<string> {
 async function main() {
   const options = parseOptions();
   const athleteId = await resolveAthleteId(options.athleteId);
-  const questions = await loadQuestions(options.limit);
+  const questions = await loadQuestions(options.questionsFile, options.limit);
   const runs: CoachBenchRun[] = [];
   for (const question of questions) {
     const scope = coachRequestScope(
