@@ -56,7 +56,6 @@ import { computeTrainingDayId } from '@sharpit/core/training/training-day';
 import { buildDecisionSnapshotContext } from '@sharpit/server/lib/decision-memory/build-snapshot-context';
 import { createCoachingDecision } from '@sharpit/server/lib/decision-memory/repository';
 import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
-import { formatZoneTrainingRules } from '@sharpit/app/lib/physical-health/zone-training-rules';
 import { buildCoachKnowledgeQuery } from '@sharpit/server/lib/coach/knowledge/build-query';
 import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/format-knowledge-rag-block';
 import {
@@ -205,8 +204,6 @@ function buildPlanPrompt(input: {
   goalBlock: string;
   macroBlock: string;
   agendaBlock: string;
-  /** Names the zones to protect — the static rules block cannot, it is shared by every athlete. */
-  sensitiveZonesBlock: string;
 }) {
   const {
     days,
@@ -227,7 +224,7 @@ function buildPlanPrompt(input: {
 
 ${focus ? `Demande spécifique de l'athlète : ${athleteText(focus)}\n\n` : ''}Données de l'athlète :
 
-${contextText}${memoryBlock}${knowledgeBlock}${goalBlock}${macroBlock}${agendaBlock}${input.sensitiveZonesBlock}`;
+${contextText}${memoryBlock}${knowledgeBlock}${goalBlock}${macroBlock}${agendaBlock}`;
 }
 
 async function buildPlanGenerationContext(
@@ -351,7 +348,6 @@ async function buildPreparedPlan(
     goalBlock,
     macroBlock,
     agendaBlock,
-    sensitiveZonesBlock: formatZoneTrainingRules(ctx.trainingZones, start),
   });
 
   return {

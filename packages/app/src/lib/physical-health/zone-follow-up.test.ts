@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  zoneSeverityTrend,
   recurrenceCount,
   resolutionSuggested,
   statusChangeLabel,
@@ -107,5 +108,25 @@ describe('recurrence', () => {
     expect(statusChangeLabel('ACTIVE', 'RESOLVED')).toBe('Rechute');
     expect(statusChangeLabel('ACTIVE', 'MONITORING')).toBe('Remise en cours');
     expect(statusChangeLabel('RESOLVED', 'ACTIVE')).toBe('Résolue');
+  });
+});
+
+describe('zoneSeverityTrend', () => {
+  const readings = (...values: Array<number | null>) => values.map((severity) => ({ severity }));
+
+  it('reads the direction of several readings, newest first', () => {
+    expect(zoneSeverityTrend(readings(2, 3, 4, 5))).toBe('improving');
+    expect(zoneSeverityTrend(readings(6, 5, 4, 3))).toBe('worsening');
+  });
+
+  it('does not flip on one bad morning', () => {
+    expect(zoneSeverityTrend(readings(4, 3, 4, 3, 4))).toBe('stable');
+    // The last two alone would read « en aggravation ».
+    expect(zoneSeverityTrend(readings(3, 2, 2, 4, 5))).toBe('improving');
+  });
+
+  it('skips status changes and needs two readings', () => {
+    expect(zoneSeverityTrend(readings(3, null, 5))).toBe('improving');
+    expect(zoneSeverityTrend(readings(3))).toBeNull();
   });
 });

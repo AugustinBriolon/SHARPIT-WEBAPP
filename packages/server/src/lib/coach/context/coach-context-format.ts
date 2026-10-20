@@ -35,6 +35,10 @@ import {
 
 type CoachContext = CoachContextData;
 
+function nonEmpty(block: string | null | undefined): string[] {
+  return block ? [block] : [];
+}
+
 /** « ⟦Tempo⟧ » after a space, or nothing: an empty title read as an empty delimiter pair. */
 function titlePart(title: string | null | undefined): string {
   return title?.trim() ? ` ${athleteText(title)}` : '';
@@ -522,6 +526,7 @@ function formatPhysicalSection(physical: CoachContext['physical']): string[] {
         p.strategy ? `conduite ${p.strategy}` : null,
         p.trend ? `tendance ${p.trend}` : null,
         p.functionalCapacity ? `capacité fonctionnelle ${p.functionalCapacity}` : null,
+        p.flareLoad,
         isSet(p.confidence) ? `confiance ${Math.round(p.confidence * 100)}%` : null,
         p.description ? athleteText(p.description) : null,
       ]
@@ -748,7 +753,7 @@ function coachContextSections(ctx: CoachContext): Array<[CoachContextSection, st
     ['goals', formatGoalsSection(ctx)],
     ['recent', formatRecentActivitiesSection(ctx.recent)],
     ['realized', formatRealizedSessionsSection(ctx.realizedSessions)],
-    ['physical', formatPhysicalSection(ctx.physical)],
+    ['physical', [...formatPhysicalSection(ctx.physical), ...nonEmpty(ctx.zoneTrainingRules)]],
     ['activityStatus', formatActivityStatusSection(ctx.activityStatus)],
     ['travel', formatTravelSection(ctx.travel)],
     ['constraints', formatConstraintsSection(ctx.constraints)],

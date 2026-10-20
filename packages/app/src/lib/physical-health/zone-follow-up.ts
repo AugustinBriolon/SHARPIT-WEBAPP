@@ -186,3 +186,48 @@ export function statusChangeLabel(status: string, previous: string | null): stri
   }
   return previous === 'RESOLVED' ? 'Rechute' : 'Remise en cours';
 }
+
+/** Readings the trend fits, newest first: older ones describe a different phase of the zone. */
+export const TREND_READINGS = 5;
+/** Below this many points of change across the readings fitted, the zone is stable. */
+const TREND_MIN_CHANGE = 1;
+
+export type ZoneTrend = 'improving' | 'worsening' | 'stable';
+
+export const ZONE_TREND_LABELS: Record<ZoneTrend, string> = {
+  improving: 'en amélioration',
+  worsening: 'en aggravation',
+  stable: 'stable',
+};
+
+/**
+ * The direction of the last readings, from a least-squares slope over up to five of them (by
+ * reading order, the dates being irregular). The last two alone flipped on one bad morning: 3,
+ * 4, 3, 4 read « en aggravation » every other day. Null below two readings.
+ */
+export function zoneSeverityTrend(
+  checkins: readonly Pick<ZoneCheckin, 'severity'>[],
+): ZoneTrend | null {
+  const readings = checkins
+    .map((checkin) => checkin.severity)
+    .filter((severity): severity is number => severity !== null && severity !== undefined)
+    .slice(0, TREND_READINGS)
+    .reverse();
+  if (readings.length < 2) {
+    return null;
+  }
+  const n = readings.length;
+  const meanX = (n - 1) / 2;
+  const meanY = readings.reduce((sum, value) => sum + value, 0) / n;
+  let covariance = 0;
+  let variance = 0;
+  readings.forEach((value, x) => {
+    covariance += (x - meanX) * (value - meanY);
+    variance += (x - meanX) ** 2;
+  });
+  const change = (covariance / variance) * (n - 1);
+  if (change >= TREND_MIN_CHANGE) {
+    return 'worsening';
+  }
+  return change <= -TREND_MIN_CHANGE ? 'improving' : 'stable';
+}

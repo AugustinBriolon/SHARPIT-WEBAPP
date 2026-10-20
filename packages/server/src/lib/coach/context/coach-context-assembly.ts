@@ -27,9 +27,14 @@ import {
 import {
   FUNCTIONAL_IMPACT_LABELS,
   ZONE_STRATEGY_LABELS,
+  ZONE_TREND_LABELS,
+  zoneSeverityTrend,
   zoneStrategy,
 } from '@sharpit/app/lib/physical-health/zone-follow-up';
-import type { TrainingZone } from '@sharpit/app/lib/physical-health/zone-training-rules';
+import {
+  formatZoneTrainingRules,
+  type TrainingZone,
+} from '@sharpit/app/lib/physical-health/zone-training-rules';
 import { runEnergyBankModel } from '@sharpit/core/inference/energy-bank/model';
 import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/snapshot-service';
 import { listTravelContexts } from '@sharpit/server/lib/travel-context/service';
@@ -181,7 +186,7 @@ type HealthEntry = Awaited<ReturnType<typeof getHealthEntries>>[number];
 const HEALTH_AVERAGE_DAYS = 7;
 
 function buildHealthAverages(entries: readonly HealthEntry[], todayKey: string) {
-  const since = dayKeyFromDate(subDays(parseISO(todayKey), HEALTH_AVERAGE_DAYS - 1));
+  const since = format(subDays(parseISO(todayKey), HEALTH_AVERAGE_DAYS - 1), 'yyyy-MM-dd');
   // Seven calendar days, not seven rows: with gaps in syncing, seven rows can span a month.
   const window = entries.filter((h) => {
     const key = dayKeyFromDate(h.date);
@@ -283,31 +288,45 @@ const TREND_LABELS: Record<string, string> = {
   STABLE: 'stable',
 };
 
+/** The direction of a zone's last readings (`zoneSeverityTrend`), in the prompt's words. */
 export function legacyPhysicalTrend(
   checkins: Awaited<ReturnType<typeof getTrainingZoneNotes>>[number]['checkins'],
 ): string | null {
-  // Status changes carry no reading: the trend compares the last two readings only.
-  const readings = checkins.filter((checkin) => isSet(checkin.severity));
-  if (readings.length < 2) {
-    return null;
-  }
-  const last = readings[0]?.severity;
-  const prev = readings[1]?.severity;
-  if (!isSet(last) || !isSet(prev)) {
-    return null;
-  }
-  if (last < prev) {
-    return 'en amélioration';
-  }
-  if (last > prev) {
-    return 'en aggravation';
-  }
-  return 'stable';
+  const trend = zoneSeverityTrend(checkins);
+  return trend ? ZONE_TREND_LABELS[trend] : null;
 }
 
 type PhysicalNotes = Awaited<ReturnType<typeof getTrainingZoneNotes>>;
+type DailyStress = Awaited<ReturnType<typeof loadDailyTrainingStressEntries>>;
 
-function declaredPhysicalEntry(note: PhysicalNotes[number], now: Date) {
+/** The newest reading higher than the one before it: when the zone last got worse. */
+function lastFlare(checkins: PhysicalNotes[number]['checkins']): Date | null {
+  const readings = checkins.filter((checkin) => isSet(checkin.severity));
+  const index = readings.findIndex(
+    (checkin, i) => i + 1 < readings.length && checkin.severity! > readings[i + 1]!.severity!,
+  );
+  return index === -1 ? null : readings[index]!.date;
+}
+
+/**
+ * The load of the seven days before the zone last got worse, against the athlete's usual week.
+ * The coach could see a knee worsen but not that it followed the biggest week of the block.
+ */
+export function flareLoadNote(
+  checkins: PhysicalNotes[number]['checkins'],
+  dailyStress: DailyStress,
+): string | null {
+  const flare = lastFlare(checkins);
+  if (!flare || dailyStress.length === 0) {
+    return null;
+  }
+  const { weeklyLoad, acwr } = computeTrainingLoad(dailyStress, subDays(flare, 1));
+  const usual = acwr > 0 ? Math.round(weeklyLoad / acwr) : null;
+  const when = format(flare, 'd MMM', { locale: fr });
+  return `charge des 7 j avant la hausse du ${when} : ${weeklyLoad} TSS${isSet(usual) ? ` (semaine habituelle ~${usual})` : ''}`;
+}
+
+function declaredPhysicalEntry(note: PhysicalNotes[number], now: Date, dailyStress: DailyStress) {
   return {
     type: note.category as string,
     category: categoryLabels[note.category],
@@ -323,6 +342,7 @@ function declaredPhysicalEntry(note: PhysicalNotes[number], now: Date) {
       : null,
     confidence: null as number | null,
     strategy: ZONE_STRATEGY_LABELS[zoneStrategy(note, now)] as string | null,
+    flareLoad: flareLoadNote(note.checkins, dailyStress),
     source: 'declared' as const,
   };
 }
@@ -340,10 +360,11 @@ export function buildPhysicalContext(
   athleteSnapshot: Awaited<ReturnType<typeof getOrBuildAthleteSnapshot>>,
   physicalNotes: PhysicalNotes,
   now = new Date(),
+  dailyStress: DailyStress = [],
 ) {
   const declared = physicalNotes.filter((note) => note.status !== 'RESOLVED');
   if (declared.length > 0) {
-    return declared.map((note) => declaredPhysicalEntry(note, now));
+    return declared.map((note) => declaredPhysicalEntry(note, now, dailyStress));
   }
 
   return (
@@ -362,6 +383,7 @@ export function buildPhysicalContext(
         functionalCapacity: c.functionalCapacity as string | null,
         confidence: c.confidence as number | null,
         strategy: null as string | null,
+        flareLoad: null as string | null,
         source: 'inferred' as const,
       })) ?? []
   );
@@ -735,7 +757,7 @@ export function assembleCoachContextPayload(
     goals,
   );
   const environment = buildCoachEnvironment(profile, athleteSnapshot, homeWeather);
-  const physical = buildPhysicalContext(athleteSnapshot, physicalNotes, refDate);
+  const physical = buildPhysicalContext(athleteSnapshot, physicalNotes, refDate, dailyStress);
   const trainingZones = buildTrainingZones(physicalNotes);
   const { travel, constraints, durableMemory } = buildTravelMemory(travelContexts, refDate);
   const { fatigue, adaptation, decision } = buildCoachIntelligence(athleteSnapshot);
@@ -750,6 +772,8 @@ export function assembleCoachContextPayload(
     durableMemory,
     physical,
     trainingZones,
+    /** What to do with each declared zone (ADR-068), the same block for chat, briefing and plans. */
+    zoneTrainingRules: formatZoneTrainingRules(trainingZones, refDate),
     fatigue,
     adaptation,
     decision,

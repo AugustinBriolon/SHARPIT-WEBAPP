@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { sensitiveZonesFrom } from '@sharpit/app/lib/physical-health/sensitive-zones';
 import { normalizeAthleteEquipment } from '@sharpit/app/lib/equipment/parse';
 import { normalizeTrainingAvailability } from '@sharpit/server/lib/training-availability/parse';
-import { buildHealthFromEntries } from './coach-context-assembly';
+import { buildHealthFromEntries, flareLoadNote } from './coach-context-assembly';
 import {
   athleteCalendarMoment,
   buildPhysicalContext,
@@ -106,6 +106,7 @@ function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
     constraints: [],
     durableMemory: [],
     physical: [],
+    zoneTrainingRules: '',
     fatigue: null,
     adaptation: null,
     decision: null,
@@ -604,5 +605,37 @@ describe('coach context data reliability', () => {
     expect(text).not.toMatch(/undefined|NaN|null\b/);
     expect(text).not.toContain('confiance 0%');
     expect(text).toContain('sévérité déclarée 4/10');
+  });
+});
+
+describe('coach context — zones over time', () => {
+  it('sends the per-zone rules with the context, so chat and briefing read them too', () => {
+    const block = '\n## Zones en reprise progressive\n- Genou — zone Genou';
+    const text = formatCoachContext(minimalContext({ zoneTrainingRules: block }));
+    expect(text).toContain('## Zones en reprise progressive');
+    expect(formatCoachContext(minimalContext({ zoneTrainingRules: '' }))).not.toContain('## Zones');
+  });
+
+  it('names the load of the week before the zone last got worse', () => {
+    const checkins = [
+      { date: new Date('2026-08-08T08:00:00Z'), severity: 6 },
+      { date: new Date('2026-08-01T08:00:00Z'), severity: 3 },
+    ] as never;
+    // From 1 July: 30 TSS/day, then 70 TSS/day from 1 to 7 August, the week before the flare.
+    const stress = Array.from({ length: 38 }, (_, i) => ({
+      load: i >= 31 ? 70 : 30,
+      date: new Date(Date.UTC(2026, 6, 1 + i, 12)),
+    }));
+    const note = flareLoadNote(checkins, stress);
+    expect(note).toContain('charge des 7 j avant la hausse du 8 août : 490 TSS');
+    expect(note).toMatch(/semaine habituelle ~\d+/);
+  });
+
+  it('says nothing when the zone never got worse', () => {
+    const improving = [
+      { date: new Date('2026-08-08'), severity: 2 },
+      { date: new Date('2026-08-01'), severity: 5 },
+    ] as never;
+    expect(flareLoadNote(improving, [{ load: 50, date: new Date('2026-08-05') }])).toBeNull();
   });
 });
