@@ -4,7 +4,9 @@
  * text (`coach-context-format`). This module is the entry point, with a short-lived cache.
  */
 import { format, startOfDay } from 'date-fns';
+import { trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { loadCoachContextSources } from '@sharpit/server/lib/coach/context/coach-context-sources';
+import { resolveAthleteTrainingDayTimeZone } from '@sharpit/server/lib/journal/wellness-checkin';
 import {
   assembleCoachContextPayload,
   type CoachContextData,
@@ -68,21 +70,42 @@ export async function buildCoachContext(
   return value;
 }
 
+/** The hour on the athlete's clock. */
+function localHour(date: Date, timeZone: string): number {
+  const hour = new Intl.DateTimeFormat('en-GB', { timeZone, hour: '2-digit', hour12: false })
+    .formatToParts(date)
+    .find((part) => part.type === 'hour')?.value;
+  return Number(hour ?? date.getHours()) % 24;
+}
+
+/**
+ * The athlete's day and hour, not the server's: the server runs in UTC, so between midnight and
+ * 02:00 in Paris the coach read « today » as yesterday, and the hour two hours early.
+ */
+export function athleteCalendarMoment(refDate: Date, timeZone: string) {
+  const trainingDayId = trainingDayIdForNow({ timezone: timeZone }, refDate);
+  return {
+    trainingDayId,
+    today: new Date(`${trainingDayId}T00:00:00`),
+    hourOfDay: localHour(refDate, timeZone),
+  };
+}
+
 async function buildCoachContextUncached(
   athleteId: string,
   refDate: Date = new Date(),
   options?: BuildCoachContextOptions,
 ) {
   const includeScenario = options?.includeScenario === true;
-  const today = startOfDay(refDate);
-  const trainingDayId = format(today, 'yyyy-MM-dd');
+  const timeZone = await resolveAthleteTrainingDayTimeZone(athleteId);
+  const { today, trainingDayId, hourOfDay } = athleteCalendarMoment(refDate, timeZone);
   const sources = await loadCoachContextSources({
     athleteId,
     today,
     trainingDayId,
     includeScenario,
   });
-  return assembleCoachContextPayload(today, sources, refDate);
+  return assembleCoachContextPayload(today, sources, refDate, hourOfDay);
 }
 
 export type CoachContext = Awaited<ReturnType<typeof buildCoachContext>>;

@@ -205,7 +205,7 @@ export function buildDeterministicBriefingFallback(
   coachCtx: CoachContext,
 ): string {
   const lines: string[] = [
-    buildReadinessLine(coachCtx.health.readinessToday, coachCtx.fitness.tsb),
+    buildReadinessLine(coachCtx.health.readinessToday, coachCtx.fitness?.tsb ?? null),
     buildSessionLine(dayCtx),
   ];
 

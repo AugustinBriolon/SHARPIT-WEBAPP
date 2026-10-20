@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import { sensitiveZonesFrom } from '@sharpit/app/lib/physical-health/sensitive-zones';
 import { normalizeAthleteEquipment } from '@sharpit/app/lib/equipment/parse';
 import { normalizeTrainingAvailability } from '@sharpit/server/lib/training-availability/parse';
+import { buildHealthFromEntries } from './coach-context-assembly';
 import {
+  athleteCalendarMoment,
   buildPhysicalContext,
   formatConstraintsSection,
   formatDecisionSection,
@@ -78,6 +80,7 @@ function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
       avgHrv: null,
       avgRestingHr: null,
       avgReadiness: null,
+      lastReadingDay: null,
     },
     primaryRace: null,
     races: [],
@@ -474,5 +477,132 @@ describe('formatCoachContext race roles (ADR-084)', () => {
     expect(text).toContain('Objectif principal (A), cible du plan');
     expect(text).toContain('Course étape (B) : ⟦Triathlon L⟧ le 18 avril 2027');
     expect(text).toContain('Mini-affûtage');
+  });
+});
+
+type HealthRow = Parameters<typeof buildHealthFromEntries>[0][number];
+
+function healthRow(day: string, overrides: Partial<HealthRow> = {}): HealthRow {
+  return {
+    date: new Date(`${day}T00:00:00Z`),
+    recoveryScore: 60,
+    readinessLevel: null,
+    hrvStatus: null,
+    bodyBattery: 50,
+    stress: 30,
+    sleepMinutes: 420,
+    hrv: 50,
+    restingHr: 50,
+    ...overrides,
+  } as HealthRow;
+}
+
+describe('coach context data reliability', () => {
+  it('never passes an older row off as today’s readiness', () => {
+    const health = buildHealthFromEntries(
+      [healthRow('2026-08-07', { recoveryScore: 82 })],
+      '2026-08-10',
+      9,
+    );
+    expect(health.readinessToday).toBeNull();
+    expect(health.bodyBattery).toBeNull();
+    expect(health.energyBank).toBeNull();
+    expect(health.lastReadingDay).toBe('2026-08-07');
+
+    const text = formatCoachContext(minimalContext({ health }));
+    expect(text).not.toContain('Readiness du jour');
+    expect(text).toContain("Pas encore de mesure montre aujourd'hui (dernière le 2026-08-07)");
+  });
+
+  it('reads today’s row as today', () => {
+    const health = buildHealthFromEntries(
+      [healthRow('2026-08-10', { recoveryScore: 74 }), healthRow('2026-08-09')],
+      '2026-08-10',
+      9,
+    );
+    expect(health.readinessToday).toBe(74);
+    expect(health.lastReadingDay).toBeNull();
+  });
+
+  it('averages seven calendar days, not the last seven rows', () => {
+    const health = buildHealthFromEntries(
+      [
+        healthRow('2026-08-10', { sleepMinutes: 400 }),
+        healthRow('2026-08-08', { sleepMinutes: 440 }),
+        // Three weeks old: outside « moy 7j » even though it is the third row.
+        healthRow('2026-07-20', { sleepMinutes: 200 }),
+      ],
+      '2026-08-10',
+      9,
+    );
+    expect(health.avgSleepMin).toBe(420);
+  });
+
+  it('places the coach on the athlete’s calendar day and hour, not the server’s', () => {
+    // 23:30 UTC on 9 Aug is 01:30 on 10 Aug in Paris.
+    const moment = athleteCalendarMoment(new Date('2026-08-09T23:30:00Z'), 'Europe/Paris');
+    expect(moment.trainingDayId).toBe('2026-08-10');
+    expect(moment.hourOfDay).toBe(1);
+  });
+
+  it('says the form curve is missing instead of writing zeros', () => {
+    const text = formatCoachContext(
+      minimalContext({
+        fitness: null,
+        load: {
+          dailyLoad: 0,
+          weeklyLoad: 0,
+          acwr: 0,
+          fatigue: 'Low',
+          loadMonotony: null,
+          loadStrain: null,
+        },
+      }),
+    );
+    expect(text).not.toMatch(/CTL 0|TSB 0|ratio aigu\/chronique 0/);
+    expect(text).toContain('Pas encore de courbe de forme');
+    expect(text).toContain('non calculable');
+  });
+
+  it('writes no empty title, no undefined, no NaN in a realistic context', () => {
+    const text = formatCoachContext(
+      minimalContext({
+        recent: [
+          {
+            date: 'dim. 9 août',
+            dateIso: '2026-08-09',
+            relativeDay: 'hier',
+            type: 'Course',
+            title: '',
+            duration: '45 min',
+            load: null,
+            rpe: null,
+            feeling: null,
+            detail: '',
+          },
+        ],
+        decision: baseDecision({ confidence: null as unknown as number }),
+        physical: buildPhysicalContext({ physicalHealth: null } as never, [
+          {
+            category: 'PAIN',
+            status: 'MONITORING',
+            title: 'Genou',
+            bodyPart: 'Genou',
+            side: 'RIGHT',
+            severity: 4,
+            description: null,
+            functionalImpact: null,
+            affectsTraining: true,
+            resolvedAt: null,
+            startDate: new Date('2026-08-01'),
+            checkins: [],
+          } as never,
+        ]),
+      }),
+    );
+    expect(text).not.toContain('⟦⟧');
+    expect(text).not.toMatch(/undefined|NaN|null\b/);
+    expect(text).not.toContain('confiance 0%');
+    expect(text).toContain('sévérité déclarée 4/10');
   });
 });

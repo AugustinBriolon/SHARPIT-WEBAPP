@@ -35,6 +35,11 @@ import {
 
 type CoachContext = CoachContextData;
 
+/** « ⟦Tempo⟧ » after a space, or nothing: an empty title read as an empty delimiter pair. */
+function titlePart(title: string | null | undefined): string {
+  return title?.trim() ? ` ${athleteText(title)}` : '';
+}
+
 const CONSISTENCY_FR: Record<string, string> = {
   ALIGNED: 'Alignés',
   PARTIALLY_ALIGNED: 'Partiellement alignés',
@@ -88,7 +93,7 @@ function formatPrescriptiveDecisionLines(d: NonNullable<CoachContext['decision']
   const tag = verdictTagForCoach(d.verdict);
   const instruction = verdictInstructionForCoach(d.verdict);
   const lines: string[] = [
-    `Verdict : ${tag} (${d.verdict}) · confiance ${Math.round((d.confidence ?? 0) * 100)}% (${d.confidenceTier ?? '—'}).`,
+    `Verdict : ${tag} (${d.verdict})${isSet(d.confidence) ? ` · confiance ${Math.round(d.confidence * 100)}%` : ''} (${d.confidenceTier ?? '—'}).`,
   ];
   if (instruction) {
     lines.push(`Instruction carte : ${instruction}`);
@@ -401,7 +406,14 @@ function healthSummaryBits(health: CoachContext['health']): string[] {
 
 function formatHealthSection(health: CoachContext['health']): string[] {
   const healthBits = healthSummaryBits(health);
-  return healthBits.length ? [`\n## Récupération\n${healthBits.join(' · ')}.`] : [];
+  const stale = health.lastReadingDay
+    ? [
+        `Pas encore de mesure montre aujourd'hui (dernière le ${health.lastReadingDay}) : ne cite aucune readiness, HRV ou Body Battery « du jour », demande comment l'athlète se sent.`,
+      ]
+    : [];
+  return healthBits.length || stale.length
+    ? [`\n## Récupération${healthBits.length ? `\n${healthBits.join(' · ')}.` : ''}`, ...stale]
+    : [];
 }
 
 /** What the athlete logged eating today, so a fuelling question reads the plate (ADR-061). */
@@ -473,7 +485,7 @@ function formatRecentActivityLine(a: CoachContext['recent'][number]): string {
   ]
     .filter(Boolean)
     .join(' · ');
-  return `- ${a.date}${a.relativeDay ? ` (${a.relativeDay})` : ''} · ${a.type} ${athleteText(a.title)} (${a.duration})${extra ? ` — ${extra}` : ''}`;
+  return `- ${a.date}${a.relativeDay ? ` (${a.relativeDay})` : ''} · ${a.type}${titlePart(a.title)} (${a.duration})${extra ? ` — ${extra}` : ''}`;
 }
 
 /** One activity in the « Séances récentes » line format. */
@@ -503,7 +515,9 @@ function formatPhysicalSection(physical: CoachContext['physical']): string[] {
       const bits = [
         `${p.category} : ${athleteText(p.title)}`,
         p.bodyPart ? `zone ${athleteText(p.bodyPart)}${p.side ? ` (${p.side})` : ''}` : null,
-        isSet(p.severity) ? `sévérité inférée ${p.severity}/10` : null,
+        isSet(p.severity)
+          ? `sévérité ${p.source === 'inferred' ? 'inférée' : 'déclarée'} ${p.severity}/10`
+          : null,
         `statut ${p.status}`,
         p.strategy ? `conduite ${p.strategy}` : null,
         p.trend ? `tendance ${p.trend}` : null,
@@ -567,10 +581,25 @@ function formatActivityStatusSection(activityStatus: CoachContext['activityStatu
   return lines;
 }
 
+function formatPmcLine(fitness: CoachContext['fitness']): string {
+  return fitness
+    ? `Forme/Fitness CTL ${fitness.ctl} · Fatigue ATL ${fitness.atl} · Fraîcheur TSB ${fitness.tsb}.`
+    : 'Pas encore de courbe de forme (historique d’activités insuffisant) : ne cite ni CTL, ni ATL, ni TSB.';
+}
+
+/** An ACWR of 0 means no chronic load yet, not an athlete at rest. */
+function formatLoadLine(load: CoachContext['load']): string {
+  const ratio =
+    load.acwr > 0
+      ? `ratio aigu/chronique ${load.acwr} · fatigue ${load.fatigue}`
+      : 'ratio aigu/chronique non calculable (moins de 4 semaines de charge)';
+  return `Charge 7j : ${load.weeklyLoad} · ${ratio}.`;
+}
+
 function formatPmcSection(ctx: CoachContext): string[] {
   return [
-    `\n## État de forme (PMC)\nForme/Fitness CTL ${ctx.fitness.ctl} · Fatigue ATL ${ctx.fitness.atl} · Fraîcheur TSB ${ctx.fitness.tsb}.`,
-    `Charge 7j : ${ctx.load.weeklyLoad} · ratio aigu/chronique ${ctx.load.acwr} · fatigue ${ctx.load.fatigue}.`,
+    `\n## État de forme (PMC)\n${formatPmcLine(ctx.fitness)}`,
+    formatLoadLine(ctx.load),
     'Interprétation TSB : >5 frais, -10..5 neutre, <-10 fatigué, <-30 surcharge.',
     DAY_LOAD_VS_STATUS_COACH_LINE,
   ];
@@ -609,7 +638,7 @@ function formatRealizedSessionsSection(
     '\n## Exécution des séances prévues récentes (prévu vs réalisé)',
     ...realizedSessions.map(
       (r) =>
-        `- ${r.date} · ${r.type} ${athleteText(r.title)} → conformité ${r.score ?? '?'}/100${r.verdict ? ` (${r.verdict})` : ''}${r.summary ? ` — ${r.summary}` : ''}`,
+        `- ${r.date} · ${r.type}${titlePart(r.title)} → conformité ${r.score ?? '?'}/100${r.verdict ? ` (${r.verdict})` : ''}${r.summary ? ` — ${r.summary}` : ''}`,
     ),
   ];
 }
@@ -663,7 +692,7 @@ function formatUpcomingPlannedSection(upcomingPlanned: CoachContext['upcomingPla
       ]
         .filter(Boolean)
         .join(' ');
-      return `- id=${p.id} · ${p.dateIso} (${p.date}) · ${p.type} ${athleteText(p.title)}${extras ? ` ${extras}` : ''}`;
+      return `- id=${p.id} · ${p.dateIso} (${p.date}) · ${p.type}${titlePart(p.title)}${extras ? ` ${extras}` : ''}`;
     }),
   ];
 }

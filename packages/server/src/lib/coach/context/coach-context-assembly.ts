@@ -2,7 +2,7 @@
  * The coach context's data: the sources read into the athlete's state, section by section.
  * Pure: no I/O, the sources come in loaded.
  */
-import { differenceInCalendarDays, format, startOfDay, subDays } from 'date-fns';
+import { differenceInCalendarDays, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { isSet } from '@sharpit/shared/value';
 import { fr } from 'date-fns/locale';
 import {
@@ -175,47 +175,37 @@ function averageNumeric(vals: (number | null | undefined)[]): number | null {
   return ok.length ? Math.round(ok.reduce((s, v) => s + v, 0) / ok.length) : null;
 }
 
-function buildHealthAverages(last7: Awaited<ReturnType<typeof getHealthEntries>>) {
+type HealthEntry = Awaited<ReturnType<typeof getHealthEntries>>[number];
+
+/** Window of the « moy 7j » averages, in calendar days ending today. */
+const HEALTH_AVERAGE_DAYS = 7;
+
+function buildHealthAverages(entries: readonly HealthEntry[], todayKey: string) {
+  const since = dayKeyFromDate(subDays(parseISO(todayKey), HEALTH_AVERAGE_DAYS - 1));
+  // Seven calendar days, not seven rows: with gaps in syncing, seven rows can span a month.
+  const window = entries.filter((h) => {
+    const key = dayKeyFromDate(h.date);
+    return key >= since && key <= todayKey;
+  });
   return {
-    avgSleepMin: averageNumeric(last7.map((h) => h.sleepMinutes)),
-    avgHrv: averageNumeric(last7.map((h) => h.hrv)),
-    avgRestingHr: averageNumeric(last7.map((h) => h.restingHr)),
-    avgReadiness: averageNumeric(last7.map((h) => h.recoveryScore)),
+    avgSleepMin: averageNumeric(window.map((h) => h.sleepMinutes)),
+    avgHrv: averageNumeric(window.map((h) => h.hrv)),
+    avgRestingHr: averageNumeric(window.map((h) => h.restingHr)),
+    avgReadiness: averageNumeric(window.map((h) => h.recoveryScore)),
   };
 }
 
-function buildTodayReadinessFields(
-  todayHealth: Awaited<ReturnType<typeof getHealthEntries>>[number] | undefined,
+/**
+ * Today's readings, from today's row only. The newest row used to stand in for today, so a
+ * watch that had not synced since Monday gave the coach Monday's readiness as « du jour ».
+ */
+export function buildHealthFromEntries(
+  healthEntries: readonly HealthEntry[],
+  todayKey: string,
+  hourOfDay: number,
 ) {
-  return {
-    readinessToday: todayHealth?.recoveryScore ?? null,
-    readinessLevel: todayHealth?.readinessLevel ?? null,
-  };
-}
-
-function buildTodayAutonomicFields(
-  todayHealth: Awaited<ReturnType<typeof getHealthEntries>>[number] | undefined,
-) {
-  // Callers: coach discuss/adapt. API: coach context prompt. User: implement Bevel gaps plan.
-  return {
-    hrvStatus: todayHealth?.hrvStatus ?? null,
-    bodyBattery: todayHealth?.bodyBattery ?? null,
-    stress: todayHealth?.stress ?? null,
-  };
-}
-
-function buildTodayHealthFields(
-  todayHealth: Awaited<ReturnType<typeof getHealthEntries>>[number] | undefined,
-) {
-  return {
-    ...buildTodayReadinessFields(todayHealth),
-    ...buildTodayAutonomicFields(todayHealth),
-  };
-}
-
-function buildHealthFromEntries(healthEntries: Awaited<ReturnType<typeof getHealthEntries>>) {
-  const last7 = healthEntries.slice(0, 7);
-  const [today] = healthEntries;
+  const [latest] = healthEntries;
+  const today = latest && dayKeyFromDate(latest.date) === todayKey ? latest : undefined;
   const energyBank = today
     ? runEnergyBankModel({
         readinessScore: today.recoveryScore ?? null,
@@ -223,12 +213,18 @@ function buildHealthFromEntries(healthEntries: Awaited<ReturnType<typeof getHeal
         strainScore: null,
         stress: today.stress ?? null,
         previousClose: null,
-        hourOfDay: new Date().getHours(),
+        hourOfDay,
       }).value
     : null;
   return {
-    ...buildTodayHealthFields(today),
-    ...buildHealthAverages(last7),
+    readinessToday: today?.recoveryScore ?? null,
+    readinessLevel: today?.readinessLevel ?? null,
+    hrvStatus: today?.hrvStatus ?? null,
+    bodyBattery: today?.bodyBattery ?? null,
+    stress: today?.stress ?? null,
+    /** The newest row's day when it is not today: the coach says the watch has not synced. */
+    lastReadingDay: latest && !today ? dayKeyFromDate(latest.date) : null,
+    ...buildHealthAverages(healthEntries, todayKey),
     energyBank,
   };
 }
@@ -619,9 +615,10 @@ function buildFitnessContext(
   dailyStress: Awaited<ReturnType<typeof loadDailyTrainingStressEntries>>,
   refDate: Date,
 ) {
+  // Null without an anchor: zeros read as a real, neutral form (TSB 0) to the coach.
   const fitness = anchor
     ? { ctl: Math.round(anchor.ctl), atl: Math.round(anchor.atl), tsb: Math.round(pmcTsb(anchor)) }
-    : { ctl: 0, atl: 0, tsb: 0 };
+    : null;
   return { fitness, load: computeTrainingLoad(dailyStress, refDate) };
 }
 
@@ -659,11 +656,12 @@ function coachProfileInventories(profile: CoachContextSources[5]) {
 
 function assembleCoachProfileSections(
   today: Date,
+  hourOfDay: number,
   profile: CoachContextSources[5],
   healthEntries: CoachContextSources[1],
   goals: CoachContextSources[2],
 ) {
-  const health = buildHealthFromEntries(healthEntries);
+  const health = buildHealthFromEntries(healthEntries, format(today, 'yyyy-MM-dd'), hourOfDay);
   const { primaryRace, races, metricGoals } = buildGoalsContext(goals, today);
   return {
     // ISO in parentheses so tools like logFoods can resolve « hier » / relative days precisely.
@@ -707,6 +705,7 @@ export function assembleCoachContextPayload(
   today: Date,
   sources: CoachContextSources,
   refDate: Date,
+  hourOfDay: number = refDate.getHours(),
 ) {
   const [
     activities,
@@ -728,7 +727,13 @@ export function assembleCoachContextPayload(
 
   const { fitness, load } = buildFitnessContext(anchor, dailyStress, refDate);
   const activitySections = assembleCoachActivitySections(today, activities, planned, pastPlanned);
-  const profileSections = assembleCoachProfileSections(today, profile, healthEntries, goals);
+  const profileSections = assembleCoachProfileSections(
+    today,
+    hourOfDay,
+    profile,
+    healthEntries,
+    goals,
+  );
   const environment = buildCoachEnvironment(profile, athleteSnapshot, homeWeather);
   const physical = buildPhysicalContext(athleteSnapshot, physicalNotes, refDate);
   const trainingZones = buildTrainingZones(physicalNotes);
