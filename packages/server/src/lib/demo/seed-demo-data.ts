@@ -486,11 +486,6 @@ async function seedDemoIntegrationStubs(prisma: PrismaClient, athleteId: string)
     },
     update: { displayName: 'Athlète Démo' },
   });
-  await prisma.myFitnessPalAccount.upsert({
-    where: { athleteId },
-    create: { athleteId, sessionTokenEnc: '', displayName: 'Athlète Démo' },
-    update: { displayName: 'Athlète Démo' },
-  });
 }
 
 async function purgeDemoAthleteRecords(prisma: PrismaClient, athleteId: string): Promise<void> {

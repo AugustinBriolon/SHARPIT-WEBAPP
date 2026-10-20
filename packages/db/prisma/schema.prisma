@@ -409,7 +409,6 @@ model AthleteProfile {
   googleAccount               GoogleAccount?
   renphoAccount               RenphoAccount?
   withingsAccount             WithingsAccount?
-  myFitnessPalAccount         MyFitnessPalAccount?
   calendarBusySnapshots       CalendarBusySnapshot[]
   foodLogEntries              FoodLogEntry[]
   customFoods                 FoodProduct[]
@@ -613,17 +612,6 @@ model WithingsAccount {
   accessTokenEnc  String
   refreshTokenEnc String
   expiresAt       DateTime
-  displayName     String?
-  lastSyncAt      DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model MyFitnessPalAccount {
-  athleteId       String         @id
-  athlete         AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
-  sessionTokenEnc String
   displayName     String?
   lastSyncAt      DateTime?
 

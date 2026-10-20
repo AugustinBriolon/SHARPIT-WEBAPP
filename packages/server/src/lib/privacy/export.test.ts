@@ -30,7 +30,6 @@ vi.mock('@sharpit/db/client', () => ({
     googleAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
     renphoAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
     withingsAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
-    myFitnessPalAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
   },
 }));
 

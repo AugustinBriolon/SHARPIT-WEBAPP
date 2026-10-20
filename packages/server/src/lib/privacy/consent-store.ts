@@ -87,18 +87,17 @@ export async function athleteNeedsLegalConsent(athleteId: string): Promise<boole
  * audits / UI copy for athletes who already hold Art. 9 data.
  */
 export async function athleteHasExistingHealthContext(athleteId: string): Promise<boolean> {
-  const [garmin, withings, renpho, mfp, dailyHealth, body, nutrition] = await Promise.all([
+  const [garmin, withings, renpho, dailyHealth, body, nutrition] = await Promise.all([
     prisma.garminAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.withingsAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.renphoAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
-    prisma.myFitnessPalAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.dailyHealth.findFirst({ where: { athleteId }, select: { id: true } }),
     prisma.bodyCompositionMeasurement.findFirst({ where: { athleteId }, select: { id: true } }),
     prisma.dailyNutrition.findFirst({ where: { athleteId }, select: { id: true } }),
   ]);
 
   return hasExistingHealthProcessingContext({
-    hasHealthProviderAccount: Boolean(garmin || withings || renpho || mfp),
+    hasHealthProviderAccount: Boolean(garmin || withings || renpho),
     hasHealthObservationRows: Boolean(dailyHealth || body || nutrition),
   });
 }

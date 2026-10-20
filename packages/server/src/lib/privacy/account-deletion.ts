@@ -42,10 +42,6 @@ export async function clearAthleteProviderCredentials(athleteId: string): Promis
       where: { athleteId },
       data: { passwordEnc: '' },
     }),
-    prisma.myFitnessPalAccount.updateMany({
-      where: { athleteId },
-      data: { sessionTokenEnc: '' },
-    }),
   ]);
 }
 

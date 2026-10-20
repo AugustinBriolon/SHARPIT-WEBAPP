@@ -96,11 +96,6 @@ async function seedFreshConnectionStubs(athleteId: string): Promise<void> {
     },
     update: { email: 'capture@sharpit.local', passwordEnc, displayName: 'Athlète Capture' },
   });
-  await prisma.myFitnessPalAccount.upsert({
-    where: { athleteId },
-    create: { athleteId, sessionTokenEnc, displayName: 'Athlète Capture' },
-    update: { sessionTokenEnc, displayName: 'Athlète Capture' },
-  });
 
   // Drop any other provider rows that would show as expired without tokens.
   await Promise.all([
