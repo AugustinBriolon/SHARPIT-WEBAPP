@@ -93,6 +93,7 @@
 | [ADR-090](./ADR-090-athlete-text-delimiting-and-request-bounds.md)                      | Athlete-written text delimited in prompts (⟦ ⟧ + rule); list reads clamped; client goalId must be own                          | Accepted                          |
 | [ADR-096](./ADR-096-server-copy-follows-the-athletes-language.md)                       | App requests and athlete pushes in the athlete's language: locale context, French-keyed English at the boundary, LLM directive | Accepted                          |
 | [ADR-097](./ADR-097-free-is-the-athletes-data-coaching-is-pro-only.md)                  | Free is the athlete's data; every AI coaching surface is Pro-only; onboarding ends on a blurred first week and the paywall     | Accepted                          |
+| [ADR-098](./ADR-098-journal-associations-adjust-for-load-and-chance.md)                 | Journal associations: next-morning lag, load-adjusted outcomes, Mann–Whitney + Benjamini–Hochberg, inseparable habits merged   | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

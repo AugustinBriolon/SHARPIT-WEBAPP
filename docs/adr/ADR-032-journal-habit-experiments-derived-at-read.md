@@ -4,7 +4,7 @@
 **Date:** 2026-09-10  
 **Author:** Augustin Briolon (with Claude Code)  
 **Supersedes:** N/A  
-**Related:** [ADR-030](./ADR-030-coach-discuss-context-as-message-metadata.md)
+**Related:** [ADR-030](./ADR-030-coach-discuss-context-as-message-metadata.md), [ADR-098](./ADR-098-journal-associations-adjust-for-load-and-chance.md) (associations now carry a test statistic and a load adjustment)
 
 ---
 
