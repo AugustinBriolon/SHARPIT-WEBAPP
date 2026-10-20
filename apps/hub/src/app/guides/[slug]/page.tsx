@@ -159,7 +159,7 @@ export default async function GuidePage({ params }: Props) {
 
         {/* CTA Banner */}
         <SeoCtaBanner
-          subtitle="Découvrez comment SharpIt répare votre planning d’entraînement en 1 clic grâce à 13 garde-fous stricts."
+          subtitle="Découvrez comment SharpIt répare votre planning d’entraînement en 1 clic grâce à 14 garde-fous stricts."
           title="Ne laissez plus jamais un imprévu gâcher votre préparation."
         />
       </main>

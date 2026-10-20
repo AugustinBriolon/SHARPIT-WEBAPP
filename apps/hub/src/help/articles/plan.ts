@@ -52,27 +52,28 @@ Le badge **Clé** apparaît dans le Plan, dans le Résumé et sur les propositio
     },
     {
       slug: 'garde-fous',
-      title: 'Les treize garde-fous du plan',
+      title: 'Les quatorze garde-fous du plan',
       summary:
-        'Le coach rédige, des règles fixes vérifient. Chaque séance proposée passe treize contrôles avant d’arriver dans ton plan.',
+        'Le coach rédige, des règles fixes vérifient. Chaque séance proposée passe quatorze contrôles avant d’arriver dans ton plan.',
       body: `
 Une proposition n’est jamais modifiée en silence : elle passe, elle est signalée, elle attend ta confirmation, ou elle est retirée.
 
-### Les treize contrôles
+### Les quatorze contrôles
 
 1. Compatible avec le verdict du jour **et** son [niveau de confiance](/aide/methode/niveau-de-confiance) (confiance faible ou insuffisante : la séance est retirée)
 2. Respecte ton état physique
 3. Ne charge pas une zone à protéger
-4. Charge de la semaine tenable
-5. Deux à trois séances intenses par semaine, pas plus
-6. Séances intenses espacées de 24 h
-7. Rien après la date de ta course
-8. Pas de conflit avec ton agenda
-9. Une séance faite n’est jamais réécrite
-10. Seulement les sports que tu pratiques
-11. Séances de renforcement complètes
-12. Sans seuils connus, il demande ta confirmation
-13. Ni doublon, ni séance mal formée
+4. Une zone en reprise remonte par paliers : pas de sauts, pas de VO2max dessus, +10 % par semaine au plus
+5. Charge de la semaine tenable
+6. Deux à trois séances intenses par semaine, pas plus
+7. Séances intenses espacées de 24 h
+8. Rien après la date de ta course
+9. Pas de conflit avec ton agenda
+10. Une séance faite n’est jamais réécrite
+11. Seulement les sports que tu pratiques
+12. Séances de renforcement complètes
+13. Sans seuils connus, il demande ta confirmation
+14. Ni doublon, ni séance mal formée
 
 Ces contrôles s’appliquent à la semaine préparée par le coach, aux ajustements et aux changements proposés dans la conversation.
 `,

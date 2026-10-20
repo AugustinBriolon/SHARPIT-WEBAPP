@@ -27,7 +27,7 @@ Cinq lectures indépendantes sont arbitrées en [une seule décision](/aide/meth
 
 ### 4. Programmer
 
-Le coach propose tes séances selon ton objectif, tes jours libres et ton matériel. Chaque proposition passe [treize contrôles](/aide/plan/garde-fous) avant de t’être montrée.
+Le coach propose tes séances selon ton objectif, tes jours libres et ton matériel. Chaque proposition passe [quatorze contrôles](/aide/plan/garde-fous) avant de t’être montrée.
 
 ### 5. Réparer
 

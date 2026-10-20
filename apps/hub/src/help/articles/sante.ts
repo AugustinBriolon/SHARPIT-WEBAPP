@@ -65,6 +65,12 @@ Depuis **Santé › Zones sensibles**, choisis la partie du corps dans la liste,
 
 Chaque zone suit une stratégie : **à protéger**, **en reprise** ou **à corriger**. Sa page montre ce que le plan en fait et les séances à venir qui la sollicitent. Le [garde-fou](/aide/plan/garde-fous) « Ne charge pas une zone à protéger » s’applique à chaque proposition.
 
+Une zone **en reprise**, ou résolue depuis moins de six semaines, a ses propres garde-fous : pas de sauts dessus, pas de séance VO2max ou course qui la sollicite, et une semaine qui ne monte pas de plus de 10 % par rapport à la précédente. Ce sont des avertissements : tu restes libre de valider.
+
+### Quand une zone s’aggrave
+
+SharpIt lit la tendance sur tes cinq derniers points, pas sur le dernier seul, et note la charge de la semaine qui a précédé la hausse. Si la zone s’aggrave, la conduite est fixée par SharpIt et le coach te l’explique : réduire les sports qui la sollicitent, ajouter du travail autour, et voir un médecin ou un kiné si l’intensité atteint 7 sur 10, si elle t’empêche de t’entraîner ou si elle dure depuis trois semaines. Le coach ne pose jamais de diagnostic.
+
 ### Faire le point
 
 **Faire le point** note l’intensité de 0 à 10, ce que tu as pu faire et un mot. Une zone peut passer **sous surveillance** puis **résolue** : SharpIt le propose après deux semaines de points à 0 sur 10, jamais automatiquement. Si ça revient, **Ça revient** la rouvre.

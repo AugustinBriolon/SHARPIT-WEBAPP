@@ -35,7 +35,7 @@ export const COMPETITORS: Record<string, CompetitorData> = {
     h1: 'Vous cherchez une alternative à Runna ? Voici pourquoi les coureurs choisissent SharpIt',
     tagline: 'L’antidote aux allures punitives et aux plans rigides.',
     directAnswer:
-      'Runna est une application de premier ordre pour son guidage audio et sa motivation sur tapis, mais sa progression d’allures très agressive et sa rigidité causent de nombreuses blessures (périostites, tendinites) dès que la fatigue s’accumule. L’alternative idéale est SharpIt : au lieu d’imposer des chronos théoriques, SharpIt analyse chaque matin votre nuit et votre variabilité cardiaque (VFC) via votre montre pour proposer d’alléger, de maintenir ou d’ajuster votre séance. Si vous ratez un entraînement, le plan se réorganise automatiquement sous la protection de 13 garde-fous physiologiques.',
+      'Runna est une application de premier ordre pour son guidage audio et sa motivation sur tapis, mais sa progression d’allures très agressive et sa rigidité causent de nombreuses blessures (périostites, tendinites) dès que la fatigue s’accumule. L’alternative idéale est SharpIt : au lieu d’imposer des chronos théoriques, SharpIt analyse chaque matin votre nuit et votre variabilité cardiaque (VFC) via votre montre pour proposer d’alléger, de maintenir ou d’ajuster votre séance. Si vous ratez un entraînement, le plan se réorganise automatiquement sous la protection de 14 garde-fous physiologiques.',
     honestCompetitorStrengths: [
       'Guidage audio dynamique d’excellente qualité pour les séances de fractionné.',
       'Plans adaptés pour le tapis de course (treadmill workouts).',
@@ -48,7 +48,7 @@ export const COMPETITORS: Record<string, CompetitorData> = {
       'Tarif d’abonnement élevé (environ 18 $/mois ou 120 $/an).',
     ],
     sharpitSolution:
-      'SharpIt protège votre corps grâce à 13 garde-fous stricts (pas plus de 2 à 3 séances intenses par semaine, espacées d’au moins 24 heures). Chaque matin, la proposition du matin adapte la séance du jour selon votre sommeil et votre VFC réelle, et le bouton « Rattraper ma semaine » répare vos séances manquées sans stress.',
+      'SharpIt protège votre corps grâce à 14 garde-fous stricts (pas plus de 2 à 3 séances intenses par semaine, espacées d’au moins 24 heures). Chaque matin, la proposition du matin adapte la séance du jour selon votre sommeil et votre VFC réelle, et le bouton « Rattraper ma semaine » répare vos séances manquées sans stress.',
     comparisonRows: [
       {
         feature: 'Gestion d’une séance manquée',
@@ -96,7 +96,7 @@ export const COMPETITORS: Record<string, CompetitorData> = {
       {
         question: 'Comment SharpIt évite-t-il les blessures ?',
         answer:
-          'SharpIt intègre 13 contrôles automatiques avant d’afficher toute séance : espacement obligatoire de 24h entre séances intenses, limitation de la charge hebdomadaire, et allègement immédiat si votre sommeil ou votre niveau de récupération cardiaque est insuffisant.',
+          'SharpIt intègre 14 contrôles automatiques avant d’afficher toute séance : espacement obligatoire de 24h entre séances intenses, limitation de la charge hebdomadaire, et allègement immédiat si votre sommeil ou votre niveau de récupération cardiaque est insuffisant.',
       },
       {
         question: 'Mes séances SharpIt vont-elles sur ma montre Garmin ?',

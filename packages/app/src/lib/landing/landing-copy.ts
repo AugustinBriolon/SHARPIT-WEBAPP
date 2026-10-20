@@ -121,7 +121,7 @@ export const LANDING_METHOD = {
       index: '04',
       label: 'Programmer',
       title: 'Une semaine construite vers ta course',
-      body: 'Le coach propose tes séances selon ton objectif, tes jours libres et ton matériel. Deux ou trois sont marquées clés, les autres sont du bonus. Chaque proposition passe treize contrôles avant de t’être montrée.',
+      body: 'Le coach propose tes séances selon ton objectif, tes jours libres et ton matériel. Deux ou trois sont marquées clés, les autres sont du bonus. Chaque proposition passe quatorze contrôles avant de t’être montrée.',
       note: 'Sprint, M, 70.3, Ironman, ou la course que tu prépares',
     },
     {
@@ -147,7 +147,7 @@ export const LANDING_DIAGRAMS = {
     verdict: 'Séance facile',
     rule: 'La prudence gagne',
   },
-  programme: { days: ['L', 'M', 'M', 'J', 'V', 'S', 'D'], key: 'Clé', checks: '13 / 13 contrôles' },
+  programme: { days: ['L', 'M', 'M', 'J', 'V', 'S', 'D'], key: 'Clé', checks: '14 / 14 contrôles' },
   repair: { missed: 'Ratée', proposal: 'Proposé, à valider' },
 } as const;
 
@@ -194,13 +194,14 @@ export const LANDING_MORNING = {
 /** One line per rule of the plan's Gate (ADR-005), in the athlete's words. */
 export const LANDING_GUARDRAILS = {
   label: 'Les garde-fous',
-  count: 13,
+  count: 14,
   title: 'contrôles avant que tu voies une séance',
   body: 'Le coach rédige, des règles fixes vérifient. Une proposition n’est jamais modifiée en silence : elle passe, elle est signalée, elle attend ta confirmation, ou elle est retirée.',
   rules: [
     'Compatible avec le verdict du jour',
     'Respecte ton état physique',
     'Ne charge pas une zone à protéger',
+    'Une zone en reprise remonte par paliers',
     'Charge de la semaine tenable',
     'Deux à trois séances intenses par semaine, pas plus',
     'Séances intenses espacées de 24 h',
