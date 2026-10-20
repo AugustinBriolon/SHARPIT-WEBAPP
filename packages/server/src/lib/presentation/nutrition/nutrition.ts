@@ -6,7 +6,6 @@ import type {
   NutritionFuelDensity,
   NutritionViewModel,
 } from '@sharpit/app/presentation/nutrition-view-model';
-import { getLiveNutrientGoals } from '@sharpit/server/lib/integrations/myfitnesspal/myfitnesspal-sync';
 import {
   getLatestBodyWeightKg,
   macroGPerKg,
@@ -93,32 +92,12 @@ async function loadFuelDensity(
   return { proteinGPerKg, carbohydratesGPerKg, referenceWeightKg };
 }
 
-async function resolveGoalsProgress(
-  athleteId: string,
+function resolveGoalsProgress(
+  _athleteId: string,
   row: NutritionRow,
-  fetchLive: boolean,
-): Promise<NutritionGoalsProgress | null> {
-  const cached = goalsFromRow(row);
-  if (cached || !fetchLive) {
-    return cached;
-  }
-
-  const live = await getLiveNutrientGoals(athleteId, format(row.date, 'yyyy-MM-dd'));
-  if (!live) {
-    return null;
-  }
-
-  return buildGoalsProgress({
-    consumedCalories: row.calories,
-    consumedProtein: row.protein,
-    consumedCarbohydrates: row.carbohydrates,
-    consumedFat: row.fat,
-    goalCalories: live.calories,
-    goalProtein: live.protein,
-    goalCarbohydrates: live.carbohydrates,
-    goalFat: live.fat,
-    exerciseCalories: row.exerciseCalories,
-  });
+  _fetchLive: boolean,
+): NutritionGoalsProgress | null {
+  return goalsFromRow(row);
 }
 
 async function enrichSelectedDay(

@@ -21,10 +21,11 @@ export function AppClerkProvider({ children }: { children: React.ReactNode }) {
     undefined,
   );
 
-  // If DEV_BYPASS_CLERK is enabled, skip Clerk entirely
+  // If DEV_BYPASS_CLERK is enabled or publishable key is missing in dev, skip Clerk entirely
+  const hasPublishableKey = Boolean(process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY);
   if (
-    process.env.NEXT_PUBLIC_DEV_BYPASS_CLERK === 'true' &&
-    process.env.NODE_ENV === 'development'
+    process.env.NODE_ENV === 'development' &&
+    (process.env.NEXT_PUBLIC_DEV_BYPASS_CLERK === 'true' || !hasPublishableKey)
   ) {
     return <>{children}</>;
   }

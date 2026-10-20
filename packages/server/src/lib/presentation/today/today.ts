@@ -1105,6 +1105,10 @@ export type BuildTodayPresentationOptions = {
   morningRecalibration?: MorningRecalibrationInput | null;
   /** Reuse snapshot from refreshAthleteState — skips a second getOrBuild. */
   athleteSnapshot?: Awaited<ReturnType<typeof getOrBuildAthleteSnapshot>>;
+  /** Pre-fetched 14-day health entries — skips a second getHealthEntries. */
+  healthEntries?: Awaited<ReturnType<typeof getHealthEntries>>;
+  /** Pre-fetched activities — skips a second getActivitiesList. */
+  activities?: Awaited<ReturnType<typeof getActivitiesList>>;
 };
 
 async function loadTodayPresentationInputs(
@@ -1134,8 +1138,12 @@ async function loadTodayPresentationInputs(
       : getOrBuildAthleteSnapshot(athleteId, trainingDayId),
     // Same athleteId only — never cross-athlete. Read-only; no Neon migration.
     getLatestAthleteSnapshot({ athleteId, trainingDayId: yesterdayId }),
-    getHealthEntries(athleteId, 14, day),
-    getActivitiesList(athleteId, { sinceDays: 60 }),
+    options.healthEntries
+      ? Promise.resolve(options.healthEntries)
+      : getHealthEntries(athleteId, 14, day),
+    options.activities
+      ? Promise.resolve(options.activities)
+      : getActivitiesList(athleteId, { sinceDays: 60 }),
     // Horizon covers Today day summary (filters to today) + rearrange detectors (14d).
     getPlannedSessions(athleteId, { from: dayStart, to: endOfDay(addDays(day, 14)) }),
     getGoals(athleteId),

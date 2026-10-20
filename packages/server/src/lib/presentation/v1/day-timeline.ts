@@ -187,11 +187,14 @@ export async function loadV1DayTimeline(
     sessions: readonly V1DayTimelineSession[];
     stress: V1TodayStress | null;
     energyBank: V1TodayEnergyBank | null;
+    healthEntries?: Awaited<ReturnType<typeof getHealthEntries>>;
   },
 ): Promise<V1DayTimelineEvent[]> {
   const refDate = new Date(`${trainingDayId}T12:00:00`);
   const [healthEntries, journal, mealRows] = await Promise.all([
-    getHealthEntries(athleteId, 3, refDate),
+    extras.healthEntries
+      ? Promise.resolve(extras.healthEntries)
+      : getHealthEntries(athleteId, 3, refDate),
     getDayJournalEntry(prisma, athleteId, trainingDayId),
     prisma.foodLogEntry.findMany({
       where: { athleteId, date: foodLogDayDate(trainingDayId) },

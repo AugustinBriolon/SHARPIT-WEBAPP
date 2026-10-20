@@ -56,11 +56,14 @@ next-env.d.ts
 # local agent / critique tooling (not part of the app)
 /.agents/
 /.claude/
+/.cursor/
 /.codex/
 /.hallmark/
 /.impeccable/
 /.superpowers/
 /.uizze/
+.mcp.json
+.ignore
 
 # local one-off TypeScript scripts
 apps/web/scripts/tmp-*.ts

@@ -1,5 +1,0 @@
-# Local Garmin DI token mint only — not used by the Next.js / Vercel app.
-# Node fetch SSO is a dead end post-March 2026; mint with curl_cffi here, then
-# import into Sharpit (UI paste or `yarn garmin:import-tokens`).
-garminconnect>=0.3
-curl_cffi>=0.7

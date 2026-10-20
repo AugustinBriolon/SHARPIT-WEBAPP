@@ -49,6 +49,15 @@ vi.mock('@sharpit/server/lib/integrations/garmin/garmin-sync', () => ({
   getGarminAccount: vi.fn().mockResolvedValue(null),
 }));
 
+vi.mock('@sharpit/server/lib/queries', () => ({
+  getActivitiesList: vi.fn().mockResolvedValue([]),
+  getHealthEntries: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock('@sharpit/server/lib/athlete-state/snapshot-service', () => ({
+  getOrBuildAthleteSnapshot: vi.fn().mockResolvedValue({}),
+}));
+
 async function importRoute() {
   return await import('./handler');
 }
@@ -182,7 +191,7 @@ describe('GET /api/v1/today', () => {
       await GET(new NextRequest(`http://localhost/api/v1/today?trainingDayId=${today}`));
 
       expect(morning.ensureMorningRecalibration).toHaveBeenCalledWith('athlete-1', today);
-      expect(vi.mocked(buildTodayPresentationViewModel).mock.calls[0][2]).toEqual({
+      expect(vi.mocked(buildTodayPresentationViewModel).mock.calls[0][2]).toMatchObject({
         morningRecalibration: presentation,
       });
       expect(vi.mocked(projectV1TodayFromViewModel).mock.calls[0][1]).toMatchObject({

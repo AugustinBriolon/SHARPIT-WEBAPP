@@ -7,10 +7,6 @@ const computeDayFeatures = vi.fn();
 vi.mock('@sharpit/server/lib/engines/feature-engine', () => ({
   featureEngine: { computeDayFeatures },
 }));
-vi.mock('@sharpit/server/lib/integrations/myfitnesspal/myfitnesspal-sync', () => ({
-  getMfpAccount: vi.fn().mockResolvedValue(null),
-  getLiveNutrientGoals: vi.fn().mockResolvedValue(null),
-}));
 const getLatestBodyWeightKg = vi.fn();
 vi.mock('@sharpit/server/lib/nutrition/body-weight-for-fuel', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@sharpit/server/lib/nutrition/body-weight-for-fuel')>()),

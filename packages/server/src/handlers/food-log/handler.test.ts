@@ -289,19 +289,3 @@ describe('/api/food-log/foods/mine and /foods/[id]', () => {
     expect(log.deleteCustomFood).toHaveBeenCalledWith('athlete-1', 'mine');
   });
 });
-
-describe('/api/food-log/import/myfitnesspal', () => {
-  it('answers 410 Gone (ADR-073)', async () => {
-    const { POST } = await import('./import/myfitnesspal/handler');
-    const response = await POST(
-      new NextRequest(`${BASE}/import/myfitnesspal`, {
-        method: 'POST',
-        body: new FormData(),
-      }),
-    );
-    expect(response.status).toBe(410);
-    expect(await response.json()).toMatchObject({
-      error: expect.stringContaining('MyFitnessPal'),
-    });
-  });
-});

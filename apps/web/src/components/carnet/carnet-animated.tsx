@@ -3,14 +3,10 @@
 import { createContext, type ReactNode, useContext, useLayoutEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 import { animate } from 'motion/react';
-import { gsap } from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { motionTokens, springs } from '@/client/motion/tokens';
 import { type CountableText, formatCountable, parseCountable } from './carnet-count';
 import { hasSettled, prefersReducedMotion } from './carnet-motion';
 import { headingBetween } from './carnet-pages';
-
-gsap.registerPlugin(ScrollTrigger);
 
 /**
  * A figure's number, counting to its value when a navigation brings it in and from the
@@ -33,14 +29,14 @@ export function CarnetCount({ text }: { text: string }) {
       element.textContent = text;
       return;
     }
-    const state = { value: from };
+    let currentVal = from;
     element.textContent = formatCountable(shape, from);
-    const tween = gsap.to(state, {
-      value: shape.value,
+    const controls = animate(from, shape.value, {
       duration: 0.6,
-      ease: 'power3.out',
-      onUpdate: () => {
-        element.textContent = formatCountable(shape, state.value);
+      ease: motionTokens.easing.smooth,
+      onUpdate: (latest) => {
+        currentVal = latest;
+        element.textContent = formatCountable(shape, latest);
       },
       onComplete: () => {
         element.textContent = text;
@@ -49,8 +45,8 @@ export function CarnetCount({ text }: { text: string }) {
     return () => {
       // Interrupted (a new value, or React running the effect again): the next count
       // starts from where this one got to.
-      shown.current = tween.progress() < 1 ? state.value : shape.value;
-      tween.kill();
+      shown.current = currentVal;
+      controls.stop();
     };
   }, [text]);
 
@@ -79,7 +75,7 @@ export function CarnetHeading({ children }: { children: ReactNode }) {
  * A page arriving: it slides in from the side the reader is heading along the row of
  * pages, as the app's onboarding steps do, and rises when it opens one level deeper (a
  * session from the list). Then its sections below the fold rise in as they scroll into
- * view, a few at a time (GSAP ScrollTrigger, capped stagger like `SharpitMotion`).
+ * view, a few at a time (IntersectionObserver + motion, capped stagger like `SharpitMotion`).
  */
 export function CarnetPageTransition({
   children,
@@ -124,36 +120,48 @@ export function CarnetPageTransition({
     if (!root || !hasSettled() || prefersReducedMotion()) {
       return;
     }
-    const context = gsap.context(() => {
-      const below = gsap.utils.toArray<HTMLElement>('[data-reveal]', root).filter(
-        // Below the fold, and not already armed by a transition around this one.
-        (element) =>
-          element.dataset.revealArmed === undefined &&
-          element.getBoundingClientRect().top > window.innerHeight,
-      );
-      if (below.length === 0) {
-        return;
-      }
-      below.forEach((element) => {
-        element.dataset.revealArmed = '';
-      });
-      gsap.set(below, { autoAlpha: 0, y: 24 });
-      ScrollTrigger.batch(below, {
-        start: 'top 92%',
-        once: true,
-        onEnter: (batch) =>
-          gsap.to(batch, {
-            autoAlpha: 1,
-            y: 0,
-            duration: motionTokens.duration.slow,
-            ease: 'power3.out',
-            stagger: { each: 0.06, amount: 0.24 },
-            overwrite: true,
-          }),
-      });
-    }, root);
+
+    const below = Array.from(root.querySelectorAll<HTMLElement>('[data-reveal]')).filter(
+      // Below the fold, and not already armed by a transition around this one.
+      (element) =>
+        element.dataset.revealArmed === undefined &&
+        element.getBoundingClientRect().top > window.innerHeight,
+    );
+    if (below.length === 0) {
+      return;
+    }
+
+    below.forEach((element) => {
+      element.dataset.revealArmed = '';
+      element.style.opacity = '0';
+      element.style.transform = 'translateY(24px)';
+    });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry, index) => {
+          if (entry.isIntersecting) {
+            const el = entry.target as HTMLElement;
+            observer.unobserve(el);
+            animate(
+              el,
+              { opacity: [0, 1], y: [24, 0] },
+              {
+                duration: motionTokens.duration.slow,
+                ease: motionTokens.easing.smooth,
+                delay: Math.min(index * 0.06, 0.24),
+              },
+            );
+          }
+        });
+      },
+      { rootMargin: '0px 0px -8% 0px' },
+    );
+
+    below.forEach((element) => observer.observe(element));
+
     return () => {
-      context.revert();
+      observer.disconnect();
       root.querySelectorAll<HTMLElement>('[data-reveal-armed]').forEach((element) => {
         delete element.dataset.revealArmed;
       });

@@ -9,7 +9,7 @@ function xcodeTransaction(overrides: Record<string, unknown> = {}) {
     transactionId: '0',
     originalTransactionId: '0',
     bundleId: 'app.sharpit.ios',
-    productId: 'app.sharpit.ios.pro.monthly',
+    productId: 'app.sharpit.pro.monthly',
     environment: 'Xcode',
     signedDate: Date.now(),
     ...overrides,
@@ -27,7 +27,7 @@ describe('verifyAppleTransaction', () => {
     vi.stubEnv('NODE_ENV', 'development');
     const { verifyAppleTransaction } = await import('./apple-verifier');
     const transaction = await verifyAppleTransaction(xcodeTransaction());
-    expect(transaction.productId).toBe('app.sharpit.ios.pro.monthly');
+    expect(transaction.productId).toBe('app.sharpit.pro.monthly');
     expect(transaction.environment).toBe('Xcode');
   });
 

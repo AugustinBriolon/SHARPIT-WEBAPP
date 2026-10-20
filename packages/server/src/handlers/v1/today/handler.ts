@@ -2,7 +2,8 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { appOrigin } from '@sharpit/server/lib/app-origin';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { getGarminAccount } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
-import { getActivitiesList } from '@sharpit/server/lib/queries';
+import { getActivitiesList, getHealthEntries } from '@sharpit/server/lib/queries';
+import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/snapshot-service';
 import {
   analyzeLinkedPlannedSessions,
   autoLinkActivitiesOfDay,
@@ -73,20 +74,6 @@ async function loadMorningProposal(athleteId: string, trainingDayId: string) {
 }
 
 /**
- * Regularity is read from the athlete's recent activities rather than from the Today
- * view model, which does not carry them. Two ISO weeks is the smallest window that
- * always covers the day strip *and* a full current week, whichever weekday the request
- * lands on. A failure here costs the card, not the screen.
- */
-async function loadConsistency(athleteId: string, trainingDayId: string) {
-  const activities = await getActivitiesList(athleteId, { sinceDays: 14 }).catch((error) => {
-    console.error('[api/v1/today/consistency]', error);
-    return null;
-  });
-  return activities ? projectV1Consistency(activities, referenceDateFor(trainingDayId)) : null;
-}
-
-/**
  * Canonical Today payload for native (and future complementary-web) clients.
  * Presentation `/api/presentation/today` remains for the current Next.js UI.
  */
@@ -106,11 +93,27 @@ export async function GET(request: NextRequest) {
     await autoLinkTodayActivities(athleteId, trainingDayId);
     const morning = await loadMorningProposal(athleteId, trainingDayId);
     const morningRecalibration = morning.presentation;
+    const refDate = referenceDateFor(trainingDayId);
+
+    // Pre-fetch shared data in a single parallel batch so no database table is queried twice
+    const [snapshot, healthEntries, activities] = await Promise.all([
+      getOrBuildAthleteSnapshot(athleteId, trainingDayId),
+      getHealthEntries(athleteId, 14, refDate),
+      getActivitiesList(athleteId, { sinceDays: 60 }),
+    ]);
 
     const [viewModel, garminAccount, dayScores] = await Promise.all([
-      buildTodayPresentationViewModel(athleteId, trainingDayId, { morningRecalibration }),
+      buildTodayPresentationViewModel(athleteId, trainingDayId, {
+        morningRecalibration,
+        athleteSnapshot: snapshot,
+        healthEntries,
+        activities,
+      }),
       getGarminAccount(athleteId),
-      loadV1DayScores(athleteId, trainingDayId).catch((error) => {
+      loadV1DayScores(athleteId, trainingDayId, new Date(), {
+        snapshot,
+        healthEntries,
+      }).catch((error) => {
         console.error('[api/v1/today/day-scores]', error);
         return {
           stress: null,
@@ -124,7 +127,7 @@ export async function GET(request: NextRequest) {
       trainingDayId,
       webOrigin: appOrigin(request.nextUrl.origin),
       garminConnected: Boolean(garminAccount),
-      consistency: await loadConsistency(athleteId, trainingDayId),
+      consistency: projectV1Consistency(activities, refDate),
       morningCheckInDone: morning.checkInDone,
       stress: dayScores.stress,
       energyBank: dayScores.energyBank,
@@ -138,6 +141,7 @@ export async function GET(request: NextRequest) {
       })),
       stress: dayScores.stress,
       energyBank: dayScores.energyBank,
+      healthEntries,
     }).catch((error) => {
       console.error('[api/v1/today/timeline]', error);
       return [];

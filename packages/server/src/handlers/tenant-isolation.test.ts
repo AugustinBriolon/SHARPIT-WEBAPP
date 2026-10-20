@@ -308,19 +308,6 @@ const calls: Call[] = [
     body: { activityId: null },
   },
   {
-    name: 'presentation/planned-session/[id] GET',
-    route: () => import('./presentation/planned-session/[id]/handler'),
-    method: 'GET',
-    id: (i) => i.plannedSession,
-  },
-  {
-    name: 'presentation/session-rationale/[plannedSessionId] GET',
-    route: () => import('./presentation/session-rationale/[plannedSessionId]/handler'),
-    method: 'GET',
-    param: 'plannedSessionId',
-    id: (i) => i.plannedSession,
-  },
-  {
     name: 'training-plans/[id] DELETE',
     route: () => import('./training-plans/[id]/handler'),
     method: 'DELETE',

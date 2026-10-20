@@ -219,17 +219,25 @@ function buildStrainPerformanceHistory(input: {
 
 /**
  * Loads stress, Energy Bank, target strain band and Strain Performance for a training day.
- * shortcut: double-fetches snapshot vs Today VM; merge loaders when Today is refactored.
+ * Reuses pre-fetched snapshot and healthEntries when provided to avoid duplicate queries.
  */
 export async function loadV1DayScores(
   athleteId: string,
   trainingDayId: string,
   now: Date = new Date(),
+  prefetched?: {
+    snapshot?: Awaited<ReturnType<typeof getOrBuildAthleteSnapshot>>;
+    healthEntries?: Awaited<ReturnType<typeof getHealthEntries>>;
+  },
 ): Promise<V1DayScores> {
   const refDate = new Date(`${trainingDayId}T12:00:00`);
   const [snapshot, healthEntries, dailyStress] = await Promise.all([
-    getOrBuildAthleteSnapshot(athleteId, trainingDayId),
-    getHealthEntries(athleteId, 14, refDate),
+    prefetched?.snapshot
+      ? Promise.resolve(prefetched.snapshot)
+      : getOrBuildAthleteSnapshot(athleteId, trainingDayId),
+    prefetched?.healthEntries
+      ? Promise.resolve(prefetched.healthEntries)
+      : getHealthEntries(athleteId, 14, refDate),
     loadDailyTrainingStressEntries(athleteId, { refDate }),
   ]);
 
