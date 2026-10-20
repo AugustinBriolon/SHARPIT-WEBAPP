@@ -125,7 +125,7 @@ Ouvre-les depuis la barre d’outils du journal, **Analyses**.
 
 L’écran montre ta progression jusqu’à sept jours notés : avant, une association serait du hasard.
 
-Une habitude qui va avec un meilleur sommeil ne le cause pas forcément. Les lectures faibles sont signalées comme telles.
+Une habitude qui va avec un meilleur sommeil ne le cause pas forcément. La lecture tient compte de ta charge d’entraînement de la veille, et ne garde comme nette qu’une association qui a peu de chances d’être du hasard. Deux habitudes notées toujours les mêmes jours n’apparaissent qu’une fois, ensemble : les données ne peuvent pas les départager. Les lectures faibles sont signalées comme telles.
 `,
     },
   ],

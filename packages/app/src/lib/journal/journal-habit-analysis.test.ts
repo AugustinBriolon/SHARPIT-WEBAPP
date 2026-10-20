@@ -7,6 +7,7 @@ import {
   compareFactorOutcome,
   dropContradictoryFactorFindings,
   median,
+  NET_FALSE_DISCOVERY_RATE,
   outcomeLagDays,
   scoreObservationConfidence,
   shiftTrainingDayId,
@@ -34,13 +35,17 @@ function day(
 }
 
 describe('journal-habit-analysis', () => {
-  it('uses median and prior-night lag 0 for screen / late meal', () => {
+  it('uses median, lag 0 for the night just noted and +1 for a habit of the day', () => {
     expect(median([10, 30, 20])).toBe(20);
-    expect(outcomeLagDays('device_in_bed', 'sleepMinutes')).toBe(0);
-    expect(outcomeLagDays('late_meal', 'sleepMinutes')).toBe(0);
-    expect(outcomeLagDays('shared_bed', 'sleepMinutes')).toBe(0);
-    expect(outcomeLagDays('melatonin', 'sleepMinutes')).toBe(0);
-    expect(outcomeLagDays('alcohol', 'sleepMinutes')).toBe(1);
+    expect(outcomeLagDays('device_in_bed')).toBe(0);
+    expect(outcomeLagDays('late_meal')).toBe(0);
+    expect(outcomeLagDays('shared_bed')).toBe(0);
+    expect(outcomeLagDays('melatonin')).toBe(0);
+    expect(outcomeLagDays('alcohol')).toBe(1);
+    // A supplement or a cold shower can only show on the next morning.
+    expect(outcomeLagDays('omega3')).toBe(1);
+    expect(outcomeLagDays('cold_shower')).toBe(1);
+    expect(outcomeLagDays('fever')).toBe(0);
   });
 
   it('compares median sleep with vs without habit (association)', () => {
@@ -331,6 +336,7 @@ describe('journal-habit-analysis', () => {
       polarity: 'minus',
       confidence: 'medium',
       lagDays: 0,
+      pValue: 0.05,
     };
     expect(applyPlausibilityToEffect(base)).toBeNull();
 
@@ -395,5 +401,103 @@ describe('journal-habit-analysis', () => {
     const { kept, incoherentFactorIds } = dropContradictoryFactorFindings(findings);
     expect(incoherentFactorIds).toEqual(['probiotic']);
     expect(kept.map((f) => f.factorId)).toEqual(['late_meal']);
+  });
+});
+
+/** 40 days from 2026-09-01; `build(i)` gives each day its factors and morning recovery. */
+function series(
+  build: (i: number) => { factors: Record<string, 'yes' | 'no'>; recovery: number },
+): JournalAnalysisDay[] {
+  return Array.from({ length: 40 }, (_, i) => {
+    const { factors, recovery } = build(i);
+    return {
+      trainingDayId: shiftTrainingDayId('2026-09-01', i)!,
+      factors,
+      sleepMinutes: null,
+      recoveryScore: recovery,
+      bodyBattery: null,
+    };
+  });
+}
+
+describe('journal habit analysis — confounders', () => {
+  it('does not blame a cold shower taken after the hard sessions that lower recovery', () => {
+    // Hard session every third day; the cold shower follows it; the next morning reads low.
+    const hard = (i: number) => i % 3 === 0;
+    const days = series((i) => ({
+      factors: { cold_shower: hard(i) ? 'yes' : 'no' },
+      recovery: hard(i - 1) ? 45 + (i % 4) : 70 + (i % 5),
+    }));
+    const loadByDay = new Map(
+      days.filter((_, i) => hard(i)).map((day) => [day.trainingDayId, 150]),
+    );
+
+    const naive = buildJournalHabitFindings(days);
+    expect(naive.some((f) => f.factorId === 'cold_shower' && f.polarity === 'minus')).toBe(true);
+
+    const adjusted = buildJournalHabitFindings(days, { loadByDay });
+    expect(adjusted.some((f) => f.factorId === 'cold_shower')).toBe(false);
+  });
+
+  it('reads one row for supplements always taken together, never as the lever', () => {
+    // Four supplements on the same 33 days; recovery is simply lower on those days.
+    const taken = (i: number) => i % 6 !== 0;
+    const days = series((i) => {
+      const state = taken(i) ? 'yes' : 'no';
+      return {
+        factors: { omega3: state, collagen: state, vitamin_d: state, multivitamin: state },
+        recovery: taken(i - 1) ? 52 + (i % 5) : 75 + (i % 4),
+      };
+    });
+
+    const findings = buildJournalHabitFindings(days);
+    const rows = compileJournalHabitFindings(findings);
+    expect(rows).toHaveLength(findings.length > 0 ? 1 : 0);
+    for (const row of rows) {
+      expect([row.factorId, ...row.companionFactorIds].sort()).toEqual([
+        'collagen',
+        'multivitamin',
+        'omega3',
+        'vitamin_d',
+      ]);
+    }
+  });
+
+  it('keeps chance gaps out of the net associations when many habits are tested', () => {
+    // Twelve habits and recovery drawn independently (mulberry32): every gap is chance. Under
+    // that null the false-discovery bar caps runs showing any net row at its rate.
+    const habits = [
+      'yoga',
+      'sauna',
+      'mobility',
+      'meditation',
+      'easy_walk',
+      'massage',
+      'ice_bath',
+      'cold_shower',
+      'late_meal',
+      'device_in_bed',
+      'night_work',
+      'shared_bed',
+    ];
+    const runs = 200;
+    let runsWithNet = 0;
+    for (let seed = 1; seed <= runs; seed += 1) {
+      let state = seed * 2654435761;
+      const random = () => {
+        state = (state + 0x6d2b79f5) | 0;
+        let t = Math.imul(state ^ (state >>> 15), 1 | state);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+      const days = series(() => ({
+        factors: Object.fromEntries(habits.map((id) => [id, random() > 0.5 ? 'yes' : 'no'])),
+        recovery: 50 + Math.round(random() * 30),
+      }));
+      if (buildJournalHabitFindings(days).some((f) => f.confidence === 'high')) {
+        runsWithNet += 1;
+      }
+    }
+    expect(runsWithNet / runs).toBeLessThanOrEqual(NET_FALSE_DISCOVERY_RATE);
   });
 });

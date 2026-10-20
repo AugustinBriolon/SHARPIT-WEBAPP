@@ -27,6 +27,14 @@ export function journalFactorDisplayLabel(factorId: string): string {
   return factorId;
 }
 
+/** « Oméga-3 » alone, « Oméga-3, Collagène et Vitamine D » for habits the days cannot separate. */
+export function habitGroupLabel(
+  factorId: string,
+  companionFactorIds: readonly string[] = [],
+): string {
+  return joinFrench([factorId, ...companionFactorIds].map(journalFactorDisplayLabel));
+}
+
 export function formatOutcomeValue(outcome: JournalOutcomeKey, value: number): string {
   if (outcome === 'sleepMinutes') {
     // Round the total first: 479.6 min reads 8 h 00, never 7 h 60.
@@ -82,7 +90,7 @@ export function formatCompiledJournalHabitFinding(finding: CompiledJournalHabitF
   detail: string;
   confidenceLabel: string;
 } {
-  const habit = journalFactorDisplayLabel(finding.factorId);
+  const habit = habitGroupLabel(finding.factorId, finding.companionFactorIds);
   const outcomeOrder: JournalOutcomeKey[] = ['sleepMinutes', 'recoveryScore', 'bodyBattery'];
   const effects = [...finding.effects].sort(
     (a, b) => outcomeOrder.indexOf(a.outcome) - outcomeOrder.indexOf(b.outcome),
@@ -133,7 +141,7 @@ export function formatMediansLine(finding: JournalHabitFinding): string {
 
 /** Text equivalent of a dumbbell, read by assistive tech. */
 export function formatDumbbellAriaLabel(finding: JournalHabitFinding): string {
-  const habit = journalFactorDisplayLabel(finding.factorId);
+  const habit = habitGroupLabel(finding.factorId, finding.companionFactorIds);
   const withHabit = formatOutcomeValue(finding.outcome, finding.medianYes);
   const without = formatOutcomeValue(finding.outcome, finding.medianNo);
   const lag = finding.lagDays > 0 ? ', mesuré le lendemain' : '';

@@ -9,6 +9,7 @@ import { canBeHabitPriorityLever } from '@sharpit/app/lib/journal/journal-habit-
 import {
   formatCompiledJournalHabitFinding,
   formatOutcomeValue,
+  habitGroupLabel,
   joinFrench,
   journalFactorDisplayLabel,
 } from '@sharpit/app/lib/journal/journal-habit-finding-copy';
@@ -41,9 +42,10 @@ export type JournalHabitReading = {
 const MAX_HIGHLIGHTS = 4;
 const MAX_STRENGTHS = 3;
 
+/** A habit the days cannot separate from another is never the lever: which one would it be? */
 function compiledIsPriorityEligible(item: CompiledJournalHabitFinding): boolean {
   const primaryOutcome = item.effects[0]?.outcome;
-  if (!primaryOutcome) {
+  if (!primaryOutcome || item.companionFactorIds.length > 0) {
     return false;
   }
   return canBeHabitPriorityLever(item.factorId, primaryOutcome);
@@ -131,6 +133,7 @@ function buildActionHint(
   priority: CompiledJournalHabitFinding | null,
   supportsExperiment: boolean,
   strengths: readonly JournalHabitReadingHighlight[],
+  inseparable: readonly CompiledJournalHabitFinding[],
 ): string {
   if (priority && supportsExperiment) {
     const habit = journalFactorDisplayLabel(priority.factorId);
@@ -144,6 +147,9 @@ function buildActionHint(
   }
   if (strengths[0]) {
     return `Ce qui tient : « ${journalFactorDisplayLabel(strengths[0].factorId)} » — garde ce levier, le contraste est favorable.`;
+  }
+  if (inseparable[0]) {
+    return `« ${habitGroupLabel(inseparable[0].factorId, inseparable[0].companionFactorIds)} » tombent les mêmes jours : impossible de savoir lequel compte. Pour les départager, arrête-en un seul pendant 7 jours.`;
   }
   return 'Les constantes (toujours / jamais) ne créent pas de contraste — varie un levier à la fois pendant 7 jours.';
 }
@@ -196,8 +202,9 @@ function buildVerdict(
     const amounts = [...priority.effects]
       .sort((a, b) => OUTCOME_ORDER.indexOf(a.outcome) - OUTCOME_ORDER.indexOf(b.outcome))
       .map(effectAmount);
+    // An association, worded as one: the gap is what the days show, not what the habit does.
     const lead =
-      priority.confidence === 'high' ? 'Ton levier le plus net' : 'Ta piste la plus avancée';
+      priority.confidence === 'high' ? 'Ton écart le plus net' : 'Ta piste la plus avancée';
     const direction = priority.polarity === 'minus' ? 'en moins' : 'en plus';
     return `${lead} : « ${journalFactorDisplayLabel(priority.factorId)} », ${joinFrench(amounts)} ${direction}.`;
   }
@@ -247,7 +254,12 @@ export function buildJournalHabitReading(
         : null,
     strengths,
     highlights: buildHighlights(compiled),
-    actionHint: buildActionHint(priorityFinding, supportsExperiment, strengths),
+    actionHint: buildActionHint(
+      priorityFinding,
+      supportsExperiment,
+      strengths,
+      compiled.filter((item) => item.companionFactorIds.length > 0),
+    ),
     supportsExperiment,
   };
 }

@@ -55,6 +55,7 @@ describe('journal-habit-finding-copy', () => {
   it('joins sleep and recovery into one title', () => {
     const copy = formatCompiledJournalHabitFinding({
       kind: 'compiled',
+      companionFactorIds: [],
       factorId: 'device_in_bed',
       polarity: 'minus',
       confidence: 'high',

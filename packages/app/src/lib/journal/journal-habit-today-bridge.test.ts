@@ -101,6 +101,7 @@ describe('todayJournalHabitBridge', () => {
   it('keeps sleep before recovery and completes the habit in the sentence', () => {
     const copy = formatTodayJournalHabitBridgeCopy({
       kind: 'compiled',
+      companionFactorIds: [],
       factorId: 'device_in_bed',
       polarity: 'minus',
       confidence: 'medium',

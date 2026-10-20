@@ -99,7 +99,7 @@ function dayRange(startDayId: string, length: number): string[] {
 }
 
 function maxOutcomeLag(factorId: string): number {
-  return Math.max(...OUTCOMES.map((outcome) => outcomeLagDays(factorId, outcome)));
+  return outcomeLagDays(factorId);
 }
 
 /** The morning the last window day's outcome is measured — the review is automatic from then. */
@@ -146,7 +146,7 @@ function compareWindowToBaseline(
     EXPERIMENT_BASELINE_DAYS,
   );
   return OUTCOMES.flatMap((outcome) => {
-    const lagDays = outcomeLagDays(record.factorId, outcome);
+    const lagDays = outcomeLagDays(record.factorId);
     const during = outcomeValues(heldDayIds, outcome, lagDays, evidence);
     const before = outcomeValues(baseline, outcome, lagDays, evidence);
     if (during.length === 0 || before.length === 0) {

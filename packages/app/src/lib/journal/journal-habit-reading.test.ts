@@ -155,7 +155,7 @@ describe('buildJournalHabitReading', () => {
     );
 
     expect(reading.verdict).toBe(
-      'Ton levier le plus net : « Alcool », 1 h 30 de sommeil et 17 points de récupération en moins.',
+      'Ton écart le plus net : « Alcool », 1 h 30 de sommeil et 17 points de récupération en moins.',
     );
     expect(reading.summary).toBe('48 jours analysés · 1 association nette · 1 à confirmer');
   });

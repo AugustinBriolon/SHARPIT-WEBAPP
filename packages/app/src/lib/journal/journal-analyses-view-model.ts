@@ -26,7 +26,7 @@ import {
   formatMediansLine,
   formatOutcomeValue,
   formatSignedDelta,
-  journalFactorDisplayLabel,
+  habitGroupLabel,
 } from '@sharpit/app/lib/journal/journal-habit-finding-copy';
 import type { JournalHabitReading } from '@sharpit/app/lib/journal/journal-habit-reading';
 
@@ -98,7 +98,7 @@ function toDumbbellRow(effect: JournalHabitFinding, tested: ReadonlySet<string>)
     key: `${effect.factorId}:${effect.polarity}:${effect.outcome}`,
     factorId: effect.factorId,
     outcome: effect.outcome,
-    label: journalFactorDisplayLabel(effect.factorId),
+    label: habitGroupLabel(effect.factorId, effect.companionFactorIds),
     lagLabel: formatLagLabel(effect.lagDays),
     polarity: effect.polarity,
     weak: effect.confidence !== 'high',
@@ -168,7 +168,11 @@ export function buildJournalAnalysesViewModel(input: {
     dragDomains: domainsForPolarity(netDomains, 'minus'),
     liftDomains: domainsForPolarity(netDomains, 'plus'),
     weakDomains: groupByDomain(weak, tested),
-    weakLabels: [...new Set(weak.map((finding) => journalFactorDisplayLabel(finding.factorId)))],
+    weakLabels: [
+      ...new Set(
+        weak.map((finding) => habitGroupLabel(finding.factorId, finding.companionFactorIds)),
+      ),
+    ],
     coverage: {
       daysWithSignal,
       daysInSpan: input.daysInSpan,

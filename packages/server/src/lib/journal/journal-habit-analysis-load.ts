@@ -1,5 +1,5 @@
 /**
- * Load joined journal × DailyHealth series for habit analysis.
+ * Load joined journal × DailyHealth series, and the daily training load, for habit analysis.
  */
 
 import type { Prisma, PrismaClient } from '@prisma/client';
@@ -13,6 +13,7 @@ import {
 } from '@sharpit/app/lib/journal/journal-habit-analysis';
 import { dayHasJournalSignal } from '@sharpit/app/lib/journal/journal-limits';
 import { toUtcDateOnly } from '@sharpit/app/lib/travel-context/calendar-date';
+import { loadDailyTrainingStressEntries } from '@sharpit/server/lib/training/pmc/pmc-server';
 
 export function trainingDayIdFromDate(date: Date): string {
   return toUtcDateOnly(date).toISOString().slice(0, 10);
@@ -128,14 +129,23 @@ export function countDaysInSpan(series: readonly JournalAnalysisDay[]): number {
   return Math.round((Date.parse(last) - Date.parse(first)) / DAY_MS) + 1;
 }
 
+/** TSS per training day, from the same source as the PMC (the Core's Training Stress). */
+export async function loadDailyLoadByDay(athleteId: string): Promise<Map<string, number>> {
+  const entries = await loadDailyTrainingStressEntries(athleteId);
+  return new Map(entries.map(({ date, load }) => [trainingDayIdFromDate(date), load]));
+}
+
 export async function loadJournalHabitFindings(
   prisma: PrismaClient,
   athleteId: string,
 ): Promise<{ daysWithSignal: number; daysInSpan: number; findings: JournalHabitFinding[] }> {
-  const series = await loadJournalAnalysisSeries(prisma, athleteId);
+  const [series, loadByDay] = await Promise.all([
+    loadJournalAnalysisSeries(prisma, athleteId),
+    loadDailyLoadByDay(athleteId),
+  ]);
   return {
     daysWithSignal: series.length,
     daysInSpan: countDaysInSpan(series),
-    findings: buildJournalHabitFindings(series),
+    findings: buildJournalHabitFindings(series, { loadByDay }),
   };
 }

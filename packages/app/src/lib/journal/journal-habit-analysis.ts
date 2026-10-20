@@ -1,16 +1,23 @@
 /**
  * Journal habit × physiology associations — presentation analytics only (no Core).
  *
- * Scientific framing (n=1 athlete mirror):
- * - Association, not causation. Confounders (load, travel, illness) are not controlled.
+ * Scientific framing (n=1 athlete mirror, ADR-098):
+ * - Association, not causation. Training load is controlled; travel and illness are not.
  * - Null / unset excluded. Constant habits (always yes / always no) yield no contrast.
  * - Central tendency = median (robust to outliers).
- * - Factor→outcome lag: prior-night factors align with same-day sleep; alcohol (+ caffeine
- *   sleep) use +1 day so the morning metric after the night is compared.
- * - Multiple outcomes per factor allowed; recoveryScore vs bodyBattery collapsed when
- *   redundant (same polarity) to limit multiple-testing noise.
- * - Plausibility priors demote exploratory supplements; contradictory polarities on the
- *   same habit are stripped from actionable findings.
+ * - Every outcome is a morning reading (the night ending on the day, readiness on waking), so
+ *   a habit of day J is compared with the morning of J+1. Prior-night factors already describe
+ *   that night, and concurrent states (fever, pain…) share their own morning: both lag 0.
+ * - Load: the outcome is adjusted for the TSS of the day before it was measured, by a linear
+ *   fit over the athlete's own days, so a habit that follows hard sessions is not blamed for
+ *   the sessions.
+ * - Net vs lead: a Mann–Whitney rank test per contrast, then Benjamini–Hochberg across every
+ *   contrast tested, so testing fifty habits does not manufacture associations.
+ * - Habits always logged together are inseparable in the data: one row names them all, and
+ *   none of them can be the lever.
+ * - recoveryScore vs bodyBattery collapsed when redundant (same polarity); plausibility
+ *   priors demote exploratory supplements; contradictory polarities on the same habit are
+ *   stripped from actionable findings.
  */
 
 import {
@@ -18,6 +25,11 @@ import {
   isPriorNightFactor,
 } from '@sharpit/app/lib/journal/day-context-factors';
 import { habitOutcomePlausibility } from '@sharpit/app/lib/journal/journal-habit-priors';
+import {
+  benjaminiHochberg,
+  loadAdjuster,
+  mannWhitneyPValue,
+} from '@sharpit/app/lib/journal/journal-habit-statistics';
 
 export type RecordedFactor = 'yes' | 'no';
 
@@ -53,6 +65,16 @@ export type FactorOutcomeEffect = {
   polarity: ObservationPolarity;
   confidence: ObservationConfidence;
   lagDays: number;
+  /** Two-sided Mann–Whitney p-value of the contrast. */
+  pValue: number;
+};
+
+export type JournalHabitAnalysisOptions = {
+  /**
+   * TSS per training day (`YYYY-MM-DD`); a day missing from the map trained 0. Absent: no
+   * load adjustment.
+   */
+  loadByDay?: ReadonlyMap<string, number>;
 };
 
 export type JournalHabitFinding = {
@@ -69,6 +91,8 @@ export type JournalHabitFinding = {
   polarity: ObservationPolarity;
   confidence: 'high' | 'medium';
   lagDays: number;
+  /** Habits logged on the same days as this one: the data cannot tell them apart. */
+  companionFactorIds?: readonly string[];
 };
 
 /** One athlete-facing row: same habit + polarity, possibly several outcomes. */
@@ -78,6 +102,8 @@ export type CompiledJournalHabitFinding = {
   polarity: ObservationPolarity;
   confidence: 'high' | 'medium';
   effects: JournalHabitFinding[];
+  /** Habits logged on the same days: the row names them all, and none can be the lever. */
+  companionFactorIds: readonly string[];
 };
 
 export const OUTCOMES: readonly JournalOutcomeKey[] = [
@@ -99,6 +125,29 @@ export const MIN_N_PER_GROUP_HIGH = 6;
 /** Early signal only — still needs a real contrast, not a 3-day fluke. */
 export const MIN_N_PER_GROUP_MEDIUM = 4;
 
+/** Share of net associations allowed to be chance, across every contrast tested at once. */
+export const NET_FALSE_DISCOVERY_RATE = 0.1;
+
+/** A lead still has to be unlikely as chance on its own. */
+export const LEAD_MAX_P_VALUE = 0.2;
+
+/** Two habits this correlated over the days both were noted cannot be told apart. */
+export const INSEPARABLE_PHI = 0.7;
+
+/** States the morning already carries (a fever, a period): compared with their own morning. */
+const CONCURRENT_STATE_FACTORS: ReadonlySet<string> = new Set([
+  'mood_low',
+  'menstruation',
+  'fever',
+  'headache',
+  'pain',
+  'allergies',
+  'cold_congestion',
+  'cramps',
+  'abdominal_cramps',
+  'pregnant',
+]);
+
 export function recordedFactorValue(state: string | null | undefined): RecordedFactor | null {
   return state === 'yes' || state === 'no' ? state : null;
 }
@@ -113,21 +162,16 @@ export function median(values: readonly number[]): number {
 }
 
 /**
- * Days to shift the outcome relative to the factor's training day.
- * Alcohol on calendar day J → sleep / morning readiness of J+1.
- * Prior-night factors already describe the night ending on morning J → lag 0 for sleep.
+ * Days to shift the outcome relative to the factor's training day. Outcomes are read on waking,
+ * so a habit of day J (a supplement, a cold shower, alcohol) can only show on the morning of
+ * J+1 — comparing it with morning J would credit it with a night it came after. Prior-night
+ * factors already describe the night ending on morning J, and concurrent states share it.
  */
-export function outcomeLagDays(factorId: string, outcome: JournalOutcomeKey): number {
+export function outcomeLagDays(factorId: string): number {
   if (isDayContextFactorId(factorId) && isPriorNightFactor(factorId)) {
     return 0;
   }
-  if (factorId === 'alcohol') {
-    return 1;
-  }
-  if (factorId === 'coffee' && outcome === 'sleepMinutes') {
-    return 1;
-  }
-  return 0;
+  return CONCURRENT_STATE_FACTORS.has(factorId) ? 0 : 1;
 }
 
 export function shiftTrainingDayId(trainingDayId: string, deltaDays: number): string | null {
@@ -246,33 +290,55 @@ function indexDaysById(days: readonly JournalAnalysisDay[]): Map<string, Journal
   return map;
 }
 
-function laggedOutcomeValue(
-  day: JournalAnalysisDay,
-  byId: Map<string, JournalAnalysisDay>,
+/** A morning's outcome, brought back to the athlete's average load of the day before it. */
+type OutcomeReader = (outcomeDayId: string) => number | null;
+
+/** The TSS of the day before the morning: the session the night and the readiness follow. */
+function loadBeforeMorning(loadByDay: ReadonlyMap<string, number>, outcomeDayId: string): number {
+  const previous = shiftTrainingDayId(outcomeDayId, -1);
+  return previous ? (loadByDay.get(previous) ?? 0) : 0;
+}
+
+function outcomeReader(
+  days: readonly JournalAnalysisDay[],
   outcome: JournalOutcomeKey,
-  lagDays: number,
-): number | null {
-  const outcomeDayId = shiftTrainingDayId(day.trainingDayId, lagDays);
-  if (!outcomeDayId) {
-    return null;
+  loadByDay: ReadonlyMap<string, number> | undefined,
+): OutcomeReader {
+  const byId = indexDaysById(days);
+  const raw = (dayId: string) => {
+    const day = byId.get(dayId);
+    return day ? outcomeValue(day, outcome) : null;
+  };
+  if (!loadByDay) {
+    return raw;
   }
-  const outcomeDay = lagDays === 0 ? day : byId.get(outcomeDayId);
-  return outcomeDay ? outcomeValue(outcomeDay, outcome) : null;
+  const points = days.flatMap((day) => {
+    const value = outcomeValue(day, outcome);
+    return value === null ? [] : [{ value, load: loadBeforeMorning(loadByDay, day.trainingDayId) }];
+  });
+  const adjust = loadAdjuster(points);
+  if (!adjust) {
+    return raw;
+  }
+  return (dayId) => {
+    const value = raw(dayId);
+    return value === null ? null : adjust(value, loadBeforeMorning(loadByDay, dayId));
+  };
 }
 
 function splitOutcomeByFactor(
   days: readonly JournalAnalysisDay[],
   factorId: string,
-  outcome: JournalOutcomeKey,
   lagDays: number,
+  readOutcome: OutcomeReader,
 ): { yesValues: number[]; noValues: number[] } {
-  const byId = indexDaysById(days);
   const yesValues: number[] = [];
   const noValues: number[] = [];
 
   for (const day of days) {
     const factor = day.factors[factorId] ?? null;
-    const value = factor === null ? null : laggedOutcomeValue(day, byId, outcome, lagDays);
+    const outcomeDayId = shiftTrainingDayId(day.trainingDayId, lagDays);
+    const value = factor === null || !outcomeDayId ? null : readOutcome(outcomeDayId);
     if (value === null) {
       continue;
     }
@@ -286,9 +352,11 @@ export function compareFactorOutcome(
   days: readonly JournalAnalysisDay[],
   factorId: string,
   outcome: JournalOutcomeKey,
+  options: JournalHabitAnalysisOptions & { readOutcome?: OutcomeReader } = {},
 ): FactorOutcomeEffect | null {
-  const lagDays = outcomeLagDays(factorId, outcome);
-  const { yesValues, noValues } = splitOutcomeByFactor(days, factorId, outcome, lagDays);
+  const lagDays = outcomeLagDays(factorId);
+  const readOutcome = options.readOutcome ?? outcomeReader(days, outcome, options.loadByDay);
+  const { yesValues, noValues } = splitOutcomeByFactor(days, factorId, lagDays, readOutcome);
 
   if (yesValues.length === 0 || noValues.length === 0) {
     return null;
@@ -318,6 +386,7 @@ export function compareFactorOutcome(
     polarity,
     confidence,
     lagDays,
+    pValue: mannWhitneyPValue(yesValues, noValues),
   };
 }
 
@@ -389,43 +458,175 @@ export function collapseRedundantRecoveryFindings(
 }
 
 /**
- * Build athlete-facing associations: every solid factor×outcome effect after lag,
- * plausibility gate, redundancy collapse, and contradiction drop.
+ * Phi coefficient of two habits over the days both were noted; null when either never varies
+ * there. |phi| near 1 means the journal holds no day that separates them.
+ */
+export function factorCorrelation(
+  days: readonly JournalAnalysisDay[],
+  a: string,
+  b: string,
+): number | null {
+  let both = 0;
+  let onlyA = 0;
+  let onlyB = 0;
+  let neither = 0;
+  for (const day of days) {
+    const x = day.factors[a] ?? null;
+    const y = day.factors[b] ?? null;
+    if (x === null || y === null) {
+      continue;
+    }
+    if (x === 'yes' && y === 'yes') {
+      both += 1;
+    } else if (x === 'yes') {
+      onlyA += 1;
+    } else if (y === 'yes') {
+      onlyB += 1;
+    } else {
+      neither += 1;
+    }
+  }
+  const spread = (both + onlyA) * (onlyB + neither) * (both + onlyB) * (onlyA + neither);
+  return spread === 0 ? null : (both * neither - onlyA * onlyB) / Math.sqrt(spread);
+}
+
+/** Groups of habits the days cannot tell apart, each habit in at most one group. */
+export function inseparableFactorGroups(
+  days: readonly JournalAnalysisDay[],
+  factorIds: readonly string[],
+): string[][] {
+  const groupOf = new Map<string, string[]>();
+  for (const [index, a] of factorIds.entries()) {
+    for (const b of factorIds.slice(index + 1)) {
+      const phi = factorCorrelation(days, a, b);
+      if (phi === null || Math.abs(phi) < INSEPARABLE_PHI) {
+        continue;
+      }
+      const groupA = groupOf.get(a);
+      const groupB = groupOf.get(b);
+      if (groupA && groupB) {
+        if (groupA === groupB) {
+          continue;
+        }
+        groupA.push(...groupB);
+        groupB.forEach((id) => groupOf.set(id, groupA));
+      } else if (groupA) {
+        groupA.push(b);
+        groupOf.set(b, groupA);
+      } else if (groupB) {
+        groupB.push(a);
+        groupOf.set(a, groupB);
+      } else {
+        const group = [a, b];
+        groupOf.set(a, group);
+        groupOf.set(b, group);
+      }
+    }
+  }
+  return [...new Set(groupOf.values())].map((group) => [...group].sort());
+}
+
+type TestedEffect = FactorOutcomeEffect & { qValue: number };
+
+/** Every factor × outcome contrast with enough days on both sides to be tested at all. */
+function testableEffects(
+  days: readonly JournalAnalysisDay[],
+  factorIds: readonly string[],
+  options: JournalHabitAnalysisOptions,
+): FactorOutcomeEffect[] {
+  return OUTCOMES.flatMap((outcome) => {
+    const readOutcome = outcomeReader(days, outcome, options.loadByDay);
+    return factorIds.flatMap((factorId) => {
+      const effect = compareFactorOutcome(days, factorId, outcome, { readOutcome });
+      return effect && Math.min(effect.nYes, effect.nNo) >= MIN_N_PER_GROUP_MEDIUM ? [effect] : [];
+    });
+  });
+}
+
+/** Net needs the false-discovery bar across all contrasts; a lead, a plausible p-value alone. */
+function statisticalConfidence(effect: TestedEffect): ObservationConfidence {
+  if (effect.confidence === 'none') {
+    return 'none';
+  }
+  if (effect.confidence === 'high' && effect.qValue <= NET_FALSE_DISCOVERY_RATE) {
+    return 'high';
+  }
+  return effect.pValue <= LEAD_MAX_P_VALUE ? 'medium' : 'none';
+}
+
+function toFinding(effect: FactorOutcomeEffect): JournalHabitFinding | null {
+  const gated = applyPlausibilityToEffect(effect);
+  if (!gated || gated.confidence === 'none') {
+    return null;
+  }
+  return {
+    kind: 'effect',
+    factorId: gated.factorId,
+    outcome: gated.outcome,
+    nYes: gated.nYes,
+    nNo: gated.nNo,
+    medianYes: gated.medianYes,
+    medianNo: gated.medianNo,
+    yesValues: gated.yesValues,
+    noValues: gated.noValues,
+    absDelta: gated.absDelta,
+    polarity: gated.polarity,
+    confidence: gated.confidence,
+    lagDays: gated.lagDays,
+  };
+}
+
+/** One finding per inseparable group: its first member speaks, naming the others. */
+function mergeInseparable(
+  findings: readonly JournalHabitFinding[],
+  groups: readonly string[][],
+): JournalHabitFinding[] {
+  const groupOf = new Map(groups.flatMap((group) => group.map((id) => [id, group] as const)));
+  const speaking = new Map<string, string>();
+  for (const finding of findings) {
+    const group = groupOf.get(finding.factorId);
+    if (group && !speaking.has(group[0]!)) {
+      speaking.set(group[0]!, finding.factorId);
+    }
+  }
+  return findings.flatMap((finding) => {
+    const group = groupOf.get(finding.factorId);
+    if (!group) {
+      return [finding];
+    }
+    if (speaking.get(group[0]!) !== finding.factorId) {
+      return [];
+    }
+    const companionFactorIds = group.filter((id) => id !== finding.factorId);
+    return [{ ...finding, companionFactorIds }];
+  });
+}
+
+/**
+ * Build athlete-facing associations: every factor×outcome contrast after lag and load
+ * adjustment, a rank test with a false-discovery correction across all of them, the
+ * plausibility gate, inseparable habits merged, redundancy collapse and contradiction drop.
  */
 export function buildJournalHabitFindings(
   days: readonly JournalAnalysisDay[],
+  options: JournalHabitAnalysisOptions = {},
 ): JournalHabitFinding[] {
-  const raw: JournalHabitFinding[] = [];
+  const factorIds = collectFactorIds(days);
+  const effects = testableEffects(days, factorIds, options);
+  const qValues = benjaminiHochberg(effects.map((effect) => effect.pValue));
 
-  for (const factorId of collectFactorIds(days)) {
-    for (const outcome of OUTCOMES) {
-      const effect = compareFactorOutcome(days, factorId, outcome);
-      if (!effect) {
-        continue;
-      }
-      const gated = applyPlausibilityToEffect(effect);
-      if (!gated || gated.confidence === 'none') {
-        continue;
-      }
-      raw.push({
-        kind: 'effect',
-        factorId: gated.factorId,
-        outcome: gated.outcome,
-        nYes: gated.nYes,
-        nNo: gated.nNo,
-        medianYes: gated.medianYes,
-        medianNo: gated.medianNo,
-        yesValues: gated.yesValues,
-        noValues: gated.noValues,
-        absDelta: gated.absDelta,
-        polarity: gated.polarity,
-        confidence: gated.confidence,
-        lagDays: gated.lagDays,
-      });
-    }
-  }
+  const findings = effects.flatMap((effect, index) => {
+    const tested = { ...effect, qValue: qValues[index]! };
+    const finding = toFinding({ ...effect, confidence: statisticalConfidence(tested) });
+    return finding ? [finding] : [];
+  });
 
-  const collapsed = collapseRedundantRecoveryFindings(raw);
+  // Strongest first, so the habit that speaks for a group is the one with the clearest gap.
+  const ranked = [...findings].sort(
+    (a, b) => relativeEffectForFinding(b) - relativeEffectForFinding(a),
+  );
+  const merged = mergeInseparable(ranked, inseparableFactorGroups(days, factorIds));
+  const collapsed = collapseRedundantRecoveryFindings(merged);
   return dropContradictoryFactorFindings(collapsed).kept;
 }
 
@@ -487,6 +688,7 @@ export function compileJournalHabitFindings(
       polarity: primary.polarity,
       confidence: sortedEffects.some((e) => e.confidence === 'high') ? 'high' : 'medium',
       effects: sortedEffects,
+      companionFactorIds: primary.companionFactorIds ?? [],
     });
   }
 
