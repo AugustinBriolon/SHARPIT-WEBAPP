@@ -27,6 +27,10 @@ describe('apex routing', () => {
       '/aide',
       '/aide/sources/garmin',
       '/sign-in',
+      '/alternatives/runna',
+      '/guides/rattraper-seance-course-a-pied-sans-se-blesser',
+      '/comparatifs/meilleures-applications-plan-entrainement-running',
+      '/pour/soignants-horaires-decales',
       '/api/billing/apple/notifications',
       '/api/v1/today',
     ]) {

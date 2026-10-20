@@ -26,7 +26,7 @@ const APPLE_NOTIFICATIONS_PATH = '/api/billing/apple/notifications';
 
 /** Paths the hub serves or forwards itself; everything else goes to the web, path and query kept. */
 const HUB_PATHS =
-  '\\.well-known|aide|connect|privacy|terms|sign-in|api/|_next|__clerk|favicon\\.ico|icon|apple-icon';
+  '\\.well-known|aide|connect|privacy|terms|sign-in|alternatives|guides|comparatifs|pour|api/|_next|__clerk|favicon\\.ico|icon|apple-icon';
 
 const nextConfig: NextConfig = {
   cacheComponents: true,

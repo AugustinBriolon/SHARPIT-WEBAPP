@@ -2,6 +2,7 @@ import { type NextFetchEvent, type NextRequest, NextResponse } from 'next/server
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { afterAuthPath } from '@sharpit/app/lib/auth/after-auth-redirect';
 import { recoverFromHandshakeFailure } from '@sharpit/app/lib/auth/handshake-recovery';
+import { isDevClerkBypass } from '@sharpit/app/lib/dev/dev-auth';
 
 /**
  * The apex needs a session for native handoffs (ADR-047): Garmin SSO steps and the OAuth
@@ -33,6 +34,9 @@ function redirectSignedIn(req: NextRequest): NextResponse | null {
 
 const clerkProxy = clerkMiddleware(
   async (auth, req) => {
+    if (isDevClerkBypass()) {
+      return;
+    }
     const { userId } = await auth();
     if (userId) {
       return redirectSignedIn(req);
