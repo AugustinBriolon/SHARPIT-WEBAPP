@@ -402,6 +402,7 @@ export function buildTrainingZones(physicalNotes: PhysicalNotes): TrainingZone[]
     functionalImpact: note.functionalImpact,
     affectsTraining: note.affectsTraining,
     resolvedAt: note.resolvedAt,
+    startDate: note.startDate,
     checkins: note.checkins,
   }));
 }

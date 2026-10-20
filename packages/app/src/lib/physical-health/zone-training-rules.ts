@@ -17,6 +17,7 @@ import {
   type FollowedZone,
   type ZoneStrategy,
 } from '@sharpit/app/lib/physical-health/zone-follow-up';
+import { formatZoneWorseningConduct } from '@sharpit/app/lib/physical-health/zone-worsening-conduct';
 
 /** A declared zone as generation reads it: its follow-up state plus how it was named. */
 export type TrainingZone = FollowedZone & {
@@ -24,6 +25,7 @@ export type TrainingZone = FollowedZone & {
   bodyPart: string | null;
   side: string | null;
   description?: string | null;
+  startDate?: Date | string | null;
 };
 
 function toSensitiveZone(zone: TrainingZone): SensitiveZone {
@@ -97,6 +99,7 @@ export function formatZoneTrainingRules(zones: readonly TrainingZone[], now: Dat
       grouped.relapse_watch.map(relapseLine),
       'Pas de pic brutal de volume ou d’intensité qui les sollicite ; garde un peu de travail préventif autour.',
     ),
+    formatZoneWorseningConduct(zones, now),
   ]
     .filter((part) => part !== '')
     .join('\n');
