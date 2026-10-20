@@ -2,33 +2,33 @@ import Link from 'next/link';
 import { ArrowUpRight, ChevronRight, HelpCircle } from 'lucide-react';
 import { buttonVariants } from '@sharpit/ui/components/ui/button';
 import { cn } from '@sharpit/app/lib/utils';
-import { Brand, CONTAINER, HEADING, LEAD, RULE } from '@/components/landing/landing-parts';
+import { Brand, CONTAINER, HEADING, LEAD } from '@/components/landing/landing-parts';
 
 export type SeoCrumb = { label: string; href?: string };
 
 export function SeoHeader() {
   return (
-    <header className="bg-background/80 sticky top-0 z-30 border-b border-border/50 backdrop-blur-md">
+    <header className="bg-background/80 border-border/50 sticky top-0 z-30 border-b backdrop-blur-md">
       <div className={cn(CONTAINER, 'flex h-16 items-center justify-between gap-4')}>
         <div className="flex items-center gap-3">
           <Link aria-label="SharpIt, accueil" href="/">
             <Brand />
           </Link>
           <span className="bg-foreground/20 h-5 w-px" aria-hidden />
-          <span className="text-muted-foreground text-xs font-medium uppercase tracking-wider">
+          <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
             Guides & Comparatifs
           </span>
         </div>
         <div className="flex items-center gap-3">
           <Link
-            href="/aide"
             className="text-muted-foreground hover:text-foreground hidden text-sm transition-colors sm:block"
+            href="/aide"
           >
             Aide
           </Link>
           <a
-            href="https://web.sharpit.app/demo"
             className={buttonVariants({ size: 'sm', className: 'h-9 px-4 text-xs font-medium' })}
+            href="https://web.sharpit.app/demo"
           >
             <span>Voir la démo</span>
             <ArrowUpRight className="ml-1 size-3.5" aria-hidden />
@@ -67,23 +67,25 @@ export function SeoFaqSection({
 }: {
   items: readonly { question: string; answer: string }[];
 }) {
-  if (!items.length) return null;
+  if (!items.length) {
+    return null;
+  }
 
   return (
-    <section aria-labelledby="faq-heading" className="my-16 border-t border-border/60 pt-12">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        <HelpCircle className="size-4 text-highlight" aria-hidden />
+    <section aria-labelledby="faq-heading" className="border-border/60 my-16 border-t pt-12">
+      <div className="text-muted-foreground flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
+        <HelpCircle className="text-highlight size-4" aria-hidden />
         <span>Foire aux questions</span>
       </div>
-      <h2 id="faq-heading" className={cn(HEADING, 'mt-2 text-2xl text-foreground sm:text-3xl')}>
+      <h2 className={cn(HEADING, 'text-foreground mt-2 text-2xl sm:text-3xl')} id="faq-heading">
         Questions fréquentes
       </h2>
 
-      <div className="mt-8 divide-y divide-border/60">
+      <div className="divide-border/60 mt-8 divide-y">
         {items.map((item) => (
           <div key={item.question} className="py-6 first:pt-0">
-            <h3 className="text-base font-semibold text-foreground sm:text-lg">{item.question}</h3>
-            <p className="mt-2 text-base leading-relaxed text-muted-foreground">{item.answer}</p>
+            <h3 className="text-foreground text-base font-semibold sm:text-lg">{item.question}</h3>
+            <p className="text-muted-foreground mt-2 text-base leading-relaxed">{item.answer}</p>
           </div>
         ))}
       </div>
@@ -101,18 +103,16 @@ export function SeoCtaBanner({
   return (
     <section
       aria-label="Appel à l'action"
-      className="landing-night my-16 overflow-hidden rounded-3xl p-8 sm:p-12 text-center"
+      className="landing-night my-16 overflow-hidden rounded-3xl p-8 text-center sm:p-12"
     >
-      <h2 className={cn(HEADING, 'mx-auto max-w-2xl text-2xl sm:text-4xl text-foreground')}>
+      <h2 className={cn(HEADING, 'text-foreground mx-auto max-w-2xl text-2xl sm:text-4xl')}>
         {title}
       </h2>
-      <p className={cn(LEAD, 'mx-auto mt-4 max-w-xl text-sm sm:text-base')}>
-        {subtitle}
-      </p>
+      <p className={cn(LEAD, 'mx-auto mt-4 max-w-xl text-sm sm:text-base')}>{subtitle}</p>
       <div className="mt-8 flex flex-wrap justify-center gap-4">
         <a
-          href="https://web.sharpit.app/demo"
           className={buttonVariants({ size: 'lg', className: 'px-6 font-medium shadow-md' })}
+          href="https://web.sharpit.app/demo"
         >
           <span>Essayer la démo sans inscription</span>
           <ArrowUpRight className="ml-1.5 size-4" aria-hidden />
@@ -132,11 +132,11 @@ const FOOTER_LINKS = [
 
 export function SeoFooter() {
   return (
-    <footer className="border-t border-border/50 py-12">
+    <footer className="border-border/50 border-t py-12">
       <div
         className={cn(
           CONTAINER,
-          'text-muted-foreground flex flex-col items-center justify-between gap-6 sm:flex-row text-xs sm:text-sm',
+          'text-muted-foreground flex flex-col items-center justify-between gap-6 text-xs sm:flex-row sm:text-sm',
         )}
       >
         <div className="flex items-center gap-3">

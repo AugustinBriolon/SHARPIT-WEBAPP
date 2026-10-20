@@ -138,8 +138,7 @@ export const ROUNDUPS: Record<string, RoundupData> = {
           'Personnalisation basique.',
           'Manque de profondeur pour les coureurs intermédiaires et avancés.',
         ],
-        verdict:
-          'Une belle initiative gratuite pour boucler son premier marathon sans se ruiner.',
+        verdict: 'Une belle initiative gratuite pour boucler son premier marathon sans se ruiner.',
       },
       {
         rank: 7,
@@ -150,10 +149,7 @@ export const ROUNDUPS: Record<string, RoundupData> = {
           'Séances audio guidées par des coachs et athlètes inspirants.',
           'Expérience utilisateur soignée et bienveillante.',
         ],
-        weaknesses: [
-          'Plans totalement figés.',
-          'Synchronisations tierces parfois instables.',
-        ],
+        weaknesses: ['Plans totalement figés.', 'Synchronisations tierces parfois instables.'],
         verdict:
           'Parfait pour se remettre au sport avec le sourire, insuffisant pour performer sur course officielle.',
       },

@@ -94,24 +94,25 @@ export const EXPORTED_SPORT_ON: ReadonlyArray<readonly [string, string]> = [
  * Geometry exported to `SharpitTokens`, as `[css custom property, Swift name, block]`.
  * Radii live in `@theme inline`; spacing and sizes in `:root` (ADR-085).
  */
-export const EXPORTED_GEOMETRY: ReadonlyArray<readonly [string, string, '@theme inline' | ':root']> =
-  [
-    ['radius-card', 'cardRadius', '@theme inline'],
-    ['radius-inset', 'insetRadius', '@theme inline'],
-    ['radius-row', 'rowRadius', '@theme inline'],
-    ['radius-tile', 'tileRadius', '@theme inline'],
-    ['radius-chip', 'chipRadius', '@theme inline'],
-    ['space-card', 'cardPadding', ':root'],
-    ['space-section', 'sectionGap', ':root'],
-    ['space-inset', 'insetPadding', ':root'],
-    ['space-row-gap', 'rowGap', ':root'],
-    ['space-row-x', 'rowPaddingX', ':root'],
-    ['size-tile', 'tileSize', ':root'],
-    ['size-chip', 'chipSize', ':root'],
-    ['size-control', 'controlHeight', ':root'],
-    ['size-row', 'rowHeight', ':root'],
-    ['size-bar', 'barThickness', ':root'],
-  ];
+export const EXPORTED_GEOMETRY: ReadonlyArray<
+  readonly [string, string, '@theme inline' | ':root']
+> = [
+  ['radius-card', 'cardRadius', '@theme inline'],
+  ['radius-inset', 'insetRadius', '@theme inline'],
+  ['radius-row', 'rowRadius', '@theme inline'],
+  ['radius-tile', 'tileRadius', '@theme inline'],
+  ['radius-chip', 'chipRadius', '@theme inline'],
+  ['space-card', 'cardPadding', ':root'],
+  ['space-section', 'sectionGap', ':root'],
+  ['space-inset', 'insetPadding', ':root'],
+  ['space-row-gap', 'rowGap', ':root'],
+  ['space-row-x', 'rowPaddingX', ':root'],
+  ['size-tile', 'tileSize', ':root'],
+  ['size-chip', 'chipSize', ':root'],
+  ['size-control', 'controlHeight', ':root'],
+  ['size-row', 'rowHeight', ':root'],
+  ['size-bar', 'barThickness', ':root'],
+];
 
 export type Rgba = { red: number; green: number; blue: number; alpha: number };
 

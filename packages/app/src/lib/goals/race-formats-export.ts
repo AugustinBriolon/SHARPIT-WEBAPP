@@ -24,11 +24,21 @@ const DISCIPLINE_SWIFT_CASE: Record<RaceDiscipline, string> = {
 
 function formatSwiftDistances(d: RaceDistances): string {
   const parts: string[] = [];
-  if (d.swimM) parts.push(`swimM: ${d.swimM.toLocaleString('en-US').replace(/,/g, '_')}`);
-  if (d.bikeM) parts.push(`bikeM: ${d.bikeM.toLocaleString('en-US').replace(/,/g, '_')}`);
-  if (d.runM) parts.push(`runM: ${d.runM.toLocaleString('en-US').replace(/,/g, '_')}`);
-  if (d.run2M) parts.push(`run2M: ${d.run2M.toLocaleString('en-US').replace(/,/g, '_')}`);
-  if (d.segments) parts.push(`segments: ${d.segments}`);
+  if (d.swimM) {
+    parts.push(`swimM: ${d.swimM.toLocaleString('en-US').replace(/,/g, '_')}`);
+  }
+  if (d.bikeM) {
+    parts.push(`bikeM: ${d.bikeM.toLocaleString('en-US').replace(/,/g, '_')}`);
+  }
+  if (d.runM) {
+    parts.push(`runM: ${d.runM.toLocaleString('en-US').replace(/,/g, '_')}`);
+  }
+  if (d.run2M) {
+    parts.push(`run2M: ${d.run2M.toLocaleString('en-US').replace(/,/g, '_')}`);
+  }
+  if (d.segments) {
+    parts.push(`segments: ${d.segments}`);
+  }
   return parts.length > 0 ? `.init(${parts.join(', ')})` : '.init()';
 }
 

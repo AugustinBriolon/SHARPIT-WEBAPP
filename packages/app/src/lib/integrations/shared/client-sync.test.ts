@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { runGoogleSync, runStravaSync } from './client-sync';
+import { runGoogleSync } from './client-sync';
 
 function signIn(token: string | null) {
   vi.stubGlobal('Clerk', { loaded: true, session: token ? { getToken: async () => token } : null });

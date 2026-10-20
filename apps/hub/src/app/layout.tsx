@@ -30,8 +30,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <AppClerkProvider>
       <html
-        lang="fr"
         className={cn(...FONT_VARIABLES, 'bg-background h-full antialiased')}
+        lang="fr"
         suppressHydrationWarning
       >
         <head>

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Check, X, Award, SlidersHorizontal, ArrowUpRight } from 'lucide-react';
+import { Check, X, SlidersHorizontal, ArrowUpRight } from 'lucide-react';
 import { buttonVariants } from '@sharpit/ui/components/ui/button';
 import { cn } from '@sharpit/app/lib/utils';
-import { CONTAINER, HEADING, LEAD, RULE } from '@/components/landing/landing-parts';
+import { CONTAINER, HEADING, LEAD } from '@/components/landing/landing-parts';
 import { DirectAnswerBox } from '@/components/seo/direct-answer-box';
 import {
   SeoBreadcrumbs,
@@ -23,7 +23,9 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const roundup = findRoundup(slug);
-  if (!roundup) return {};
+  if (!roundup) {
+    return {};
+  }
 
   return {
     title: `${roundup.metaTitle} · SharpIt`,
@@ -79,30 +81,22 @@ export default async function RoundupPage({ params }: Props) {
   return (
     <div className="bg-background text-foreground min-h-screen">
       <script
-        type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        type="application/ld+json"
       />
       <SeoHeader />
 
       <main className={cn(CONTAINER, 'py-8 sm:py-12')}>
         <SeoBreadcrumbs
-          trail={[
-            { label: 'Accueil', href: '/' },
-            { label: 'Comparatifs' },
-            { label: roundup.h1 },
-          ]}
+          trail={[{ label: 'Accueil', href: '/' }, { label: 'Comparatifs' }, { label: roundup.h1 }]}
         />
 
         <header className="max-w-3xl">
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
             Comparatif & Guide d’achat 2026
           </p>
-          <h1 className={cn(HEADING, 'mt-3 text-3xl sm:text-5xl leading-tight')}>
-            {roundup.h1}
-          </h1>
-          <p className={cn(LEAD, 'mt-4 text-base sm:text-xl')}>
-            {roundup.tagline}
-          </p>
+          <h1 className={cn(HEADING, 'mt-3 text-3xl leading-tight sm:text-5xl')}>{roundup.h1}</h1>
+          <p className={cn(LEAD, 'mt-4 text-base sm:text-xl')}>{roundup.tagline}</p>
         </header>
 
         {/* 100-word direct answer (GEO / AI citation optimized) */}
@@ -113,14 +107,14 @@ export default async function RoundupPage({ params }: Props) {
           aria-labelledby="criteria-heading"
           className="border-border/60 bg-muted/10 my-12 max-w-3xl rounded-2xl border p-6"
         >
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <SlidersHorizontal className="size-4 text-highlight" aria-hidden />
+          <div className="text-foreground flex items-center gap-2 text-sm font-semibold">
+            <SlidersHorizontal className="text-highlight size-4" aria-hidden />
             <h2 id="criteria-heading">Nos critères de notation</h2>
           </div>
-          <ul className="mt-4 grid gap-2.5 text-sm text-muted-foreground sm:grid-cols-2">
+          <ul className="text-muted-foreground mt-4 grid gap-2.5 text-sm sm:grid-cols-2">
             {roundup.selectionCriteria.map((criterion) => (
               <li key={criterion} className="flex items-start gap-2">
-                <span className="mt-1.5 size-1 shrink-0 rounded-full bg-highlight" />
+                <span className="bg-highlight mt-1.5 size-1 shrink-0 rounded-full" />
                 <span>{criterion}</span>
               </li>
             ))}
@@ -129,7 +123,7 @@ export default async function RoundupPage({ params }: Props) {
 
         {/* Apps list */}
         <section aria-labelledby="apps-list-heading" className="my-16 max-w-4xl space-y-12">
-          <h2 id="apps-list-heading" className="sr-only">
+          <h2 className="sr-only" id="apps-list-heading">
             Classement des applications
           </h2>
 
@@ -137,9 +131,9 @@ export default async function RoundupPage({ params }: Props) {
             <article
               key={app.name}
               className={cn(
-                'relative rounded-3xl border p-6 sm:p-10 transition-all',
+                'relative rounded-3xl border p-6 transition-all sm:p-10',
                 app.rank === 1
-                  ? 'border-highlight/50 bg-highlight/[0.03] ring-1 ring-highlight/20 shadow-lg'
+                  ? 'border-highlight/50 bg-highlight/[0.03] ring-highlight/20 shadow-lg ring-1'
                   : 'border-border/60 bg-muted/5',
               )}
             >
@@ -156,26 +150,24 @@ export default async function RoundupPage({ params }: Props) {
                     #{app.rank}
                   </span>
                   <div>
-                    <h3 className={cn(HEADING, 'text-xl sm:text-2xl text-foreground')}>
+                    <h3 className={cn(HEADING, 'text-foreground text-xl sm:text-2xl')}>
                       {app.name}
                     </h3>
-                    <p className="text-xs text-muted-foreground sm:text-sm">
-                      {app.bestFor}
-                    </p>
+                    <p className="text-muted-foreground text-xs sm:text-sm">{app.bestFor}</p>
                   </div>
                 </div>
 
-                <div className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground">
+                <div className="border-border/60 bg-background text-foreground rounded-full border px-3 py-1 text-xs font-medium">
                   {app.pricing}
                 </div>
               </div>
 
               <div className="mt-8 grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2.5">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-emerald-500">
+                  <span className="text-xs font-semibold tracking-wider text-emerald-500 uppercase">
                     Points forts
                   </span>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
+                  <ul className="text-muted-foreground space-y-2 text-sm">
                     {app.strengths.map((s) => (
                       <li key={s} className="flex items-start gap-2">
                         <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
@@ -186,13 +178,13 @@ export default async function RoundupPage({ params }: Props) {
                 </div>
 
                 <div className="space-y-2.5">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                     Limites
                   </span>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
+                  <ul className="text-muted-foreground space-y-2 text-sm">
                     {app.weaknesses.map((w) => (
                       <li key={w} className="flex items-start gap-2">
-                        <X className="mt-0.5 size-4 shrink-0 text-muted-foreground/60" />
+                        <X className="text-muted-foreground/60 mt-0.5 size-4 shrink-0" />
                         <span>{w}</span>
                       </li>
                     ))}
@@ -201,8 +193,8 @@ export default async function RoundupPage({ params }: Props) {
               </div>
 
               <div className="border-border/60 bg-background/50 mt-8 rounded-2xl border p-4 sm:p-5">
-                <p className="text-sm font-medium text-foreground">
-                  <strong className="font-semibold text-highlight">Verdict : </strong>
+                <p className="text-foreground text-sm font-medium">
+                  <strong className="text-highlight font-semibold">Verdict : </strong>
                   {app.verdict}
                 </p>
               </div>
@@ -230,8 +222,8 @@ export default async function RoundupPage({ params }: Props) {
 
         {/* CTA Banner */}
         <SeoCtaBanner
-          title="Faites le test avec vos propres séances."
           subtitle="Connectez votre montre Garmin en quelques secondes et observez comment SharpIt répare votre semaine."
+          title="Faites le test avec vos propres séances."
         />
       </main>
 

@@ -3,7 +3,6 @@ import { isSet } from '@sharpit/shared/value';
 import {
   analyzeActivityStreams,
   resolveThresholds,
-  type ActivityAnalysis,
 } from '@sharpit/app/lib/activity/detail/activity-analysis';
 import { rawStreamsHaveSignal, type RawStreams } from './stream-raw-types';
 import { getAthleteProfile } from '@sharpit/server/lib/queries';
@@ -428,10 +427,6 @@ function isGarminLegMissing(entry: GarminLegCacheEntry | undefined): entry is Ga
   return Boolean(entry && 'missingAt' in entry);
 }
 
-function garminLegMissingRecently(entry: GarminLegCacheEntry | undefined, now: number): boolean {
-  return isGarminLegMissing(entry) && now - Date.parse(entry.missingAt) < GARMIN_LEG_RECHECK_MS;
-}
-
 export type LegStreamOptions = {
   parentId: string;
   profile: Awaited<ReturnType<typeof getAthleteProfile>>;
@@ -469,34 +464,6 @@ async function cachedLegStream(
   return entry && !isGarminLegMissing(entry)
     ? buildLegStreamPayload(entry, type, leg.durationSec, options.profile)
     : null;
-}
-
-/**
- * Keeps a fetched Garmin leg on the parent's stream row, so the next read is cache-only. Only an
- * available row can hold it — an unavailable stub is deleted and refetched on read.
- */
-async function cacheGarminLeg(
-  athleteId: string,
-  parentId: string,
-  garminLegId: string,
-  entry: GarminLegCacheEntry,
-): Promise<void> {
-  let data = await loadParentStreamData(parentId);
-  if (!data) {
-    await getActivityStreams(athleteId, parentId);
-    data = await loadParentStreamData(parentId);
-  }
-  if (!data) {
-    // shortcut: a parent without stored streams cannot hold the leg cache (a stub row would read as an empty stream), so its legs refetch per view; add a dedicated column if such races show up.
-    return;
-  }
-  const stored = isGarminLegMissing(entry) ? entry : compactRawStreamsForStorage(entry);
-  // Read-modify-write without a lock: a concurrent writer can drop an entry, costing one refetch.
-  const garminLegs = { ...data.garminLegs, [garminLegId]: stored };
-  await prisma.activityStream.update({
-    where: { activityId: parentId },
-    data: { data: { ...data, garminLegs } as unknown as object },
-  });
 }
 
 /** First read of a leg: its own row's provider, else parent-cached leg stream. */

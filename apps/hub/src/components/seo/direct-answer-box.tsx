@@ -1,7 +1,6 @@
 import { ArrowUpRight, Sparkles } from 'lucide-react';
 import { buttonVariants } from '@sharpit/ui/components/ui/button';
 import { cn } from '@sharpit/app/lib/utils';
-import { HEADING } from '@/components/landing/landing-parts';
 
 const DEMO_URL = 'https://web.sharpit.app/demo';
 const APP_STORE_URL = 'https://apps.apple.com/app/sharpit/id6737190000'; // Fallback / canonical App Store
@@ -23,19 +22,19 @@ export function DirectAnswerBox({
         className,
       )}
     >
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        <Sparkles className="size-4 text-highlight" aria-hidden />
+      <div className="text-muted-foreground flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
+        <Sparkles className="text-highlight size-4" aria-hidden />
         <span>En résumé (Réponse directe)</span>
       </div>
 
-      <p className="mt-4 text-base font-normal leading-relaxed text-foreground sm:text-lg">
+      <p className="text-foreground mt-4 text-base leading-relaxed font-normal sm:text-lg">
         {directAnswer}
       </p>
 
       {sharpitPunchline ? (
         <div className="border-border/60 bg-background/60 mt-6 rounded-xl border p-4">
-          <p className="text-sm font-medium text-foreground">
-            <span className="font-semibold text-highlight">La réponse SharpIt : </span>
+          <p className="text-foreground text-sm font-medium">
+            <span className="text-highlight font-semibold">La réponse SharpIt : </span>
             {sharpitPunchline}
           </p>
         </div>
@@ -54,8 +53,8 @@ export function DirectAnswerBox({
         </a>
         <a
           href={APP_STORE_URL}
-          target="_blank"
           rel="noreferrer"
+          target="_blank"
           className={buttonVariants({
             size: 'default',
             variant: 'outline',

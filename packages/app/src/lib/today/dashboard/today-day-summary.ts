@@ -43,7 +43,9 @@ export type DaySummaryLine = {
 
 /** The compliance score out of a planned session's stored analysis, when it holds one. */
 export function readComplianceScore(analysis: unknown): number | null {
-  if (!analysis || typeof analysis !== 'object') return null;
+  if (!analysis || typeof analysis !== 'object') {
+    return null;
+  }
   const score = (analysis as { complianceScore?: unknown }).complianceScore;
   return typeof score === 'number' && Number.isFinite(score) ? Math.round(score) : null;
 }
