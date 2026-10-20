@@ -1,4 +1,5 @@
 import { runStructuredCoachStream } from '@sharpit/server/lib/coach/stream-structured-generation';
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import { normalizeCoachPrescriptions } from '@sharpit/server/lib/coach/plan/normalize-plan-generation';
 import { withCoachTrace } from '@sharpit/server/lib/ai/coach-trace';
 import { addDays, format, startOfDay } from 'date-fns';
@@ -222,7 +223,7 @@ function buildAdaptPrompt(input: {
   knowledgeBlock: string;
 }) {
   const { focus, today, horizon, ctx, upcomingLines, memoryBlock, knowledgeBlock } = input;
-  return `${focus ? `Demande de l'athlète : ${focus}\n\n` : ''}Fenêtre d'ajustement : du ${format(today, 'd MMM', { locale: fr })} au ${format(horizon, 'd MMM yyyy', { locale: fr })} (dates ADD au format yyyy-MM-dd dans cette fenêtre).
+  return `${focus ? `Demande de l'athlète : ${athleteText(focus)}\n\n` : ''}Fenêtre d'ajustement : du ${format(today, 'd MMM', { locale: fr })} au ${format(horizon, 'd MMM yyyy', { locale: fr })} (dates ADD au format yyyy-MM-dd dans cette fenêtre).
 
 ${formatCoachContext(ctx)}${memoryBlock}${knowledgeBlock}${formatZoneTrainingRules(ctx.trainingZones, today)}
 

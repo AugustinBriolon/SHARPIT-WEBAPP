@@ -1,4 +1,5 @@
 import { addDays, format, startOfDay } from 'date-fns';
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import { fr } from 'date-fns/locale';
 import { NextResponse } from 'next/server';
 import { formatJours } from '@sharpit/shared/french-plural';
@@ -171,12 +172,12 @@ function buildMacroBlock(input: {
     planPhase: planPhase ?? null,
   });
   const bits = [
-    planPhase ? `Phase du macro-plan : ${planPhase}` : null,
+    planPhase ? `Phase du macro-plan : ${athleteText(planPhase)}` : null,
     `Qualité de la semaine : ${weekQualityLabelFr(quality)} (${quality})`,
     effectiveTargetLoad !== null
       ? `Charge hebdomadaire cible : ${effectiveTargetLoad} TSS (répartis sur les séances du bloc)`
       : null,
-    effectivePlanFocus ? `Focus de la semaine : ${effectivePlanFocus}` : null,
+    effectivePlanFocus ? `Focus de la semaine : ${athleteText(effectivePlanFocus)}` : null,
   ].filter(Boolean);
   const macroBlock = `\n\n## Macro-plan de la semaine
 ${bits.join('\n')}
@@ -224,7 +225,7 @@ function buildPlanPrompt(input: {
     { locale: fr },
   )} (dayOffset 0 = ce jour-là, dayOffset 1 = lendemain, etc.).
 
-${focus ? `Demande spécifique de l'athlète : ${focus}\n\n` : ''}Données de l'athlète :
+${focus ? `Demande spécifique de l'athlète : ${athleteText(focus)}\n\n` : ''}Données de l'athlète :
 
 ${contextText}${memoryBlock}${knowledgeBlock}${goalBlock}${macroBlock}${agendaBlock}${input.sensitiveZonesBlock}`;
 }

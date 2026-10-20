@@ -34,6 +34,7 @@ import {
   getPerformanceRecordPodium,
   getPerformanceRecordsForActivity,
 } from '@sharpit/server/lib/training/records/records';
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import { isSet } from '@sharpit/shared/value';
 
 type Line = string | null | false | undefined;
@@ -52,12 +53,19 @@ function formatDay(date: Date): string {
   return format(date, 'EEEE d MMMM yyyy', { locale: fr });
 }
 
+/** Athlete prose, cut short and delimited as data (ADR-090). */
 function truncateProse(text: string | null | undefined): string | null {
   const trimmed = text?.trim();
   if (!trimmed) {
     return null;
   }
-  return trimmed.length > PROSE_MAX_CHARS ? `${trimmed.slice(0, PROSE_MAX_CHARS)}…` : trimmed;
+  return athleteText(
+    trimmed.length > PROSE_MAX_CHARS ? `${trimmed.slice(0, PROSE_MAX_CHARS)}…` : trimmed,
+  );
+}
+
+function athleteTitle(title: string | null | undefined): string {
+  return title?.trim() ? athleteText(title) : '';
 }
 
 // ── Today & planning ───────────────────────────────────────────────────────
@@ -109,7 +117,7 @@ type DiscussedPlannedSession = Pick<
 
 function plannedSessionSummary(session: DiscussedPlannedSession): string {
   return joinBits([
-    `${activityTypeLabels[session.type]} ${session.title?.trim() ?? ''}`.trim(),
+    `${activityTypeLabels[session.type]} ${athleteTitle(session.title)}`.trim(),
     formatDay(toLocalCalendarDate(session.date)),
     session.startTime && `à ${session.startTime}`,
     isSet(session.durationMin) && formatPlannedDuration(session.durationMin),
@@ -214,11 +222,11 @@ function goalDateBits(targetDate: Date | null, today: Date): Line[] {
 
 function raceGoalLine(goal: DiscussedGoal, today: Date): string {
   return joinBits([
-    `Course : ${goal.title}${goal.location ? ` (${goal.location})` : ''}`,
+    `Course : ${athleteTitle(goal.title)}${goal.location ? ` (${athleteText(goal.location)})` : ''}`,
     ...goalDateBits(goal.targetDate, today),
     goal.priority && `priorité ${goal.priority}`,
     goal.raceFormat,
-    goal.targetPerformance && `objectif visé : ${goal.targetPerformance}`,
+    goal.targetPerformance && `objectif visé : ${athleteText(goal.targetPerformance)}`,
   ]);
 }
 
@@ -259,7 +267,7 @@ type RecordPodium = Awaited<ReturnType<typeof getPerformanceRecordPodium>>;
 
 function podiumLine(entry: RecordPodium[number]): string {
   const when = format(entry.activityDate, 'd MMM yyyy', { locale: fr });
-  return `${entry.rank}. ${entry.displayValue} · ${entry.activityTitle?.trim() || 'séance sans titre'} · ${when}`;
+  return `${entry.rank}. ${entry.displayValue} · ${athleteTitle(entry.activityTitle) || 'séance sans titre'} · ${when}`;
 }
 
 export function formatRecordDiscussBlock(family: RecordFamily, podium: RecordPodium): string {
@@ -301,7 +309,7 @@ function physicalNoteZone(note: DiscussedPhysicalNote): string | null {
 function physicalNoteSummary(note: DiscussedPhysicalNote): string {
   const trend = legacyPhysicalTrend(note.checkins);
   return joinBits([
-    `${categoryLabels[note.category]} : ${note.title}`,
+    `${categoryLabels[note.category]} : ${athleteTitle(note.title)}`,
     physicalNoteZone(note),
     isSet(note.severity) && `sévérité ${note.severity}/10`,
     `statut ${statusLabels[note.status]}`,

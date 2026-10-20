@@ -94,10 +94,10 @@ describe('planned session block', () => {
     const block = await loadPlannedSessionDiscussBlock(OWNER, session.id);
 
     expect(block).toContain('## Séance prévue discutée');
-    expect(block).toContain('Course Seuil 3×10 · samedi 12 septembre 2026 · à 07:30 · 55 min');
+    expect(block).toContain('Course ⟦Seuil 3×10⟧ · samedi 12 septembre 2026 · à 07:30 · 55 min');
     expect(block).toContain('Seuil · charge prévue 72');
     expect(block).toContain('id=cmsession01');
-    expect(block).toContain('Contenu prévu : Échauffement 15 min');
+    expect(block).toContain('Contenu prévu : ⟦Échauffement 15 min');
     expect(block).toContain('Réalisée · conformité 82/100.');
   });
 
@@ -181,7 +181,7 @@ describe('goal block', () => {
 
     expect(block).toContain('## Objectif discuté');
     expect(block).toContain(
-      'Course : Half Ironman (Vichy) · dimanche 4 octobre 2026 · dans 24 jours · priorité A · 70.3 · objectif visé : Sub 5h',
+      'Course : ⟦Half Ironman⟧ (⟦Vichy⟧) · dimanche 4 octobre 2026 · dans 24 jours · priorité A · 70.3 · objectif visé : ⟦Sub 5h⟧',
     );
   });
 
@@ -235,7 +235,7 @@ describe('record block', () => {
     const block = await loadRecordDiscussBlock(OWNER, 'run-distance');
 
     expect(block).toContain('Plus longue sortie · course :');
-    expect(block).toContain('1. 21,1 km · Semi de Paris · 3 mai 2026');
+    expect(block).toContain('1. 21,1 km · ⟦Semi de Paris⟧ · 3 mai 2026');
     expect(block).toContain('2. 18,0 km · séance sans titre · 9 sept. 2026');
     expect(getPerformanceRecordPodium).toHaveBeenCalledWith(OWNER, 'run-distance');
   });
@@ -279,9 +279,9 @@ describe('physical condition block', () => {
 
     expect(block).toContain('## Contrainte physique discutée');
     expect(block).toContain(
-      'Douleur : Tendinite rotulienne · zone Genou (Droit) · sévérité 4/10 · statut Sous surveillance · tendance en amélioration · depuis le 20 août 2026',
+      'Douleur : ⟦Tendinite rotulienne⟧ · zone Genou (Droit) · sévérité 4/10 · statut Sous surveillance · tendance en amélioration · depuis le 20 août 2026',
     );
-    expect(block).toContain("Description de l'athlète : Gêne en descente.");
+    expect(block).toContain("Description de l'athlète : ⟦Gêne en descente.⟧");
     expect(block).toContain('jamais un diagnostic médical');
   });
 
