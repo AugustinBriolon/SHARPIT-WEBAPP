@@ -11,6 +11,8 @@ import {
   resolveVar,
   type Rgba,
 } from '@sharpit/app/lib/brand/ios-token-export';
+import { RACE_DISCIPLINES, RACE_FORMATS } from '@sharpit/app/lib/goals/race-formats';
+import { renderIosRaceFormats } from '@sharpit/app/lib/goals/race-formats-export';
 
 const GLOBALS_CSS = readFileSync(
   resolve(process.cwd(), '../../packages/ui/src/styles/globals.css'),
@@ -137,5 +139,25 @@ describe('renderIosTokens', () => {
     expect(swift).toContain('static let signalCautionForeground = dynamic(');
     expect(swift).toContain('static let signalRiskForeground = dynamic(');
     expect(swift).toContain('static let recordAccentForeground = dynamic(');
+  });
+});
+
+describe('renderIosRaceFormats', () => {
+  const swift = renderIosRaceFormats();
+
+  it('declares all disciplines in the Swift enum', () => {
+    for (const discipline of RACE_DISCIPLINES) {
+      expect(swift).toContain(`case ${discipline.toLowerCase()} = "${discipline}"`);
+    }
+  });
+
+  it('declares all formats in the catalog with their keys', () => {
+    for (const format of RACE_FORMATS) {
+      expect(swift).toContain(`"${format.key}"`);
+    }
+  });
+
+  it('is deterministic', () => {
+    expect(renderIosRaceFormats()).toBe(swift);
   });
 });
