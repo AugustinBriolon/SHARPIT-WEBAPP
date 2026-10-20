@@ -19,7 +19,6 @@ vi.mock('@sharpit/db/client', () => ({
       findMany: (...args: unknown[]) => findManyMock(...args),
       deleteMany: (...args: unknown[]) => deleteManyMock(...args),
     },
-    garminAccount: { updateMany: (...args: unknown[]) => updateManyMock(...args) },
     stravaAccount: { updateMany: (...args: unknown[]) => updateManyMock(...args) },
     googleAccount: { updateMany: (...args: unknown[]) => updateManyMock(...args) },
     withingsAccount: { updateMany: (...args: unknown[]) => updateManyMock(...args) },
@@ -129,8 +128,8 @@ describe('deleteAthleteAccount', () => {
       data: { deletedAt: now },
       select: { id: true, clerkUserId: true },
     });
-    // 5 providers cleared in transaction: garmin, strava, google, withings, renpho (MFP withdrawn)
-    expect((transactionMock.mock.calls[0]?.[0] as unknown[]).length).toBe(5);
+    // 4 providers cleared in transaction: strava, google, withings, renpho (garmin & MFP withdrawn)
+    expect((transactionMock.mock.calls[0]?.[0] as unknown[]).length).toBe(4);
     expect(deleteUserMock).toHaveBeenCalledWith('user_1');
     expect(deleteManyMock).toHaveBeenCalledWith({ where: { id: 'athlete-1' } });
   });

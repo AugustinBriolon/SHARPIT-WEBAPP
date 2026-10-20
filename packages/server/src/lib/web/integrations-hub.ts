@@ -3,7 +3,6 @@ import type {
   IntegrationProviderView,
   IntegrationsHubPayload,
 } from '@sharpit/app/lib/web/payloads';
-import { getGarminAccount } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import { isGoogleConfigured } from '@sharpit/server/lib/integrations/google/google';
 import {
   getGoogleAccount,
@@ -11,7 +10,6 @@ import {
 } from '@sharpit/server/lib/integrations/google/google-sync';
 import { getRenphoAccount } from '@sharpit/server/lib/integrations/renpho/renpho-sync';
 import {
-  isGarminAccountConnected,
   isOAuthAccountConnected,
   isRenphoAccountConnected,
 } from '@sharpit/server/lib/integrations/shared/connection-status';
@@ -58,9 +56,8 @@ function providerView<T>(
 
 /** The integrations hub's accounts and source prefs, read on `api.` (ADR-048 phase 3f). */
 export async function loadIntegrationsHub(athleteId: string): Promise<IntegrationsHubPayload> {
-  const [strava, garmin, renpho, withings, google, prefs, profile] = await Promise.all([
+  const [strava, renpho, withings, google, prefs, profile] = await Promise.all([
     getStravaAccount(athleteId),
-    getGarminAccount(athleteId),
     getRenphoAccount(athleteId),
     getWithingsAccount(athleteId),
     getGoogleAccount(athleteId).catch(() => null),
@@ -72,7 +69,6 @@ export async function loadIntegrationsHub(athleteId: string): Promise<Integratio
   ]);
   return {
     strava: { ...providerView(strava, isOAuthAccountConnected), configured: isStravaConfigured() },
-    garmin: providerView(garmin, isGarminAccountConnected),
     renpho: providerView(renpho, isRenphoAccountConnected),
     withings: {
       ...providerView(withings, isOAuthAccountConnected),

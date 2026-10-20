@@ -87,7 +87,6 @@ export type IntegrationProviderView = {
 
 export type IntegrationsHubPayload = {
   strava: IntegrationProviderView & { configured: boolean };
-  garmin: IntegrationProviderView;
   renpho: IntegrationProviderView;
   withings: IntegrationProviderView & { configured: boolean };
   google: IntegrationProviderView & { configured: boolean };

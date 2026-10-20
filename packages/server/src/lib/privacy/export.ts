@@ -137,11 +137,7 @@ export async function buildAthleteExportJson(athleteId: string) {
   ]);
 
   // Connection status only — never encrypted tokens / passwords.
-  const [garmin, strava, google, renpho, withings] = await Promise.all([
-    prisma.garminAccount.findUnique({
-      where: { athleteId },
-      select: { athleteId: true, createdAt: true, updatedAt: true },
-    }),
+  const [strava, google, renpho, withings] = await Promise.all([
     prisma.stravaAccount.findUnique({
       where: { athleteId },
       select: { athleteId: true, stravaAthleteId: true, createdAt: true, updatedAt: true },
@@ -201,7 +197,8 @@ export async function buildAthleteExportJson(athleteId: string) {
       },
     },
     integrations: {
-      garmin: garmin ? { connected: true, ...garmin } : { connected: false },
+      /** Product linking and sync were withdrawn and table dropped. */
+      garmin: { connected: false, historicalAccount: false },
       strava: strava ? { connected: true, ...strava } : { connected: false },
       google: google ? { connected: true, ...google } : { connected: false },
       renpho: renpho ? { connected: true, email: renpho.email } : { connected: false },

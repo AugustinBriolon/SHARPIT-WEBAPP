@@ -5,12 +5,7 @@ import {
   resolveThresholds,
   type ActivityAnalysis,
 } from '@sharpit/app/lib/activity/detail/activity-analysis';
-import {
-  fetchGarminActivityStreams,
-  rawStreamsHaveSignal,
-  type RawStreams,
-} from '@sharpit/server/lib/integrations/garmin/garmin-streams';
-import { getGarminClient } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
+import { rawStreamsHaveSignal, type RawStreams } from './stream-raw-types';
 import { getAthleteProfile } from '@sharpit/server/lib/queries';
 import {
   fetchActivityStreams,
@@ -404,24 +399,6 @@ const UNAVAILABLE: ActivityStreamPayload = {
   liveHr: null,
 };
 
-/** `null`: Garmin has no usable series for the leg; `undefined`: the call failed, worth retrying. */
-async function fetchGarminLegRaw(
-  athleteId: string,
-  garminId: string,
-): Promise<RawStreams | null | undefined> {
-  try {
-    const client = await getGarminClient(athleteId);
-    const garmin = await fetchGarminActivityStreams(client, garminId);
-    if (garmin && rawStreamsHaveSignal(garmin)) {
-      return garmin;
-    }
-  } catch (error) {
-    console.error('fetchGarminLegRaw', garminId, error);
-    return undefined;
-  }
-  return null;
-}
-
 function buildLegStreamPayload(
   raw: RawStreams,
   type: ActivityType,
@@ -522,34 +499,28 @@ async function cacheGarminLeg(
   });
 }
 
-/** First read of a leg: its own row's provider (persisted by `getActivityStreams`), else Garmin once. */
+/** First read of a leg: its own row's provider, else parent-cached leg stream. */
 async function fetchLegStreamOnce(
   athleteId: string,
   leg: MultisportLeg,
   type: ActivityType,
   options: LegStreamOptions,
 ): Promise<ActivityStreamPayload | null> {
-  if (!leg.garminActivityId) {
-    const own = leg.sourceActivityId
-      ? await getActivityStreams(athleteId, leg.sourceActivityId)
-      : null;
-    return own?.available ? own : null;
+  if (leg.sourceActivityId) {
+    const own = await getActivityStreams(athleteId, leg.sourceActivityId);
+    if (own?.available) {
+      return own;
+    }
   }
-  const cached = (await loadParentStreamData(options.parentId))?.garminLegs?.[leg.garminActivityId];
-  if (garminLegMissingRecently(cached, Date.now())) {
-    return null;
+  if (leg.garminActivityId) {
+    const cached = (await loadParentStreamData(options.parentId))?.garminLegs?.[
+      leg.garminActivityId
+    ];
+    if (cached && !isGarminLegMissing(cached)) {
+      return buildLegStreamPayload(cached, type, leg.durationSec, options.profile);
+    }
   }
-  const raw = await fetchGarminLegRaw(athleteId, leg.garminActivityId);
-  if (raw === undefined) {
-    return null;
-  }
-  if (!raw) {
-    const missing = { missingAt: new Date().toISOString() };
-    await cacheGarminLeg(athleteId, options.parentId, leg.garminActivityId, missing);
-    return null;
-  }
-  await cacheGarminLeg(athleteId, options.parentId, leg.garminActivityId, raw);
-  return buildLegStreamPayload(raw, type, leg.durationSec, options.profile);
+  return null;
 }
 
 export async function buildMultisportLegStream(
@@ -617,19 +588,6 @@ async function fetchRawStreams(
     stravaId: string | null;
   },
 ): Promise<RawStreams | null> {
-  // Garmin en priorité (ressenti + source de vérité), Strava en complément streams.
-  if (activity.garminId) {
-    try {
-      const client = await getGarminClient(athleteId);
-      const garmin = await fetchGarminActivityStreams(client, activity.garminId);
-      if (garmin && rawStreamsHaveSignal(garmin)) {
-        return garmin;
-      }
-    } catch (error) {
-      console.error('fetchRawStreams garmin', error);
-    }
-  }
-
   if (activity.stravaId) {
     try {
       const token = await getValidAccessToken(athleteId);
@@ -800,13 +758,13 @@ export function isThinStream(raw: RawStreams): boolean {
   return [raw.latlng, raw.distance, raw.velocity].every((series) => !series?.length);
 }
 
-/** A thin stream of a session Garmin or Strava also holds is worth asking them again. */
+/** A thin stream of a session Strava also holds is worth asking them again. */
 export function shouldAskProviderForFullerStream(
   stored: StoredStreams,
   activity: { garminId: string | null; stravaId: string | null },
   now: number,
 ): boolean {
-  if (!activity.garminId && !activity.stravaId) {
+  if (!activity.stravaId) {
     return false;
   }
   // Live strength HR is also thin — re-check the watch when it may hold more coverage.

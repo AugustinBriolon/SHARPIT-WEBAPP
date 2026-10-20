@@ -27,7 +27,6 @@ import {
 } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
 import { resolveEnduranceFieldsForPersist } from '@sharpit/app/lib/planned-session/endurance/coach-endurance-prescription';
 import { dayKeyFromDate } from '@sharpit/app/lib/date/day-key';
-import { garminPushClearOnSessionChange } from '@sharpit/server/lib/integrations/garmin/garmin-workout-push-state';
 import { auditStrengthPrescription } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import {
   findBrickTravelViolation,
@@ -299,18 +298,6 @@ function applyPrescriptionUpdates(
 ): void {
   applyStrengthPrescriptionUpdate(input, existing, data);
   applyEndurancePrescriptionUpdate(input, existing, data);
-  Object.assign(
-    data,
-    garminPushClearOnSessionChange({
-      ...(input.strengthPrescription !== undefined
-        ? { strengthPrescription: input.strengthPrescription }
-        : {}),
-      ...(input.endurancePrescription !== undefined
-        ? { endurancePrescription: input.endurancePrescription }
-        : {}),
-      ...(input.date ? { date: input.date } : {}),
-    }) ?? {},
-  );
 }
 
 /**

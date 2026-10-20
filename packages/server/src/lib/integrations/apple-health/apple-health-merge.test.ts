@@ -66,12 +66,12 @@ describe('appleHealthPatch', () => {
 });
 
 describe('appleHealthPolicy', () => {
-  it('fills beside Garmin by default and owns the classes it is primary for', () => {
-    const prefs = resolveSourcePrefs(null, ['garmin', 'apple-health']);
-    expect(appleHealthPolicy(prefs)).toEqual({ health: 'fill', body: 'own', garminHrv: true });
+  it('owns the classes it is primary for and respects disabled classes', () => {
+    const prefs = resolveSourcePrefs(null, ['apple-health']);
+    expect(appleHealthPolicy(prefs)).toEqual({ health: 'own', body: 'own', garminHrv: false });
 
-    prefs.classes.wearable_health.primary = 'apple-health';
-    expect(appleHealthPolicy(prefs).health).toBe('own');
+    prefs.classes.wearable_health.enabled = [];
+    expect(appleHealthPolicy(prefs).health).toBe('off');
 
     prefs.classes.body.enabled = [];
     expect(appleHealthPolicy(prefs).body).toBe('off');

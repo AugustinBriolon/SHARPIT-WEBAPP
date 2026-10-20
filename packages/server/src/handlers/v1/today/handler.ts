@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server';
 import { appOrigin } from '@sharpit/server/lib/app-origin';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
-import { getGarminAccount } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import { getActivitiesList, getHealthEntries } from '@sharpit/server/lib/queries';
 import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/snapshot-service';
 import {
@@ -102,14 +101,13 @@ export async function GET(request: NextRequest) {
       getActivitiesList(athleteId, { sinceDays: 60 }),
     ]);
 
-    const [viewModel, garminAccount, dayScores] = await Promise.all([
+    const [viewModel, dayScores] = await Promise.all([
       buildTodayPresentationViewModel(athleteId, trainingDayId, {
         morningRecalibration,
         athleteSnapshot: snapshot,
         healthEntries,
         activities,
       }),
-      getGarminAccount(athleteId),
       loadV1DayScores(athleteId, trainingDayId, new Date(), {
         snapshot,
         healthEntries,
@@ -126,7 +124,6 @@ export async function GET(request: NextRequest) {
     const projected = projectV1TodayFromViewModel(viewModel, {
       trainingDayId,
       webOrigin: appOrigin(request.nextUrl.origin),
-      garminConnected: Boolean(garminAccount),
       consistency: projectV1Consistency(activities, refDate),
       morningCheckInDone: morning.checkInDone,
       stress: dayScores.stress,

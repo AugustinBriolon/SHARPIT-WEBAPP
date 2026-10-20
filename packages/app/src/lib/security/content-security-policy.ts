@@ -18,7 +18,6 @@ export type ContentSecurityPolicyInput = {
 };
 
 const CLOUDFLARE_TURNSTILE = 'https://challenges.cloudflare.com';
-const GARMIN_SSO = 'https://sso.garmin.com';
 const MAP_TILES = ['https://basemaps.cartocdn.com', 'https://*.basemaps.cartocdn.com'];
 /** Development instances of Clerk report usage there; production ones do not. */
 const CLERK_DEV_TELEMETRY = 'https://clerk-telemetry.com';
@@ -68,7 +67,7 @@ export function buildContentSecurityPolicy(input: ContentSecurityPolicyInput): s
       originOf(SENTRY_DSN),
       input.isDev && CLERK_DEV_TELEMETRY,
     ]),
-    'frame-src': present(["'self'", clerk, CLOUDFLARE_TURNSTILE, GARMIN_SSO]),
+    'frame-src': present(["'self'", clerk, CLOUDFLARE_TURNSTILE]),
     'worker-src': ["'self'", 'blob:'],
     'object-src': ["'none'"],
     'base-uri': ["'self'"],

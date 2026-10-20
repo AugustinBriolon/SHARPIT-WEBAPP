@@ -15,7 +15,7 @@ import { persistStream } from '@sharpit/server/lib/streams/streams';
 import {
   rawStreamsHaveSignal,
   type RawStreams,
-} from '@sharpit/server/lib/integrations/garmin/garmin-streams';
+} from '@sharpit/server/lib/streams/stream-raw-types';
 import { appleHealthWallClockStart } from './apple-health-time';
 
 const DEFAULT_ATHLETE_TIME_ZONE = 'Europe/Paris';

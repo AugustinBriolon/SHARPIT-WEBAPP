@@ -463,19 +463,8 @@ function sleepFieldsForDemo(daysAgo: number, recoveryScore: number) {
 }
 
 async function seedDemoIntegrationStubs(prisma: PrismaClient, athleteId: string): Promise<void> {
-  // Row presence drives source-prefs legacy defaults (Garmin health + Renpho body).
   // Demo deliberately leaves credentials empty — Today/settings must not treat
   // that as "needs reconnect" (see isDemoAthleteProfile short-circuit).
-  await prisma.garminAccount.upsert({
-    where: { athleteId },
-    create: {
-      athleteId,
-      oauth1TokenEnc: '',
-      oauth2TokenEnc: '',
-      displayName: 'Athlète Démo',
-    },
-    update: { displayName: 'Athlète Démo' },
-  });
   await prisma.renphoAccount.upsert({
     where: { athleteId },
     create: {
@@ -737,33 +726,24 @@ export async function seedDemoAthlete(prisma: PrismaClient): Promise<void> {
 }
 
 async function demoSeedNeedsRefresh(prisma: PrismaClient, athleteId: string): Promise<boolean> {
-  const [garmin, renpho, latestHealth, goalCount, conversationCount, journalCount] =
-    await Promise.all([
-      prisma.garminAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
-      prisma.renphoAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
-      prisma.dailyHealth.findFirst({
-        where: { athleteId },
-        orderBy: { date: 'desc' },
-        select: { date: true },
-      }),
-      prisma.goal.count({ where: { athleteId } }),
-      prisma.conversation.count({ where: { athleteId } }),
-      prisma.athleteDayJournal.count({ where: { athleteId } }),
-    ]);
+  const [renpho, latestHealth, goalCount, conversationCount, journalCount] = await Promise.all([
+    prisma.renphoAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
+    prisma.dailyHealth.findFirst({
+      where: { athleteId },
+      orderBy: { date: 'desc' },
+      select: { date: true },
+    }),
+    prisma.goal.count({ where: { athleteId } }),
+    prisma.conversation.count({ where: { athleteId } }),
+    prisma.athleteDayJournal.count({ where: { athleteId } }),
+  ]);
 
   const healthStale =
     latestHealth === undefined ||
     latestHealth === null ||
     !isDemoHealthDateCurrent(latestHealth.date);
 
-  return (
-    !garmin ||
-    !renpho ||
-    healthStale ||
-    goalCount !== 1 ||
-    conversationCount === 0 ||
-    journalCount < 7
-  );
+  return !renpho || healthStale || goalCount !== 1 || conversationCount === 0 || journalCount < 7;
 }
 
 let demoSeedInflight: Promise<boolean> | null = null;

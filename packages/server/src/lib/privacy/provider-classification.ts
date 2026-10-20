@@ -16,7 +16,7 @@ export const HEALTH_DATA_CLASSES: readonly DataClassId[] = [
  * Google) do not require unofficial_providers_ack — only health consent when they
  * feed health classes (Withings body).
  */
-export const UNOFFICIAL_PROVIDERS: ReadonlySet<IntegrationId> = new Set(['garmin', 'renpho']);
+export const UNOFFICIAL_PROVIDERS: ReadonlySet<IntegrationId> = new Set(['renpho']);
 
 export function providerFeedsHealthData(integrationId: IntegrationId): boolean {
   const provider = getCatalogProviderByIntegration(integrationId);

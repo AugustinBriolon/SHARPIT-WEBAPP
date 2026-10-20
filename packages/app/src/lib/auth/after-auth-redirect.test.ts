@@ -9,8 +9,8 @@ describe('afterAuthPath', () => {
   });
 
   it('returns into the Garmin handoff Clerk was carrying', () => {
-    expect(afterAuthPath('https://sharpit.app/connect/garmin', origin)).toBe('/connect/garmin');
-    expect(afterAuthPath('/connect/garmin/start', origin)).toBe('/connect/garmin/start');
+    expect(afterAuthPath('https://sharpit.app/connect/strava', origin)).toBe('/connect/strava');
+    expect(afterAuthPath('/connect/strava/start', origin)).toBe('/connect/strava/start');
   });
 
   it('never sends a signed-in athlete to a signed-out page', () => {
@@ -20,7 +20,7 @@ describe('afterAuthPath', () => {
   });
 
   it('never opens another origin', () => {
-    expect(afterAuthPath('https://evil.example/connect/garmin', origin)).toBe('/start');
+    expect(afterAuthPath('https://evil.example/connect/strava', origin)).toBe('/start');
     expect(afterAuthPath('//evil.example/x', origin)).toBe('/start');
     expect(afterAuthPath('https://sharpit.vercel.app/', origin)).toBe('/start');
   });

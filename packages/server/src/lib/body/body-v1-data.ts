@@ -5,7 +5,6 @@ import {
   type BodyInputs,
   type BodySeriesRange,
 } from '@sharpit/server/lib/body/body-v1';
-import { getGarminAccount } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import { hasProAccess } from '@sharpit/app/lib/access/tier';
 import { prisma } from '@sharpit/db/client';
 import { getBodyCompositionMeasurements } from '@sharpit/server/lib/queries';
@@ -27,7 +26,7 @@ async function loadBodyInputs(options: {
 }): Promise<BodyInputs> {
   const { athleteId } = options;
   const dailySince = sinceDays(options.dailyDays);
-  const [composition, daily, profile, snapshots, garmin] = await Promise.all([
+  const [composition, daily, profile, snapshots] = await Promise.all([
     // Deduplicated per day and per the athlete's source preferences (ADR-027).
     getBodyCompositionMeasurements(athleteId, options.compositionDays ?? undefined),
     prisma.dailyHealth.findMany({
@@ -74,12 +73,11 @@ async function loadBodyInputs(options: {
       },
       orderBy: { createdAt: 'desc' },
     }),
-    getGarminAccount(athleteId),
   ]);
   return {
     composition,
     daily,
-    dailySource: garmin ? 'garmin' : 'apple_health',
+    dailySource: 'apple_health',
     profile,
     snapshots,
     demographics: profile ? { birthDate: profile.birthDate, sex: profile.sex } : null,

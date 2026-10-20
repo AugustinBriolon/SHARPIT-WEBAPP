@@ -1,4 +1,3 @@
-import { CONNECT_GARMIN_CALLBACK_PATH } from '@sharpit/app/lib/integrations/garmin/garmin-connect-handoff';
 import {
   NATIVE_OAUTH_PROVIDERS,
   nativeOAuthCallbackPath,
@@ -15,9 +14,7 @@ const ALLOWED_RETURN_PATHS = new Set([
   '/onboarding',
   '/settings/integrations',
   '/settings',
-  // Native Garmin handoff (ADR-040) — ends the iOS ASWebAuthenticationSession.
-  CONNECT_GARMIN_CALLBACK_PATH,
-  // Native Strava / Google / Withings handoff — same callback posture as Garmin.
+  // Native Strava / Google / Withings handoff.
   ...NATIVE_OAUTH_PROVIDERS.map(nativeOAuthCallbackPath),
 ]);
 const DATA_CLASS_IDS = new Set<string>(DATA_CLASSES.map((c) => c.id));

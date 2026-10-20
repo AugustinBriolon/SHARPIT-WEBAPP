@@ -19,7 +19,6 @@ import {
   findSessionPurposeForPlannedSession,
   recordDecisionAction,
 } from '@sharpit/server/lib/decision-memory/repository';
-import { garminPushClearOnSessionChange } from '@sharpit/server/lib/integrations/garmin/garmin-workout-push-state';
 import { enduranceSportFromActivityType } from '@sharpit/app/lib/planned-session/endurance/endurance-prescription';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 
@@ -207,11 +206,9 @@ async function applyPlannedSessionPatch(
 ) {
   const patchedSport = parsed.endurancePrescription?.sport;
   const effectiveSport = enduranceSportFromActivityType(parsed.type ?? existing.type);
-  const clearGarminPush = garminPushClearOnSessionChange(parsed);
   return updatePlannedSession(athleteId, id, {
     ...(parsed as Parameters<typeof updatePlannedSession>[2]),
     ...(patchedSport && !effectiveSport ? { endurancePrescription: Prisma.DbNull } : {}),
-    ...(clearGarminPush ?? {}),
   });
 }
 

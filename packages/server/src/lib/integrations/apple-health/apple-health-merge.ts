@@ -70,7 +70,7 @@ export function appleHealthPolicy(prefs: IntegrationSourcePrefs): AppleHealthPol
   return {
     health: writeFor(prefs, 'wearable_health'),
     body: writeFor(prefs, 'body'),
-    garminHrv: prefs.classes.wearable_health?.enabled.includes('garmin') ?? false,
+    garminHrv: false,
   };
 }
 

@@ -16,7 +16,6 @@ describe('appleAppSiteAssociation', () => {
       (component) => component['/'],
     );
     expect(paths).toEqual([
-      '/connect/garmin/callback*',
       '/connect/strava/callback*',
       '/connect/google/callback*',
       '/connect/withings/callback*',

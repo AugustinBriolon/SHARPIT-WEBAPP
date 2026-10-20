@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { isSet } from '@sharpit/shared/value';
-import { resolveGarminExerciseMatch } from '@sharpit/app/lib/integrations/garmin/garmin-exercise-map';
 import {
   movementIntentSchema,
   movementPatternSchema,
@@ -155,31 +154,10 @@ export function parseStrengthPrescription(raw: unknown): StrengthPrescription | 
   return parsed.data;
 }
 
-/** Attach / refresh Garmin Connect refs on each set (sync, bundled taxonomy). */
 export function attachGarminRefsToPrescription(
   prescription: StrengthPrescription,
 ): StrengthPrescription {
-  return {
-    ...prescription,
-    sets: prescription.sets.map((set) => {
-      const match = resolveGarminExerciseMatch({
-        exercise: set.exercise,
-        exerciseCatalogId: set.exerciseCatalogId,
-      });
-      if (!match) {
-        return { ...set, garmin: null };
-      }
-      return {
-        ...set,
-        garmin: {
-          category: match.ref.category,
-          exerciseName: match.ref.exerciseName,
-          labelFr: match.labelFr,
-          confidence: match.confidence,
-        },
-      };
-    }),
-  };
+  return prescription;
 }
 
 /**
@@ -262,7 +240,7 @@ export function normalizeCoachStrengthPrescription(
 
   if ('version' in raw && raw.version === 1) {
     const parsed = parseStrengthPrescription(raw);
-    return parsed ? attachGarminRefsToPrescription(parsed) : null;
+    return parsed ?? null;
   }
 
   const sets = raw.sets
@@ -270,7 +248,7 @@ export function normalizeCoachStrengthPrescription(
     .filter((s): s is NonNullable<typeof s> => isSet(s));
 
   const parsed = parseStrengthPrescription({ version: 1, sets });
-  return parsed ? attachGarminRefsToPrescription(parsed) : null;
+  return parsed ?? null;
 }
 
 function isNumberedExerciseDump(trimmed: string): boolean {

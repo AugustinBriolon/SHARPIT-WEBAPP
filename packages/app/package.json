@@ -4,7 +4,6 @@
   "private": true,
   "exports": {
     "./data/exercises-catalog.json": "./src/data/exercises-catalog.json",
-    "./data/garmin-exercise-taxonomy.json": "./src/data/garmin-exercise-taxonomy.json",
     "./data/movement-taxonomy.json": "./src/data/movement-taxonomy.json",
     "./lib/exercises": "./src/lib/exercises/index.ts",
     "./lib/practiced-sports": "./src/lib/practiced-sports/index.ts",

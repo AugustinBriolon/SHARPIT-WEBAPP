@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { legacyDefaultsFromConnected } from '@sharpit/app/lib/integrations/source-prefs';
 
 const db = vi.hoisted(() => ({
-  garminAccount: { findUnique: vi.fn() },
   stravaAccount: { findUnique: vi.fn() },
   withingsAccount: { findUnique: vi.fn() },
   renphoAccount: { findUnique: vi.fn() },
@@ -31,7 +30,6 @@ describe('linkAppleCalendar', () => {
       appleHealthLinkedAt: null,
       integrationSourcePrefs: legacyDefaultsFromConnected(['google']),
     };
-    db.garminAccount.findUnique.mockResolvedValue(null);
     db.stravaAccount.findUnique.mockResolvedValue(null);
     db.withingsAccount.findUnique.mockResolvedValue(null);
     db.renphoAccount.findUnique.mockResolvedValue(null);

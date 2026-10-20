@@ -11,13 +11,15 @@ const HEALTHY: Record<string, Reply> = {
   '/.well-known/apple-app-site-association': {
     status: 200,
     headers: { 'content-type': 'application/json' },
-    body: '{"applinks":{"details":[{"appIDs":["ABCDE12345.app.sharpit.ios"],"components":[{"/":"/connect/garmin/callback*"}]}]}}',
+    body: '{"applinks":{"details":[{"appIDs":["ABCDE12345.app.sharpit.ios"],"components":[{"/":"/connect/strava/callback*"}]}]}}',
   },
-  '/connect/garmin': {
+  '/connect/strava/start': {
     status: 307,
-    headers: { location: '/sign-in?redirect_url=https%3A%2F%2Fsharpit.app%2Fconnect%2Fgarmin' },
+    headers: {
+      location: '/sign-in?redirect_url=https%3A%2F%2Fsharpit.app%2Fconnect%2Fstrava%2Fstart',
+    },
   },
-  '/connect/garmin/callback?garmin=connected': {
+  '/connect/strava/callback?strava=connected': {
     status: 200,
     headers: { 'content-type': 'text/html; charset=utf-8' },
   },
@@ -84,7 +86,7 @@ describe('runMustPrivateSmoke', () => {
       '/.well-known/apple-app-site-association': {
         status: 200,
         headers: { 'content-type': 'application/json' },
-        body: '{"appIDs":["APPLE_TEAM_ID_NOT_SET.app.sharpit.ios"],"/":"/connect/garmin/callback*"}',
+        body: '{"appIDs":["APPLE_TEAM_ID_NOT_SET.app.sharpit.ios"],"/":"/connect/strava/callback*"}',
       },
     });
 
@@ -101,9 +103,9 @@ describe('runMustPrivateSmoke', () => {
     expect(second).toMatchObject({ outcome: 'fail', reason: 'APPLE_TEAM_ID not set' });
   });
 
-  it('fails a Garmin entry that sends sign-in to another host', async () => {
+  it('fails a Strava entry that sends sign-in to another host', async () => {
     const { fetcher } = fakeFetcher({
-      '/connect/garmin': {
+      '/connect/strava/start': {
         status: 307,
         headers: { location: 'https://web.sharpit.app/sign-in?redirect_url=x' },
       },

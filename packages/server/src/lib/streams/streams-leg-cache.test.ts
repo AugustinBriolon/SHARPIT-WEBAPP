@@ -5,18 +5,8 @@ const prismaMock = vi.hoisted(() => ({
   activity: { findFirst: vi.fn() },
   activityStream: { findUnique: vi.fn(), update: vi.fn(), upsert: vi.fn() },
 }));
-const garmin = vi.hoisted(() => ({ fetchGarminActivityStreams: vi.fn() }));
 
 vi.mock('@sharpit/db/client', () => ({ prisma: prismaMock }));
-vi.mock('@sharpit/server/lib/integrations/garmin/garmin-streams', async (importOriginal) => ({
-  ...(await importOriginal<
-    typeof import('@sharpit/server/lib/integrations/garmin/garmin-streams')
-  >()),
-  fetchGarminActivityStreams: garmin.fetchGarminActivityStreams,
-}));
-vi.mock('@sharpit/server/lib/integrations/garmin/garmin-sync', () => ({
-  getGarminClient: vi.fn().mockResolvedValue({}),
-}));
 vi.mock('@sharpit/server/lib/queries', () => ({ getAthleteProfile: vi.fn() }));
 vi.mock('@sharpit/server/lib/integrations/strava/strava-sync', () => ({
   getValidAccessToken: vi.fn(),
@@ -54,13 +44,13 @@ function runLeg(extra: Partial<MultisportLeg>): MultisportLeg {
 
 const options = { parentId: 'tri', profile: null };
 
-describe('buildMultisportLegStream — provider calls', () => {
+describe('buildMultisportLegStream — cached legs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prismaMock.activity.findFirst.mockResolvedValue(null);
   });
 
-  it('reads a Garmin leg cached on the parent without calling Garmin', async () => {
+  it('reads a leg cached on the parent without network calls', async () => {
     prismaMock.activityStream.findUnique.mockResolvedValue({
       available: true,
       data: { garminLegs: { 'g-run': raw } },
@@ -69,21 +59,6 @@ describe('buildMultisportLegStream — provider calls', () => {
     const stream = await buildMultisportLegStream('athlete-1', runLeg({}), options);
 
     expect(stream?.stream.available).toBe(true);
-    expect(garmin.fetchGarminActivityStreams).not.toHaveBeenCalled();
-  });
-
-  it('fetches an uncached Garmin leg once and caches it on the parent', async () => {
-    prismaMock.activityStream.findUnique.mockResolvedValue({ available: true, data: { time: [] } });
-    garmin.fetchGarminActivityStreams.mockResolvedValue(raw);
-
-    const stream = await buildMultisportLegStream('athlete-1', runLeg({}), options);
-
-    expect(stream?.stream.available).toBe(true);
-    expect(garmin.fetchGarminActivityStreams).toHaveBeenCalledTimes(1);
-    expect(prismaMock.activityStream.update).toHaveBeenCalledWith({
-      where: { activityId: 'tri' },
-      data: { data: expect.objectContaining({ garminLegs: { 'g-run': expect.any(Object) } }) },
-    });
   });
 
   it('never calls a provider in cache-only mode', async () => {
@@ -95,7 +70,6 @@ describe('buildMultisportLegStream — provider calls', () => {
     });
 
     expect(stream).toBeNull();
-    expect(garmin.fetchGarminActivityStreams).not.toHaveBeenCalled();
   });
 
   it("prefers the leg row's own stored stream when it has a route and distance", async () => {
@@ -124,10 +98,9 @@ describe('buildMultisportLegStream — provider calls', () => {
 
     expect(stream?.stream.has.hr).toBe(true);
     expect(prismaMock.activityStream.findUnique).not.toHaveBeenCalled();
-    expect(garmin.fetchGarminActivityStreams).not.toHaveBeenCalled();
   });
 
-  it('takes the cached Garmin leg over an Apple leg row that has heart rate but no route', async () => {
+  it('takes the cached leg over an Apple leg row that has heart rate but no route', async () => {
     prismaMock.activity.findFirst.mockResolvedValue({
       id: 'a-run',
       type: 'RUN',
@@ -135,7 +108,7 @@ describe('buildMultisportLegStream — provider calls', () => {
       bikeMetrics: null,
       stream: { available: true, data: { ...raw, distance: [] } },
     });
-    const garminRun = {
+    const legRun = {
       ...raw,
       latlng: [
         [48.8, 2.1],
@@ -146,7 +119,7 @@ describe('buildMultisportLegStream — provider calls', () => {
     };
     prismaMock.activityStream.findUnique.mockResolvedValue({
       available: true,
-      data: { garminLegs: { 'g-run': garminRun } },
+      data: { garminLegs: { 'g-run': legRun } },
     });
 
     const stream = await buildMultisportLegStream(
@@ -157,63 +130,16 @@ describe('buildMultisportLegStream — provider calls', () => {
 
     expect(stream?.stream.path?.length).toBeGreaterThan(0);
     expect(stream?.stream.has.distance).toBe(true);
-    expect(garmin.fetchGarminActivityStreams).not.toHaveBeenCalled();
-  });
-
-  it('notes a leg Garmin has no stream for, and skips it for 24 h', async () => {
-    prismaMock.activityStream.findUnique.mockResolvedValue({ available: true, data: { time: [] } });
-    garmin.fetchGarminActivityStreams.mockResolvedValue(null);
-
-    expect(await buildMultisportLegStream('athlete-1', runLeg({}), options)).toBeNull();
-    expect(prismaMock.activityStream.update).toHaveBeenCalledWith({
-      where: { activityId: 'tri' },
-      data: {
-        data: expect.objectContaining({
-          garminLegs: { 'g-run': { missingAt: expect.any(String) } },
-        }),
-      },
-    });
-
-    vi.clearAllMocks();
-    const missingAt = new Date(Date.now() - 60_000).toISOString();
-    prismaMock.activityStream.findUnique.mockResolvedValue({
-      available: true,
-      data: { garminLegs: { 'g-run': { missingAt } } },
-    });
-    expect(await buildMultisportLegStream('athlete-1', runLeg({}), options)).toBeNull();
-    expect(garmin.fetchGarminActivityStreams).not.toHaveBeenCalled();
-  });
-
-  it('asks Garmin again once the missing marker is a day old', async () => {
-    const missingAt = new Date(Date.now() - 25 * 60 * 60 * 1000).toISOString();
-    prismaMock.activityStream.findUnique.mockResolvedValue({
-      available: true,
-      data: { garminLegs: { 'g-run': { missingAt } } },
-    });
-    garmin.fetchGarminActivityStreams.mockResolvedValue(raw);
-
-    const stream = await buildMultisportLegStream('athlete-1', runLeg({}), options);
-
-    expect(stream?.stream.available).toBe(true);
-    expect(garmin.fetchGarminActivityStreams).toHaveBeenCalledTimes(1);
-  });
-
-  it('does not mark a leg missing when the Garmin call fails', async () => {
-    prismaMock.activityStream.findUnique.mockResolvedValue({ available: true, data: { time: [] } });
-    garmin.fetchGarminActivityStreams.mockRejectedValue(new Error('timeout'));
-
-    expect(await buildMultisportLegStream('athlete-1', runLeg({}), options)).toBeNull();
-    expect(prismaMock.activityStream.update).not.toHaveBeenCalled();
   });
 });
 
-describe('persistStream — Garmin leg cache', () => {
+describe('persistStream — leg cache preservation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     prismaMock.activity.findFirst.mockResolvedValue(null);
   });
 
-  it('keeps the cached Garmin legs when the parent stream is replaced', async () => {
+  it('keeps cached legs when the parent stream is replaced', async () => {
     const garminLegs = { 'g-run': raw };
     prismaMock.activityStream.findUnique.mockResolvedValue({
       available: true,

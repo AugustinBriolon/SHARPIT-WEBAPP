@@ -14,7 +14,6 @@ import { isOAuthAccountConnected } from '@sharpit/server/lib/integrations/shared
 import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
 import { getHealthEntries, getPlannedSessions } from '@sharpit/server/lib/queries';
 import { dayKeyFromDate } from '@sharpit/app/lib/date/day-key';
-import { suggestGarminTaxonomy } from '@sharpit/app/lib/integrations/garmin/garmin-exercise-taxonomy';
 import {
   formatScenarioComparisonForCoach,
   loadScenarioComparisonForCoach,
@@ -103,16 +102,10 @@ function buildSearchWatchExercisesTool() {
         .optional()
         .describe('Nombre de suggestions (défaut 5).'),
     }),
-    execute: async ({ query, limit = 5 }) => {
-      const matches = suggestGarminTaxonomy(query, limit);
+    execute: async ({ query }) => {
       return {
         query,
-        matches: matches.map((match) => ({
-          label: match.labelFr,
-          exerciseName: match.ref.exerciseName,
-          category: match.ref.category,
-          confidence: match.confidence,
-        })),
+        matches: [],
       };
     },
   });

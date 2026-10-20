@@ -19,11 +19,11 @@ describe('server api client', () => {
   it('calls api. as the signed-in athlete, uncached, with the page origin when asked', async () => {
     fetchSpy.mockResolvedValue(new Response('{}'));
     const { serverApiFetch } = await import('./api-client');
-    await serverApiFetch('/api/garmin/connect', { origin: 'https://sharpit.app' });
+    await serverApiFetch('/api/strava/connect', { origin: 'https://sharpit.app' });
 
     const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
     const headers = new Headers(init.headers);
-    expect(url).toBe('https://api.sharpit.app/api/garmin/connect');
+    expect(url).toBe('https://api.sharpit.app/api/strava/connect');
     expect(headers.get('authorization')).toBe('Bearer tok');
     expect(headers.get('origin')).toBe('https://sharpit.app');
     expect(init.cache).toBe('no-store');

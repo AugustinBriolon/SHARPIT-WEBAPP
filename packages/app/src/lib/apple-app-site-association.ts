@@ -1,4 +1,3 @@
-import { CONNECT_GARMIN_CALLBACK_PATH } from '@sharpit/app/lib/integrations/garmin/garmin-connect-handoff';
 import {
   NATIVE_OAUTH_PROVIDERS,
   nativeOAuthCallbackPath,
@@ -24,10 +23,6 @@ export function appleAppSiteAssociation(teamId: string | undefined) {
           // a web page: as a universal link, the app's own CTA would bounce straight back
           // into the app instead of opening the sign-in sheet.
           components: [
-            {
-              '/': `${CONNECT_GARMIN_CALLBACK_PATH}*`,
-              comment: 'Garmin handoff outcome (ADR-040)',
-            },
             ...NATIVE_OAUTH_PROVIDERS.map((provider) => ({
               '/': `${nativeOAuthCallbackPath(provider)}*`,
               comment: `${provider} OAuth handoff outcome`,

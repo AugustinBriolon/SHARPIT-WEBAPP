@@ -137,7 +137,7 @@ describe('projectV1Today', () => {
     expect(json.targetBand?.status).toBe('within');
   });
 
-  it('offers the Garmin handoff when the day is empty and Garmin is not connected', () => {
+  it('offers the handoff when the day is empty and sources are not connected', () => {
     const json = projectV1Today(
       source({
         hasContent: false,
@@ -152,15 +152,15 @@ describe('projectV1Today', () => {
     expect(json.empty).toEqual({
       title: 'Pas encore de données',
       message:
-        'Connecte Garmin pour que ton Twin lise ton sommeil, ta récupération et tes séances.',
+        'Connecte tes sources pour que ton Twin lise ton sommeil, ta récupération et tes séances.',
       code: 'NO_CONTENT',
-      webURL: 'https://app.example/connect/garmin',
-      actionLabel: 'Connecter Garmin',
+      webURL: 'https://app.example/settings/integrations',
+      actionLabel: 'Connecter une source',
     });
     expect(json.verdict.headline).toBe('Pas encore de données');
   });
 
-  it('keeps the Twin’s own message and drops the action once Garmin is connected', () => {
+  it('keeps the Twin’s own message and drops the action once sources are connected', () => {
     const json = projectV1Today(
       source({
         hasContent: false,
@@ -172,7 +172,7 @@ describe('projectV1Today', () => {
       title: 'Données insuffisantes',
       message: 'SharpIt attend tes données.',
       code: 'NO_CONTENT',
-      webURL: 'https://app.example/connect/garmin',
+      webURL: 'https://app.example/settings/integrations',
       actionLabel: null,
     });
   });

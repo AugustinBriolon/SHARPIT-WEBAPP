@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
   ACTIVITY_PROVIDER_STALE_HOURS,
-  garminSyncReference,
   resolveRecommendationsFreshness,
 } from './freshness-service';
 
@@ -67,17 +66,6 @@ describe('resolveRecommendationsFreshness', () => {
     expect(
       resolveRecommendationsFreshness(recommendationsInput({ currentBriefingPhase: 'afternoon' })),
     ).toBe('fresh');
-  });
-});
-
-describe('garminSyncReference', () => {
-  it('is null when activity sync never ran (forces stale)', () => {
-    expect(garminSyncReference(LATER, null)).toBeNull();
-  });
-
-  it('returns the older of health and activity syncs', () => {
-    expect(garminSyncReference(LATER, EARLIER)).toEqual(EARLIER);
-    expect(garminSyncReference(EARLIER, LATER)).toEqual(EARLIER);
   });
 });
 

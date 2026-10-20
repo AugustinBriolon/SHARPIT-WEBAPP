@@ -70,7 +70,6 @@ type MaybeAccount = Record<string, unknown> | null | undefined;
  * Spread these rather than listing columns by hand, and the two cannot drift.
  */
 export const OAUTH_CONNECTION_SELECT = { accessTokenEnc: true, refreshTokenEnc: true } as const;
-export const GARMIN_CONNECTION_SELECT = { oauth1TokenEnc: true, oauth2TokenEnc: true } as const;
 export const RENPHO_CONNECTION_SELECT = { email: true, passwordEnc: true } as const;
 export const MFP_CONNECTION_SELECT = { sessionTokenEnc: true } as const;
 
@@ -90,39 +89,6 @@ function isLiveEncryptedSecret(encoded: unknown): boolean {
   }
 }
 
-function looksLikeGarminOauth1(value: unknown): value is { oauth_token: string } {
-  return (
-    !!value &&
-    typeof value === 'object' &&
-    typeof (value as { oauth_token?: unknown }).oauth_token === 'string' &&
-    (value as { oauth_token: string }).oauth_token.length > 0
-  );
-}
-
-function looksLikeGarminOauth2(value: unknown): value is { access_token: string } {
-  return (
-    !!value &&
-    typeof value === 'object' &&
-    typeof (value as { access_token?: unknown }).access_token === 'string' &&
-    (value as { access_token: string }).access_token.length > 0
-  );
-}
-
-function isGarminTokenPairConnected(oauth1Enc: unknown, oauth2Enc: unknown): boolean {
-  if (!isEncryptedSecret(oauth1Enc) || !isEncryptedSecret(oauth2Enc)) {
-    return false;
-  }
-  try {
-    const oauth1: unknown = JSON.parse(decryptSecret(oauth1Enc));
-    const oauth2: unknown = JSON.parse(decryptSecret(oauth2Enc));
-    return looksLikeGarminOauth1(oauth1) && looksLikeGarminOauth2(oauth2);
-  } catch (error) {
-    // Wrong-key / GCM auth: preserve "connected" so cron still attempts decrypt
-    // and the fleet circuit breaker can trip. Malformed JSON / empty leftovers → disconnected.
-    return isSecretAuthenticityFailure(error);
-  }
-}
-
 export function isOAuthAccountConnected(account: MaybeAccount): boolean {
   if (!account) {
     return false;
@@ -130,18 +96,6 @@ export function isOAuthAccountConnected(account: MaybeAccount): boolean {
   return (
     isLiveEncryptedSecret(account.accessTokenEnc) && isLiveEncryptedSecret(account.refreshTokenEnc)
   );
-}
-
-/**
- * Garmin DI (#54) and legacy Garth tokens share `oauth1TokenEnc` / `oauth2TokenEnc`.
- * Connected = both columns hold decryptable token JSON the Settings hub would treat
- * as live — not revoked empties, demo placeholders, or ciphertext junk.
- */
-export function isGarminAccountConnected(account: MaybeAccount): boolean {
-  if (!account) {
-    return false;
-  }
-  return isGarminTokenPairConnected(account.oauth1TokenEnc, account.oauth2TokenEnc);
 }
 
 export function isRenphoAccountConnected(account: MaybeAccount): boolean {
@@ -166,7 +120,6 @@ export const INTEGRATIONS_RECONNECT_HREF = '/settings/integrations';
 
 interface ProviderAccounts {
   strava: MaybeAccount;
-  garmin: MaybeAccount;
   withings: MaybeAccount;
   renpho: MaybeAccount;
   google: MaybeAccount;
@@ -178,7 +131,6 @@ const RECONNECT_CHECKS: Array<{
   isConnected: (account: MaybeAccount) => boolean;
 }> = [
   { accountKey: 'strava', label: 'Strava', isConnected: isOAuthAccountConnected },
-  { accountKey: 'garmin', label: 'Garmin', isConnected: isGarminAccountConnected },
   { accountKey: 'withings', label: 'Withings', isConnected: isOAuthAccountConnected },
   { accountKey: 'renpho', label: 'Renpho', isConnected: isRenphoAccountConnected },
   { accountKey: 'google', label: 'Google', isConnected: isOAuthAccountConnected },

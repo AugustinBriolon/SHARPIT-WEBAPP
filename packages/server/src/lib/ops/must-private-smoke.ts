@@ -1,9 +1,9 @@
 import { APPLE_TEAM_ID_PLACEHOLDER } from '@sharpit/app/lib/apple-app-site-association';
 import {
-  CONNECT_GARMIN_CALLBACK_PATH,
-  CONNECT_GARMIN_PATH,
-  garminHandoffCallbackPath,
-} from '@sharpit/app/lib/integrations/garmin/garmin-connect-handoff';
+  nativeOAuthCallbackPath,
+  nativeOAuthHandoffCallbackHref,
+  nativeOAuthStartPath,
+} from '@sharpit/app/lib/integrations/oauth-native-handoff';
 
 /**
  * Live smoke for the private "Must": the Garmin Safari + universal-link handoff on a
@@ -45,8 +45,8 @@ function verifyAppleAppSiteAssociation(response: SmokeResponse): string | null {
   if (mismatch) {
     return mismatch;
   }
-  if (!response.body.includes(`${CONNECT_GARMIN_CALLBACK_PATH}*`)) {
-    return 'Garmin callback path missing from applinks';
+  if (!response.body.includes(`${nativeOAuthCallbackPath('strava')}*`)) {
+    return 'Strava callback path missing from applinks';
   }
   return response.body.includes(APPLE_TEAM_ID_PLACEHOLDER) ? 'APPLE_TEAM_ID not set' : null;
 }
@@ -61,7 +61,9 @@ function verifySignInRedirect(response: SmokeResponse, origin: string): string |
     return 'expected a same-origin redirect to /sign-in';
   }
   const back = location.searchParams.get('redirect_url') ?? '';
-  return back === `${origin}${CONNECT_GARMIN_PATH}` ? null : 'redirect_url does not come back';
+  return back === `${origin}${nativeOAuthStartPath('strava')}`
+    ? null
+    : 'redirect_url does not come back';
 }
 
 function verifyHtmlPage(response: SmokeResponse): string | null {
@@ -75,19 +77,19 @@ function verifyJson(response: SmokeResponse): string | null {
 export function mustPrivateChecks(trainingDayId: string): SmokeCheck[] {
   return [
     {
-      name: 'AASA served as JSON, without redirect, for the Garmin callback',
+      name: 'AASA served as JSON, without redirect, for the Strava callback',
       path: '/.well-known/apple-app-site-association',
       verify: verifyAppleAppSiteAssociation,
     },
     {
-      name: 'Garmin handoff entry sends strangers to sign-in and back',
-      path: CONNECT_GARMIN_PATH,
+      name: 'Strava handoff entry sends strangers to sign-in and back',
+      path: nativeOAuthStartPath('strava'),
       headers: DOCUMENT_REQUEST,
       verify: verifySignInRedirect,
     },
     {
-      name: 'Garmin handoff callback renders without a session',
-      path: garminHandoffCallbackPath('connected'),
+      name: 'Strava handoff callback renders without a session',
+      path: nativeOAuthHandoffCallbackHref('strava', 'connected'),
       headers: DOCUMENT_REQUEST,
       verify: verifyHtmlPage,
     },

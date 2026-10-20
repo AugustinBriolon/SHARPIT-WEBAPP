@@ -62,7 +62,6 @@ export PGPASSWORD="$LOCAL_PASS"
 
 TABLES=(
   "StravaAccount"
-  "GarminAccount"
   "AthleteProfile"
   "DailyHealth"
   "Goal"
@@ -93,7 +92,6 @@ done
 echo "→ Vérification…"
 psql "$DIRECT" -t -c "SELECT 'activities='||count(*) FROM \"Activity\";" 
 psql "$DIRECT" -t -c "SELECT 'strava='||count(*) FROM \"StravaAccount\";"
-psql "$DIRECT" -t -c "SELECT 'garmin='||count(*) FROM \"GarminAccount\";"
 
 echo ""
 echo "✓ Migration terminée. Relance : npm run dev"

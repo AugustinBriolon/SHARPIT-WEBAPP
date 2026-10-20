@@ -6,8 +6,8 @@ import {
 } from '@sharpit/server/lib/privacy/provider-classification';
 
 describe('providerConnectRequirements', () => {
-  it('requires health + unofficial for Garmin', () => {
-    expect(providerConnectRequirements('garmin')).toEqual({
+  it('requires health + unofficial for Renpho', () => {
+    expect(providerConnectRequirements('renpho')).toEqual({
       needsHealthConsent: true,
       needsUnofficialAck: true,
     });

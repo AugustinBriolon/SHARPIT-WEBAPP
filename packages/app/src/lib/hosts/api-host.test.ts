@@ -27,7 +27,7 @@ describe('api host guards', () => {
     expect(isApiHostPath('/api/presentation/today')).toBe(true);
     expect(isApiHostPath('/api/cron/sync')).toBe(true);
     expect(isApiHostPath('/.well-known/apple-app-site-association')).toBe(false);
-    expect(isApiHostPath('/connect/garmin')).toBe(false);
+    expect(isApiHostPath('/connect/strava')).toBe(false);
     expect(isApiHostPath('/')).toBe(false);
   });
 
@@ -37,7 +37,7 @@ describe('api host guards', () => {
       '/welcome',
       '/sign-in',
       '/.well-known/apple-app-site-association',
-      '/connect/garmin/start',
+      '/connect/strava/start',
     ]) {
       const response = screenApiHostRequest(request(`https://api.sharpit.app${path}`));
       expect(response?.status).toBe(404);

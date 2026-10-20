@@ -4,7 +4,6 @@ import type { PresentationEmptyState } from '@sharpit/app/presentation/types';
 import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
 import { morningIntensityLabel } from '@sharpit/app/lib/morning-recalibration/sport-intensity-labels';
-import { CONNECT_GARMIN_PATH } from '@sharpit/app/lib/integrations/garmin/garmin-connect-handoff';
 import type { RaceMoment } from '@sharpit/app/lib/goals/race-moment';
 import type {
   V1TodayEnergyBank,
@@ -325,10 +324,11 @@ export type V1TodayMorningProposal = {
   to: V1TodayMorningSide;
 };
 
-const CONNECT_GARMIN_EMPTY = {
+const CONNECT_SOURCES_EMPTY = {
   title: 'Pas encore de données',
-  message: 'Connecte Garmin pour que ton Twin lise ton sommeil, ta récupération et tes séances.',
-  actionLabel: 'Connecter Garmin',
+  message:
+    'Connecte tes sources pour que ton Twin lise ton sommeil, ta récupération et tes séances.',
+  actionLabel: 'Connecter une source',
 } as const;
 
 function projectEmpty(
@@ -341,18 +341,13 @@ function projectEmpty(
   return emptyPayload(source.emptyState, input);
 }
 
-/**
- * Without Garmin the gap is the missing source, so the empty state says so and offers
- * the handoff. With Garmin connected the data is on its way: the Twin's own message
- * stands and there is no action.
- */
 function emptyPayload(
   emptyState: V1TodaySource['emptyState'],
   input: V1TodayProjectionInput,
 ): NonNullable<V1TodayResponse['empty']> {
-  const webURL = `${input.webOrigin.replace(/\/$/, '')}${CONNECT_GARMIN_PATH}`;
+  const webURL = `${input.webOrigin.replace(/\/$/, '')}/settings/integrations`;
   if (!input.garminConnected) {
-    return { ...CONNECT_GARMIN_EMPTY, code: 'NO_CONTENT', webURL };
+    return { ...CONNECT_SOURCES_EMPTY, code: 'NO_CONTENT', webURL };
   }
   return {
     title: emptyState?.title ?? 'Pas encore de données',

@@ -137,7 +137,7 @@ export const LANDING_METHOD = {
 /** The words drawn inside the method's diagrams, one entry per step. */
 export const LANDING_DIAGRAMS = {
   observe: {
-    sources: ['Garmin', 'Apple Santé', 'Withings'],
+    sources: ['Strava', 'Apple Santé', 'Withings'],
     primary: 'principale',
     model: 'Ton modèle',
   },
@@ -235,7 +235,7 @@ export const LANDING_HONESTY = {
     { at: '90 jours', body: 'Le modèle se calibre sur tes réponses' },
   ],
   rampNote:
-    'Ton historique Garmin est importé à la connexion : la lecture de ta charge n’attend pas cinq semaines.',
+    'Ton historique Strava est importé à la connexion : la lecture de ta charge n’attend pas cinq semaines.',
 } as const;
 
 export const LANDING_MEMORY = {
@@ -288,7 +288,7 @@ export const LANDING_REFUSALS = {
 export const LANDING_SOURCES = {
   title: 'Branché sur tes appareils',
   subtitle: 'La montre change, ton modèle reste.',
-  connected: ['Garmin', 'Strava', 'Apple Santé', 'Withings', 'Google Agenda'],
+  connected: ['Strava', 'Apple Santé', 'Withings', 'Google Agenda'],
   upcomingLabel: 'Bientôt',
   upcoming: ['Polar'],
 } as const;
@@ -300,9 +300,9 @@ export const LANDING_FAQ = {
   title: 'Ce qu’on nous demande',
   items: [
     {
-      question: 'Faut-il une montre Garmin ?',
+      question: 'Faut-il une montre connectée ?',
       answer:
-        'Non. Une Apple Watch ou Strava suffisent. Sur l’App Store, les séances viennent de Strava et d’Apple Santé ; Garmin reste disponible en TestFlight. Pour les mesures du matin, Apple Santé fait foi quand Garmin n’est pas là.',
+        'Non. Une Apple Watch ou Strava suffisent. Les séances viennent de Strava et d’Apple Santé. Pour les mesures du matin, Apple Santé et Withings font foi.',
     },
     {
       question: 'Pour quels sports ?',

@@ -1,16 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { mapWithConcurrency } from '@sharpit/server/lib/async/map-with-concurrency';
-import { GARMIN_ACTIVITY_CONCURRENCY } from '@sharpit/server/lib/integrations/garmin/garmin-activity-sync';
 import { STRAVA_ACTIVITY_CONCURRENCY } from '@sharpit/server/lib/integrations/strava/strava-sync';
 
 describe('activity sync concurrency constants', () => {
-  it('keeps Garmin activity concurrency modest for API rate limits', () => {
-    expect(GARMIN_ACTIVITY_CONCURRENCY).toBeGreaterThanOrEqual(2);
-    expect(GARMIN_ACTIVITY_CONCURRENCY).toBeLessThanOrEqual(4);
-  });
-
-  it('allows higher Strava DB concurrency than Garmin API concurrency', () => {
-    expect(STRAVA_ACTIVITY_CONCURRENCY).toBeGreaterThanOrEqual(GARMIN_ACTIVITY_CONCURRENCY);
+  it('bounds Strava concurrency within safe DB limits', () => {
+    expect(STRAVA_ACTIVITY_CONCURRENCY).toBeGreaterThanOrEqual(2);
     expect(STRAVA_ACTIVITY_CONCURRENCY).toBeLessThanOrEqual(8);
   });
 });

@@ -30,14 +30,13 @@ const RETURN_TO = '/settings/integrations';
 
 type Source = {
   id: IntegrationId;
-  key: 'withings' | 'google' | 'strava' | 'garmin' | 'renpho';
+  key: 'withings' | 'google' | 'strava' | 'renpho';
   name: string;
   /** Linked here: its OAuth runs in the browser. Otherwise it is linked in the app. */
   connectPath?: string;
 };
 
 const SOURCES: Source[] = [
-  { id: 'garmin', key: 'garmin', name: 'Garmin' },
   { id: 'withings', key: 'withings', name: 'Withings', connectPath: '/api/withings/connect' },
   { id: 'google', key: 'google', name: 'Google Agenda', connectPath: '/api/google/connect' },
   { id: 'strava', key: 'strava', name: 'Strava', connectPath: '/api/strava/connect' },

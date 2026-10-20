@@ -20,9 +20,8 @@ describe('provider-catalog', () => {
     ]);
   });
 
-  it('places Garmin under activities and wearable_health only', () => {
-    const garmin = PROVIDER_CATALOG.find((p) => p.id === 'garmin');
-    expect(garmin?.classes).toEqual(['activities', 'wearable_health']);
+  it('does not include Garmin in the provider catalog', () => {
+    expect(PROVIDER_CATALOG.find((p) => p.id === 'garmin')).toBeUndefined();
   });
 
   it('lists Strava under activities as available OAuth', () => {

@@ -1,10 +1,5 @@
 import { refreshAthleteState } from '@sharpit/server/lib/athlete-state/orchestrator';
 import {
-  getGarminAccount,
-  syncGarminHealth,
-} from '@sharpit/server/lib/integrations/garmin/garmin-sync';
-import { syncGarminActivities } from '@sharpit/server/lib/integrations/garmin/garmin-activity-sync';
-import {
   getGoogleAccount,
   syncFromGoogle,
 } from '@sharpit/server/lib/integrations/google/google-sync';
@@ -131,7 +126,6 @@ type ProviderSyncSpec = {
 
 export type ProviderAccounts = {
   strava: Awaited<ReturnType<typeof getStravaAccount>>;
-  garmin: Awaited<ReturnType<typeof getGarminAccount>>;
   renpho: Awaited<ReturnType<typeof getRenphoAccount>>;
   withings: Awaited<ReturnType<typeof getWithingsAccount>>;
   google: Awaited<ReturnType<typeof getGoogleAccount>>;
@@ -141,7 +135,6 @@ function connectedProviderSet(accounts: ProviderAccounts): Set<string> {
   return new Set(
     listConnectedCronProviders({
       strava: accounts.strava,
-      garmin: accounts.garmin,
       withings: accounts.withings,
       renpho: accounts.renpho,
       google: accounts.google,
@@ -165,21 +158,6 @@ function buildProviderSyncSpecs(
       task: async () => {
         const strava = await syncStravaActivities(athleteId);
         result.importedTypes.push(...strava.importedTypes);
-      },
-    });
-  }
-  if (connected.has('garmin') && options.hasHealthConsent) {
-    specs.push({
-      provider: 'Garmin',
-      fallback: 'Sync Garmin échouée',
-      task: () => syncGarminHealth(athleteId),
-    });
-    specs.push({
-      provider: 'Garmin activities',
-      fallback: 'Sync activités Garmin échouée',
-      task: async () => {
-        const activities = await syncGarminActivities(athleteId);
-        result.importedTypes.push(...activities.importedTypes);
       },
     });
   }
@@ -347,17 +325,15 @@ export function emptyAthleteResult(athleteId: string): AthleteSyncResult {
 
 /** The athlete's provider accounts and consents, read once for a sync. */
 export async function loadAthleteSyncContext(athleteId: string) {
-  const [strava, garmin, renpho, withings, google, hasHealthConsent, hasAiConsent] =
-    await Promise.all([
-      getStravaAccount(athleteId),
-      getGarminAccount(athleteId),
-      getRenphoAccount(athleteId),
-      getWithingsAccount(athleteId),
-      getGoogleAccount(athleteId),
-      athleteHasHealthDataConsent(athleteId),
-      athleteHasAiProcessingConsent(athleteId),
-    ]);
-  const accounts: ProviderAccounts = { strava, garmin, renpho, withings, google };
+  const [strava, renpho, withings, google, hasHealthConsent, hasAiConsent] = await Promise.all([
+    getStravaAccount(athleteId),
+    getRenphoAccount(athleteId),
+    getWithingsAccount(athleteId),
+    getGoogleAccount(athleteId),
+    athleteHasHealthDataConsent(athleteId),
+    athleteHasAiProcessingConsent(athleteId),
+  ]);
+  const accounts: ProviderAccounts = { strava, renpho, withings, google };
   return { accounts, hasHealthConsent, hasAiConsent };
 }
 

@@ -19,7 +19,38 @@
  * performed here preserves this convention.
  */
 
-import type { GarminDailyHealth } from '@sharpit/server/lib/integrations/garmin/garmin';
+export interface GarminDailyHealth {
+  date: string;
+  sleepMinutes?: number | null;
+  napMinutes?: number | null;
+  restingHr?: number | null;
+  hrv?: number | null;
+  weightKg?: number | null;
+  readinessScore?: number | null;
+  readinessLevel?: string | null;
+  readinessFeedback?: string | null;
+  readinessFactors?: Array<{ factor: string; score: number | null }> | null;
+  hrvStatus?: string | null;
+  hrvBaselineLow?: number | null;
+  hrvBaselineHigh?: number | null;
+  stress?: number | null;
+  bodyBattery?: number | null;
+  totalSteps?: number | null;
+  sleep: {
+    sleepMinutes?: number | null;
+    napMinutes?: number | null;
+    sleepScore?: number | null;
+    sleepDeepMin?: number | null;
+    sleepLightMin?: number | null;
+    sleepRemMin?: number | null;
+    sleepAwakeMin?: number | null;
+    sleepBedtimeMin?: number | null;
+    sleepWakeMin?: number | null;
+    sleepRespiration?: number | null;
+    sleepAvgStress?: number | null;
+    sleepScoreFeedback?: string | null;
+  };
+}
 import { isSet } from '@sharpit/shared/value';
 
 import type {
@@ -211,7 +242,9 @@ function toReadinessObservation(
     level: health.readinessLevel ?? undefined,
     feedbackCode: health.readinessFeedback ?? undefined,
     contributingFactors: health.readinessFactors
-      ? health.readinessFactors.map((f) => f.key)
+      ? health.readinessFactors.map(
+          (f: { factor?: string; key?: string }) => f.key ?? f.factor ?? '',
+        )
       : undefined,
   };
 }

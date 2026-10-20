@@ -99,18 +99,18 @@ describe('shouldAskProviderForFullerStream', () => {
     velocity: [],
     latlng: [],
   };
-  const garmin = { garminId: '24671569284', stravaId: null };
+  const providerActivity = { garminId: null, stravaId: '24671569284' };
   const now = Date.UTC(2026, 9, 10, 12);
 
-  it('asks Garmin again for an Apple Health copy that carries heart rate alone', () => {
+  it('asks Strava again for an Apple Health copy that carries heart rate alone', () => {
     expect(isThinStream(heartRateOnly)).toBe(true);
-    expect(shouldAskProviderForFullerStream(heartRateOnly, garmin, now)).toBe(true);
+    expect(shouldAskProviderForFullerStream(heartRateOnly, providerActivity, now)).toBe(true);
   });
 
   it('keeps a stream that has a route or a distance', () => {
     const run = { ...heartRateOnly, distance: [0, 3, 6] };
     expect(isThinStream(run)).toBe(false);
-    expect(shouldAskProviderForFullerStream(run, garmin, now)).toBe(false);
+    expect(shouldAskProviderForFullerStream(run, providerActivity, now)).toBe(false);
   });
 
   it('never asks for a session no provider holds', () => {
@@ -121,8 +121,8 @@ describe('shouldAskProviderForFullerStream', () => {
 
   it('waits six hours after a provider had nothing better', () => {
     const checked = { ...heartRateOnly, providerCheckedAt: now - 60 * 60 * 1000 };
-    expect(shouldAskProviderForFullerStream(checked, garmin, now)).toBe(false);
+    expect(shouldAskProviderForFullerStream(checked, providerActivity, now)).toBe(false);
     const stale = { ...heartRateOnly, providerCheckedAt: now - 7 * 60 * 60 * 1000 };
-    expect(shouldAskProviderForFullerStream(stale, garmin, now)).toBe(true);
+    expect(shouldAskProviderForFullerStream(stale, providerActivity, now)).toBe(true);
   });
 });
