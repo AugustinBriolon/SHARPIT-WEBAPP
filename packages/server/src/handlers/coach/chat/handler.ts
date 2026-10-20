@@ -57,6 +57,12 @@ import {
   type CoachRequestScope,
 } from '@sharpit/server/lib/coach/chat/coach-request-scope';
 import { buildCoachSystemPrompt } from '@sharpit/server/lib/coach/chat/coach-system-prompt';
+import {
+  COACH_OFF_SCOPE_REPLY,
+  isPromptOverride,
+} from '@sharpit/server/lib/coach/chat/coach-scope-guard';
+import { currentLocale } from '@sharpit/server/lib/locale/locale-context';
+import { englishCopy } from '@sharpit/server/lib/locale/translate-copy';
 import { coachChatGenerationSettings } from '@sharpit/server/lib/coach/chat/coach-chat-generation';
 import { readCoachChatHistory } from '@sharpit/server/lib/coach/chat/coach-chat-history';
 import { getConversation, saveConversationMessages } from '@sharpit/server/lib/coach/conversations';
@@ -215,7 +221,33 @@ async function streamCoachReply(
   });
 }
 
-async function saveServerHistory(input: CoachReplyInput, messages: UIMessage[]): Promise<void> {
+/** A coach answer written by the server, not a model: no tokens, saved like any other. */
+function fixedCoachReply(
+  input: Pick<CoachReplyInput, 'athleteId' | 'messages' | 'conversationId'>,
+  text: string,
+): Response {
+  const stream = createUIMessageStream({
+    originalMessages: input.messages,
+    onEnd: ({ messages }) => void saveServerHistory(input, messages),
+    execute: ({ writer }) => {
+      writer.write({ type: 'start' });
+      writer.write({ type: 'text-start', id: 'fixed' });
+      writer.write({
+        type: 'text-delta',
+        id: 'fixed',
+        delta: currentLocale() === 'en' ? englishCopy(text) : text,
+      });
+      writer.write({ type: 'text-end', id: 'fixed' });
+      writer.write({ type: 'finish', finishReason: 'stop' });
+    },
+  });
+  return createUIMessageStreamResponse({ stream, consumeSseStream: consumeStream });
+}
+
+async function saveServerHistory(
+  input: Pick<CoachReplyInput, 'athleteId' | 'conversationId'>,
+  messages: UIMessage[],
+): Promise<void> {
   if (!input.conversationId) {
     return;
   }
@@ -343,9 +375,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: discuss.error }, { status: 403 });
   }
 
+  const question = lastUserText(messages);
+  if (isPromptOverride(question)) {
+    const guard = await guardCoachChat(athleteId);
+    if ('blocked' in guard) {
+      return guard.blocked;
+    }
+    console.info('[coach-chat] off-scope', { conversationId });
+    return fixedCoachReply({ athleteId, messages, conversationId }, COACH_OFF_SCOPE_REPLY);
+  }
+
   const scope = coachRequestScope(
     classifyCoachIntent({
-      lastUserText: lastUserText(messages),
+      lastUserText: question,
       discussKind: lastCoachDiscussMetadata(messages)?.discussKind ?? null,
       isPlanningThread: isPlanningThread(messages),
     }),
