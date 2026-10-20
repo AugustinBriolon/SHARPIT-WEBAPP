@@ -94,6 +94,7 @@
 | [ADR-096](./ADR-096-server-copy-follows-the-athletes-language.md)                       | App requests and athlete pushes in the athlete's language: locale context, French-keyed English at the boundary, LLM directive | Accepted                          |
 | [ADR-097](./ADR-097-free-is-the-athletes-data-coaching-is-pro-only.md)                  | Free is the athlete's data; every AI coaching surface is Pro-only; onboarding ends on a blurred first week and the paywall     | Accepted                          |
 | [ADR-098](./ADR-098-journal-associations-adjust-for-load-and-chance.md)                 | Journal associations: next-morning lag, load-adjusted outcomes, Mann–Whitney + Benjamini–Hochberg, inseparable habits merged   | Accepted                          |
+| [ADR-099](./ADR-099-coach-scope-guardrails.md)                                          | Coach scope rule, pre-model override guard, every athlete-written string delimited; one-agent-per-athlete roadmap              | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
