@@ -209,16 +209,23 @@ function buildTodayScores(
   sleepTargetMin: number,
 ) {
   const sleepScoreSharpit = computeSharpitSleepScoreForDay(healthEntries, day, sleepTargetMin);
-  const sleepScore = sleepScoreSharpit ?? effectiveSnapshot.sleepScore;
+  const rawSleepScore = sleepScoreSharpit ?? effectiveSnapshot.sleepScore;
+  const sleepScore = isSet(rawSleepScore) ? Math.round(rawSleepScore) : null;
   const effortScore =
     effectiveSnapshot.dailyStrain?.available && isSet(effectiveSnapshot.dailyStrain.strainScore)
-      ? effectiveSnapshot.dailyStrain.strainScore
+      ? Math.round(effectiveSnapshot.dailyStrain.strainScore * 10) / 10
       : null;
+  const recoveryScore = isSet(effectiveSnapshot.readiness)
+    ? Math.round(effectiveSnapshot.readiness)
+    : null;
+  const adaptationScore = isSet(effectiveSnapshot.adaptationIndex)
+    ? Math.round(effectiveSnapshot.adaptationIndex)
+    : null;
   return {
     sleepScore,
-    recoveryScore: effectiveSnapshot.readiness,
+    recoveryScore,
     effortScore,
-    adaptationScore: effectiveSnapshot.adaptationIndex,
+    adaptationScore,
     adaptationUnavailableCaption:
       effectiveSnapshot.adaptationIndex === undefined || effectiveSnapshot.adaptationIndex === null
         ? 'Historique insuffisant'

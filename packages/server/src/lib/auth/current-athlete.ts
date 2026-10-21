@@ -5,7 +5,11 @@ import { DEMO_CLERK_USER_ID, isDemoSession } from '@sharpit/app/lib/demo/demo-se
 import { ensureDemoSeedFresh } from '@sharpit/server/lib/demo/seed-demo-data';
 import { prisma } from '@sharpit/db/client';
 import { isDevClerkBypass } from '@sharpit/app/lib/dev/dev-auth';
-import { eraseAthleteData } from '@sharpit/server/lib/privacy/account-deletion';
+import {
+  eraseAthleteData,
+  restoreAthleteAccount,
+} from '@sharpit/server/lib/privacy/account-deletion';
+import { isDueForPrivacyPurge } from '@sharpit/server/lib/privacy/consent';
 
 const DEACTIVATED_ACCOUNT_ERROR = 'Compte supprimé';
 
@@ -79,7 +83,15 @@ async function findOrCreateAthleteProfile(userId: string): Promise<string> {
     select: { id: true, deletedAt: true },
   });
   if (existing?.deletedAt) {
-    return restartAfterDeletion(userId, { id: existing.id, deletedAt: existing.deletedAt });
+    if (Date.now() - existing.deletedAt.getTime() < DELETION_SETTLE_MS) {
+      assertAthleteActive(existing.deletedAt);
+    }
+    if (isDueForPrivacyPurge({ deletedAt: existing.deletedAt, now: new Date() })) {
+      return restartAfterDeletion(userId, { id: existing.id, deletedAt: existing.deletedAt });
+    }
+    // Signing back in during the 14-day grace period cancels the pending deletion
+    await restoreAthleteAccount(existing.id);
+    return existing.id;
   }
   if (existing) {
     return existing.id;

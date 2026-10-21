@@ -65,15 +65,21 @@ function Signals({ hero }: { hero: TodayViewModel['hero'] }) {
   return (
     <Figures>
       {SIGNALS.map((signal) => {
-        const score = hero.metricsRow[signal.score];
+        const rawScore = hero.metricsRow[signal.score];
         const preview = previews.get(signal.key);
+        const score =
+          typeof rawScore === 'number'
+            ? signal.key === 'effort'
+              ? Math.round(rawScore * 10) / 10
+              : Math.round(rawScore)
+            : (rawScore ?? '—');
         return (
           <Figure
             key={signal.key}
             hint={preview?.subtitle ?? null}
             label={signal.label}
-            unit={score !== null ? '/100' : null}
-            value={score ?? '—'}
+            unit={rawScore !== null && rawScore !== undefined ? '/100' : null}
+            value={score}
           />
         );
       })}

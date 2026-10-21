@@ -106,12 +106,14 @@ const nextConfig: NextConfig = {
         ['/~offline', '/'],
       ].map(([source, destination]) => ({ source, destination, permanent: false })),
       // Apex-only pages live on the hub (ADR-051): legal pages and the native Garmin handoff.
-      ...['/privacy', '/terms', '/connect/:path*', '/.well-known/:path*'].map((source) => ({
-        source,
-        has: [{ type: 'host' as const, value: 'web.sharpit.app' }],
-        destination: `https://sharpit.app${source}`,
-        permanent: false,
-      })),
+      ...['/privacy', '/terms', '/aide', '/connect/:path*', '/.well-known/:path*'].map(
+        (source) => ({
+          source,
+          has: [{ type: 'host' as const, value: 'web.sharpit.app' }],
+          destination: `https://sharpit.app${source}`,
+          permanent: false,
+        }),
+      ),
       // The project's own *.vercel.app hosts (renamed from `sharpit` to `sharpit-webapp`).
       ...['sharpit.vercel.app', 'sharpit-webapp.vercel.app'].map((host) => ({
         source: '/:path*',

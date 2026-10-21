@@ -40,7 +40,13 @@ function Sleep({ vm }: { vm: SleepViewModel }) {
   return (
     <>
       <Figures>
-        <Figure label="Score" unit="/100" value={vm.sleepScore ?? '—'} />
+        <Figure
+          label="Score"
+          unit="/100"
+          value={
+            typeof vm.sleepScore === 'number' ? Math.round(vm.sleepScore) : (vm.sleepScore ?? '—')
+          }
+        />
         <Figure label="Durée" value={hoursOf(vm.totalSleepMin)} />
         <Figure label="Profond" value={hoursOf(vm.deepMin)} />
         <Figure label="Paradoxal" value={hoursOf(vm.remMin)} />
@@ -69,7 +75,15 @@ function Recovery({ vm }: { vm: RecoveryViewModel }) {
         {vm.limiterLabel ? ` · ${vm.limiterLabel}` : ''}
       </p>
       <Figures>
-        <Figure label="Disponibilité" unit="/100" value={vm.readinessScore ?? '—'} />
+        <Figure
+          label="Disponibilité"
+          unit="/100"
+          value={
+            typeof vm.readinessScore === 'number'
+              ? Math.round(vm.readinessScore)
+              : (vm.readinessScore ?? '—')
+          }
+        />
         <Figure
           label="VFC"
           unit="ms"

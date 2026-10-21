@@ -103,53 +103,45 @@ describe('deleteAthleteAccount', () => {
     expect(email.text).toContain('Abonnements');
   });
 
-  it('still deletes everything when the address cannot be read', async () => {
+  it('still marks deleted and revokes when the address cannot be read', async () => {
     getUserMock.mockRejectedValue(new Error('clerk down'));
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const { deleteAthleteAccount } = await import('./account-deletion');
 
     await deleteAthleteAccount('athlete-1', now);
 
-    expect(deleteManyMock).toHaveBeenCalled();
+    expect(updateMock).toHaveBeenCalled();
+    expect(revokeAllMock).toHaveBeenCalled();
     expect(sendEmailMock).not.toHaveBeenCalled();
   });
 
-  it('deletes everything now: mark, provider grants, credentials, identity, Coach traces, then rows', async () => {
+  it('soft-deletes: mark, revoke grants, clear credentials, and notify', async () => {
     const { deleteAthleteAccount } = await import('./account-deletion');
     await expect(deleteAthleteAccount('athlete-1', now)).resolves.toEqual({
       athleteId: 'athlete-1',
       deletedAt: now,
     });
 
-    expect(order).toEqual(['mark', 'revoke', 'credentials', 'identity', 'traces', 'rows', 'email']);
-    expect(forgetCalendarIdsMock).toHaveBeenCalledWith('athlete-1');
+    expect(order).toEqual(['mark', 'revoke', 'credentials', 'email']);
     expect(updateMock).toHaveBeenCalledWith({
       where: { id: 'athlete-1' },
       data: { deletedAt: now },
       select: { id: true, clerkUserId: true },
     });
-    // 4 providers cleared in transaction: strava, google, withings, renpho (garmin & MFP withdrawn)
+    // 4 providers cleared in transaction: strava, google, withings, renpho
     expect((transactionMock.mock.calls[0]?.[0] as unknown[]).length).toBe(4);
-    expect(deleteUserMock).toHaveBeenCalledWith('user_1');
-    expect(deleteManyMock).toHaveBeenCalledWith({ where: { id: 'athlete-1' } });
+    // Hard purge not called immediately during soft delete
+    expect(deleteUserMock).not.toHaveBeenCalled();
+    expect(deleteManyMock).not.toHaveBeenCalled();
   });
 
-  it('still deletes the data when Langfuse is unreachable', async () => {
-    deleteTracesMock.mockRejectedValue(new Error('langfuse down'));
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { deleteAthleteAccount } = await import('./account-deletion');
-
-    await deleteAthleteAccount('athlete-1', now);
-    expect(deleteManyMock).toHaveBeenCalledWith({ where: { id: 'athlete-1' } });
-  });
-
-  it('still deletes the data when Clerk is unreachable', async () => {
-    deleteUserMock.mockRejectedValue(new Error('clerk down'));
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    const { deleteAthleteAccount } = await import('./account-deletion');
-
-    await deleteAthleteAccount('athlete-1', now);
-    expect(deleteManyMock).toHaveBeenCalledWith({ where: { id: 'athlete-1' } });
+  it('restores a soft-deleted athlete by clearing deletedAt', async () => {
+    const { restoreAthleteAccount } = await import('./account-deletion');
+    await restoreAthleteAccount('athlete-1');
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: 'athlete-1' },
+      data: { deletedAt: null },
+    });
   });
 });
 
@@ -161,8 +153,9 @@ describe('purgeSoftDeletedAthletes', () => {
     deleteManyMock.mockResolvedValue({ count: 1 });
   });
 
-  it('finishes every pending deletion now, including former 30-day soft-deletes', async () => {
+  it('purges athletes whose soft-deletion is older than the 14-day delay', async () => {
     const now = new Date('2026-09-24T03:15:00.000Z');
+    const expectedCutoff = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
     findManyMock.mockResolvedValue([
       { id: 'athlete-old', clerkUserId: 'user_old' },
       { id: 'athlete-new', clerkUserId: 'user_new' },
@@ -173,7 +166,7 @@ describe('purgeSoftDeletedAthletes', () => {
       purged: ['athlete-old', 'athlete-new'],
     });
     expect(findManyMock).toHaveBeenCalledWith({
-      where: { deletedAt: { not: null, lte: now } },
+      where: { deletedAt: { not: null, lte: expectedCutoff } },
       select: { id: true, clerkUserId: true },
     });
     expect(deleteUserMock).toHaveBeenCalledTimes(2);

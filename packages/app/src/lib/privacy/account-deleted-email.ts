@@ -20,13 +20,14 @@ export function accountDeletedEmail({ firstName, renewingSubscription }: Account
   const greeting = firstName?.trim() ? `Bonjour ${firstName.trim()},` : 'Bonjour,';
   const paragraphs = [
     greeting,
-    'Ton compte SharpIt a été supprimé, avec toutes tes données : activités, plan, objectifs, journal, profil et conversations avec le coach. Les accès donnés à Garmin, Strava et à tes autres sources ont été révoqués.',
+    'Ton compte SharpIt a été désactivé et est programmé pour une suppression définitive dans 14 jours. Passé ce délai, toutes tes données (activités, séances, plan, journal, profil et échanges avec le coach) seront effacées de manière irréversible.',
+    'Par mesure de précaution, les accès accordés à Strava, Withings et à tes autres sources connectées ont été immédiatement révoqués.',
     ...(renewingSubscription ? [CANCEL_STEPS[renewingSubscription]] : []),
-    "Si tu n'es pas à l'origine de cette suppression, réponds à cet e-mail.",
+    "Si tu n'es pas à l'origine de cette demande ou si tu souhaites annuler cette suppression, réponds simplement à cet e-mail ou reconnecte-toi à l'application dans les 14 jours pour réactiver ton compte et retrouver l'intégralité de tes données.",
     "L'équipe SharpIt",
   ];
   return {
-    subject: 'Ton compte SharpIt a été supprimé',
+    subject: 'Suppression programmée de ton compte SharpIt',
     text: paragraphs.join('\n\n'),
   };
 }

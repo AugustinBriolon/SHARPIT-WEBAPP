@@ -10,6 +10,9 @@ import { isDevClerkBypass } from '@sharpit/app/lib/dev/dev-auth';
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/aide(.*)',
+  '/privacy(.*)',
+  '/terms(.*)',
   '/icon(.*)',
   '/apple-icon(.*)',
   '/demo',

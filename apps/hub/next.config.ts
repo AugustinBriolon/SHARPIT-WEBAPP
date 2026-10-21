@@ -15,7 +15,6 @@ const contentSecurityPolicy = buildContentSecurityPolicy({
  * a handoff ticket, the public landing at `/` and the help centre at `/aide`. Every other path belongs to the web app on
  * `web.sharpit.app`.
  */
-const WEB_ORIGIN = 'https://web.sharpit.app';
 const API_ORIGIN = 'https://api.sharpit.app';
 
 /**
@@ -23,10 +22,6 @@ const API_ORIGIN = 'https://api.sharpit.app';
  * known to follow redirects, so this one path is proxied to `api.`, which verifies the signature.
  */
 const APPLE_NOTIFICATIONS_PATH = '/api/billing/apple/notifications';
-
-/** Paths the hub serves or forwards itself; everything else goes to the web, path and query kept. */
-const HUB_PATHS =
-  '\\.well-known|aide|connect|privacy|terms|sign-in|alternatives|guides|comparatifs|pour|api/|_next|__clerk|favicon\\.ico|icon|apple-icon';
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -54,11 +49,6 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      {
-        source: `/:path((?!${HUB_PATHS}).+)`,
-        destination: `${WEB_ORIGIN}/:path`,
-        permanent: false,
-      },
       // Clients still calling the apex API (pre-`api.` builds): 308 keeps the method and body.
       {
         source: '/api/:path((?!billing/apple/notifications$).*)',

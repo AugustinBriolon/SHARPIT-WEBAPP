@@ -2,10 +2,11 @@
 export const CURRENT_PRIVACY_VERSION = 'v1-2026-10';
 
 /**
- * Account deletion is immediate. Kept at 0 so the purge cron finishes any deletion
- * still marked pending (including the former 30-day soft-deletes) on its next run.
+ * Account deletion grace period before final hard purge (14 days).
+ * The account is immediately deactivated and disconnected, but data is preserved
+ * for 14 days allowing recovery in case of accidental or unauthorized deletion.
  */
-export const PRIVACY_PURGE_DELAY_DAYS = 0;
+export const PRIVACY_PURGE_DELAY_DAYS = 14;
 
 /** French copy for blocked LLM / briefing paths (AI hard gate). */
 export const AI_CONSENT_REQUIRED_MESSAGE =

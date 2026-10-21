@@ -116,13 +116,11 @@ export async function eraseAthleteData(athleteId: string): Promise<void> {
 }
 
 /**
- * Deletes an account now and for good: data, Coach traces and Clerk identity. Signing in again means
- * signing up, from zero.
+ * Soft-deletes an account: marks `deletedAt`, revokes provider grants at Strava / Withings / etc.,
+ * clears credentials, and sends the 14-day grace notice e-mail.
  *
- * Ordered so a failure midway still leaves the account unusable: `deletedAt` blocks the
- * profile, provider grants are revoked at Strava / Google / Withings, credentials are
- * wiped, the identity (and its sessions) goes, then the rows.
- * If the last step fails, `/api/cron/privacy-purge` finishes it on its next run.
+ * Full erasure (Clerk identity, Coach traces, database rows) occurs after `PRIVACY_PURGE_DELAY_DAYS`
+ * via `/api/cron/privacy-purge`, or can be cancelled if the athlete signs back in during the grace period.
  */
 export async function deleteAthleteAccount(
   athleteId: string,
@@ -137,14 +135,22 @@ export async function deleteAthleteAccount(
   // Needs the credentials, so before they are wiped. Never throws.
   await revokeAllProviderAccess(athleteId);
   await clearAthleteProviderCredentials(athleteId);
-  await deleteClerkIdentity(marked.clerkUserId, athleteId);
-  await deleteCoachTraces(athleteId);
-  await hardDeleteAthleteData(athleteId);
-  // Sent once everything is gone, so it confirms what happened rather than announces it.
+
+  // Sent once marked and revoked, informing the user of the 14-day grace period.
   if (notice) {
     await sendTransactionalEmail({ to: notice.to, ...accountDeletedEmail(notice) });
   }
   return { athleteId, deletedAt: now };
+}
+
+/**
+ * Restores a soft-deleted account within the grace period (sets deletedAt back to null).
+ */
+export async function restoreAthleteAccount(athleteId: string): Promise<void> {
+  await prisma.athleteProfile.update({
+    where: { id: athleteId },
+    data: { deletedAt: null },
+  });
 }
 
 /**

@@ -6,6 +6,7 @@ const findUniqueMock = vi.fn();
 const createMock = vi.fn();
 const findUniqueOrThrowMock = vi.fn();
 const deleteManyMock = vi.fn();
+const updateMock = vi.fn();
 const getUserMock = vi.fn();
 
 vi.mock('@clerk/nextjs/server', () => ({
@@ -29,6 +30,7 @@ vi.mock('@sharpit/db/client', () => ({
       create: createMock,
       findUniqueOrThrow: findUniqueOrThrowMock,
       deleteMany: deleteManyMock,
+      update: updateMock,
     },
   },
 }));
@@ -131,6 +133,21 @@ describe('getCurrentAthleteId', () => {
     const { getCurrentAthleteId } = await importFresh();
 
     await expect(getCurrentAthleteId()).resolves.toBe('athlete_fresh');
+  });
+
+  it('restores the account when signing back in within the 14-day grace period', async () => {
+    authMock.mockResolvedValue({ userId: 'user_regretful' });
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    findUniqueMock.mockResolvedValue({ id: 'athlete_saved', deletedAt: threeDaysAgo });
+    const { getCurrentAthleteId } = await importFresh();
+
+    await expect(getCurrentAthleteId()).resolves.toBe('athlete_saved');
+    expect(updateMock).toHaveBeenCalledWith({
+      where: { id: 'athlete_saved' },
+      data: { deletedAt: null },
+    });
+    expect(deleteManyMock).not.toHaveBeenCalled();
+    expect(createMock).not.toHaveBeenCalled();
   });
 
   it('never provisions a profile for an identity Clerk just deleted', async () => {

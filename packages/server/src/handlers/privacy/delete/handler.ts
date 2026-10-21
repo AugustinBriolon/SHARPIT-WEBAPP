@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       ok: true,
       deletedAt: result.deletedAt.toISOString(),
-      message: 'Compte supprimé définitivement.',
+      message: 'Compte désactivé. Suppression définitive programmée dans 14 jours.',
     });
   } catch (error) {
     logSafeError('privacy/delete POST', error);

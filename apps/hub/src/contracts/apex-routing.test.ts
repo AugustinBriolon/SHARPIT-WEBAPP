@@ -1,57 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import nextConfig from '../../next.config';
 
-/** The apex serves its own paths and hands every other one to the web, path kept (ADR-051). */
-async function webRedirect() {
-  const [redirect] = (await nextConfig.redirects?.()) ?? [];
-  const pattern = /^\/:path\((.+)\)$/.exec(redirect.source)?.[1] ?? '';
-  return { redirect, matches: (path: string) => new RegExp(`^/${pattern}$`).test(path) };
-}
-
 describe('apex routing', () => {
-  it('keeps the iOS contract on the apex', async () => {
-    const { matches } = await webRedirect();
-    for (const path of [
-      '/.well-known/apple-app-site-association',
-      '/connect/garmin',
-      '/connect/garmin/start',
-      '/connect/garmin/callback',
-      '/connect/strava/start',
-      '/connect/strava/callback',
-      '/connect/google/start',
-      '/connect/google/callback',
-      '/connect/withings/start',
-      '/connect/withings/callback',
-      '/privacy',
-      '/terms',
-      '/aide',
-      '/aide/sources/garmin',
-      '/sign-in',
-      '/alternatives/runna',
-      '/guides/rattraper-seance-course-a-pied-sans-se-blesser',
-      '/comparatifs/meilleures-applications-plan-entrainement-running',
-      '/pour/soignants-horaires-decales',
-      '/api/billing/apple/notifications',
-      '/api/v1/today',
-    ]) {
-      expect(matches(path), path).toBe(false);
-    }
-  });
-
-  it('sends everything else to the web, path kept, not permanently', async () => {
-    const { redirect, matches } = await webRedirect();
-    for (const path of ['/welcome', '/demo', '/sign-up', '/activite/abc', '/settings']) {
-      expect(matches(path), path).toBe(true);
-    }
-    expect(redirect.destination).toBe('https://web.sharpit.app/:path');
-    expect(redirect.permanent).toBe(false);
+  it('does not redirect non-existing paths to web (returns 404 instead)', async () => {
+    const redirects = (await nextConfig.redirects?.()) ?? [];
+    // No catch-all wildcard redirecting to web.sharpit.app
+    const catchAllToWeb = redirects.find(
+      (redirect) =>
+        redirect.destination.includes('web.sharpit.app') && redirect.source.includes(':path'),
+    );
+    expect(catchAllToWeb).toBeUndefined();
   });
 
   it('serves the landing at the apex root instead of redirecting it', async () => {
     const redirects = (await nextConfig.redirects?.()) ?? [];
     expect(redirects.some((redirect) => redirect.source === '/')).toBe(false);
-    const { matches } = await webRedirect();
-    expect(matches('/')).toBe(false);
   });
 
   it('sends apex API calls to api., method and body kept', async () => {

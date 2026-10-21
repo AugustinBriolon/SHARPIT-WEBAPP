@@ -5,7 +5,7 @@ import { accountDeletedEmail } from './account-deleted-email';
 describe('account deleted email', () => {
   it('confirms the deletion by name', () => {
     const email = accountDeletedEmail({ firstName: ' Zoé ', renewingSubscription: null });
-    expect(email.subject).toBe('Ton compte SharpIt a été supprimé');
+    expect(email.subject).toBe('Suppression programmée de ton compte SharpIt');
     expect(email.text.startsWith('Bonjour Zoé,')).toBe(true);
     expect(email.text).not.toContain('Abonnements');
   });

@@ -167,7 +167,7 @@ function PrivacyDataActionsSection({
         </Button>
         {pendingSignOut ? (
           <p aria-live="polite" className="text-muted-foreground self-center text-sm" role="status">
-            Compte supprimé — déconnexion…
+            Compte désactivé — déconnexion…
           </p>
         ) : null}
       </div>
@@ -265,7 +265,7 @@ function usePrivacySettingsActions(initial: ConsentState | null) {
     const ok = await confirm({
       title: 'Supprimer mon compte ?',
       description:
-        'Ton compte, ton identifiant de connexion et toutes tes données sont supprimés immédiatement et définitivement. Te reconnecter créera un nouveau compte vierge.',
+        'Ton compte sera désactivé immédiatement et tes connexions révoquées. La suppression définitive de tes données interviendra après un délai de grâce de 14 jours, durant lequel tu pourras annuler en te reconnectant.',
       confirmLabel: 'Supprimer',
       cancelLabel: 'Annuler',
       variant: 'destructive',
