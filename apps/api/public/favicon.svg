@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <style>@media (prefers-color-scheme: dark) { .canvas-top { stop-color: #1c2621; } .canvas-bottom { stop-color: #0f1f0a; } }</style>
+  <defs>
+    <linearGradient id="canvas" x1="0" y1="0" x2="0" y2="1">
+      <stop class="canvas-top" offset="0" stop-color="#ffffff"/>
+      <stop class="canvas-bottom" offset="1" stop-color="#e6e6e6"/>
+    </linearGradient>
+    <linearGradient id="mark" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1232">
+      <stop offset="0" stop-color="#95ffb2"/>
+      <stop offset="1" stop-color="#37f486"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#canvas)"/>
+  <g transform="translate(9.600000000000001 11.203617181612664) scale(0.03376036171816126)"><circle cx="434" cy="206.5" r="206" fill="url(#mark)"/><circle cx="891.5" cy="206.5" r="206" fill="url(#mark)"/><circle cx="206" cy="615" r="206" fill="url(#mark)"/><circle cx="1119.5" cy="615" r="206" fill="url(#mark)"/><circle cx="434" cy="1024" r="206" fill="url(#mark)"/><circle cx="891.5" cy="1024" r="206" fill="url(#mark)"/></g>
+</svg>
