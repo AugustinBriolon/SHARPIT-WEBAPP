@@ -44,3 +44,14 @@ describe('createActivitySchema size caps', () => {
     expect(parsed.success).toBe(true);
   });
 });
+
+describe('createActivitySchema bike distance', () => {
+  it('keeps the distance a ride was logged with', () => {
+    const parsed = createActivitySchema.safeParse({
+      type: 'BIKE',
+      date: '2026-01-01',
+      bikeMetrics: { distanceM: 42_000 },
+    });
+    expect(parsed.success && parsed.data.bikeMetrics?.distanceM).toBe(42_000);
+  });
+});

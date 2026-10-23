@@ -35,6 +35,7 @@ export const runMetricsSchema = z.object({
 });
 
 export const bikeMetricsSchema = z.object({
+  distanceM: optionalNumber,
   ftpPercent: optionalNumber,
   normalizedPower: optionalNumber,
   intensityFactor: optionalNumber,
