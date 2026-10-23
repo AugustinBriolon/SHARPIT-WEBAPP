@@ -292,6 +292,11 @@ export type TodayViewModel = {
        * Null when the session was never linked to a decision or carried no prose.
        */
       purpose?: string | null;
+      /**
+       * A planned strength session's exercises, as stored — so a client offers to follow it
+       * without reading the plan first. Null on any other line.
+       */
+      strengthPrescription?: unknown;
       /** Key KPIs for session preview cards (done + planned — max 3). */
       metrics?: Array<{ label: string; value: string; unit: string }> | null;
       /** A done session's match to its plan, 0–100; null before the analysis or off-plan. */

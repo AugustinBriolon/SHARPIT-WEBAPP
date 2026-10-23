@@ -116,6 +116,7 @@ export type V1TodaySource = {
       isKey?: boolean;
       /** Why the coach wrote this session — Decision Memory rationale. */
       purpose?: string | null;
+      strengthPrescription?: unknown;
       metrics?: Array<{ label: string; value: string; unit: string }> | null;
       brickLegs?: ReadonlyArray<BrickLegSource> | null;
       brickTransitionsSec?: ReadonlyArray<number | null> | null;
@@ -265,6 +266,11 @@ export type V1TodayResponse = {
     isKey: boolean;
     /** Why the coach wrote this session — Decision Memory rationale; null when unknown. */
     rationale: string | null;
+    /**
+     * A planned strength session's exercises, as `/api/v1/planned-sessions` serves them, so the
+     * app offers « Lancer la séance » as the drawer opens. Null on any other line.
+     */
+    strengthPrescription: unknown;
     /**
      * Set on a brick line: its legs, so a client opens the chain as one session rather
      * than its first leg alone. Null on any other line.
@@ -461,6 +467,7 @@ function projectSessions(
     plannedSessionId: line.plannedSessionId ?? null,
     isKey: line.isKey ?? false,
     rationale: line.purpose ?? null,
+    strengthPrescription: line.kind === 'planned' ? (line.strengthPrescription ?? null) : null,
     brickLegs:
       line.brickLegs?.map(({ id, type, title, durationMin, completed, activityId, actual }) => ({
         id,

@@ -33,6 +33,20 @@ function source(lines: V1TodaySource['actionRow']['daySummaryLines']): V1TodaySo
 const input = { trainingDayId: '2026-09-20', webOrigin: 'https://example.test' };
 
 describe('projectV1Today sessions', () => {
+  it('carries a planned strength line’s exercises, so the app can offer to follow them', () => {
+    const exercises = { exercises: [{ name: 'Squat', sets: 4, reps: 8 }] };
+    const [planned, done] = projectV1Today(
+      source([
+        { id: 'ps-1', kind: 'planned', primary: 'Muscu', strengthPrescription: exercises },
+        { id: 'act-1', kind: 'done', primary: 'Muscu', strengthPrescription: exercises },
+      ]),
+      input,
+    ).sessions;
+
+    expect(planned.strengthPrescription).toEqual(exercises);
+    expect(done.strengthPrescription).toBeNull();
+  });
+
   it('carries the prescription id of a planned line', () => {
     const [session] = projectV1Today(
       source([{ id: 'line-1', kind: 'planned', primary: 'Seuil', plannedSessionId: 'ps-1' }]),

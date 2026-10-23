@@ -1189,7 +1189,30 @@ export async function buildTodayPresentationViewModel(
   const day = localDateFromTrainingDayId(trainingDayId);
   const inputs = await loadTodayPresentationInputs(athleteId, trainingDayId, day, options);
   const vm = buildTodayViewModelFromInputs(inputs);
-  return attachSessionPurposes(athleteId, vm);
+  return attachSessionPurposes(athleteId, attachStrengthPrescriptions(vm, inputs.plannedSessions));
+}
+
+/** Each planned line's exercises, from the sessions already loaded — no read of its own. */
+export function attachStrengthPrescriptions(
+  vm: TodayViewModel,
+  plannedSessions: ReadonlyArray<{ id: string; strengthPrescription?: unknown }>,
+): TodayViewModel {
+  const byId = new Map(
+    plannedSessions.map((session) => [session.id, session.strengthPrescription]),
+  );
+  return {
+    ...vm,
+    actionRow: {
+      ...vm.actionRow,
+      daySummaryLines: vm.actionRow.daySummaryLines.map((line) => ({
+        ...line,
+        strengthPrescription:
+          line.kind === 'planned' && line.plannedSessionId
+            ? (byId.get(line.plannedSessionId) ?? null)
+            : null,
+      })),
+    },
+  };
 }
 
 /** Decision Memory "why" on each planned line — kept out of the pure assembler. */
