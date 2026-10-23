@@ -3,6 +3,7 @@ import { prisma } from '@sharpit/db/client';
 import { hasBearer } from '@sharpit/app/lib/hosts/api-host';
 import { englishDeep } from '@sharpit/server/lib/locale/translate-copy';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
+import { startServerTiming, withServerTiming } from '@sharpit/server/lib/http/server-timing';
 import {
   DEFAULT_LOCALE,
   isAthleteLocale,
@@ -67,10 +68,13 @@ export function inAppLocale<Req extends Request, Rest extends unknown[], Res ext
   handler: (request: Req, ...rest: Rest) => Res | Promise<Res>,
 ): (request: Req, ...rest: Rest) => Promise<Res> {
   const wrapped = async (request: Req, ...rest: Rest) => {
+    const timing = startServerTiming();
     // Only the app sends a Bearer: the web stays French whatever the browser's languages.
     const locale = hasBearer(request) ? await appRequestLocale(request) : DEFAULT_LOCALE;
     const response = await runInLocale(locale, () => handler(request, ...rest));
-    return locale === 'en' ? inEnglish(response) : response;
+    const worded = locale === 'en' ? await inEnglish(response) : response;
+    // Every app route says how long it took, so a slow screen shows which request held it.
+    return withServerTiming(worded, timing.header('app'));
   };
   return Object.assign(wrapped, { [INNER]: handler });
 }
