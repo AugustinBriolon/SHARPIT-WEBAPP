@@ -166,6 +166,14 @@ export function todayIsoDate(now: Date = new Date()): string {
   return formatter.format(now);
 }
 
+/**
+ * A training day that can no longer change by itself: older than yesterday. Yesterday stays
+ * live — its night ends this morning and late sessions still arrive.
+ */
+export function isSettledTrainingDay(trainingDayId: string, now: Date = new Date()): boolean {
+  return trainingDayId < todayIsoDate(new Date(now.getTime() - 24 * 60 * 60_000));
+}
+
 export function emptyActivityStatusStore(
   updatedAt = '1970-01-01T00:00:00.000Z',
 ): ActivityStatusStore {

@@ -6,6 +6,7 @@ import {
 import { computeFreshnessSnapshot } from '@sharpit/server/lib/athlete-state/freshness-service';
 import { shouldRefreshSnapshotForPhaseDrift } from '@sharpit/app/lib/athlete-state/snapshot-phase';
 import { isForwardAdvicePhase } from '@sharpit/app/lib/daily-phase/resolve';
+import { isSettledTrainingDay } from '@sharpit/app/lib/health/activity-status';
 import { getDailyBriefing } from '@sharpit/server/lib/briefing/daily-briefing';
 import {
   getLatestAthleteSnapshot,
@@ -236,6 +237,7 @@ function briefingChangedSincePersisted(
 function persistedSnapshotNeedsRegeneration(
   persisted: AthleteSnapshot,
   latestBriefing: AthleteSnapshotBriefing | null | undefined,
+  trainingDayId: string,
 ): boolean {
   if (briefingChangedSincePersisted(persisted, latestBriefing)) {
     return true;
@@ -246,7 +248,9 @@ function persistedSnapshotNeedsRegeneration(
   if (!persisted.dailyPhase || !persisted.phaseNarrative) {
     return true;
   }
-  if (shouldRefreshSnapshotForPhaseDrift(persisted)) {
+  // Phase drift follows the clock: a settled day's snapshot would age past it on every read
+  // and be rebuilt each time, for a day whose phase no longer moves.
+  if (!isSettledTrainingDay(trainingDayId) && shouldRefreshSnapshotForPhaseDrift(persisted)) {
     return true;
   }
   return phaseNarrativeNeedsUpgrade(persisted);
@@ -277,7 +281,7 @@ export async function getOrBuildAthleteSnapshot(
     loadBriefingForDay(athleteId, trainingDayId),
   ]);
 
-  if (persisted && !persistedSnapshotNeedsRegeneration(persisted, latestBriefing)) {
+  if (persisted && !persistedSnapshotNeedsRegeneration(persisted, latestBriefing, trainingDayId)) {
     return persisted;
   }
 

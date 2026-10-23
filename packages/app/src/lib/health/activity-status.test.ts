@@ -6,6 +6,7 @@ import {
   activityStatusLabel,
   activityStatusWriteFromDraft,
   isActivityStatus,
+  isSettledTrainingDay,
   parseActivityStatusStore,
   resolveActivityStatusStore,
 } from './activity-status';
@@ -91,5 +92,20 @@ describe('activity-status', () => {
     ).toEqual({
       status: 'active',
     });
+  });
+});
+
+describe('isSettledTrainingDay', () => {
+  const now = new Date('2026-10-23T08:00:00.000Z');
+
+  it('settles days older than yesterday', () => {
+    expect(isSettledTrainingDay('2026-10-21', now)).toBe(true);
+    expect(isSettledTrainingDay('2026-05-02', now)).toBe(true);
+  });
+
+  it('keeps yesterday, today and tomorrow live', () => {
+    expect(isSettledTrainingDay('2026-10-22', now)).toBe(false);
+    expect(isSettledTrainingDay('2026-10-23', now)).toBe(false);
+    expect(isSettledTrainingDay('2026-10-24', now)).toBe(false);
   });
 });

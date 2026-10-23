@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextRequest } from 'next/server';
+import { format } from 'date-fns';
+import { todayIsoDate } from '@sharpit/app/lib/health/activity-status';
 
 vi.mock('@sharpit/server/lib/auth/current-athlete', () => ({
   getCurrentAthleteId: vi.fn().mockResolvedValue('athlete-1'),
@@ -101,7 +103,8 @@ describe('GET /api/v1/today', () => {
   });
 
   describe('auto-link', () => {
-    const request = () => new NextRequest('http://localhost/api/v1/today?trainingDayId=2026-09-10');
+    const liveDay = todayIsoDate();
+    const request = () => new NextRequest(`http://localhost/api/v1/today?trainingDayId=${liveDay}`);
 
     it('links the requested day’s activities before building the view', async () => {
       const linking = await import('@sharpit/server/lib/planned-session/linking/session-linking');
@@ -123,9 +126,16 @@ describe('GET /api/v1/today', () => {
       expect(order).toEqual(['link', 'build']);
       const [[athleteId, day]] = vi.mocked(linking.autoLinkActivitiesOfDay).mock.calls;
       expect(athleteId).toBe('athlete-1');
-      expect(day.getFullYear()).toBe(2026);
-      expect(day.getMonth()).toBe(8);
-      expect(day.getDate()).toBe(10);
+      expect(format(day, 'yyyy-MM-dd')).toBe(liveDay);
+    });
+
+    it('leaves a settled day as it is', async () => {
+      const linking = await import('@sharpit/server/lib/planned-session/linking/session-linking');
+
+      const { GET } = await importRoute();
+      await GET(new NextRequest('http://localhost/api/v1/today?trainingDayId=2026-05-02'));
+
+      expect(linking.autoLinkActivitiesOfDay).not.toHaveBeenCalled();
     });
 
     it('schedules the compliance analysis for what it linked', async () => {
@@ -160,6 +170,26 @@ describe('GET /api/v1/today', () => {
 
       expect(response.status).toBe(200);
     });
+  });
+
+  it('reads the 60 days up to the day asked for, not up to today', async () => {
+    const queries = await import('@sharpit/server/lib/queries');
+
+    const { GET } = await importRoute();
+    await GET(new NextRequest('http://localhost/api/v1/today?trainingDayId=2026-05-02'));
+
+    const [[, window]] = vi.mocked(queries.getActivitiesList).mock.calls;
+    expect(format(window!.after!, 'yyyy-MM-dd')).toBe('2026-03-03');
+    expect(format(window!.before!, 'yyyy-MM-dd')).toBe('2026-05-03');
+  });
+
+  it('says where the request spent its time', async () => {
+    const { GET } = await importRoute();
+    const response = await GET(
+      new NextRequest('http://localhost/api/v1/today?trainingDayId=2026-09-10'),
+    );
+
+    expect(response.headers.get('server-timing')).toMatch(/^auth;dur=\d+, .*today;dur=\d+$/);
   });
 
   describe('morning proposal', () => {

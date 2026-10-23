@@ -7,7 +7,7 @@ import {
   analyzeLinkedPlannedSessions,
   autoLinkActivitiesOfDay,
 } from '@sharpit/server/lib/planned-session/linking/session-linking';
-import { addDays, format } from 'date-fns';
+import { addDays, format, startOfDay } from 'date-fns';
 import {
   ensureMorningRecalibration,
   getMorningRecalibrationPresentation,
@@ -19,7 +19,8 @@ import { loadV1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores'
 import { loadV1DayTimeline } from '@sharpit/server/lib/presentation/v1/day-timeline';
 import { projectV1TodayFromViewModel } from '@sharpit/server/lib/presentation/v1/today';
 import { readPlanHorizonView } from '@sharpit/server/lib/coach/plan/plan-horizon';
-import { todayIsoDate } from '@sharpit/app/lib/health/activity-status';
+import { isSettledTrainingDay, todayIsoDate } from '@sharpit/app/lib/health/activity-status';
+import { startServerTiming } from '@sharpit/server/lib/http/server-timing';
 
 function isValidTrainingDayId(value: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -88,9 +89,16 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    const timing = startServerTiming();
     const athleteId = await getCurrentAthleteId();
-    await autoLinkTodayActivities(athleteId, trainingDayId);
+    timing.mark('auth');
+    // A settled day's sessions were paired when they arrived; reading it again changes nothing.
+    if (!isSettledTrainingDay(trainingDayId)) {
+      await autoLinkTodayActivities(athleteId, trainingDayId);
+    }
+    timing.mark('link');
     const morning = await loadMorningProposal(athleteId, trainingDayId);
+    timing.mark('morning');
     const morningRecalibration = morning.presentation;
     const refDate = referenceDateFor(trainingDayId);
 
@@ -98,8 +106,13 @@ export async function GET(request: NextRequest) {
     const [snapshot, healthEntries, activities] = await Promise.all([
       getOrBuildAthleteSnapshot(athleteId, trainingDayId),
       getHealthEntries(athleteId, 14, refDate),
-      getActivitiesList(athleteId, { sinceDays: 60 }),
+      // The 60 days up to the one asked for: a past day reads its own weeks, not today's.
+      getActivitiesList(athleteId, {
+        after: addDays(startOfDay(refDate), -60),
+        before: addDays(startOfDay(refDate), 1),
+      }),
     ]);
+    timing.mark('state');
 
     const [viewModel, dayScores] = await Promise.all([
       buildTodayPresentationViewModel(athleteId, trainingDayId, {
@@ -121,6 +134,7 @@ export async function GET(request: NextRequest) {
         };
       }),
     ]);
+    timing.mark('view');
     const projected = projectV1TodayFromViewModel(viewModel, {
       trainingDayId,
       webOrigin: appOrigin(request.nextUrl.origin),
@@ -143,6 +157,7 @@ export async function GET(request: NextRequest) {
       console.error('[api/v1/today/timeline]', error);
       return [];
     });
+    timing.mark('timeline');
     // Only today speaks of the plan's end: a past day reads as it was.
     const planHorizon =
       trainingDayId === todayIsoDate()
@@ -151,7 +166,11 @@ export async function GET(request: NextRequest) {
             return null;
           })
         : null;
-    return NextResponse.json({ ...projected, timeline, planHorizon });
+    timing.mark('horizon');
+    return NextResponse.json(
+      { ...projected, timeline, planHorizon },
+      { headers: { 'server-timing': timing.header('today') } },
+    );
   } catch (error) {
     console.error('[api/v1/today]', error);
     return NextResponse.json({ error: 'Impossible de produire la vue Today' }, { status: 500 });
