@@ -59,7 +59,11 @@ async function loadBriefingForDay(
   };
 }
 
-async function loadPhaseObservationSignals(athleteId: string, trainingDayId: string) {
+async function loadPhaseObservationSignals(
+  athleteId: string,
+  trainingDayId: string,
+  refDate: Date,
+) {
   const [latestSession, latestSleep] = await Promise.all([
     prisma.observation.findFirst({
       where: { athleteId, type: 'SESSION', trainingDayId },
@@ -73,8 +77,12 @@ async function loadPhaseObservationSignals(athleteId: string, trainingDayId: str
     }),
   ]);
 
+  // The sleep observation is stamped at bedtime: last night's lands yesterday evening, so only a
+  // bedtime logged today means « tonight » (else the 13:00 verdict read « Ce soir »).
   const sleepLoggedTonight = Boolean(
-    latestSleep?.timestamp && latestSleep.timestamp.getHours() >= 18,
+    latestSleep?.timestamp &&
+    latestSleep.timestamp >= startOfDay(refDate) &&
+    latestSleep.timestamp.getHours() >= 18,
   );
 
   return {
@@ -98,7 +106,7 @@ async function loadSnapshotPhaseContext(
       getGoals(athleteId),
       getAthleteProfile(athleteId),
       getHealthEntries(athleteId, 14, refDate),
-      loadPhaseObservationSignals(athleteId, trainingDayId),
+      loadPhaseObservationSignals(athleteId, trainingDayId, refDate),
     ]);
   const goals = await enrichGoalsWithProgress(athleteId, rawGoals);
 
