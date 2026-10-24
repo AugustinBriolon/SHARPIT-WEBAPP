@@ -68,8 +68,15 @@ the Startup tier in parallel.
 8. **Web and iOS.** Compte › Sources (web) and Paramètres › Sources de données (iOS) take the key
    in a dedicated form: create-key link, password field, "Remplacer la clé" once linked. Both show
    the Garmin mark.
-9. **Official provider.** Garmin is no longer in `UNOFFICIAL_PROVIDERS`, so connecting it asks for
-   the health consent only.
+9. **Garmin program compliance.** The Starter tier forbids using Garmin data, or anything
+   derived from it, to train, evaluate or improve AI models. `bench:coach-models` now refuses an
+   athlete that holds Garmin data, and the privacy policy (FR, plus an English version at
+   `/privacy/en`) says so, names the AI providers (Google, Anthropic, OpenAI through Vercel's
+   gateway), limits Langfuse to technical diagnosis, and gives a one-gesture AI withdrawal. The
+   policy also now states the real deletion delay (deactivated at once, purged after 14 days).
+   `CURRENT_PRIVACY_VERSION` is not bumped: that would force a re-acceptance by every athlete.
+10. **Official provider.** Garmin is no longer in `UNOFFICIAL_PROVIDERS`, so connecting it asks for
+    the health consent only.
 
 ---
 

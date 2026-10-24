@@ -62,6 +62,19 @@ function parseOptions(): BenchOptions {
   };
 }
 
+/** Garmin forbids using its data, or anything derived from it, to evaluate AI models (ADR-103). */
+async function assertNoGarminData(athleteId: string): Promise<void> {
+  const [account, activities] = await Promise.all([
+    prisma.garminAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
+    prisma.activity.count({ where: { athleteId, garminId: { not: null } } }),
+  ]);
+  if (account || activities > 0) {
+    throw new Error(
+      `Refusing athlete "${athleteId}": it holds Garmin data, which must not feed a model benchmark. Use a disposable athlete without Garmin.`,
+    );
+  }
+}
+
 async function resolveAthleteId(requested: string | null): Promise<string> {
   if (!requested) {
     throw new Error(
@@ -80,6 +93,7 @@ async function resolveAthleteId(requested: string | null): Promise<string> {
   if (!athlete) {
     throw new Error(`No athlete found for --athlete ${requested}`);
   }
+  await assertNoGarminData(athlete.id);
   return athlete.id;
 }
 
