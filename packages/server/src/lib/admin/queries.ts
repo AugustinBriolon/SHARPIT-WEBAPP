@@ -85,7 +85,7 @@ export async function loadPlanAdherence(): Promise<Map<string, PlanAdherence>> {
 /** The window the AI cost is read over: a month, set against a monthly price. */
 export const AI_COST_WINDOW_DAYS = 30;
 
-/** Each athlete's AI cost over the last 30 days (ADR-103), summed per model and feature in SQL. */
+/** Each athlete's AI cost over the last 30 days (ADR-104), summed per model and feature in SQL. */
 export async function loadAiCost(now = new Date()): Promise<Map<string, AthleteAiCost>> {
   const since = new Date(now.getTime() - AI_COST_WINDOW_DAYS * 86_400_000);
   const groups = await prisma.aiUsageEvent.groupBy({

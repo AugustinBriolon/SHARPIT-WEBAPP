@@ -1,5 +1,5 @@
 /**
- * What the AI costs per athlete, in US dollars (ADR-103). Prices are the Vercel AI Gateway's list
+ * What the AI costs per athlete, in US dollars (ADR-104). Prices are the Vercel AI Gateway's list
  * prices per token, read from https://ai-gateway.vercel.sh/v1/models on 2026-10-24; update them
  * when a model or a price changes. An unknown model is priced as the dearest one known, so the
  * figure errs high rather than low.

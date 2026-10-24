@@ -1,4 +1,4 @@
-# ADR-103: AI cost per athlete is priced from recorded tokens
+# ADR-104: AI cost per athlete is priced from recorded tokens
 
 **Status:** Accepted
 **Date:** 2026-10-24

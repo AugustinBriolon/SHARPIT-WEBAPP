@@ -106,7 +106,7 @@ export type AdminAthleteView = {
   email: string | null;
   /** Week 1–4 plan adherence (ADR-102); null when nothing was ever planned. */
   adherence: PlanAdherence | null;
-  /** AI cost over the last 30 days, in US dollars (ADR-103); null without any AI call. */
+  /** AI cost over the last 30 days, in US dollars (ADR-104); null without any AI call. */
   aiCost: AthleteAiCost | null;
 };
 
