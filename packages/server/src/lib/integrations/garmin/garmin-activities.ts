@@ -1,15 +1,6 @@
-import type { GarminPersonalClient } from '@sharpit/server/lib/integrations/garmin/garmin-personal-api';
-import { isSet } from '@sharpit/shared/value';
 import type { IActivity } from '@flow-js/garmin-connect/dist/garmin/types/activity';
 import { ActivityType, Prisma } from '@prisma/client';
-import {
-  garminFeelLabel,
-  garminRpeToScale,
-} from '@sharpit/server/lib/integrations/garmin/garmin-feel';
 import { mergedSource, sourceIncludes } from '@sharpit/server/lib/activity/list/activity-dedup';
-import { resolveGarminExerciseLabel } from '@sharpit/server/lib/integrations/garmin/garmin-exercise-labels';
-
-type GCClient = GarminPersonalClient;
 
 export interface GarminActivityEvaluation {
   rpe: number | null;
@@ -17,391 +8,6 @@ export interface GarminActivityEvaluation {
   notes: string | null;
 }
 
-interface GarminActivityDetail {
-  summaryDTO?: {
-    directWorkoutRpe?: number | null;
-    directWorkoutFeel?: number | null;
-  };
-  description?: string | null;
-}
-
-/** Une série de muscu agrégée, prête pour le modèle StrengthSet. */
-export interface ParsedStrengthSet {
-  exercise: string;
-  sets: number;
-  reps: number;
-  durationSec: number | null;
-  weightKg: number | null;
-  restSec: number | null;
-  order: number;
-}
-
-interface GarminExerciseEntry {
-  category?: string | null;
-  name?: string | null;
-  probability?: number | null;
-}
-
-interface GarminExerciseSet {
-  exercises?: GarminExerciseEntry[];
-  duration?: number | null; // secondes
-  repetitionCount?: number | null;
-  weight?: number | null;
-  setType?: string | null; // ACTIVE | REST | WARMUP | ...
-  wktStepIndex?: number | null;
-}
-
-interface GarminExerciseSetsResponse {
-  exerciseSets?: GarminExerciseSet[];
-}
-
-interface GarminSummarizedExerciseSet {
-  category?: string | null;
-  subCategory?: string | null;
-  sets?: number | null;
-  reps?: number | null;
-  duration?: number | null;
-  maxWeight?: number | null;
-}
-
-/** Garmin envoie le poids en grammes (gros nombres) ou parfois déjà en kg. */
-function garminWeightToKg(weight: number | null | undefined): number | null {
-  if (weight === undefined || weight === null || weight <= 0) {
-    return null;
-  }
-  if (weight >= 100) {
-    return Math.round((weight / 1000) * 10) / 10;
-  }
-  return Math.round(weight * 10) / 10;
-}
-
-function bestExerciseEntry(set: GarminExerciseSet): GarminExerciseEntry | null {
-  const exercises = set.exercises ?? [];
-  if (exercises.length === 0) {
-    return null;
-  }
-  return exercises.reduce((best, entry) =>
-    (entry.probability ?? 0) >= (best.probability ?? 0) ? entry : best,
-  );
-}
-
-function exerciseKeyFromEntry(entry: GarminExerciseEntry): string {
-  const category = entry.category ?? '';
-  const name = entry.name ?? '';
-  return `${category}::${name || category}`;
-}
-
-function labelFromExerciseKey(key: string, labels: Map<string, string>): string {
-  const [category, name] = key.split('::');
-  if (key.startsWith('step::')) {
-    return 'Inconnu';
-  }
-  return resolveGarminExerciseLabel(category, name, labels);
-}
-
-type StrengthGroupPush = {
-  groups: ParsedStrengthSet[];
-  label: string;
-  reps: number[];
-  durations: number[];
-  weights: number[];
-  rests: number[];
-  order: number;
-};
-
-function pushStrengthGroup(input: StrengthGroupPush): number {
-  const { groups, label, reps, durations, weights, rests, order } = input;
-  if (reps.length === 0) {
-    return order;
-  }
-  const avgReps = Math.round(reps.reduce((s, v) => s + v, 0) / reps.length);
-  const maxWeight = weights.length ? Math.max(...weights) : 0;
-  const avgRest = rests.length ? Math.round(rests.reduce((s, v) => s + v, 0) / rests.length) : null;
-  const avgDuration = durations.length
-    ? Math.round(durations.reduce((s, v) => s + v, 0) / durations.length)
-    : null;
-  groups.push({
-    exercise: label,
-    sets: reps.length,
-    reps: avgReps,
-    durationSec: avgDuration,
-    weightKg: garminWeightToKg(maxWeight),
-    restSec: avgRest,
-    order,
-  });
-  return order + 1;
-}
-
-/**
- * Agrège les exercices résumés fournis dans la liste d'activités Garmin
- * (source fiable pour le décompte par exercice).
- */
-function summarizedRepsPerSet(setCount: number, totalReps: number): number {
-  if (setCount > 0 && totalReps > 0) {
-    return Math.max(1, Math.round(totalReps / setCount));
-  }
-  if (totalReps > 0) {
-    return totalReps;
-  }
-  return 1;
-}
-
-function summarizedDurationSecPerSet(setCount: number, totalDurationMs: number): number | null {
-  if (setCount <= 0 || totalDurationMs <= 0) {
-    return null;
-  }
-  return Math.round(totalDurationMs / setCount / 1000);
-}
-
-function summarizedSetCount(setCount: number): number {
-  return setCount > 0 ? setCount : 1;
-}
-
-function buildSummarizedExerciseSet(
-  item: GarminSummarizedExerciseSet,
-  index: number,
-  labels: Map<string, string>,
-): ParsedStrengthSet {
-  const setCount = item.sets ?? 0;
-  const totalReps = item.reps ?? 0;
-  const totalDurationMs = item.duration ?? 0;
-  const category = item.category?.trim() ?? '';
-  const subCategory = item.subCategory?.trim() ?? '';
-
-  return {
-    exercise: resolveGarminExerciseLabel(category, subCategory, labels),
-    sets: summarizedSetCount(setCount),
-    reps: summarizedRepsPerSet(setCount, totalReps),
-    durationSec: summarizedDurationSecPerSet(setCount, totalDurationMs),
-    weightKg: garminWeightToKg(item.maxWeight),
-    restSec: null,
-    order: index,
-  };
-}
-
-function summarizedExerciseEntry(
-  item: GarminSummarizedExerciseSet,
-  index: number,
-  labels: Map<string, string>,
-): ParsedStrengthSet | null {
-  if (!item.category?.trim() && !item.subCategory?.trim()) {
-    return null;
-  }
-  return buildSummarizedExerciseSet(item, index, labels);
-}
-
-export function parseGarminSummarizedExerciseSets(
-  activity: IActivity,
-  labels: Map<string, string>,
-): ParsedStrengthSet[] {
-  const raw = activity.summarizedExerciseSets;
-  if (!Array.isArray(raw) || raw.length === 0) {
-    return [];
-  }
-
-  return raw
-    .map((entry, index) =>
-      summarizedExerciseEntry(entry as GarminSummarizedExerciseSet, index, labels),
-    )
-    .filter((entry): entry is ParsedStrengthSet => isSet(entry));
-}
-
-/**
- * Préfère le détail chronologique par série ; le résumé Garmin sert de secours.
- */
-export function resolveGarminStrengthSets(
-  activity: IActivity,
-  detailedSets: ParsedStrengthSet[],
-  labels: Map<string, string>,
-): ParsedStrengthSet[] {
-  const summarizedSets = parseGarminSummarizedExerciseSets(activity, labels);
-  if (detailedSets.length === 0) {
-    return summarizedSets;
-  }
-  if (summarizedSets.length === 0) {
-    return detailedSets;
-  }
-
-  const detailedLooksBroken =
-    detailedSets.length < summarizedSets.length &&
-    detailedSets.every(
-      (set) =>
-        set.exercise === 'Exercice' || set.exercise === 'Unknown' || set.exercise === 'Inconnu',
-    );
-
-  return detailedLooksBroken ? summarizedSets : detailedSets;
-}
-
-/**
- * Agrège les séries Garmin (une ligne par série + lignes REST) en groupes
- * d'exercices : exercice, nombre de séries, reps moyennes, poids max, repos moyen.
- */
-function effectiveRepsFromSet(set: GarminExerciseSet): number {
-  const repCount = set.repetitionCount ?? 0;
-  const durationSec = isSet(set.duration) && set.duration > 0 ? Math.round(set.duration) : 0;
-  if (repCount > 0) {
-    return repCount;
-  }
-  return durationSec > 0 ? 1 : 0;
-}
-
-function resolveExerciseSetKey(
-  set: GarminExerciseSet,
-  entry: GarminExerciseEntry | null,
-  currentKey: string | null,
-  lastActiveWktStep: number | null,
-): string | null {
-  let key: string | null = entry ? exerciseKeyFromEntry(entry) : null;
-  if (!key && isSet(set.wktStepIndex) && isSet(lastActiveWktStep)) {
-    if (set.wktStepIndex !== lastActiveWktStep) {
-      key = `step::${set.wktStepIndex}`;
-    }
-  }
-  return key ?? currentKey;
-}
-
-class StrengthSetAccumulator {
-  readonly groups: ParsedStrengthSet[] = [];
-  private currentKey: string | null = null;
-  private currentLabel: string | null = null;
-  private reps: number[] = [];
-  private durations: number[] = [];
-  private weights: number[] = [];
-  private rests: number[] = [];
-  private order = 0;
-  private lastActiveWktStep: number | null = null;
-
-  constructor(private readonly labels: Map<string, string>) {}
-
-  flush(): void {
-    if (
-      this.currentKey === undefined ||
-      this.currentKey === null ||
-      this.currentLabel === undefined ||
-      this.currentLabel === null ||
-      this.reps.length === 0
-    ) {
-      return;
-    }
-    this.order = pushStrengthGroup({
-      groups: this.groups,
-      label: this.currentLabel,
-      reps: this.reps,
-      durations: this.durations,
-      weights: this.weights,
-      rests: this.rests,
-      order: this.order,
-    });
-    this.resetGroup();
-  }
-
-  private resetGroup(): void {
-    this.currentKey = null;
-    this.currentLabel = null;
-    this.reps = [];
-    this.durations = [];
-    this.weights = [];
-    this.rests = [];
-  }
-
-  addRest(set: GarminExerciseSet): void {
-    if (isSet(set.duration) && set.duration > 0) {
-      this.rests.push(set.duration);
-    }
-  }
-
-  private resolveActiveLabel(entry: GarminExerciseEntry | null, key: string): string {
-    if (entry) {
-      return labelFromExerciseKey(key, this.labels);
-    }
-    return this.currentLabel ?? labelFromExerciseKey(key, this.labels);
-  }
-
-  private pushTimedDuration(set: GarminExerciseSet): void {
-    const durationSec = isSet(set.duration) && set.duration > 0 ? Math.round(set.duration) : 0;
-    if (durationSec > 0 && (set.repetitionCount ?? 0) <= 0) {
-      this.durations.push(durationSec);
-    }
-  }
-
-  private pushWeightAndStep(set: GarminExerciseSet): void {
-    if (isSet(set.weight) && set.weight > 0) {
-      this.weights.push(set.weight);
-    }
-    if (isSet(set.wktStepIndex)) {
-      this.lastActiveWktStep = set.wktStepIndex;
-    }
-  }
-
-  private trackSetMetrics(set: GarminExerciseSet, effectiveReps: number): void {
-    this.reps.push(effectiveReps);
-    this.pushTimedDuration(set);
-    this.pushWeightAndStep(set);
-  }
-
-  addActiveSet(set: GarminExerciseSet): void {
-    const entry = bestExerciseEntry(set);
-    const key = resolveExerciseSetKey(set, entry, this.currentKey, this.lastActiveWktStep);
-    if (!key) {
-      return;
-    }
-
-    const effectiveReps = effectiveRepsFromSet(set);
-    if (effectiveReps <= 0) {
-      return;
-    }
-
-    if (key !== this.currentKey) {
-      this.flush();
-      this.currentKey = key;
-      this.currentLabel = this.resolveActiveLabel(entry, key);
-    }
-
-    this.trackSetMetrics(set, effectiveReps);
-  }
-}
-
-export function parseGarminExerciseSets(
-  body: GarminExerciseSetsResponse,
-  labels: Map<string, string>,
-): ParsedStrengthSet[] {
-  const accumulator = new StrengthSetAccumulator(labels);
-
-  for (const set of body.exerciseSets ?? []) {
-    const type = (set.setType ?? '').toUpperCase();
-    if (type === 'REST') {
-      accumulator.addRest(set);
-      continue;
-    }
-    accumulator.addActiveSet(set);
-  }
-
-  accumulator.flush();
-  return accumulator.groups;
-}
-
-/** Récupère et agrège les séries de muscu d'une activité Garmin. */
-export async function fetchGarminExerciseSets(
-  client: GCClient,
-  activityId: number,
-  labels: Map<string, string>,
-): Promise<ParsedStrengthSet[]> {
-  try {
-    const raw = (await client.get(
-      `/activity-service/activity/${activityId}/exerciseSets`,
-    )) as GarminExerciseSetsResponse;
-    return parseGarminExerciseSets(raw, labels);
-  } catch (error) {
-    console.warn(`[Garmin] exerciseSets fetch failed for activity ${activityId}:`, error);
-    return [];
-  }
-}
-
-/**
- * Durée de séance selon le type.
- * Muscu : temps TOTAL (repos entre séries inclus) → elapsed/duration en priorité.
- * Autres : temps en mouvement (movingDuration) en priorité.
- */
 export function garminSessionDurationSec(activity: IActivity, type: ActivityType): number | null {
   if (type === ActivityType.STRENGTH) {
     return garminDurationSec(activity.elapsedDuration, activity.duration, activity.movingDuration);
@@ -507,27 +113,6 @@ export function mapGarminType(typeKey: string): ActivityType | null {
   return GARMIN_TYPE_RULES.find(({ matches }) => matches(key))?.type ?? ActivityType.OTHER;
 }
 
-export async function fetchGarminActivityEvaluation(
-  client: GCClient,
-  activityId: number,
-): Promise<GarminActivityEvaluation> {
-  try {
-    const raw = (await client.get(
-      `/activity-service/activity/${activityId}`,
-    )) as GarminActivityDetail;
-
-    const dto = raw.summaryDTO;
-    const rpe = garminRpeToScale(dto?.directWorkoutRpe);
-    const feeling = garminFeelLabel(dto?.directWorkoutFeel);
-    const notes =
-      typeof raw.description === 'string' && raw.description.trim() ? raw.description.trim() : null;
-
-    return { rpe, feeling, notes };
-  } catch {
-    return { rpe: null, feeling: null, notes: null };
-  }
-}
-
 function num(v: unknown): number | null {
   return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
 }
@@ -567,7 +152,6 @@ type GarminSportMetricsInput = {
   base: Omit<Prisma.ActivityUncheckedCreateInput, 'athleteId'>;
   activity: IActivity;
   type: ActivityType;
-  strengthSets: ParsedStrengthSet[];
   load: number | null;
 };
 
@@ -630,26 +214,6 @@ function attachGarminSwimMetrics(base: GarminSportMetricsInput['base'], activity
   };
 }
 
-function attachGarminStrengthMetrics(
-  base: GarminSportMetricsInput['base'],
-  strengthSets: ParsedStrengthSet[],
-): void {
-  if (strengthSets.length === 0) {
-    return;
-  }
-  base.strengthSets = {
-    create: strengthSets.map((s) => ({
-      exercise: s.exercise,
-      sets: s.sets,
-      reps: s.reps,
-      durationSec: s.durationSec,
-      weightKg: s.weightKg,
-      restSec: s.restSec,
-      order: s.order,
-    })),
-  };
-}
-
 const GARMIN_SPORT_METRIC_ATTACHERS: Partial<
   Record<ActivityType, (input: GarminSportMetricsInput) => void>
 > = {
@@ -657,8 +221,6 @@ const GARMIN_SPORT_METRIC_ATTACHERS: Partial<
   [ActivityType.HIKE]: ({ base, activity }) => attachGarminHikeMetrics(base, activity),
   [ActivityType.BIKE]: ({ base, activity, load }) => attachGarminBikeMetrics(base, activity, load),
   [ActivityType.SWIM]: ({ base, activity }) => attachGarminSwimMetrics(base, activity),
-  [ActivityType.STRENGTH]: ({ base, strengthSets }) =>
-    attachGarminStrengthMetrics(base, strengthSets),
 };
 
 function attachGarminSportMetrics(input: GarminSportMetricsInput): void {
@@ -778,7 +340,6 @@ export function buildGarminActivityData(
   activity: IActivity,
   evaluation: GarminActivityEvaluation,
   type: ActivityType,
-  strengthSets: ParsedStrengthSet[] = [],
 ): Omit<Prisma.ActivityUncheckedCreateInput, 'athleteId'> {
   const duration = garminSessionDurationSec(activity, type);
   const load = garminTrainingStressScore(activity);
@@ -796,7 +357,7 @@ export function buildGarminActivityData(
     garminId: String(activity.activityId),
   };
 
-  attachGarminSportMetrics({ base, activity, type, strengthSets, load });
+  attachGarminSportMetrics({ base, activity, type, load });
   return base;
 }
 

@@ -7,7 +7,6 @@ type MaybeAccount = Record<string, unknown> | null | undefined;
 
 export type CronProviderAccounts = {
   strava: MaybeAccount;
-  garmin: MaybeAccount;
   withings: MaybeAccount;
   renpho: MaybeAccount;
   google: MaybeAccount;
@@ -18,7 +17,6 @@ const CRON_PROVIDER_ACCOUNT_KEYS: Array<{
   accountKey: keyof CronProviderAccounts;
 }> = [
   { provider: 'strava', accountKey: 'strava' },
-  { provider: 'garmin', accountKey: 'garmin' },
   { provider: 'withings', accountKey: 'withings' },
   { provider: 'renpho', accountKey: 'renpho' },
   { provider: 'google', accountKey: 'google' },

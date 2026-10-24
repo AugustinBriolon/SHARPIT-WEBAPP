@@ -1,22 +1,15 @@
 import { Prisma } from '@prisma/client';
 import { isSet } from '@sharpit/shared/value';
-import { format, startOfDay, subDays } from 'date-fns';
 import { prisma } from '@sharpit/db/client';
+import type { GarminDailyHealth } from '@sharpit/server/lib/integrations/garmin/garmin';
 import {
-  syncSinceFromLastSync,
-  syncWindowDays,
-} from '@sharpit/server/lib/integrations/shared/sync-since';
-import {
-  fetchAthleteThresholds,
-  fetchDailyHealth,
-  fetchWeightRange,
-  type GarminAthleteThresholds,
-  type GarminDailyHealth,
-} from '@sharpit/server/lib/integrations/garmin/garmin';
-import {
-  garminClientFromApiKey,
-  type GarminPersonalClient,
-} from '@sharpit/server/lib/integrations/garmin/garmin-personal-api';
+  deleteGarminRegistration,
+  fetchGarminPermissions,
+  fetchGarminUserId,
+  garminTokenExpiresAt,
+  refreshGarminToken,
+  type GarminTokenResponse,
+} from '@sharpit/server/lib/integrations/garmin/garmin-oauth';
 import {
   garminHealthWrite,
   restrictGarminHealthUpdate,
@@ -26,29 +19,119 @@ import {
 import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import { garminHealthToObservations } from '@sharpit/server/adapters/garmin-health-adapter';
-import {
-  isCredentialFailure,
-  isGarminAccountConnected,
-  isDecryptMalformedSoftFailure,
-  ProviderAuthError,
-} from '@sharpit/server/lib/integrations/shared/connection-status';
-import { backfillHealthObservationsFromDailyHealth } from '../shared/health-observation-backfill';
-import { mapWithConcurrency } from '@sharpit/server/lib/async/map-with-concurrency';
-import {
-  decryptSecret,
-  encryptSecret,
-  isSecretAuthenticityFailure,
-} from '@sharpit/server/lib/secret-box';
+import { resolveOAuthAccessToken } from '@sharpit/server/lib/integrations/shared/oauth-access-token';
+import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
+import { encryptSecret } from '@sharpit/server/lib/secret-box';
 
-const GARMIN_RECONNECT_MESSAGE =
-  'Clé API Garmin refusée ou expirée. Ajoute une nouvelle clé dans les paramètres.';
+const GARMIN_RECONNECT_MESSAGE = 'Session Garmin expirée. Reconnecte Garmin dans les paramètres.';
 
-/** Cold open-path fallback when Garmin never synced — cron covers deeper history. */
-export const GARMIN_HEALTH_OPEN_PATH_FALLBACK_DAYS = 14;
-/** Default cold fallback for cron / manual incremental sync. */
-export const GARMIN_HEALTH_DEFAULT_FALLBACK_DAYS = 60;
-/** Parallel day fetches — keep modest to respect Garmin rate limits. */
-export const GARMIN_HEALTH_DAY_CONCURRENCY = 4;
+export async function getGarminAccount(athleteId: string) {
+  return prisma.garminAccount.findUnique({ where: { athleteId } });
+}
+
+/** Pushes name Garmin's user id, never ours. */
+export async function getGarminAccountByUserId(garminUserId: string) {
+  return prisma.garminAccount.findUnique({ where: { garminUserId } });
+}
+
+function storedTokens(token: GarminTokenResponse) {
+  return {
+    accessTokenEnc: encryptSecret(token.access_token),
+    refreshTokenEnc: encryptSecret(token.refresh_token),
+    expiresAt: garminTokenExpiresAt(token),
+  };
+}
+
+/**
+ * Links the Garmin account behind a fresh token to the athlete. `taken` when that Garmin
+ * account already feeds another SharpIt athlete: one Garmin user, one athlete.
+ */
+export async function connectGarminAccount(
+  athleteId: string,
+  token: GarminTokenResponse,
+): Promise<'connected' | 'taken'> {
+  const [garminUserId, permissions] = await Promise.all([
+    fetchGarminUserId(token.access_token),
+    fetchGarminPermissions(token.access_token).catch(() => []),
+  ]);
+  const owner = await getGarminAccountByUserId(garminUserId);
+  if (owner && owner.athleteId !== athleteId) {
+    return 'taken';
+  }
+  const data = { garminUserId, permissions, ...storedTokens(token) };
+  try {
+    await prisma.garminAccount.upsert({
+      where: { athleteId },
+      create: { athleteId, ...data },
+      update: data,
+    });
+  } catch (error) {
+    if (isUniqueViolation(error)) {
+      return 'taken';
+    }
+    throw error;
+  }
+  return 'connected';
+}
+
+/** Keeps the row so the hub asks for a reconnect. */
+export async function revokeGarminCredentials(athleteId: string) {
+  await prisma.garminAccount.updateMany({
+    where: { athleteId },
+    data: { accessTokenEnc: '', refreshTokenEnc: '', expiresAt: new Date(0) },
+  });
+}
+
+/** A valid access token, refreshed when near expiry (Garmin rotates the refresh token too). */
+export async function getValidGarminAccessToken(athleteId: string): Promise<string> {
+  const account = await getGarminAccount(athleteId);
+  if (!account) {
+    throw new Error('Compte Garmin non connecté');
+  }
+  return resolveOAuthAccessToken({
+    athleteId,
+    account,
+    reconnectMessage: GARMIN_RECONNECT_MESSAGE,
+    revoke: revokeGarminCredentials,
+    refresh: refreshGarminToken,
+    extractAccessToken: (refreshed) => refreshed.access_token,
+    persist: async (refreshed) => {
+      await prisma.garminAccount.update({ where: { athleteId }, data: storedTokens(refreshed) });
+    },
+  });
+}
+
+/**
+ * Disconnecting from SharpIt must also end the registration at Garmin (OAuth2 PKCE spec §6);
+ * a failure there never keeps the athlete linked here.
+ */
+export async function disconnectGarmin(athleteId: string) {
+  await endGarminRegistration(athleteId);
+  await prisma.garminAccount.deleteMany({ where: { athleteId } });
+}
+
+/** Best effort: the athlete leaves SharpIt whatever Garmin answers. */
+export async function endGarminRegistration(athleteId: string): Promise<void> {
+  if (!(await getGarminAccount(athleteId))) {
+    return;
+  }
+  try {
+    await deleteGarminRegistration(await getValidGarminAccessToken(athleteId));
+  } catch (error) {
+    console.error('[garmin] deregistration failed', {
+      name: error instanceof Error ? error.name : 'Error',
+    });
+  }
+}
+
+/** Garmin's own deregistration push: the athlete removed SharpIt from Garmin Connect. */
+export async function forgetGarminUser(garminUserId: string) {
+  await prisma.garminAccount.deleteMany({ where: { garminUserId } });
+}
+
+export async function updateGarminPermissions(garminUserId: string, permissions: string[]) {
+  await prisma.garminAccount.updateMany({ where: { garminUserId }, data: { permissions } });
+}
 
 async function ingestGarminHealth(
   athleteId: string,
@@ -61,275 +144,23 @@ async function ingestGarminHealth(
     const raws = garminHealthToObservations(health, calendarDate, new Date()).filter(
       (raw) => write === 'own' || !SHARED_OBSERVATION_TYPES.has(raw.type),
     );
-    if (raws.length === 0) {
-      return;
+    if (raws.length > 0) {
+      await observationEngine.ingestBatch(athleteId, raws);
     }
-    await observationEngine.ingestBatch(athleteId, raws);
   } catch (err) {
     console.error('[ObservationEngine] garmin-health ingest failed:', err);
   }
 }
 
-export async function getGarminAccount(athleteId: string) {
-  return prisma.garminAccount.findUnique({ where: { athleteId } });
-}
-
-/**
- * Opens a Garmin client for an account: decrypts the stored Personal API key and exchanges it
- * for a 24 h bearer. The only place the key is decrypted; the plaintext never leaves this call.
- */
-export async function buildFreshGarminClient(
-  _athleteId: string,
-  account: { apiKeyEnc: string },
-): Promise<GarminPersonalClient> {
-  return garminClientFromApiKey(decryptSecret(account.apiKeyEnc));
-}
-
-/** Client Garmin authentifié (clé en base). */
-export async function getGarminClient(athleteId: string) {
-  const account = await getGarminAccount(athleteId);
-  if (!account || !isGarminAccountConnected(account)) {
-    throw new ProviderAuthError(GARMIN_RECONNECT_MESSAGE);
-  }
-  return buildFreshGarminClient(athleteId, account);
-}
-
-export async function disconnectGarmin(athleteId: string) {
-  await prisma.garminAccount.deleteMany({ where: { athleteId } });
-}
-
-/** Wipes the key but keeps the profile row so the hub can ask for a new key. */
-export async function revokeGarminCredentials(athleteId: string) {
-  await prisma.garminAccount.updateMany({
-    where: { athleteId },
-    data: { apiKeyEnc: '' },
-  });
-}
-
-export async function runGarminCall<T>(athleteId: string, fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (error) {
-    // Wrong-key / GCM auth failure: fleet incident — never wipe stored keys.
-    if (isSecretAuthenticityFailure(error)) {
-      throw error;
-    }
-    // Local placeholder / unframed blob, or a key Garmin refuses: clear so the hub asks again.
-    if (isDecryptMalformedSoftFailure(error) || isCredentialFailure(error)) {
-      await revokeGarminCredentials(athleteId);
-      throw new ProviderAuthError(GARMIN_RECONNECT_MESSAGE, { cause: error });
-    }
-    throw error;
-  }
-}
-
-/**
- * Validates a Personal API key against Garmin, then stores it encrypted (write-only).
- * An invalid key throws before anything is written.
- */
-export async function connectGarminWithApiKey(athleteId: string, apiKey: string) {
-  const client = await garminClientFromApiKey(apiKey);
-  const profile = await readGarminProfile(client);
-  const stored = { ...profile, apiKeyEnc: encryptSecret(apiKey), apiKeyLast4: apiKey.slice(-4) };
-  await prisma.garminAccount.upsert({
-    where: { athleteId },
-    create: { athleteId, ...stored },
-    update: stored,
-  });
-  return { displayName: profile.displayName, apiKeyLast4: stored.apiKeyLast4 };
-}
-
-async function readGarminProfile(client: GarminPersonalClient) {
-  try {
-    const profile = (await client.getUserProfile()) as {
-      displayName?: string;
-      fullName?: string;
-      userName?: string;
-    } | null;
-    return {
-      displayName: profile?.displayName ?? profile?.userName ?? null,
-      fullName: profile?.fullName ?? null,
-    };
-  } catch {
-    // Profile is best-effort — the token exchange already proved the key.
-    return { displayName: null, fullName: null };
-  }
-}
-
-export interface GarminThresholdsImport extends GarminAthleteThresholds {
-  imported: boolean;
-}
-
-/**
- * Importe les seuils de l'athlète depuis Garmin et les enregistre dans le
- * profil. Seuls les champs renvoyés par Garmin sont écrits (un champ absent ne
- * remplace pas une valeur existante).
- */
-function buildThresholdProfileUpdate(
-  thresholds: GarminAthleteThresholds,
-): Prisma.AthleteProfileUncheckedUpdateInput {
-  const data: Prisma.AthleteProfileUncheckedUpdateInput =
-    thresholds.failedSources.length === 0 ? { thresholdsSyncedAt: new Date() } : {};
-  const fields: Array<[keyof Prisma.AthleteProfileUncheckedUpdateInput, number | null]> = [
-    ['ftpW', thresholds.ftpW],
-    ['maxHr', thresholds.maxHr],
-    ['lthr', thresholds.lthr],
-    ['runThresholdPaceSecPerKm', thresholds.runThresholdPaceSecPerKm],
-    ['vo2maxRunning', thresholds.vo2maxRunning],
-    ['vo2maxCycling', thresholds.vo2maxCycling],
-  ];
-  for (const [key, value] of fields) {
-    if (isSet(value)) {
-      data[key] = value as never;
-    }
-  }
-  return data;
-}
-
-function thresholdsWereImported(thresholds: GarminAthleteThresholds): boolean {
-  return [
-    thresholds.ftpW,
-    thresholds.maxHr,
-    thresholds.lthr,
-    thresholds.runThresholdPaceSecPerKm,
-    thresholds.vo2maxRunning,
-    thresholds.vo2maxCycling,
-  ].some((value) => isSet(value));
-}
-
-async function importGarminThresholdsForAccount(
-  athleteId: string,
-  account: NonNullable<Awaited<ReturnType<typeof getGarminAccount>>>,
-): Promise<GarminThresholdsImport> {
-  const client = await buildFreshGarminClient(athleteId, account);
-  const thresholds = await fetchAthleteThresholds(client);
-
-  await prisma.athleteProfile.update({
-    where: { id: athleteId },
-    data: buildThresholdProfileUpdate(thresholds),
-  });
-
-  return { ...thresholds, imported: thresholdsWereImported(thresholds) };
-}
-
-export async function importGarminThresholds(athleteId: string): Promise<GarminThresholdsImport> {
-  return runGarminCall(athleteId, async () => {
-    const account = await getGarminAccount(athleteId);
-    if (!account || !isGarminAccountConnected(account)) {
-      throw new ProviderAuthError(GARMIN_RECONNECT_MESSAGE);
-    }
-    return importGarminThresholdsForAccount(athleteId, account);
-  });
-}
-
-export interface GarminSyncResult {
-  days: number;
-  updated: number;
-  emptyDays: number;
-  observationsBackfilled?: number;
-}
-
-function healthHasData(health: GarminDailyHealth): boolean {
+/** Only the fields this push carries: a later push of another summary never blanks them. */
+function healthFields(health: GarminDailyHealth): Prisma.DailyHealthUncheckedUpdateInput {
   const { sleep } = health;
-  return [
-    health.sleepMinutes,
-    health.napMinutes,
-    health.restingHr,
-    health.hrv,
-    health.weightKg,
-    health.readinessScore,
-    health.hrvStatus,
-    health.stress,
-    health.bodyBattery,
-    health.totalSteps,
-    sleep.sleepScore,
-  ].some((value) => isSet(value));
-}
-
-function assignHealthScalars(
-  data: Prisma.DailyHealthUpdateInput,
-  health: GarminDailyHealth,
-  factors: Prisma.InputJsonValue | undefined,
-): void {
-  const scalarFields: Array<[keyof Prisma.DailyHealthUpdateInput, unknown]> = [
-    ['sleepMinutes', health.sleepMinutes],
-    ['napMinutes', health.napMinutes],
-    ['restingHr', health.restingHr],
-    ['hrv', health.hrv],
-    ['weightKg', health.weightKg],
-    ['recoveryScore', health.readinessScore],
-    ['readinessLevel', health.readinessLevel],
-    ['readinessFeedback', health.readinessFeedback],
-    ['readinessFactors', factors],
-    ['hrvStatus', health.hrvStatus],
-    ['hrvBaselineLow', health.hrvBaselineLow],
-    ['hrvBaselineHigh', health.hrvBaselineHigh],
-    ['stress', health.stress],
-    ['bodyBattery', health.bodyBattery],
-    ['totalSteps', health.totalSteps],
-  ];
-  for (const [key, value] of scalarFields) {
-    if (isSet(value) && value !== undefined) {
-      data[key] = value as never;
-    }
-  }
-}
-
-function assignSleepScalars(
-  data: Prisma.DailyHealthUpdateInput,
-  sleep: GarminDailyHealth['sleep'],
-): void {
-  const sleepFields: Array<[keyof Prisma.DailyHealthUpdateInput, unknown]> = [
-    ['sleepScore', sleep.sleepScore],
-    ['sleepDeepMin', sleep.sleepDeepMin],
-    ['sleepLightMin', sleep.sleepLightMin],
-    ['sleepRemMin', sleep.sleepRemMin],
-    ['sleepAwakeMin', sleep.sleepAwakeMin],
-    ['sleepBedtimeMin', sleep.sleepBedtimeMin],
-    ['sleepWakeMin', sleep.sleepWakeMin],
-    ['sleepRespiration', sleep.sleepRespiration],
-    ['sleepAvgStress', sleep.sleepAvgStress],
-    ['sleepScoreFeedback', sleep.sleepScoreFeedback],
-  ];
-  for (const [key, value] of sleepFields) {
-    if (isSet(value)) {
-      data[key] = value as never;
-    }
-  }
-}
-
-function buildGarminHealthUpdateData(health: GarminDailyHealth): Prisma.DailyHealthUpdateInput {
-  const factors = isSet(health.readinessFactors)
-    ? (health.readinessFactors as unknown as Prisma.InputJsonValue)
-    : undefined;
-  const data: Prisma.DailyHealthUpdateInput = {};
-  assignHealthScalars(data, health, factors);
-  assignSleepScalars(data, health.sleep);
-  return data;
-}
-
-function buildGarminHealthCreateData(
-  athleteId: string,
-  day: Date,
-  health: GarminDailyHealth,
-  factors: Prisma.InputJsonValue | undefined,
-): Prisma.DailyHealthUncheckedCreateInput {
-  const { sleep } = health;
-  return {
-    athleteId,
-    date: day,
+  const fields: Record<string, unknown> = {
     sleepMinutes: health.sleepMinutes,
     napMinutes: health.napMinutes,
     restingHr: health.restingHr,
     hrv: health.hrv,
     weightKg: health.weightKg,
-    recoveryScore: health.readinessScore,
-    readinessLevel: health.readinessLevel,
-    readinessFeedback: health.readinessFeedback,
-    readinessFactors: factors,
-    hrvStatus: health.hrvStatus,
-    hrvBaselineLow: health.hrvBaselineLow,
-    hrvBaselineHigh: health.hrvBaselineHigh,
     stress: health.stress,
     bodyBattery: health.bodyBattery,
     totalSteps: health.totalSteps,
@@ -344,99 +175,36 @@ function buildGarminHealthCreateData(
     sleepAvgStress: sleep.sleepAvgStress,
     sleepScoreFeedback: sleep.sleepScoreFeedback,
   };
+  return Object.fromEntries(Object.entries(fields).filter(([, value]) => isSet(value)));
 }
 
-async function upsertGarminHealthDay(
+/**
+ * Writes one Garmin day from a push, under the athlete's source policy (ADR-054, ADR-103),
+ * then feeds the Core. `health.date` is Garmin's own `yyyy-mm-dd` for that day.
+ */
+export async function writeGarminHealthDay(
   athleteId: string,
-  client: GarminPersonalClient,
-  date: Date,
-  weightKg: number | null,
-  write: GarminHealthWrite,
+  health: GarminDailyHealth,
 ): Promise<'updated' | 'empty'> {
-  const health = await fetchDailyHealth(client, date, weightKg);
-  if (!healthHasData(health)) {
+  const update = healthFields(health);
+  if (Object.keys(update).length === 0) {
     return 'empty';
   }
-
-  const day = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const factors = isSet(health.readinessFactors)
-    ? (health.readinessFactors as unknown as Prisma.InputJsonValue)
-    : undefined;
-
-  // Read in every mode: the weight only ever fills a day (restrictGarminHealthUpdate).
+  const day = new Date(`${health.date}T00:00:00.000Z`);
+  const write = garminHealthWrite(await loadResolvedSourcePrefs(athleteId));
   const existing = await prisma.dailyHealth.findUnique({
     where: { athleteId_date: { athleteId, date: day } },
   });
   await prisma.dailyHealth.upsert({
     where: { athleteId_date: { athleteId, date: day } },
-    create: restrictGarminHealthUpdate(
-      buildGarminHealthCreateData(athleteId, day, health, factors),
-      null,
-      write === 'off' ? 'off' : 'own',
-    ),
-    update: restrictGarminHealthUpdate(buildGarminHealthUpdateData(health), existing, write),
+    create: {
+      ...restrictGarminHealthUpdate(update, null, write === 'off' ? 'off' : 'own'),
+      athleteId,
+      date: day,
+    } as Prisma.DailyHealthUncheckedCreateInput,
+    update: restrictGarminHealthUpdate(update, existing, write),
   });
   await ingestGarminHealth(athleteId, health, day, write);
+  await prisma.garminAccount.updateMany({ where: { athleteId }, data: { lastSyncAt: new Date() } });
   return 'updated';
-}
-
-function buildGarminHealthDateRange(
-  options: { days?: number; full?: boolean } | undefined,
-  lastSyncAt: Date | null,
-): { since: Date; days: number; dates: Date[] } {
-  const fallbackDays = options?.days ?? GARMIN_HEALTH_DEFAULT_FALLBACK_DAYS;
-  const today = startOfDay(new Date());
-  const since = options?.full
-    ? subDays(today, 365)
-    : syncSinceFromLastSync(lastSyncAt, fallbackDays);
-  const days = syncWindowDays(since);
-  const dates: Date[] = [];
-  for (let date = today; date >= since; date = subDays(date, 1)) {
-    dates.push(date);
-  }
-  return { since, days, dates };
-}
-
-async function runGarminHealthSync(
-  athleteId: string,
-  options?: { days?: number; full?: boolean },
-): Promise<GarminSyncResult> {
-  const account = await getGarminAccount(athleteId);
-  if (!account || !isGarminAccountConnected(account)) {
-    throw new ProviderAuthError(GARMIN_RECONNECT_MESSAGE);
-  }
-
-  const client = await buildFreshGarminClient(athleteId, account);
-  const { since, days, dates } = buildGarminHealthDateRange(options, account.lastSyncAt);
-  const weightMap = await fetchWeightRange(client, since, startOfDay(new Date()));
-  const write = garminHealthWrite(await loadResolvedSourcePrefs(athleteId));
-
-  const outcomes = await mapWithConcurrency(dates, GARMIN_HEALTH_DAY_CONCURRENCY, (date) => {
-    const weightKg = weightMap.get(format(date, 'yyyy-MM-dd')) ?? null;
-    return upsertGarminHealthDay(athleteId, client, date, weightKg, write);
-  });
-
-  const updated = outcomes.filter((o) => o === 'updated').length;
-  const emptyDays = outcomes.filter((o) => o === 'empty').length;
-
-  await prisma.garminAccount.update({
-    where: { athleteId },
-    data: { lastSyncAt: new Date() },
-  });
-
-  const backfill = await backfillHealthObservationsFromDailyHealth(athleteId, {
-    days: options?.full ? 365 : days,
-  });
-
-  return { days, updated, emptyDays, observationsBackfilled: backfill.ingested };
-}
-
-export async function syncGarminHealth(
-  athleteId: string,
-  options?: {
-    days?: number;
-    full?: boolean;
-  },
-): Promise<GarminSyncResult> {
-  return runGarminCall(athleteId, () => runGarminHealthSync(athleteId, options));
 }

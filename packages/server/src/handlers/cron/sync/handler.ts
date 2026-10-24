@@ -15,6 +15,7 @@ import { sendMorningPushOnceNightIsRead } from '@sharpit/server/lib/push/morning
 import { prisma } from '@sharpit/db/client';
 import { mapWithConcurrency } from '@sharpit/server/lib/async/map-with-concurrency';
 import { verifyCronSecret } from '@sharpit/server/lib/cron/verify-cron-secret';
+import { replayGarminPushInbox } from '@sharpit/server/lib/integrations/garmin/garmin-push';
 import { DecryptCircuitBreaker } from '@sharpit/server/lib/cron/decrypt-circuit-breaker';
 import {
   summarizeCronSyncResults,
@@ -163,6 +164,8 @@ export async function GET(request: Request) {
     select: { id: true },
   });
   const breaker = new DecryptCircuitBreaker();
+  // Garmin pushes instead of being pulled: replay any push a crash or timeout left behind.
+  const garminReplayed = await replayGarminPushInbox().catch(() => 0);
 
   const results = await mapWithConcurrency(athletes, ATHLETE_CONCURRENCY, (athlete) =>
     inAthleteLocale(athlete.id, () => syncOneAthlete(athlete.id, breaker)),
@@ -178,7 +181,10 @@ export async function GET(request: Request) {
     authenticityFailureCount: breaker.authenticityFailureCount,
   });
 
-  return NextResponse.json(summary, {
-    status: summary.circuitBreakerTripped ? 503 : 200,
-  });
+  return NextResponse.json(
+    { ...summary, garminReplayed },
+    {
+      status: summary.circuitBreakerTripped ? 503 : 200,
+    },
+  );
 }

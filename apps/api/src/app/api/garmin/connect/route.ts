@@ -1,1 +1,1 @@
-export { GET, POST } from '@sharpit/server/handlers/garmin/connect/handler';
+export { GET } from '@sharpit/server/handlers/garmin/connect/handler';

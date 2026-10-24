@@ -1,9 +1,5 @@
 import { refreshAthleteState } from '@sharpit/server/lib/athlete-state/orchestrator';
-import {
-  getGarminAccount,
-  syncGarminHealth,
-} from '@sharpit/server/lib/integrations/garmin/garmin-sync';
-import { syncGarminActivities } from '@sharpit/server/lib/integrations/garmin/garmin-activity-sync';
+import { getGarminAccount } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import {
   getGoogleAccount,
   syncFromGoogle,
@@ -141,7 +137,6 @@ function connectedProviderSet(accounts: ProviderAccounts): Set<string> {
   return new Set(
     listConnectedCronProviders({
       strava: accounts.strava,
-      garmin: accounts.garmin,
       withings: accounts.withings,
       renpho: accounts.renpho,
       google: accounts.google,
@@ -168,21 +163,7 @@ function buildProviderSyncSpecs(
       },
     });
   }
-  if (connected.has('garmin') && options.hasHealthConsent) {
-    specs.push({
-      provider: 'Garmin',
-      fallback: 'Sync Garmin échouée',
-      task: () => syncGarminHealth(athleteId),
-    });
-    specs.push({
-      provider: 'Garmin activities',
-      fallback: 'Sync activités Garmin échouée',
-      task: async () => {
-        const activities = await syncGarminActivities(athleteId);
-        result.importedTypes.push(...activities.importedTypes);
-      },
-    });
-  }
+  // Garmin pushes its data (garmin-push): nothing to pull here.
   appendOptionalProviderSpecs({
     athleteId,
     accounts,
@@ -263,7 +244,7 @@ export async function backfillStreamsIfNeeded(
   result: AthleteSyncResult,
 ) {
   const connected = connectedProviderSet(accounts);
-  if (!connected.has('strava') && !connected.has('garmin')) {
+  if (!connected.has('strava')) {
     return;
   }
   try {

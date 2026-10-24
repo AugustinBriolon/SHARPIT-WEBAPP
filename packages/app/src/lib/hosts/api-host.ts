@@ -30,11 +30,12 @@ const CRON_PATH = /^\/api\/cron\/[a-z-]+$/;
 /**
  * Called by a third party that carries no Bearer, and authenticated in the route itself: an
  * OAuth provider sending the browser back (signed `state`), Apple's server notifications
- * (signed payload).
+ * (signed payload), Garmin's data pushes (secret in the configured URL).
  */
 const PUBLIC_PATHS = [
-  /^\/api\/(strava|withings|google)\/callback$/,
+  /^\/api\/(strava|withings|google|garmin)\/callback$/,
   /^\/api\/billing\/apple\/notifications$/,
+  /^\/api\/garmin\/push$/,
 ];
 
 /** What `api.` serves: route handlers under `/api/` — never a page. */

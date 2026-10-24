@@ -2,6 +2,7 @@ import { clerkClient } from '@clerk/nextjs/server';
 import { deleteLangfuseTracesForAthlete } from '@sharpit/server/lib/ai/langfuse-erasure';
 import { revokeAllProviderAccess } from '@sharpit/server/lib/integrations/provider-revocation';
 import { prisma } from '@sharpit/db/client';
+import { endGarminRegistration } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import { purgeEligibleBefore } from '@sharpit/server/lib/privacy/consent';
 import { PRIVACY_PURGE_DELAY_DAYS } from '@sharpit/app/lib/privacy/constants';
 import { logSafeError } from '@sharpit/server/lib/privacy/safe-log';
@@ -21,10 +22,12 @@ export type AccountDeletionResult = {
  * connection-status treats the account as disconnected.
  */
 export async function clearAthleteProviderCredentials(athleteId: string): Promise<void> {
+  // Garmin must hear of it while the token still works (OAuth2 PKCE spec §6).
+  await endGarminRegistration(athleteId);
   await prisma.$transaction([
     prisma.garminAccount.updateMany({
       where: { athleteId },
-      data: { apiKeyEnc: '' },
+      data: { accessTokenEnc: '', refreshTokenEnc: '' },
     }),
     prisma.stravaAccount.updateMany({
       where: { athleteId },

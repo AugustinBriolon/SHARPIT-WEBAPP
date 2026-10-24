@@ -19,6 +19,7 @@ describe('appleAppSiteAssociation', () => {
       '/connect/strava/callback*',
       '/connect/google/callback*',
       '/connect/withings/callback*',
+      '/connect/garmin/callback*',
     ]);
   });
 

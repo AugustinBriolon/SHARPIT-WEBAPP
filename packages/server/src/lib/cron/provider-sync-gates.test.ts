@@ -22,29 +22,18 @@ function enc(plain: string): string {
   return encryptSecret(plain);
 }
 
-function garminAccount() {
-  return { apiKeyEnc: enc('garmin-personal-api-key') };
-}
-
 describe('shouldCronSyncProvider', () => {
   it('skips when the account row is missing', () => {
-    expect(shouldCronSyncProvider('garmin', null)).toBe(false);
     expect(shouldCronSyncProvider('renpho', null)).toBe(false);
     expect(shouldCronSyncProvider('strava', null)).toBe(false);
   });
 
   it('skips revoked empty credentials so cron does not re-throw reconnect spam', () => {
-    expect(shouldCronSyncProvider('garmin', { apiKeyEnc: '' })).toBe(false);
     expect(shouldCronSyncProvider('renpho', { email: 'a@b.c', passwordEnc: '' })).toBe(false);
   });
 
   it('skips malformed placeholder tokens that would explode AES-GCM decrypt', () => {
-    expect(shouldCronSyncProvider('garmin', { apiKeyEnc: 'demo' })).toBe(false);
     expect(shouldCronSyncProvider('renpho', { email: 'a@b.c', passwordEnc: 'demo' })).toBe(false);
-  });
-
-  it('syncs Garmin when its stored key matches the Settings hub connected meaning', () => {
-    expect(shouldCronSyncProvider('garmin', garminAccount())).toBe(true);
   });
 
   it('skips Renpho while the catalog marks it coming_soon (withdrawn before launch)', () => {

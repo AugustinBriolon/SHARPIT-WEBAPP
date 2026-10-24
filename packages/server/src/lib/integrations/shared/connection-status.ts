@@ -2,7 +2,7 @@
  * Provider connection checks and auth-failure utilities.
  *
  * Each `is*Connected` guard checks that required credential fields are present
- * and decrypt to live secrets (Garmin: the Personal API key). Same meaning
+ * and decrypt to live secrets (Garmin, like the OAuth providers). Same meaning
  * for the Settings integrations hub and `/api/cron/sync`.
  */
 
@@ -70,7 +70,7 @@ type MaybeAccount = Record<string, unknown> | null | undefined;
  * Spread these rather than listing columns by hand, and the two cannot drift.
  */
 export const OAUTH_CONNECTION_SELECT = { accessTokenEnc: true, refreshTokenEnc: true } as const;
-export const GARMIN_CONNECTION_SELECT = { apiKeyEnc: true } as const;
+export const GARMIN_CONNECTION_SELECT = OAUTH_CONNECTION_SELECT;
 export const RENPHO_CONNECTION_SELECT = { email: true, passwordEnc: true } as const;
 export const MFP_CONNECTION_SELECT = { sessionTokenEnc: true } as const;
 
@@ -99,12 +99,12 @@ export function isOAuthAccountConnected(account: MaybeAccount): boolean {
   );
 }
 
-/** Connected = `apiKeyEnc` holds a live encrypted Personal API key (ADR-103). */
+/** Garmin is an OAuth provider like the others (ADR-105). */
 export function isGarminAccountConnected(account: MaybeAccount): boolean {
   if (!account) {
     return false;
   }
-  return isLiveEncryptedSecret(account.apiKeyEnc);
+  return isOAuthAccountConnected(account);
 }
 
 export function isRenphoAccountConnected(account: MaybeAccount): boolean {

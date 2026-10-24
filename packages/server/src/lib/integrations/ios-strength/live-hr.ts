@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { RawStreams } from '@sharpit/server/lib/integrations/garmin/garmin-streams';
+import type { RawStreams } from '@sharpit/server/lib/streams/stream-raw-types';
 
 /** Source closed enum — watch optical or BLE chest/arm strap. */
 export const LIVE_HR_SOURCES = ['watch', 'ble'] as const;

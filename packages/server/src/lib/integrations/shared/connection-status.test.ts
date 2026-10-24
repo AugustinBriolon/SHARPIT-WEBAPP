@@ -32,7 +32,8 @@ const CASES = [
     select: GARMIN_CONNECTION_SELECT,
     check: isGarminAccountConnected,
     fillValid: (row: Record<string, unknown>) => {
-      row.apiKeyEnc = encryptSecret('garmin-personal-api-key');
+      row.accessTokenEnc = encryptSecret('access');
+      row.refreshTokenEnc = encryptSecret('refresh');
     },
   },
   {
@@ -107,24 +108,18 @@ describe.each(CASES)('$name connection select', ({ select, check, fillValid }) =
 });
 
 describe('isGarminAccountConnected (hub + cron agreement)', () => {
-  it('is connected for a stored Personal API key', () => {
+  it('is connected with live OAuth tokens, like every OAuth provider', () => {
     process.env.SECRET_ENCRYPTION_KEY = 'connection-status-test-key';
-    expect(isGarminAccountConnected({ apiKeyEnc: encryptSecret('garmin-key') })).toBe(true);
+    expect(
+      isGarminAccountConnected({
+        accessTokenEnc: encryptSecret('access'),
+        refreshTokenEnc: encryptSecret('refresh'),
+      }),
+    ).toBe(true);
   });
 
-  it('is disconnected for a revoked empty key (hub asks for a new key)', () => {
-    expect(isGarminAccountConnected({ apiKeyEnc: '' })).toBe(false);
-  });
-
-  it('is disconnected for malformed/demo blobs that are not live credentials', () => {
-    expect(isGarminAccountConnected({ apiKeyEnc: 'demo' })).toBe(false);
-  });
-
-  it('still reports connected on AES-GCM authenticity failure so cron can circuit-break', () => {
-    process.env.SECRET_ENCRYPTION_KEY = 'key-a';
-    const blob = encryptSecret('garmin-key');
-    process.env.SECRET_ENCRYPTION_KEY = 'key-b';
-    expect(isGarminAccountConnected({ apiKeyEnc: blob })).toBe(true);
+  it('is disconnected once the tokens are revoked (hub asks to reconnect)', () => {
+    expect(isGarminAccountConnected({ accessTokenEnc: '', refreshTokenEnc: '' })).toBe(false);
   });
 });
 

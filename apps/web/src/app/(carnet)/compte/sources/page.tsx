@@ -9,7 +9,6 @@ import type {
   IntegrationProviderView,
   IntegrationsHubPayload,
 } from '@sharpit/app/lib/web/payloads';
-import { GarminKeyButton } from '@/components/carnet/carnet-garmin-key';
 import { GoogleTargetCalendarButton } from '@/components/carnet/carnet-google-target-calendar';
 import {
   CarnetPage,
@@ -38,7 +37,7 @@ type Source = {
 };
 
 const SOURCES: Source[] = [
-  { id: 'garmin', key: 'garmin', name: 'Garmin' },
+  { id: 'garmin', key: 'garmin', name: 'Garmin', connectPath: '/api/garmin/connect' },
   { id: 'withings', key: 'withings', name: 'Withings', connectPath: '/api/withings/connect' },
   { id: 'google', key: 'google', name: 'Google Agenda', connectPath: '/api/google/connect' },
   { id: 'strava', key: 'strava', name: 'Strava', connectPath: '/api/strava/connect' },
@@ -55,14 +54,11 @@ const OUTCOMES: Record<string, string> = {
 function sinceLine(view: IntegrationProviderView): string {
   const synced = view.account?.lastSyncAt;
   if (view.needsReconnect) {
-    return view.account?.apiKeyLast4 !== undefined
-      ? 'Clé refusée ou expirée : ajoute une nouvelle clé.'
-      : "L'accès a expiré : relie-le à nouveau.";
+    return "L'accès a expiré : relie-le à nouveau.";
   }
-  const key = view.account?.apiKeyLast4 ? `Clé ••••${view.account.apiKeyLast4} · ` : '';
   return synced
-    ? `${key}Relié · dernière synchro le ${format(new Date(synced), 'd MMMM', { locale: fr })}`
-    : `${key}Relié`;
+    ? `Relié · dernière synchro le ${format(new Date(synced), 'd MMMM', { locale: fr })}`
+    : 'Relié';
 }
 
 function sourceAction(
@@ -71,9 +67,6 @@ function sourceAction(
   linked: boolean,
   canLink: boolean,
 ) {
-  if (source.key === 'garmin') {
-    return <GarminKeyButton linked={linked} />;
-  }
   if (!linked && canLink) {
     return (
       <ConnectLink
@@ -140,10 +133,7 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
       <CarnetSection label="Sources" title="Tes appareils et tes comptes">
         {hub ? (
           <ReadingList>
-            {/* Garmin's key form is allowlisted (ADR-103): others see it only once linked. */}
-            {SOURCES.filter(
-              (source) => source.key !== 'garmin' || hub.garmin.available || hub.garmin.account,
-            ).map((source) => {
+            {SOURCES.map((source) => {
               const view = hub[source.key];
               const linked = Boolean(view.account) && !view.needsReconnect;
               const canLink = Boolean(
@@ -178,8 +168,8 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
           <Unreadable what="L'état de tes sources" />
         )}
         <Quiet>
-          Apple Santé se relie depuis ton iPhone. Garmin se relie avec ta clé API personnelle, ici
-          ou dans l&apos;app. Pour Google, choisis l&apos;agenda cible ici une fois relié.
+          Apple Santé se relie depuis ton iPhone. Garmin envoie tes nouvelles séances et nuits dès
+          qu&apos;il est relié. Pour Google, choisis l&apos;agenda cible ici une fois relié.
         </Quiet>
         <InApp>Délier une source, choisir la source principale de chaque donnée</InApp>
       </CarnetSection>

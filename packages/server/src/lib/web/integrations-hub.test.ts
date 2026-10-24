@@ -11,15 +11,8 @@ describe('toAccountView', () => {
       refreshTokenEnc: 'secret',
       passwordEnc: 'secret',
       sessionTokenEnc: 'secret',
-      apiKeyEnc: 'secret',
     });
     expect(view).toEqual({ displayName: 'A', email: 'a@b.c', lastSyncAt: new Date(0) });
-    expect(JSON.stringify(view)).not.toContain('secret');
-  });
-
-  it('shows a Garmin key by its last four characters only', () => {
-    const view = toAccountView({ apiKeyEnc: 'secret', apiKeyLast4: '1234', lastSyncAt: null });
-    expect(view).toEqual({ apiKeyLast4: '1234', lastSyncAt: null });
     expect(JSON.stringify(view)).not.toContain('secret');
   });
 

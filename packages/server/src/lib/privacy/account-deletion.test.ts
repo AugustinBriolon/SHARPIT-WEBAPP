@@ -28,6 +28,9 @@ vi.mock('@sharpit/db/client', () => ({
   },
 }));
 
+vi.mock('@sharpit/server/lib/integrations/garmin/garmin-sync', () => ({
+  endGarminRegistration: vi.fn().mockResolvedValue(undefined),
+}));
 vi.mock('@sharpit/server/lib/email/transactional-email', () => ({
   sendTransactionalEmail: (...args: unknown[]) => sendEmailMock(...args),
 }));

@@ -1,5 +1,4 @@
 import { cache } from 'react';
-import { after } from 'next/server';
 import { isSet } from '@sharpit/shared/value';
 import { dedupeBodyCompositionByDay } from '@sharpit/app/lib/health/body-composition';
 import { isMultisportLegArray, type MultisportLeg } from '@sharpit/app/lib/activity/multisport';
@@ -177,53 +176,8 @@ export async function getActivityForCoach(athleteId: string, id: string) {
  * where `after()` is not always available. Prefer `after()` when in a request
  * context; otherwise fire-and-forget so the legs return immediately.
  */
-async function fetchAndPersistMultisportLegs(
-  athleteId: string,
-  activity: { id: string; garminId: string },
-): Promise<MultisportLeg[] | null> {
-  const { getGarminAccount, buildFreshGarminClient } =
-    await import('@sharpit/server/lib/integrations/garmin/garmin-sync');
-  const { fetchGarminMultisportLegs } =
-    await import('@sharpit/server/lib/integrations/garmin/garmin-multisport');
-
-  const account = await getGarminAccount(athleteId);
-  if (!account) {
-    return null;
-  }
-
-  const client = await buildFreshGarminClient(athleteId, account).catch(() => null);
-  if (!client) {
-    return null;
-  }
-
-  const legs = await fetchGarminMultisportLegs(client, Number(activity.garminId));
-  if (!legs) {
-    return null;
-  }
-
-  const persist = () =>
-    prisma.activity
-      .update({
-        where: { id: activity.id },
-        data: { multisportLegs: legs as unknown as Prisma.InputJsonValue },
-      })
-      .catch((err) => {
-        console.error('[getMultisportLegsForActivity] persist failed', err);
-      });
-
-  try {
-    after(() => {
-      void persist();
-    });
-  } catch {
-    void persist();
-  }
-
-  return legs;
-}
-
 export async function getMultisportLegsForActivity(
-  athleteId: string,
+  _athleteId: string,
   activity: {
     id: string;
     type: ActivityType;
@@ -237,13 +191,7 @@ export async function getMultisportLegsForActivity(
   if (isMultisportLegArray(activity.multisportLegs)) {
     return activity.multisportLegs;
   }
-  if (!activity.garminId) {
-    return null;
-  }
-  return fetchAndPersistMultisportLegs(athleteId, {
-    id: activity.id,
-    garminId: activity.garminId,
-  });
+  return null;
 }
 
 export async function createActivity(athleteId: string, data: Prisma.ActivityUncheckedCreateInput) {

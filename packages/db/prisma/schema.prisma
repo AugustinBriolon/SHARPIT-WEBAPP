@@ -536,17 +536,35 @@ model ActivityStream {
 model GarminAccount {
   athleteId          String         @id
   athlete            AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  /// Garmin's API user id: every push names it, so webhooks find the athlete by it.
+  garminUserId       String         @unique
   displayName        String?
   fullName           String?
-  /// Garmin Personal API key, AES-256-GCM (secret-box.ts). Write-only: never returned by any API.
-  apiKeyEnc          String
-  /// Last four characters, the only part of the key any surface shows.
-  apiKeyLast4        String
+  /// AES-256-GCM encrypted (secret-box.ts), like every OAuth provider.
+  accessTokenEnc     String
+  refreshTokenEnc    String
+  expiresAt          DateTime
+  /// What the athlete shared at consent (ACTIVITY_EXPORT, HEALTH_EXPORT, WORKOUT_IMPORT…).
+  permissions        String[]       @default([])
   lastSyncAt         DateTime?
   lastActivitySyncAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+/// A Garmin push kept as received: the webhook answers 200 at once, processing runs after
+/// and a cron replays what failed (Health/Activity API push service).
+model GarminPushInbox {
+  id          String    @id @default(cuid())
+  summaryType String
+  payload     Json
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+  attempts    Int       @default(0)
+  lastError   String?
+
+  @@index([processedAt, receivedAt])
 }
 
 model StravaAccount {

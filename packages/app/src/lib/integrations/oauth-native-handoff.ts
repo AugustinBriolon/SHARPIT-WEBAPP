@@ -5,7 +5,7 @@ import { ticketSignInUrl } from '@sharpit/app/lib/auth/ticket-sign-in-url';
  * (same shape as Garmin ADR-040/047): ticket sign-in → `/connect/<provider>/start` →
  * provider authorize → `api.` callback → `/connect/<provider>/callback?<provider>=<status>`.
  */
-export const NATIVE_OAUTH_PROVIDERS = ['strava', 'google', 'withings'] as const;
+export const NATIVE_OAUTH_PROVIDERS = ['strava', 'google', 'withings', 'garmin'] as const;
 
 export type NativeOAuthProvider = (typeof NATIVE_OAUTH_PROVIDERS)[number];
 
@@ -88,6 +88,7 @@ const PROVIDER_LABEL: Record<NativeOAuthProvider, string> = {
   strava: 'Strava',
   google: 'Google Agenda',
   withings: 'Withings',
+  garmin: 'Garmin',
 };
 
 export function nativeOAuthProviderLabel(provider: NativeOAuthProvider): string {

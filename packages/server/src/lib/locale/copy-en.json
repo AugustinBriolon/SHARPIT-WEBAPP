@@ -4307,10 +4307,6 @@
   "éducatif": "drill",
   "élastiques": "resistance bands",
   "≠ Strain du jour": "≠ Today's strain",
-  "Clé API Garmin refusée ou expirée. Crée une nouvelle clé sur Garmin Connect.": "Garmin API key refused or expired. Create a new key on Garmin Connect.",
-  "Clé API Garmin refusée ou expirée. Ajoute une nouvelle clé dans les paramètres.": "Garmin API key refused or expired. Add a new key in settings.",
-  "Garmin n’est pas encore ouvert.": "Garmin is not open yet.",
-  "Clé API Garmin requise": "Garmin API key required",
-  "Connexion Garmin échouée. Réessaie.": "Garmin connection failed. Try again.",
-  "Statut Garmin indisponible": "Garmin status unavailable"
+  "Session Garmin expirée. Reconnecte Garmin dans les paramètres.": "Garmin session expired. Reconnect Garmin in settings.",
+  "Garmin non configuré. Ajoute GARMIN_CLIENT_ID et GARMIN_CLIENT_SECRET dans .env": "Garmin not configured. Add GARMIN_CLIENT_ID and GARMIN_CLIENT_SECRET to .env"
 }
