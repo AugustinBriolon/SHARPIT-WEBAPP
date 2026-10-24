@@ -1,4 +1,5 @@
 import type { PlanAdherence } from '@sharpit/app/lib/admin/plan-adherence';
+import type { AthleteAiCost } from '@sharpit/app/lib/admin/ai-cost';
 import type { AccessTier, Prisma } from '@prisma/client';
 import type { RaceAnalysis } from '@sharpit/app/lib/activity/race-analysis-types';
 import type { MultisportLeg } from '@sharpit/app/lib/activity/multisport';
@@ -88,6 +89,7 @@ export type IntegrationProviderView = {
 
 export type IntegrationsHubPayload = {
   strava: IntegrationProviderView & { configured: boolean };
+  garmin: IntegrationProviderView;
   renpho: IntegrationProviderView;
   withings: IntegrationProviderView & { configured: boolean };
   google: IntegrationProviderView & { configured: boolean };
@@ -104,6 +106,8 @@ export type AdminAthleteView = {
   email: string | null;
   /** Week 1–4 plan adherence (ADR-102); null when nothing was ever planned. */
   adherence: PlanAdherence | null;
+  /** AI cost over the last 30 days, in US dollars (ADR-103); null without any AI call. */
+  aiCost: AthleteAiCost | null;
 };
 
 export type DemoCoachTranscriptPayload = {

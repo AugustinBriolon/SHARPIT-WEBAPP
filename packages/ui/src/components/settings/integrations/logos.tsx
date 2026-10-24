@@ -5,6 +5,7 @@ import { BrandMark } from '@sharpit/ui/components/ui/brand-mark';
 
 const LOGO_PATHS: Record<Exclude<IntegrationId, 'sharpit'>, string> = {
   strava: '/images/strava.png',
+  garmin: '/images/garmin.png',
   withings: '/images/withings.png',
   renpho: '/images/renpho.png',
   google: '/images/googleagenda.png',

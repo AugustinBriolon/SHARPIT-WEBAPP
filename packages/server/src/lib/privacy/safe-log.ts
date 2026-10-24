@@ -4,7 +4,7 @@
  */
 
 const SENSITIVE_KEY =
-  /password|passwd|secret|token|cookie|authorization|credential|refresh|access_token|session/i;
+  /password|passwd|secret|token|cookie|authorization|credential|refresh|access_token|session|api_?key/i;
 
 function sanitizeLogString(value: string): string {
   if (value.length > 200) {

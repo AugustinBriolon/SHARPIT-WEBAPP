@@ -404,6 +404,7 @@ model AthleteProfile {
   brickEvaluations            BrickEvaluation[]
   analysisEvidenceSnapshots   AnalysisEvidenceSnapshot[]
   // Integration accounts (one row per provider per athlete):
+  garminAccount               GarminAccount?
   stravaAccount               StravaAccount?
   googleAccount               GoogleAccount?
   renphoAccount               RenphoAccount?
@@ -529,6 +530,22 @@ model ActivityStream {
   data      Json? // séries temporelles : { time, distance, altitude, heartrate, watts, cadence, velocity, latlng }
 
   fetchedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model GarminAccount {
+  athleteId          String         @id
+  athlete            AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  displayName        String?
+  fullName           String?
+  /// Garmin Personal API key, AES-256-GCM (secret-box.ts). Write-only: never returned by any API.
+  apiKeyEnc          String
+  /// Last four characters, the only part of the key any surface shows.
+  apiKeyLast4        String
+  lastSyncAt         DateTime?
+  lastActivitySyncAt DateTime?
+
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 

@@ -8,7 +8,8 @@ import { prisma } from '@sharpit/db/client';
 import { Prisma } from '@prisma/client';
 
 export async function loadConnectedIntegrationIds(athleteId: string): Promise<IntegrationId[]> {
-  const [strava, withings, renpho, google, profile] = await Promise.all([
+  const [garmin, strava, withings, renpho, google, profile] = await Promise.all([
+    prisma.garminAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.stravaAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.withingsAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
     prisma.renphoAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),
@@ -21,6 +22,9 @@ export async function loadConnectedIntegrationIds(athleteId: string): Promise<In
 
   /** Sharpit nutrition is always available — no OAuth account. */
   const ids: IntegrationId[] = ['sharpit'];
+  if (garmin) {
+    ids.push('garmin');
+  }
   if (strava) {
     ids.push('strava');
   }

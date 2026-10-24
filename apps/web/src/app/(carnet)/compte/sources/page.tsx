@@ -30,13 +30,14 @@ const RETURN_TO = '/settings/integrations';
 
 type Source = {
   id: IntegrationId;
-  key: 'withings' | 'google' | 'strava' | 'renpho';
+  key: 'withings' | 'google' | 'strava' | 'garmin' | 'renpho';
   name: string;
   /** Linked here: its OAuth runs in the browser. Otherwise it is linked in the app. */
   connectPath?: string;
 };
 
 const SOURCES: Source[] = [
+  { id: 'garmin', key: 'garmin', name: 'Garmin' },
   { id: 'withings', key: 'withings', name: 'Withings', connectPath: '/api/withings/connect' },
   { id: 'google', key: 'google', name: 'Google Agenda', connectPath: '/api/google/connect' },
   { id: 'strava', key: 'strava', name: 'Strava', connectPath: '/api/strava/connect' },
@@ -132,27 +133,30 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
       <CarnetSection label="Sources" title="Tes appareils et tes comptes">
         {hub ? (
           <ReadingList>
-            {SOURCES.map((source) => {
-              const view = hub[source.key];
-              const linked = Boolean(view.account) && !view.needsReconnect;
-              const canLink = Boolean(
-                source.connectPath && (!('configured' in view) || view.configured !== false),
-              );
-              return (
-                <li key={source.key} className="flex items-center justify-between gap-6 py-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <IntegrationLogo className="size-8 shrink-0" id={source.id} />
-                    <div className="min-w-0">
-                      <p className="font-medium">{source.name}</p>
-                      <p className="text-muted-foreground mt-0.5 text-sm">
-                        {view.account || view.needsReconnect ? sinceLine(view) : 'Pas relié'}
-                      </p>
+            {/* Garmin's key form is iPhone-only and allowlisted: list it once linked. */}
+            {SOURCES.filter((source) => source.key !== 'garmin' || hub.garmin.account).map(
+              (source) => {
+                const view = hub[source.key];
+                const linked = Boolean(view.account) && !view.needsReconnect;
+                const canLink = Boolean(
+                  source.connectPath && (!('configured' in view) || view.configured !== false),
+                );
+                return (
+                  <li key={source.key} className="flex items-center justify-between gap-6 py-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <IntegrationLogo className="size-8 shrink-0" id={source.id} />
+                      <div className="min-w-0">
+                        <p className="font-medium">{source.name}</p>
+                        <p className="text-muted-foreground mt-0.5 text-sm">
+                          {view.account || view.needsReconnect ? sinceLine(view) : 'Pas relié'}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  {sourceAction(source, view, linked, canLink)}
-                </li>
-              );
-            })}
+                    {sourceAction(source, view, linked, canLink)}
+                  </li>
+                );
+              },
+            )}
             <li className="flex items-center gap-3 py-3">
               <IntegrationLogo className="size-8 shrink-0" id="apple-health" />
               <div className="min-w-0">

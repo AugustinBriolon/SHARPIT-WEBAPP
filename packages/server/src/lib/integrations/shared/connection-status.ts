@@ -2,7 +2,7 @@
  * Provider connection checks and auth-failure utilities.
  *
  * Each `is*Connected` guard checks that required credential fields are present
- * and decrypt to live secrets (Garmin: oauth1/oauth2 token JSON). Same meaning
+ * and decrypt to live secrets (Garmin: the Personal API key). Same meaning
  * for the Settings integrations hub and `/api/cron/sync`.
  */
 
@@ -70,6 +70,7 @@ type MaybeAccount = Record<string, unknown> | null | undefined;
  * Spread these rather than listing columns by hand, and the two cannot drift.
  */
 export const OAUTH_CONNECTION_SELECT = { accessTokenEnc: true, refreshTokenEnc: true } as const;
+export const GARMIN_CONNECTION_SELECT = { apiKeyEnc: true } as const;
 export const RENPHO_CONNECTION_SELECT = { email: true, passwordEnc: true } as const;
 export const MFP_CONNECTION_SELECT = { sessionTokenEnc: true } as const;
 
@@ -98,6 +99,14 @@ export function isOAuthAccountConnected(account: MaybeAccount): boolean {
   );
 }
 
+/** Connected = `apiKeyEnc` holds a live encrypted Personal API key (ADR-103). */
+export function isGarminAccountConnected(account: MaybeAccount): boolean {
+  if (!account) {
+    return false;
+  }
+  return isLiveEncryptedSecret(account.apiKeyEnc);
+}
+
 export function isRenphoAccountConnected(account: MaybeAccount): boolean {
   if (!account) {
     return false;
@@ -120,6 +129,7 @@ export const INTEGRATIONS_RECONNECT_HREF = '/settings/integrations';
 
 interface ProviderAccounts {
   strava: MaybeAccount;
+  garmin: MaybeAccount;
   withings: MaybeAccount;
   renpho: MaybeAccount;
   google: MaybeAccount;
@@ -131,6 +141,7 @@ const RECONNECT_CHECKS: Array<{
   isConnected: (account: MaybeAccount) => boolean;
 }> = [
   { accountKey: 'strava', label: 'Strava', isConnected: isOAuthAccountConnected },
+  { accountKey: 'garmin', label: 'Garmin', isConnected: isGarminAccountConnected },
   { accountKey: 'withings', label: 'Withings', isConnected: isOAuthAccountConnected },
   { accountKey: 'renpho', label: 'Renpho', isConnected: isRenphoAccountConnected },
   { accountKey: 'google', label: 'Google', isConnected: isOAuthAccountConnected },

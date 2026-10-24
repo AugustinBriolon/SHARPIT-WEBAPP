@@ -89,7 +89,10 @@ async function main() {
   const strava = await prisma.stravaAccount.updateMany({
     data: { lastSyncAt: null },
   });
-  console.log(`Curseurs réinitialisés : Strava=${strava.count}`);
+  const garmin = await prisma.garminAccount.updateMany({
+    data: { lastActivitySyncAt: null, ...(withHealth ? { lastSyncAt: null } : {}) },
+  });
+  console.log(`Curseurs réinitialisés : Strava=${strava.count}, Garmin=${garmin.count}`);
 
   console.log(
     '\nTerminé. Lance « Importer tout l’historique » dans Réglages → Garmin pour ré-importer.',

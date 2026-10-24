@@ -109,6 +109,7 @@ describe('revokeProviderAccess', () => {
     stubFetch(() => new Response('{}'));
     const { revokeProviderAccess } = await import('./provider-revocation');
 
+    await expect(revokeProviderAccess('athlete-1', 'garmin')).resolves.toBe('unsupported');
     await expect(revokeProviderAccess('athlete-1', 'renpho')).resolves.toBe('unsupported');
     expect(calls).toHaveLength(0);
   });

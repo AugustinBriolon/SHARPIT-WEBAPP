@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const db = vi.hoisted(() => ({
+  garminAccount: { findUnique: vi.fn() },
   stravaAccount: { findUnique: vi.fn() },
   withingsAccount: { findUnique: vi.fn() },
   renphoAccount: { findUnique: vi.fn() },
@@ -15,6 +16,7 @@ const { loadConnectedIntegrationIds } = await import('./source-prefs-store');
 describe('loadConnectedIntegrationIds', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    db.garminAccount.findUnique.mockResolvedValue(null);
     db.stravaAccount.findUnique.mockResolvedValue(null);
     db.withingsAccount.findUnique.mockResolvedValue(null);
     db.renphoAccount.findUnique.mockResolvedValue(null);

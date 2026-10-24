@@ -1,6 +1,6 @@
 # ADR-047: iOS connects Garmin in an in-app authentication session
 
-**Status:** Accepted  
+**Status:** Superseded by [ADR-103](./ADR-103-garmin-returns-through-the-personal-api-with-a-write-only-key.md)  
 **Date:** 2026-09-26  
 **Author:** Augustin Briolon (with Claude Code)  
 **Supersedes:** [ADR-046](./ADR-046-garmin-connects-in-app-with-native-credentials.md)

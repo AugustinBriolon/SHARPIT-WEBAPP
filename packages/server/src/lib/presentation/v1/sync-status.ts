@@ -1,6 +1,6 @@
 import type { ProviderAccounts } from '@sharpit/server/lib/sync/athlete-provider-sync';
 
-export type V1SyncProviderKey = 'strava' | 'withings' | 'renpho' | 'google';
+export type V1SyncProviderKey = 'garmin' | 'strava' | 'withings' | 'renpho' | 'google';
 
 export type V1SyncStatus = {
   apiVersion: 1;
@@ -20,6 +20,7 @@ const PROVIDERS: ReadonlyArray<{
   label: string;
   account: keyof ProviderAccounts;
 }> = [
+  { key: 'garmin', label: 'Garmin', account: 'garmin' },
   { key: 'strava', label: 'Strava', account: 'strava' },
   { key: 'withings', label: 'Withings', account: 'withings' },
   { key: 'renpho', label: 'Renpho', account: 'renpho' },
@@ -27,6 +28,8 @@ const PROVIDERS: ReadonlyArray<{
 ];
 
 const RECONNECT_LABELS: Record<string, V1SyncProviderKey> = {
+  Garmin: 'garmin',
+  'Garmin activities': 'garmin',
   Strava: 'strava',
   Withings: 'withings',
   Renpho: 'renpho',

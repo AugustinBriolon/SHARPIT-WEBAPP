@@ -16,6 +16,18 @@ export type StravaBackfillResult = {
   recordChanges?: RecordChange[];
 };
 
+export type GarminSyncResult = {
+  updated: number;
+  days: number;
+  activities: {
+    imported: number;
+    merged: number;
+    updated: number;
+    skipped: number;
+  };
+  recordChanges?: RecordChange[];
+};
+
 export type RenphoSyncResult = {
   imported: number;
   updated: number;
@@ -36,6 +48,7 @@ export type GoogleSyncResult = {
 
 export type IntegrationId =
   | 'strava'
+  | 'garmin'
   | 'withings'
   | 'renpho'
   | 'google'
@@ -73,6 +86,15 @@ export async function runStravaSync(): Promise<StravaSyncResult> {
 export async function runStravaBackfill(): Promise<StravaBackfillResult> {
   const response = await apiFetch('/api/strava/backfill', { method: 'POST' });
   return parseJson(response, 'Récupération Strava échouée');
+}
+
+export async function runGarminSync(options?: { full?: boolean }): Promise<GarminSyncResult> {
+  const response = await apiFetch('/api/garmin/sync', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(options?.full ? { full: true } : {}),
+  });
+  return parseJson(response, 'Synchronisation Garmin échouée');
 }
 
 export async function runRenphoSync(options?: { full?: boolean }): Promise<RenphoSyncResult> {

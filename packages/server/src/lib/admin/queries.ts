@@ -6,6 +6,7 @@ import {
   computePlanAdherence,
   type PlanAdherence,
 } from '@sharpit/app/lib/admin/plan-adherence';
+import { athleteAiCost, type AthleteAiCost } from '@sharpit/app/lib/admin/ai-cost';
 
 export type AdminAthleteRow = {
   id: string;
@@ -76,6 +77,37 @@ export async function loadPlanAdherence(): Promise<Map<string, PlanAdherence>> {
           brickGroupId: session.brickGroupId,
         })),
         today,
+      ),
+    ]),
+  );
+}
+
+/** The window the AI cost is read over: a month, set against a monthly price. */
+export const AI_COST_WINDOW_DAYS = 30;
+
+/** Each athlete's AI cost over the last 30 days (ADR-103), summed per model and feature in SQL. */
+export async function loadAiCost(now = new Date()): Promise<Map<string, AthleteAiCost>> {
+  const since = new Date(now.getTime() - AI_COST_WINDOW_DAYS * 86_400_000);
+  const groups = await prisma.aiUsageEvent.groupBy({
+    by: ['athleteId', 'model', 'feature'],
+    where: { createdAt: { gte: since } },
+    _sum: { inputTokens: true, outputTokens: true, cacheReadTokens: true },
+  });
+  const byAthlete = new Map<string, typeof groups>();
+  for (const group of groups) {
+    byAthlete.set(group.athleteId, [...(byAthlete.get(group.athleteId) ?? []), group]);
+  }
+  return new Map(
+    [...byAthlete].map(([athleteId, list]) => [
+      athleteId,
+      athleteAiCost(
+        list.map((group) => ({
+          model: group.model,
+          feature: group.feature,
+          inputTokens: group._sum.inputTokens ?? 0,
+          outputTokens: group._sum.outputTokens ?? 0,
+          cacheReadTokens: group._sum.cacheReadTokens ?? 0,
+        })),
       ),
     ]),
   );

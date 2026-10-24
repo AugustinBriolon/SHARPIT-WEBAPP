@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { encryptSecret } from '@sharpit/server/lib/secret-box';
 import {
+  GARMIN_CONNECTION_SELECT,
   MFP_CONNECTION_SELECT,
   OAUTH_CONNECTION_SELECT,
   RENPHO_CONNECTION_SELECT,
+  isGarminAccountConnected,
   isMfpAccountConnected,
   isOAuthAccountConnected,
   isRenphoAccountConnected,
@@ -23,6 +25,14 @@ const CASES = [
     fillValid: (row: Record<string, unknown>) => {
       row.accessTokenEnc = encryptSecret('access');
       row.refreshTokenEnc = encryptSecret('refresh');
+    },
+  },
+  {
+    name: 'garmin',
+    select: GARMIN_CONNECTION_SELECT,
+    check: isGarminAccountConnected,
+    fillValid: (row: Record<string, unknown>) => {
+      row.apiKeyEnc = encryptSecret('garmin-personal-api-key');
     },
   },
   {
@@ -93,6 +103,28 @@ describe.each(CASES)('$name connection select', ({ select, check, fillValid }) =
   it('reports disconnected for short placeholder ciphertext (e.g. demo)', () => {
     expect(check(rowFrom(select, 'demo'))).toBe(false);
     expect(check(rowFrom(select, 'x'))).toBe(false);
+  });
+});
+
+describe('isGarminAccountConnected (hub + cron agreement)', () => {
+  it('is connected for a stored Personal API key', () => {
+    process.env.SECRET_ENCRYPTION_KEY = 'connection-status-test-key';
+    expect(isGarminAccountConnected({ apiKeyEnc: encryptSecret('garmin-key') })).toBe(true);
+  });
+
+  it('is disconnected for a revoked empty key (hub asks for a new key)', () => {
+    expect(isGarminAccountConnected({ apiKeyEnc: '' })).toBe(false);
+  });
+
+  it('is disconnected for malformed/demo blobs that are not live credentials', () => {
+    expect(isGarminAccountConnected({ apiKeyEnc: 'demo' })).toBe(false);
+  });
+
+  it('still reports connected on AES-GCM authenticity failure so cron can circuit-break', () => {
+    process.env.SECRET_ENCRYPTION_KEY = 'key-a';
+    const blob = encryptSecret('garmin-key');
+    process.env.SECRET_ENCRYPTION_KEY = 'key-b';
+    expect(isGarminAccountConnected({ apiKeyEnc: blob })).toBe(true);
   });
 });
 

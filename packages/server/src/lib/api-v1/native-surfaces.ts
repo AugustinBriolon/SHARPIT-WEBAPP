@@ -36,6 +36,7 @@ export const NATIVE_V1_SURFACES = [
   { path: 'integrations/source-prefs', methods: ['GET', 'PATCH'] },
   { path: 'athlete-profile/threshold-history', methods: ['GET'] },
   { path: 'athlete-profile/apply-estimates', methods: ['GET', 'POST'] },
+  { path: 'athlete-profile/import-garmin', methods: ['POST'] },
   { path: 'body-composition', methods: ['GET'] },
   { path: 'activity-status', methods: ['GET', 'PUT'] },
   { path: 'planned-sessions', methods: ['GET', 'POST'] },
@@ -58,6 +59,8 @@ export const NATIVE_V1_SURFACES = [
   { path: 'food-log/recipes', methods: ['POST'] },
   { path: 'food-log/recipes/[id]', methods: ['PUT'] },
   { path: 'food-log/targets', methods: ['PUT'] },
+  { path: 'garmin/connect', methods: ['GET', 'POST'] },
+  { path: 'garmin/disconnect', methods: ['POST'] },
   { path: 'withings/disconnect', methods: ['POST'] },
   { path: 'strava/disconnect', methods: ['POST'] },
   { path: 'google/disconnect', methods: ['POST'] },
@@ -70,6 +73,7 @@ export const NATIVE_V1_SURFACES = [
   { path: 'physical-notes/[id]', methods: ['PATCH', 'DELETE'] },
   { path: 'physical-notes/[id]/checkins', methods: ['POST'] },
   { path: 'onboarding/complete', methods: ['POST'] },
+  { path: 'garmin/sync', methods: ['POST'] },
 ] as const;
 
 /**

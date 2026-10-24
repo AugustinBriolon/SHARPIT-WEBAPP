@@ -12,9 +12,10 @@ import {
 } from './source-prefs';
 
 describe('source-prefs', () => {
-  it('legacy defaults enable all classes a connected Strava covers', () => {
-    const prefs = legacyDefaultsFromConnected(['strava']);
-    expect(prefs.classes.activities).toEqual({ primary: 'strava', enabled: ['strava'] });
+  it('legacy defaults enable all classes a connected Garmin covers', () => {
+    const prefs = legacyDefaultsFromConnected(['garmin']);
+    expect(prefs.classes.activities).toEqual({ primary: 'garmin', enabled: ['garmin'] });
+    expect(prefs.classes.wearable_health).toEqual({ primary: 'garmin', enabled: ['garmin'] });
     expect(prefs.classes.body.enabled).toEqual([]);
   });
 
@@ -26,25 +27,26 @@ describe('source-prefs', () => {
 
   it('enableProviderForClass activates only that class', () => {
     let prefs = emptySourcePrefs();
-    prefs = enableProviderForClass(prefs, 'activities', 'strava');
-    expect(prefs.classes.activities).toEqual({ primary: 'strava', enabled: ['strava'] });
+    prefs = enableProviderForClass(prefs, 'activities', 'garmin');
+    expect(prefs.classes.activities).toEqual({ primary: 'garmin', enabled: ['garmin'] });
     expect(prefs.classes.wearable_health.enabled).toEqual([]);
-    expect(isProviderEnabledForClass(prefs, 'wearable_health', 'strava')).toBe(false);
+    expect(isProviderEnabledForClass(prefs, 'wearable_health', 'garmin')).toBe(false);
   });
 
-  it('enableProviderForAllCoveredClasses enables every class provider covers', async () => {
+  it('enableProviderForAllCoveredClasses enables every class Garmin covers', async () => {
     const { enableProviderForAllCoveredClasses } = await import('./source-prefs');
     let prefs = emptySourcePrefs();
-    prefs = enableProviderForAllCoveredClasses(prefs, 'strava');
-    expect(prefs.classes.activities.enabled).toContain('strava');
+    prefs = enableProviderForAllCoveredClasses(prefs, 'garmin');
+    expect(prefs.classes.activities.enabled).toContain('garmin');
+    expect(prefs.classes.wearable_health.enabled).toContain('garmin');
   });
 
   it('disable primary promotes the next enabled provider', () => {
     let prefs = emptySourcePrefs();
-    prefs = enableProviderForClass(prefs, 'activities', 'apple-health');
+    prefs = enableProviderForClass(prefs, 'activities', 'garmin');
     prefs = enableProviderForClass(prefs, 'activities', 'strava');
-    prefs = setPrimaryForClass(prefs, 'activities', 'apple-health');
-    prefs = disableProviderForClass(prefs, 'activities', 'apple-health');
+    prefs = setPrimaryForClass(prefs, 'activities', 'garmin');
+    prefs = disableProviderForClass(prefs, 'activities', 'garmin');
     expect(prefs.classes.activities).toEqual({ primary: 'strava', enabled: ['strava'] });
   });
 
@@ -56,9 +58,9 @@ describe('source-prefs', () => {
 
   it('removeProviderEverywhere clears all classes', () => {
     let prefs = emptySourcePrefs();
-    prefs = enableProviderForClass(prefs, 'activities', 'apple-health');
-    prefs = enableProviderForClass(prefs, 'wearable_health', 'apple-health');
-    prefs = removeProviderEverywhere(prefs, 'apple-health');
+    prefs = enableProviderForClass(prefs, 'activities', 'garmin');
+    prefs = enableProviderForClass(prefs, 'wearable_health', 'garmin');
+    prefs = removeProviderEverywhere(prefs, 'garmin');
     expect(prefs.classes.activities.enabled).toEqual([]);
     expect(prefs.classes.wearable_health.enabled).toEqual([]);
   });

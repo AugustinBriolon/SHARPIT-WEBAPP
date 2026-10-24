@@ -67,6 +67,7 @@ import {
 import { endOfDay, startOfDay } from 'date-fns';
 import type { ClientActivity, ClientPlannedSession } from '@sharpit/app/lib/query/types';
 import type { SessionIntensity } from '@prisma/client';
+import { getGarminAccount } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import { getGoogleAccount } from '@sharpit/server/lib/integrations/google/google-sync';
 import { getRenphoAccount } from '@sharpit/server/lib/integrations/renpho/renpho-sync';
 import { getStravaAccount } from '@sharpit/server/lib/integrations/strava/strava-sync';
@@ -1243,11 +1244,12 @@ async function attachSessionPurposes(
 }
 
 async function loadReconnectProviderNames(athleteId: string): Promise<string[]> {
-  const [strava, withings, renpho, google] = await Promise.all([
+  const [strava, garmin, withings, renpho, google] = await Promise.all([
     getStravaAccount(athleteId).catch(() => null),
+    getGarminAccount(athleteId).catch(() => null),
     getWithingsAccount(athleteId).catch(() => null),
     getRenphoAccount(athleteId).catch(() => null),
     getGoogleAccount(athleteId).catch(() => null),
   ]);
-  return reconnectProviderNames({ strava, withings, renpho, google });
+  return reconnectProviderNames({ strava, garmin, withings, renpho, google });
 }

@@ -5,13 +5,14 @@ import {
 } from '@sharpit/app/lib/integrations/source-prefs';
 import { getCatalogProviderByIntegration } from '@sharpit/app/lib/integrations/provider-catalog';
 import {
+  isGarminAccountConnected,
   isOAuthAccountConnected,
   isRenphoAccountConnected,
 } from '@sharpit/server/lib/integrations/shared/connection-status';
 
 type MaybeAccount = Record<string, unknown> | null | undefined;
 
-export type CronSyncProvider = 'strava' | 'withings' | 'renpho' | 'google';
+export type CronSyncProvider = 'strava' | 'garmin' | 'withings' | 'renpho' | 'google';
 
 function isGoogleCronConnected(account: MaybeAccount): boolean {
   return isOAuthAccountConnected(account) && Boolean(account?.targetCalendarId);
@@ -20,6 +21,7 @@ function isGoogleCronConnected(account: MaybeAccount): boolean {
 const CRON_CONNECTION_CHECKS: Record<CronSyncProvider, (account: MaybeAccount) => boolean> = {
   strava: isOAuthAccountConnected,
   withings: isOAuthAccountConnected,
+  garmin: isGarminAccountConnected,
   renpho: isRenphoAccountConnected,
   google: isGoogleCronConnected,
 };

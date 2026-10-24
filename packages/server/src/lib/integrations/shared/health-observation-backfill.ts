@@ -1,10 +1,8 @@
 import { startOfDay, subDays } from 'date-fns';
 import type { DailyHealth } from '@prisma/client';
-import {
-  garminHealthToObservations,
-  type GarminDailyHealth,
-} from '@sharpit/server/adapters/daily-health-adapter';
+import { garminHealthToObservations } from '@sharpit/server/adapters/garmin-health-adapter';
 import type { ObservationSource, RawObservation } from '@sharpit/core/observation/types';
+import type { GarminDailyHealth } from '@sharpit/server/lib/integrations/garmin/garmin';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import { prisma } from '@sharpit/db/client';
 import { dayKeyFromDate } from '@sharpit/app/lib/date/day-key';

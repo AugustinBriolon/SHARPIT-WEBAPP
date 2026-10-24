@@ -1,9 +1,16 @@
 import type { DataProvider } from '@sharpit/server/athlete-state/events';
 import { isSet } from '@sharpit/shared/value';
 import {
+  isGarminAccountConnected,
   isOAuthAccountConnected,
   isRenphoAccountConnected,
 } from '@sharpit/server/lib/integrations/shared/connection-status';
+import { syncGarminActivities } from '@sharpit/server/lib/integrations/garmin/garmin-activity-sync';
+import {
+  GARMIN_HEALTH_OPEN_PATH_FALLBACK_DAYS,
+  getGarminAccount,
+  syncGarminHealth,
+} from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import {
   googleCalendarGateFromPrefs,
   shouldSyncGoogleCalendarWrites,
@@ -62,6 +69,24 @@ export async function syncProviders(
   );
 
   return settled.filter((r): r is ProviderSyncResult => isSet(r));
+}
+
+async function syncGarminProvider(athleteId: string): Promise<ProviderSyncResult | null> {
+  const account = await getGarminAccount(athleteId);
+  if (!account) {
+    return null;
+  }
+  const [health, activities] = await Promise.all([
+    syncGarminHealth(athleteId, { days: GARMIN_HEALTH_OPEN_PATH_FALLBACK_DAYS }),
+    syncGarminActivities(athleteId),
+  ]);
+  return {
+    provider: 'garmin',
+    imported: activities.imported,
+    updated: activities.updated + activities.merged,
+    observationCount: health.updated,
+    activityIds: activities.importedActivityIds,
+  };
 }
 
 async function syncStravaProvider(athleteId: string): Promise<ProviderSyncResult | null> {
@@ -137,6 +162,7 @@ async function syncGoogleProvider(athleteId: string): Promise<ProviderSyncResult
 const PROVIDER_SYNC_HANDLERS: Partial<
   Record<DataProvider, (athleteId: string) => Promise<ProviderSyncResult | null>>
 > = {
+  garmin: syncGarminProvider,
   strava: syncStravaProvider,
   renpho: syncRenphoProvider,
   withings: syncWithingsProvider,
@@ -155,14 +181,18 @@ async function syncSingleProvider(
 }
 
 export async function listConnectedProviders(athleteId: string): Promise<DataProvider[]> {
-  const [strava, renpho, withings, google] = await Promise.all([
+  const [strava, garmin, renpho, withings, google] = await Promise.all([
     getStravaAccount(athleteId),
+    getGarminAccount(athleteId),
     getRenphoAccount(athleteId),
     getWithingsAccount(athleteId),
     getGoogleAccount(athleteId),
   ]);
 
   const connected: DataProvider[] = [];
+  if (isGarminAccountConnected(garmin)) {
+    connected.push('garmin');
+  }
   if (isOAuthAccountConnected(strava)) {
     connected.push('strava');
   }

@@ -3126,7 +3126,6 @@
   "Semi-marathon": "Half marathon",
   "Semi-marathon de printemps": "Spring half marathon",
   "Sensations musculaires et courbatures.": "Muscle feel and soreness.",
-  "Session Garmin expirée. Reconnecte Garmin dans les paramètres.": "Garmin session expired. Reconnect Garmin in settings.",
   "Session Google expirée": "Google session expired",
   "Session Google expirée ou révoquée. Reconnecte Google Calendar dans les paramètres.": "Google session expired or revoked. Reconnect Google Calendar in settings.",
   "Session Google expirée. Reconnecte Google dans les paramètres.": "Google session expired. Reconnect Google in settings.",
@@ -4307,5 +4306,11 @@
   "échauffement": "warm-up",
   "éducatif": "drill",
   "élastiques": "resistance bands",
-  "≠ Strain du jour": "≠ Today's strain"
+  "≠ Strain du jour": "≠ Today's strain",
+  "Clé API Garmin refusée ou expirée. Crée une nouvelle clé sur Garmin Connect.": "Garmin API key refused or expired. Create a new key on Garmin Connect.",
+  "Clé API Garmin refusée ou expirée. Ajoute une nouvelle clé dans les paramètres.": "Garmin API key refused or expired. Add a new key in settings.",
+  "Garmin n’est pas encore ouvert.": "Garmin is not open yet.",
+  "Clé API Garmin requise": "Garmin API key required",
+  "Connexion Garmin échouée. Réessaie.": "Garmin connection failed. Try again.",
+  "Statut Garmin indisponible": "Garmin status unavailable"
 }

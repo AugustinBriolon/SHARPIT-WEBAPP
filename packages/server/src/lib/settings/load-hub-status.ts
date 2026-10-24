@@ -1,5 +1,6 @@
 import { cache } from 'react';
 import { listCoachMemoryEntries } from '@sharpit/server/lib/coach-memory/core/service';
+import { getGarminAccount } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import {
   getGoogleAccount,
   isGoogleConnected,
@@ -8,6 +9,7 @@ import { getRenphoAccount } from '@sharpit/server/lib/integrations/renpho/renpho
 import { getStravaAccount } from '@sharpit/server/lib/integrations/strava/strava-sync';
 import { getWithingsAccount } from '@sharpit/server/lib/integrations/withings/withings-sync';
 import {
+  isGarminAccountConnected,
   isOAuthAccountConnected,
   isRenphoAccountConnected,
   reconnectProviderNames,
@@ -30,8 +32,9 @@ async function loadIntegrationHubFacts(athleteId: string): Promise<{
   connectedCount: number;
   reconnectNames: string[];
 }> {
-  const [strava, withings, renpho, google] = await Promise.all([
+  const [strava, garmin, withings, renpho, google] = await Promise.all([
     getStravaAccount(athleteId).catch(() => null),
+    getGarminAccount(athleteId).catch(() => null),
     getWithingsAccount(athleteId).catch(() => null),
     getRenphoAccount(athleteId).catch(() => null),
     getGoogleAccount(athleteId).catch(() => null),
@@ -39,6 +42,7 @@ async function loadIntegrationHubFacts(athleteId: string): Promise<{
 
   const connectedCount = [
     isOAuthAccountConnected(strava),
+    isGarminAccountConnected(garmin),
     isOAuthAccountConnected(withings),
     isRenphoAccountConnected(renpho),
     isGoogleConnected(google),
@@ -48,6 +52,7 @@ async function loadIntegrationHubFacts(athleteId: string): Promise<{
     connectedCount,
     reconnectNames: reconnectProviderNames({
       strava,
+      garmin,
       withings,
       renpho,
       google,

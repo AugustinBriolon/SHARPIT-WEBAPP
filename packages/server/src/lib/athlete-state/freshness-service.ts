@@ -14,8 +14,10 @@ import {
   productMessageForDomain,
 } from '@sharpit/server/lib/athlete-state/product-states';
 import {
+  GARMIN_CONNECTION_SELECT,
   OAUTH_CONNECTION_SELECT,
   RENPHO_CONNECTION_SELECT,
+  isGarminAccountConnected,
   isOAuthAccountConnected,
   isRenphoAccountConnected,
 } from '@sharpit/server/lib/integrations/shared/connection-status';
@@ -63,6 +65,20 @@ function providerStale(lastSync: Date | null | undefined, thresholdHours: number
     return true;
   }
   return hoursSince(lastSync)! > thresholdHours;
+}
+
+/** Oldest sync timestamp — missing activity sync counts as never synced. */
+export function garminSyncReference(
+  lastSyncAt: Date | null | undefined,
+  lastActivitySyncAt: Date | null | undefined,
+): Date | null {
+  if (!lastActivitySyncAt) {
+    return null;
+  }
+  if (!lastSyncAt) {
+    return lastActivitySyncAt;
+  }
+  return lastSyncAt.getTime() <= lastActivitySyncAt.getTime() ? lastSyncAt : lastActivitySyncAt;
 }
 
 type ComputingFlags = Partial<Record<AthleteStateDomain, boolean>>;
@@ -283,6 +299,10 @@ async function loadFreshnessQueryData(athleteId: string, trainingDayId: string) 
       where: { athleteId },
       select: { lastSyncAt: true, ...OAUTH_CONNECTION_SELECT },
     }),
+    prisma.garminAccount.findUnique({
+      where: { athleteId },
+      select: { lastSyncAt: true, lastActivitySyncAt: true, ...GARMIN_CONNECTION_SELECT },
+    }),
     prisma.renphoAccount.findUnique({
       where: { athleteId },
       select: { lastSyncAt: true, ...RENPHO_CONNECTION_SELECT },
@@ -329,15 +349,24 @@ function buildAccountProviderFreshness(input: {
 function buildProviderFreshnessList(
   accounts: {
     strava: FreshnessQueryData[5];
-    renpho: FreshnessQueryData[6];
-    withings: FreshnessQueryData[7];
-    google: FreshnessQueryData[8];
+    garmin: FreshnessQueryData[6];
+    renpho: FreshnessQueryData[7];
+    withings: FreshnessQueryData[8];
+    google: FreshnessQueryData[9];
   },
   syncing: SyncingFlags,
 ): ProviderFreshness[] {
-  const { strava, renpho, withings, google } = accounts;
+  const { strava, garmin, renpho, withings, google } = accounts;
+  const garminLastSync = garminSyncReference(garmin?.lastSyncAt, garmin?.lastActivitySyncAt);
 
   return [
+    buildAccountProviderFreshness({
+      provider: 'garmin',
+      connected: isGarminAccountConnected(garmin),
+      lastSyncAt: garminLastSync,
+      staleHours: ACTIVITY_PROVIDER_STALE_HOURS,
+      syncing: syncing.garmin === true,
+    }),
     buildAccountProviderFreshness({
       provider: 'strava',
       connected: isOAuthAccountConnected(strava),
@@ -397,7 +426,7 @@ function readTwinComputedTimes(twin: FreshnessQueryData[0]) {
   };
 }
 
-function readDailyStrainEvidence(latestSnapshot: FreshnessQueryData[10]) {
+function readDailyStrainEvidence(latestSnapshot: FreshnessQueryData[11]) {
   const snapshotPayload = latestSnapshot?.payload as
     { dailyStrain?: { available?: boolean; strainScore?: number | null } } | undefined;
   const dailyStrainAvailable = Boolean(
@@ -417,7 +446,7 @@ function readObservationEvidence(input: {
   latestSession: FreshnessQueryData[2];
   latestSubjective: FreshnessQueryData[3];
   latestBody: FreshnessQueryData[4];
-  latestSnapshot: FreshnessQueryData[10];
+  latestSnapshot: FreshnessQueryData[11];
 }) {
   const sessionEvidence = readObservationTimestamp(input.latestSession);
   const { dailyStrainAvailable, dailyStrainUpdatedAt } = readDailyStrainEvidence(
@@ -441,7 +470,7 @@ function readFreshnessEvidence(input: {
   latestSession: FreshnessQueryData[2];
   latestSubjective: FreshnessQueryData[3];
   latestBody: FreshnessQueryData[4];
-  latestSnapshot: FreshnessQueryData[10];
+  latestSnapshot: FreshnessQueryData[11];
 }) {
   return {
     ...readTwinComputedTimes(input.twin),
@@ -453,8 +482,8 @@ function buildCoreDomainFreshnessList(input: {
   computing: ComputingFlags;
   syncing: SyncingFlags;
   evidence: ReturnType<typeof readFreshnessEvidence>;
-  renpho: FreshnessQueryData[6];
-  withings: FreshnessQueryData[7];
+  renpho: FreshnessQueryData[7];
+  withings: FreshnessQueryData[8];
 }): DomainFreshness[] {
   const { computing, syncing, evidence, renpho, withings } = input;
   return [
@@ -463,7 +492,7 @@ function buildCoreDomainFreshnessList(input: {
       domainName: 'sleep',
       lastUpdatedAt: evidence.recoveryAt,
       freshness: resolveSleepFreshness(
-        false,
+        syncing.garmin === true,
         new Date().getHours() < 14,
         evidence.sleepEvidence,
         evidence.recoveryAt,
@@ -476,7 +505,7 @@ function buildCoreDomainFreshnessList(input: {
       lastUpdatedAt: evidence.recoveryAt,
       freshness: resolveRecoveryFreshness({
         computingRecovery: computing.recovery === true,
-        syncingGarmin: false,
+        syncingGarmin: syncing.garmin === true,
         recoveryAt: evidence.recoveryAt,
         sleepEvidence: evidence.sleepEvidence,
         subjectiveEvidence: evidence.subjectiveEvidence,
@@ -489,7 +518,7 @@ function buildCoreDomainFreshnessList(input: {
       lastUpdatedAt: evidence.trainingEvidenceAt,
       freshness: resolveTrainingFreshness({
         computingTraining: computing.training === true,
-        syncingGarmin: false,
+        syncingGarmin: syncing.garmin === true,
         syncingStrava: syncing.strava === true,
         sessionEvidence: evidence.sessionEvidence,
         dailyStrainUpdatedAt: evidence.dailyStrainUpdatedAt,
@@ -538,7 +567,7 @@ function buildPhysicalEnvironmentDomains(input: {
 function buildRecommendationsDomain(input: {
   computing: ComputingFlags;
   evidence: ReturnType<typeof readFreshnessEvidence>;
-  briefing: FreshnessQueryData[9];
+  briefing: FreshnessQueryData[10];
 }): DomainFreshness {
   const briefingAt = input.briefing?.generatedAt ?? null;
   return makeDomainFreshness({
@@ -561,8 +590,8 @@ function buildReasoningPlanningDomains(input: {
   computing: ComputingFlags;
   syncing: SyncingFlags;
   evidence: ReturnType<typeof readFreshnessEvidence>;
-  google: FreshnessQueryData[8];
-  briefing: FreshnessQueryData[9];
+  google: FreshnessQueryData[9];
+  briefing: FreshnessQueryData[10];
 }): DomainFreshness[] {
   return [
     makeDomainFreshness({
@@ -596,8 +625,8 @@ function buildExtendedDomainFreshnessList(input: {
   computing: ComputingFlags;
   syncing: SyncingFlags;
   evidence: ReturnType<typeof readFreshnessEvidence>;
-  google: FreshnessQueryData[8];
-  briefing: FreshnessQueryData[9];
+  google: FreshnessQueryData[9];
+  briefing: FreshnessQueryData[10];
 }): DomainFreshness[] {
   return [...buildPhysicalEnvironmentDomains(input), ...buildReasoningPlanningDomains(input)];
 }
@@ -610,11 +639,11 @@ function buildDomainFreshnessList(input: {
   latestSession: FreshnessQueryData[2];
   latestSubjective: FreshnessQueryData[3];
   latestBody: FreshnessQueryData[4];
-  renpho: FreshnessQueryData[6];
-  withings: FreshnessQueryData[7];
-  google: FreshnessQueryData[8];
-  briefing: FreshnessQueryData[9];
-  latestSnapshot: FreshnessQueryData[10];
+  renpho: FreshnessQueryData[7];
+  withings: FreshnessQueryData[8];
+  google: FreshnessQueryData[9];
+  briefing: FreshnessQueryData[10];
+  latestSnapshot: FreshnessQueryData[11];
 }): DomainFreshness[] {
   const evidence = readFreshnessEvidence(input);
   return [
@@ -651,6 +680,7 @@ export async function computeFreshnessSnapshot(params: {
     latestSubjective,
     latestBody,
     strava,
+    garmin,
     renpho,
     withings,
     google,
@@ -658,7 +688,10 @@ export async function computeFreshnessSnapshot(params: {
     latestSnapshot,
   ] = await loadFreshnessQueryData(athleteId, trainingDayId);
 
-  const providers = buildProviderFreshnessList({ strava, renpho, withings, google }, syncing);
+  const providers = buildProviderFreshnessList(
+    { strava, garmin, renpho, withings, google },
+    syncing,
+  );
   const domains = buildDomainFreshnessList({
     computing,
     syncing,
@@ -699,7 +732,7 @@ function providerNeedsSyncNow(provider: ProviderFreshness, hour: number): boolea
   if (!provider.connected || provider.syncing || !provider.stale) {
     return false;
   }
-  if (provider.provider === 'strava') {
+  if (provider.provider === 'garmin' || provider.provider === 'strava') {
     return true;
   }
   const minHour = PROVIDER_SYNC_MIN_HOUR[provider.provider];

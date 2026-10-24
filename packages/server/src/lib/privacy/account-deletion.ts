@@ -22,6 +22,10 @@ export type AccountDeletionResult = {
  */
 export async function clearAthleteProviderCredentials(athleteId: string): Promise<void> {
   await prisma.$transaction([
+    prisma.garminAccount.updateMany({
+      where: { athleteId },
+      data: { apiKeyEnc: '' },
+    }),
     prisma.stravaAccount.updateMany({
       where: { athleteId },
       data: { accessTokenEnc: '', refreshTokenEnc: '' },

@@ -65,6 +65,19 @@ export const DATA_CLASSES: DataClassDefinition[] = [
  */
 export const PROVIDER_CATALOG: CatalogProvider[] = [
   {
+    id: 'garmin',
+    name: 'Garmin',
+    tagline: 'Montre & Connect — séances et santé',
+    status: 'available',
+    classes: ['activities', 'wearable_health'],
+    integrationId: 'garmin',
+    authKind: 'credentials',
+    dataTypesByClass: {
+      activities: ['Course', 'Vélo', 'Natation', 'Force'],
+      wearable_health: ['Sommeil', 'HRV', 'FC repos', 'Stress'],
+    },
+  },
+  {
     id: 'strava',
     name: 'Strava',
     tagline: 'Séances & records — course, vélo, natation',

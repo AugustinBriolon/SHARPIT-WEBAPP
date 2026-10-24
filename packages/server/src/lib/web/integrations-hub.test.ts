@@ -11,7 +11,7 @@ describe('toAccountView', () => {
       refreshTokenEnc: 'secret',
       passwordEnc: 'secret',
       sessionTokenEnc: 'secret',
-      oauth2TokenEnc: 'secret',
+      apiKeyEnc: 'secret',
     });
     expect(view).toEqual({ displayName: 'A', email: 'a@b.c', lastSyncAt: new Date(0) });
     expect(JSON.stringify(view)).not.toContain('secret');

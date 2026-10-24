@@ -39,7 +39,7 @@ describe('athlete consent checks without a session', () => {
     findUniqueMock.mockResolvedValue(consenting);
     expect(await athleteHasHealthDataConsent('athlete-1')).toBe(true);
     expect(await athleteHasAiProcessingConsent('athlete-1')).toBe(true);
-    expect(await athleteCanConnectProvider('athlete-1', 'renpho')).toBe(true);
+    expect(await athleteCanConnectProvider('athlete-1', 'garmin')).toBe(true);
   });
 
   it('refuse what the athlete has not consented to', async () => {

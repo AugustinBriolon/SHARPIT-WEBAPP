@@ -20,6 +20,7 @@ function enc(plain: string): string {
 function emptyAccounts() {
   return {
     strava: null,
+    garmin: null,
     withings: null,
     renpho: null,
     google: null,
@@ -35,20 +36,17 @@ describe('listConnectedCronProviders', () => {
     expect(
       listConnectedCronProviders({
         ...emptyAccounts(),
-        strava: { accessTokenEnc: '' },
+        garmin: { apiKeyEnc: '' },
         renpho: { email: 'a@b.c', passwordEnc: 'demo' },
       }),
     ).toEqual([]);
   });
 
-  it('includes only Strava when tokens are live (hub connected)', () => {
+  it('includes only Garmin when its key is live (hub connected)', () => {
     const providers = listConnectedCronProviders({
       ...emptyAccounts(),
-      strava: {
-        accessTokenEnc: enc('valid-access-token'),
-        refreshTokenEnc: enc('valid-refresh-token'),
-      },
+      garmin: { apiKeyEnc: enc('garmin-personal-api-key') },
     });
-    expect(providers).toEqual(['strava']);
+    expect(providers).toEqual(['garmin']);
   });
 });

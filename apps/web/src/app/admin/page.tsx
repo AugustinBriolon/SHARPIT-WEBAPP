@@ -4,10 +4,16 @@ import { ADHERENCE_TARGET, summarizeCohort } from '@sharpit/app/lib/admin/plan-a
 import type { AdminAthleteView } from '@sharpit/app/lib/web/payloads';
 import { cachedServerApiJson } from '@sharpit/ui/server/api-client';
 
+const formatUsd = (usd: number) =>
+  usd.toLocaleString('fr-FR', { style: 'currency', currency: 'USD' });
+
 export default async function AdminPage() {
   const athletes =
     (await cachedServerApiJson<AdminAthleteView[]>('/api/web/admin-athletes', true)) ?? [];
 
+  const costs = athletes.flatMap(({ aiCost }) => (aiCost ? [aiCost.totalUsd] : []));
+  const meanCost =
+    costs.length === 0 ? null : costs.reduce((sum, usd) => sum + usd, 0) / costs.length;
   const cohort = summarizeCohort(
     athletes.flatMap(({ adherence }) => (adherence ? [adherence] : [])),
   );
@@ -49,6 +55,26 @@ export default async function AdminPage() {
         </p>
       </section>
 
+      <section className="analysis-panel rounded-analysis-lg px-5 py-4">
+        <p className="text-label">Coût IA · 30 derniers jours</p>
+        <div className="mt-3 flex flex-wrap gap-6">
+          <div>
+            <p className="text-muted-foreground text-xs">Moyenne par athlète actif</p>
+            <p className="text-data text-xl font-semibold">
+              {meanCost === null ? '—' : formatUsd(meanCost)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground text-xs">Athlètes avec un appel IA</p>
+            <p className="text-data text-xl font-semibold">{costs.length}</p>
+          </div>
+        </div>
+        <p className="text-muted-foreground mt-2 text-xs">
+          Prix catalogue de l&apos;AI Gateway (USD), coach et analyses écrites en arrière-plan. À
+          mettre en face de SharpIt Pro : 12,99 €/mois.
+        </p>
+      </section>
+
       <div className="analysis-panel divide-analysis-border rounded-analysis-lg divide-y overflow-hidden">
         {athletes.map((athlete) => (
           <div
@@ -63,6 +89,15 @@ export default async function AdminPage() {
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <AdherenceWeeks adherence={athlete.adherence} />
+              <p
+                className="text-data w-24 text-right text-sm"
+                title={
+                  athlete.aiCost ? `dont coach ${formatUsd(athlete.aiCost.coachUsd)}` : undefined
+                }
+              >
+                {athlete.aiCost ? formatUsd(athlete.aiCost.totalUsd) : '—'}
+                <span className="text-muted-foreground block text-[10px]">IA · 30 j</span>
+              </p>
               <AthleteTierToggle athleteId={athlete.id} tier={athlete.tier} />
             </div>
           </div>

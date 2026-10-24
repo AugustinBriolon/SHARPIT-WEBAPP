@@ -19,7 +19,8 @@ export type AthleteStateEventKind =
   | 'InferenceRequested'
   | 'InferenceCompleted';
 
-export type DataProvider = 'strava' | 'renpho' | 'withings' | 'google' | 'manual' | 'apple-health';
+export type DataProvider =
+  'garmin' | 'strava' | 'renpho' | 'withings' | 'google' | 'manual' | 'apple-health';
 
 export type AthleteStateEventBase = {
   readonly eventId: string;

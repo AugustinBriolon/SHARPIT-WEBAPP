@@ -22,7 +22,7 @@ export const CONFIDENTIALITE: HelpCategory = {
 ### Facultatifs
 
 - **Le traitement par IA** : le coach, les semaines rédigées, les bilans. Sans lui, aucun contexte n’est envoyé à un modèle d’IA ; le verdict du jour et les lectures, qui sortent de règles fixes, fonctionnent toujours.
-- **Les sources non officielles** : l’accusé de réception demandé avant de connecter Garmin.
+- **Les sources non officielles** : l’accusé de réception demandé avant de connecter une source qui n’est pas fournie par son fabricant.
 
 À l’accueil, **Tout accepter** coche les cinq, parce que ta première semaine a besoin du coach.
 

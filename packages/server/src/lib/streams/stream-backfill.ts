@@ -1,7 +1,7 @@
 import { ActivityType } from '@prisma/client';
 import { isSet } from '@sharpit/shared/value';
 import { prisma } from '@sharpit/db/client';
-import { rawStreamsHaveSignal } from '@sharpit/server/lib/streams/stream-raw-types';
+import { rawStreamsHaveSignal } from '@sharpit/server/lib/integrations/garmin/garmin-streams';
 import { fetchAndCacheActivityStreams } from '@sharpit/server/lib/streams/streams';
 
 /**

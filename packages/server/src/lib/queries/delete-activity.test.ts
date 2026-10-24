@@ -25,6 +25,19 @@ vi.mock('@sharpit/server/lib/queries/planned-sessions', async (importOriginal) =
   };
 });
 
+vi.mock('@sharpit/server/lib/integrations/garmin/garmin', () => ({
+  clientFromTokens: vi.fn(),
+  garminTokensFromStorage: vi.fn(),
+}));
+
+vi.mock('@sharpit/server/lib/integrations/garmin/garmin-multisport', () => ({
+  fetchGarminMultisportLegs: vi.fn(),
+}));
+
+vi.mock('@sharpit/server/lib/integrations/garmin/garmin-sync', () => ({
+  getGarminAccount: vi.fn(),
+}));
+
 describe('deleteActivity', () => {
   beforeEach(() => {
     vi.clearAllMocks();

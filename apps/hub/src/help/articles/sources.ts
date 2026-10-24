@@ -34,19 +34,26 @@ Non. Une Apple Watch suffit, par Apple Santé. Si tu as les deux, Garmin fait fo
       slug: 'garmin',
       title: 'Connecter Garmin',
       summary:
-        'Garmin se connecte depuis l’app, dans une fenêtre de connexion Garmin. Ton historique complet est importé à la première connexion.',
+        'Garmin se connecte depuis l’app avec ta clé API personnelle Garmin. SharpIt la garde chiffrée et ne l’affiche plus jamais.',
       body: `
 ### Le connecter
 
-**Paramètres › Sources de données › Garmin**, puis connecte-toi dans la fenêtre Garmin qui s’ouvre. Tes identifiants Garmin sont chiffrés.
+1. Sur Garmin Connect (web), dans les paramètres de ton compte, crée une clé API personnelle. Garmin ne l’affiche qu’une fois : copie-la. L’app y mène par **Créer ma clé sur Garmin Connect**.
+2. Dans l’app, **Paramètres › Sources de données › +  › Garmin**, colle la clé et touche **Connecter Garmin**.
+
+SharpIt vérifie la clé auprès de Garmin avant de la garder. Elle est chiffrée sur nos serveurs, n’est jamais affichée à nouveau (seuls ses quatre derniers caractères le sont) et ne sert qu’à lire tes données Garmin.
+
+### Pendant la bêta
+
+La clé personnelle est prévue par Garmin pour l’usage d’une personne : Garmin est ouvert à quelques athlètes de la bêta. La connexion en un geste arrivera quand Garmin aura validé SharpIt.
+
+### La renouveler ou la révoquer
+
+Une clé expire après la durée choisie chez Garmin (30 jours à un an). Révoque-la quand tu veux sur Garmin Connect : SharpIt arrête de lire et te demande une nouvelle clé. **Déconnecter Garmin** efface la clé de nos serveurs ; ce qui est déjà importé est conservé.
 
 ### L’historique
 
-À la première connexion, SharpIt importe tout ton historique Garmin. Si l’import est interrompu, il reprend à la prochaine ouverture de l’app. Tu peux le relancer depuis Sources de données.
-
-### Une connexion non officielle
-
-L’accès à Garmin Connect n’est ni fourni ni approuvé par Garmin. Il est proposé en l’état, peut cesser de fonctionner, et un accusé de réception t’est demandé avant de le connecter. Pendant la bêta, il est disponible dans l’app.
+À la connexion, SharpIt importe tes séances et tes nuits récentes, puis se tient à jour seul. Tu peux relancer une synchronisation depuis Sources de données.
 
 ### Une montre Garmin sans connexion directe
 
