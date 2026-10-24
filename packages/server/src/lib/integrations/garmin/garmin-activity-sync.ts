@@ -32,6 +32,13 @@ import { mapWithConcurrency } from '@sharpit/server/lib/async/map-with-concurren
 import { prisma } from '@sharpit/db/client';
 import { unifyMultisportAfterSync } from '@sharpit/server/lib/activity/multisport/unify-multisport';
 import { removeManualActivityObservations } from '@sharpit/server/lib/observation/manual-observation-sync';
+import { loadActivityFillSnapshot } from '@sharpit/server/lib/activity/list/load-activity-fill-snapshot';
+import { isProviderEnabledForClass } from '@sharpit/app/lib/integrations/source-prefs';
+import { loadResolvedSourcePrefs } from '@sharpit/server/lib/integrations/source-prefs-store';
+import {
+  garminLeadsActivities,
+  garminMergePatch,
+} from '@sharpit/server/lib/integrations/garmin/garmin-merge-policy';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import {
   garminActivityToSession,
@@ -68,6 +75,12 @@ async function ingestGarminActivity(
   } catch (err) {
     console.error('[ObservationEngine] garmin-activity ingest failed:', err);
   }
+}
+
+async function removeStravaSessionObservation(athleteId: string, stravaId: string): Promise<void> {
+  await prisma.observation.deleteMany({
+    where: { athleteId, type: 'SESSION', source: 'STRAVA', externalId: stravaId },
+  });
 }
 
 const PAGE_SIZE = 50;
@@ -272,9 +285,21 @@ async function mergeGarminActivityMatch(
     return { ...EMPTY_OUTCOME, skipped: 1 };
   }
 
+  const [prefs, existing] = await Promise.all([
+    loadResolvedSourcePrefs(athleteId),
+    loadActivityFillSnapshot(match.id),
+  ]);
+  const leads = garminLeadsActivities(prefs);
+  const enrichment = garminEnrichmentUpdate(
+    activity,
+    evaluation,
+    type,
+    match.stravaId,
+    match.source,
+  );
   await prisma.activity.update({
     where: { id: match.id },
-    data: garminEnrichmentUpdate(activity, evaluation, type, match.stravaId, match.source),
+    data: existing ? garminMergePatch(existing, enrichment, leads) : enrichment,
   });
   // App-recorded strength (sharpit-ios) keeps its exercises/sets — watch auto-sets must not replace them.
   const keepAppStrengthSets =
@@ -285,10 +310,22 @@ async function mergeGarminActivityMatch(
   }
   // Do not delete streams here — a failed Garmin fetch would leave the row without series.
   // getActivityStreams retries when garminId is set and replaces stubs / older series on demand.
-  // A session first sent by Apple Health (or merged Strava onto AH) went to the Core without a
-  // provider id; Garmin's own session replaces it, so the day's load is not counted twice (ADR-054).
+  // One session, one load in the Core. Leading, Garmin's session replaces what the first source
+  // sent — Apple Health's (no provider id, ADR-054) and Strava's (its own externalId, which the
+  // engine's dedup cannot match). Behind another primary, that first session keeps counting.
+  if (!leads) {
+    return {
+      ...EMPTY_OUTCOME,
+      merged: 1,
+      importedActivityIds: [match.id],
+      changed: [{ id: match.id, type }],
+    };
+  }
   if (!match.garminId) {
     await removeManualActivityObservations(athleteId, match.id);
+    if (match.stravaId) {
+      await removeStravaSessionObservation(athleteId, match.stravaId);
+    }
   }
   // An absorbed leg's load is counted by its parent (unification dropped its observation).
   if (!match.mergedIntoId) {
@@ -655,9 +692,6 @@ export async function syncGarminActivities(
     full?: boolean;
   },
 ): Promise<GarminActivitySyncResult> {
-  const { isProviderEnabledForClass } = await import('@sharpit/app/lib/integrations/source-prefs');
-  const { loadResolvedSourcePrefs } =
-    await import('@sharpit/server/lib/integrations/source-prefs-store');
   const prefs = await loadResolvedSourcePrefs(athleteId);
   if (!isProviderEnabledForClass(prefs, 'activities', 'garmin')) {
     return {

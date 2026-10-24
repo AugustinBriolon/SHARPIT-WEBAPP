@@ -51,20 +51,22 @@ function without<T extends Day>(data: T, fields: readonly string[]): T {
 /**
  * The Garmin update for one day, cut to what the policy lets it write. The night and HRV go as
  * blocks: stages or a baseline from one source beside a total from another would not add up.
+ * Garmin does not cover the body class, so its weight only fills a day no scale weighed (ADR-103).
  */
 export function restrictGarminHealthUpdate<T extends Day>(
   update: T,
   existing: Day | null,
   write: GarminHealthWrite,
 ): T {
+  const current = existing ?? {};
+  const base = isSet(current.weightKg) ? without(update, ['weightKg']) : update;
   if (write === 'own') {
-    return update;
+    return base;
   }
   if (write === 'off') {
-    return without(update, [...NIGHT_FIELDS, ...HRV_FIELDS, ...SHARED_SCALARS]);
+    return without(base, [...NIGHT_FIELDS, ...HRV_FIELDS, ...SHARED_SCALARS]);
   }
-  const current = existing ?? {};
-  let next = update;
+  let next = base;
   if (isSet(current.sleepMinutes)) {
     next = without(next, NIGHT_FIELDS);
   }

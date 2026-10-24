@@ -363,10 +363,10 @@ async function upsertGarminHealthDay(
     ? (health.readinessFactors as unknown as Prisma.InputJsonValue)
     : undefined;
 
-  const existing =
-    write === 'fill'
-      ? await prisma.dailyHealth.findUnique({ where: { athleteId_date: { athleteId, date: day } } })
-      : null;
+  // Read in every mode: the weight only ever fills a day (restrictGarminHealthUpdate).
+  const existing = await prisma.dailyHealth.findUnique({
+    where: { athleteId_date: { athleteId, date: day } },
+  });
   await prisma.dailyHealth.upsert({
     where: { athleteId_date: { athleteId, date: day } },
     create: restrictGarminHealthUpdate(

@@ -40,6 +40,12 @@ describe('restrictGarminHealthUpdate', () => {
     expect(next).toEqual({ restingHr: 46, totalSteps: 9_000, bodyBattery: 80, recoveryScore: 71 });
   });
 
+  it('only fills the weight of a day no scale weighed, whatever the class policy', () => {
+    const withWeight = { ...update, weightKg: 71.2 };
+    expect(restrictGarminHealthUpdate(withWeight, { weightKg: 70.8 }, 'own')).toEqual(update);
+    expect(restrictGarminHealthUpdate(withWeight, { weightKg: null }, 'own')).toEqual(withWeight);
+  });
+
   it('keeps only its own readings when it is off for the class', () => {
     expect(restrictGarminHealthUpdate(update, null, 'off')).toEqual({
       bodyBattery: 80,
