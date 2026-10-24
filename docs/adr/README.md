@@ -97,6 +97,7 @@
 | [ADR-099](./ADR-099-coach-scope-guardrails.md)                                          | Coach scope rule, pre-model override guard, every athlete-written string delimited; one-agent-per-athlete roadmap                                               | Accepted                          |
 | [ADR-100](./ADR-100-sensitive-zones-over-time.md)                                       | Zones coming back checked by the gate (plyometrics, peak intensity, 10 % ramp), slope trend, one zone block for every prompt, worsening conduct decided in code | Accepted                          |
 | [ADR-101](./ADR-101-settled-days-are-read-not-rebuilt.md)                               | Settled days (older than yesterday) skip phase-drift rebuilds and auto-link; `/today` reads activities up to the day; `Server-Timing` on every `/api/v1` route  | Accepted                          |
+| [ADR-102](./ADR-102-plan-adherence-is-measured-in-weeks-one-to-four.md)                 | Week 1–4 plan adherence per athlete, from `PlannedSession` (done = completed or linked), shown on `/admin` against the 70 % target                              | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
