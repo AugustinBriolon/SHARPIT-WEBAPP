@@ -5,6 +5,7 @@ import { CURRENT_PRIVACY_VERSION } from '@sharpit/app/lib/privacy/constants';
 
 const LEGAL_FILES = {
   privacy: 'PRIVACY_PAGE_FR_V0.md',
+  'privacy-en': 'PRIVACY_PAGE_EN_V0.md',
   terms: 'TERMS_PAGE_FR_V0.md',
 } as const;
 
@@ -28,10 +29,18 @@ export async function loadLegalPageMarkdown(page: LegalPageId): Promise<{
   const raw = await readFile(filePath, 'utf8');
   const bodyMarkdown = stripLegalMetaHeader(raw);
   const titleMatch = bodyMarkdown.match(/^##\s+(.+)$/m);
-  const updatedMatch = bodyMarkdown.match(/\*\*Dernière mise à jour\s*:\*\*\s*(.+)$/m);
+  const updatedMatch = bodyMarkdown.match(
+    /\*\*(?:Dernière mise à jour|Last updated)\s*:\*\*\s*(.+)$/m,
+  );
 
   return {
-    title: titleMatch?.[1]?.trim() ?? (page === 'privacy' ? 'Politique de confidentialité' : 'CGU'),
+    title:
+      titleMatch?.[1]?.trim() ??
+      (page === 'terms'
+        ? 'CGU'
+        : page === 'privacy-en'
+          ? 'Privacy Policy'
+          : 'Politique de confidentialité'),
     version: CURRENT_PRIVACY_VERSION,
     lastUpdatedLabel: updatedMatch?.[1]?.trim() ?? '2 septembre 2026',
     bodyMarkdown,

@@ -4,11 +4,13 @@ export function LegalPageShell({
   title,
   version,
   lastUpdatedLabel,
+  lang = 'fr',
   children,
 }: {
   title: string;
   version: string;
   lastUpdatedLabel: string;
+  lang?: 'fr' | 'en';
   children: React.ReactNode;
 }) {
   return (
@@ -18,12 +20,16 @@ export function LegalPageShell({
           <p className="text-label">SharpIt</p>
           <h1 className="text-page-title">{title}</h1>
           <p className="text-muted-foreground text-sm">
-            Version {version} · mise à jour {lastUpdatedLabel}
+            {lang === 'en'
+              ? `Version ${version} · updated ${lastUpdatedLabel}`
+              : `Version ${version} · mise à jour ${lastUpdatedLabel}`}
           </p>
-          <p className="text-muted-foreground text-xs">
-            {/* Source: content/legal/*_PAGE_FR_V0.md — Privacy Santé drafts */}
-            Brouillon V0 — source content/legal (Privacy Santé).
-          </p>
+          {lang === 'fr' ? (
+            <p className="text-muted-foreground text-xs">
+              {/* Source: content/legal/*_PAGE_FR_V0.md — Privacy Santé drafts */}
+              Brouillon V0 — source content/legal (Privacy Santé).
+            </p>
+          ) : null}
         </header>
         <div>{children}</div>
         <footer className="border-border text-muted-foreground flex flex-wrap gap-4 border-t pt-6 text-sm">

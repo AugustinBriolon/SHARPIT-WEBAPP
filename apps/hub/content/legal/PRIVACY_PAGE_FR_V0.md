@@ -1,6 +1,6 @@
 ## Politique de confidentialité de Sharpit
 
-**Dernière mise à jour :** 1er octobre 2026
+**Dernière mise à jour :** 24 octobre 2026
 
 ### 1. Qui est responsable du traitement ?
 
@@ -25,7 +25,7 @@ Selon votre usage et les connecteurs que vous activez, Sharpit peut traiter :
 | Compte                         | Identifiants et données de compte gérés via **Clerk** (e-mail, prénom et nom, identifiant technique)                                                                                                                   |
 | Profil sportif                 | Taille, date de naissance, sexe, seuils (FTP, FC max, allures), sports pratiqués, matériel, objectifs                                                                                                                  |
 | Apple Santé (iPhone)           | Uniquement si vous l’activez : séances et tracés GPS, sommeil, fréquence cardiaque, VFC, FC de repos, pas, poids. Lues sur l’iPhone et envoyées à Sharpit ; **jamais** utilisées à des fins publicitaires ni revendues |
-| Données des services connectés | Selon les services que vous connectez (**Garmin**, **Withings**, **MyFitnessPal**, **Google Agenda**) : activité, récupération, composition corporelle, nutrition, créneaux d’agenda, selon les classes activées       |
+| Données des services connectés | Selon les services que vous connectez (**Garmin**, **Withings**, **Google Agenda**) : activité, récupération, composition corporelle, nutrition, créneaux d’agenda, selon les classes activées                         |
 | Saisies de l’athlète           | Ressenti et effort perçu des séances et des bricks, journal du jour (y compris réponses de santé : médicaments, cycle, alcool), notes physiques, messages au coach                                                     |
 | Journal alimentaire            | Repas, aliments, portions et objectifs que vous saisissez dans Sharpit, vos aliments personnels, et l’historique que vous importez depuis un export MyFitnessPal (totaux par repas et par jour)                        |
 | Appareil photo (iPhone)        | Uniquement quand vous scannez un code-barres : l’image est lue sur l’iPhone et n’est jamais envoyée ; seul le numéro du code-barres l’est                                                                              |
@@ -47,7 +47,7 @@ Les données sont traitées uniquement pour :
 - faire fonctionner, sécuriser et améliorer le service dans ce cadre ;
 - répondre à vos demandes (export, suppression, questions confidentialité).
 
-Pas d’usage commercial de revente de vos données. Pas de publicité, pas de pistage entre applications ou sites. Pas d’entraînement de modèles d’IA généralistes sur vos données dans le cadre de cette V0.
+Pas d’usage commercial de revente de vos données. Pas de publicité, pas de pistage entre applications ou sites. Pas d’entraînement de modèles d’IA généralistes sur vos données dans le cadre de cette V0. Les données issues de Garmin, et tout ce qui en est dérivé, ne servent jamais à entraîner, évaluer ni améliorer un modèle d’IA.
 
 Les données lues dans **Apple Santé** ne servent qu’à ces finalités : elles ne sont ni partagées avec des tiers à des fins publicitaires ou commerciales, ni stockées dans iCloud.
 
@@ -63,19 +63,32 @@ Les données lues dans **Apple Santé** ne servent qu’à ces finalités : elle
 
 Vous pouvez retirer un consentement à tout moment (cela peut limiter ou interrompre la fonctionnalité concernée). Contact : [augustin.briolon@gmail.com](mailto:augustin.briolon@gmail.com).
 
-### 6. Intégrations non officielles
+### 6. Garmin et intégrations non officielles
 
-Certaines connexions à des services tiers sont **non officielles** (non fournies ni approuvées par l’éditeur du service) : à ce jour **Garmin Connect** et **MyFitnessPal**. Elles sont proposées « en l’état », peuvent cesser de fonctionner, et impliquent un transfert de données vers / depuis ce tiers selon ses propres conditions. Vos identifiants de connexion à ces services sont chiffrés. Un accusé de réception est requis avant connexion.
+**Garmin.** Sharpit lit vos données Garmin par l’**API officielle Garmin Connect**, avec votre accord et pour votre compte uniquement.
+
+- **Données lues :** activités (séances, durée, distance, fréquence cardiaque, puissance, tracés), sommeil, VFC, fréquence cardiaque au repos, stress, Body Battery, pas, poids. Rien d’autre : Sharpit ne lit pas les données de santé féminine.
+- **Finalités :** calculer votre charge, votre récupération et votre sommeil, adapter votre plan, nourrir le coach IA (uniquement avec votre consentement IA) et, pour les abonnés Pro, envoyer vos séances planifiées à votre montre.
+- **Connexion :** pendant la bêta, une **clé API personnelle** créée par vous sur Garmin Connect. Elle est vérifiée auprès de Garmin, **chiffrée** (AES-256-GCM), jamais réaffichée (seuls ses quatre derniers caractères le sont) et jamais journalisée. Vous pouvez la révoquer à tout moment sur Garmin Connect.
+- **Pas de revente.** Vos données Garmin ne sont ni vendues, ni louées, ni partagées avec des tiers, hors les sous-traitants techniques listés à la section 8. Elles ne servent pas à entraîner, évaluer ou améliorer un modèle d’IA.
+- **Contrôle :** **Paramètres → Sources de données → Garmin → Déconnecter** dans l’app iPhone efface la clé de nos serveurs et arrête toute lecture ; les données déjà importées sont conservées jusqu’à ce que vous les supprimiez avec votre compte (section 9). Vous pouvez aussi les exporter, les corriger (rectification de votre profil et de vos séances) ou les faire supprimer (section 10).
+- **Retrait :** retirer votre consentement aux données de santé ou à l’IA (Confidentialité & conditions) interrompt la synchronisation Garmin ou les usages IA concernés.
+
+**Intégrations non officielles.** Si une connexion à un service tiers n’est pas fournie ni approuvée par son éditeur, elle est signalée comme **non officielle**, proposée « en l’état », peut cesser de fonctionner, et implique un transfert de données vers / depuis ce tiers selon ses propres conditions. Vos identifiants sont alors chiffrés et un accusé de réception est requis avant connexion. À ce jour, aucune connexion proposée n’est dans ce cas.
 
 ### 7. Intelligence artificielle (porte dure)
 
 Lorsque vous consentez au traitement IA :
 
-- Sharpit peut envoyer le **contexte nécessaire** (état, historique d’entraînement pertinent, etc.) à un prestataire de modèles d’IA, via la passerelle IA de **Vercel**, pour générer des briefings, analyses ou réponses de coaching ;
-- les échanges avec le modèle sont journalisés chez **Langfuse** (hébergement UE) pour le diagnostic et la qualité, et effacés avec votre compte ;
+- Sharpit peut envoyer le **contexte nécessaire** (état, historique d’entraînement pertinent, etc., y compris des données issues de Garmin) à un prestataire de modèles d’IA, via la passerelle IA de **Vercel**, pour générer des briefings, analyses ou réponses de coaching. Les modèles sont fournis par **Google** (Gemini), **Anthropic** (Claude) et **OpenAI** (GPT), selon le modèle disponible ;
+- ces prestataires traitent le contexte uniquement pour répondre à la demande ;
+- les échanges avec le modèle sont journalisés chez **Langfuse** (hébergement UE) pour le **diagnostic technique uniquement**, et effacés avec votre compte ; ils ne servent pas à évaluer ni à améliorer des modèles d’IA ;
 - ce consentement est **séparé** du consentement données de santé ;
 - **sans** ce consentement IA, aucun envoi de ce type n’a lieu ;
-- Sharpit n’utilise pas vos données pour **entraîner un modèle généraliste** dans le cadre de cette V0.
+- Sharpit n’utilise pas vos données pour **entraîner un modèle généraliste** dans le cadre de cette V0 ;
+- **retrait en un geste :** Confidentialité & conditions → Traitement par IA (iPhone) ou Compte → Données et confidentialité (web). Dès le retrait, plus aucun contexte n’est envoyé à un modèle.
+
+**Transparence IA.** Le coach, les semaines rédigées et les bilans sont générés par des modèles d’IA à partir de vos données. Ce sont des **estimations d’entraînement**, qui peuvent contenir des erreurs : elles ne constituent ni un avis médical ni un diagnostic, et c’est vous qui décidez de les suivre.
 
 ### 8. Destinataires et sous-traitants
 
@@ -88,16 +101,17 @@ Selon la configuration du service, des prestataires techniques peuvent traiter d
 - **Sentry** (hébergement UE) — rapports de plantage et d’erreurs, sans métriques corporelles ;
 - **Apple** — notifications (APNs), achats intégrés, météo (WeatherKit), Apple Santé sur votre iPhone ;
 - **Open Food Facts** — base d’aliments ouverte : Sharpit y cherche un produit par nom ou code-barres depuis ses serveurs, sans transmettre qui vous êtes ;
-- **prestataire d’IA** et **Langfuse** — uniquement si vous avez consenti au traitement IA.
+- **Google, Anthropic, OpenAI** (modèles d’IA, via la passerelle de Vercel) et **Langfuse** — uniquement si vous avez consenti au traitement IA ;
+- **Garmin** — source des données que vous choisissez de relier, via l’API officielle Garmin Connect.
 
-Les services que **vous** connectez (Garmin, Withings, MyFitnessPal, Google Agenda) reçoivent ou exposent des données selon **leurs** politiques et le périmètre que vous autorisez.
+Les services que **vous** connectez (Garmin, Withings, Google Agenda) reçoivent ou exposent des données selon **leurs** politiques et le périmètre que vous autorisez.
 
 Certains prestataires peuvent traiter des données hors de l’Union européenne ; ces transferts sont encadrés par les garanties prévues par le RGPD (clauses contractuelles types ou décision d’adéquation).
 
 ### 9. Durée de conservation
 
 - Compte actif : conservation aussi longtemps que le compte est nécessaire au service.
-- **Suppression :** à votre demande, le compte, l’identifiant de connexion et les données associées sont **supprimés immédiatement et définitivement**.
+- **Suppression :** à votre demande, le compte est **désactivé immédiatement** et déconnecté de vos sources (la clé Garmin est effacée), puis le compte, l’identifiant de connexion et les données associées sont **supprimés définitivement au bout de 14 jours** (délai de récupération en cas d’erreur).
 - Journaux techniques et rapports de plantage : conservation limitée au besoin d’exploitation et de sécurité.
 - Sur l’iPhone, un cache local (dernières données lues) reste sur l’appareil ; il est effacé à la déconnexion d’un autre compte et à la suppression du compte. Il n’est pas copié dans iCloud.
 

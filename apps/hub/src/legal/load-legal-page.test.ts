@@ -81,3 +81,34 @@ describe('Privacy policy matches what the iPhone app collects', () => {
     expect(body).not.toContain('Renpho');
   });
 });
+
+describe("Privacy policy meets Garmin's Connect program requirements", () => {
+  const read = (name: string) =>
+    stripLegalMetaHeader(readFileSync(path.join(process.cwd(), 'content/legal', name), 'utf8'));
+
+  it.each([
+    ['FR', 'PRIVACY_PAGE_FR_V0.md'],
+    ['EN', 'PRIVACY_PAGE_EN_V0.md'],
+  ])('%s states how Garmin data is used, who processes it and that it is not sold', (_, file) => {
+    const body = read(file);
+    expect(body).toContain('Garmin');
+    for (const processor of ['Vercel', 'Neon', 'Google', 'Anthropic', 'OpenAI', 'Langfuse']) {
+      expect(body).toContain(processor);
+    }
+    expect(body).toMatch(/AES-256-GCM/);
+    expect(body).toMatch(/Garmin[\s\S]*(?:ni vendues|not sold)/);
+    expect(body).toMatch(/(?:entraîner, évaluer ni améliorer|train, evaluate or improve)/);
+  });
+
+  it('English policy names the AI transparency statement and the withdrawal path', () => {
+    const body = read('PRIVACY_PAGE_EN_V0.md');
+    expect(body).toContain('AI transparency');
+    expect(body).toMatch(/withdrawal in one gesture/i);
+  });
+
+  it('no longer presents Garmin as unofficial nor lists MyFitnessPal as a connector', () => {
+    const fr = read('PRIVACY_PAGE_FR_V0.md');
+    expect(fr).not.toMatch(/à ce jour \*\*Garmin Connect\*\*/);
+    expect(fr).not.toMatch(/\(\*\*Garmin\*\*, \*\*Withings\*\*, \*\*MyFitnessPal\*\*/);
+  });
+});
