@@ -80,6 +80,8 @@ export type IntegrationAccountView = {
   fullName?: string | null;
   targetCalendarId?: string | null;
   targetCalendarName?: string | null;
+  /** Garmin only: the key's last four characters, the only part of it ever shown (ADR-103). */
+  apiKeyLast4?: string | null;
 };
 
 export type IntegrationProviderView = {
@@ -89,7 +91,8 @@ export type IntegrationProviderView = {
 
 export type IntegrationsHubPayload = {
   strava: IntegrationProviderView & { configured: boolean };
-  garmin: IntegrationProviderView;
+  /** `available`: the athlete may link Garmin with a Personal API key (allowlist, ADR-103). */
+  garmin: IntegrationProviderView & { available: boolean };
   renpho: IntegrationProviderView;
   withings: IntegrationProviderView & { configured: boolean };
   google: IntegrationProviderView & { configured: boolean };

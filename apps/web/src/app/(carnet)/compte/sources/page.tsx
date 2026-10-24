@@ -9,6 +9,7 @@ import type {
   IntegrationProviderView,
   IntegrationsHubPayload,
 } from '@sharpit/app/lib/web/payloads';
+import { GarminKeyButton } from '@/components/carnet/carnet-garmin-key';
 import { GoogleTargetCalendarButton } from '@/components/carnet/carnet-google-target-calendar';
 import {
   CarnetPage,
@@ -54,11 +55,14 @@ const OUTCOMES: Record<string, string> = {
 function sinceLine(view: IntegrationProviderView): string {
   const synced = view.account?.lastSyncAt;
   if (view.needsReconnect) {
-    return "L'accès a expiré : relie-le à nouveau.";
+    return view.account?.apiKeyLast4 !== undefined
+      ? 'Clé refusée ou expirée : ajoute une nouvelle clé.'
+      : "L'accès a expiré : relie-le à nouveau.";
   }
+  const key = view.account?.apiKeyLast4 ? `Clé ••••${view.account.apiKeyLast4} · ` : '';
   return synced
-    ? `Relié · dernière synchro le ${format(new Date(synced), 'd MMMM', { locale: fr })}`
-    : 'Relié';
+    ? `${key}Relié · dernière synchro le ${format(new Date(synced), 'd MMMM', { locale: fr })}`
+    : `${key}Relié`;
 }
 
 function sourceAction(
@@ -67,6 +71,9 @@ function sourceAction(
   linked: boolean,
   canLink: boolean,
 ) {
+  if (source.key === 'garmin') {
+    return <GarminKeyButton linked={linked} />;
+  }
   if (!linked && canLink) {
     return (
       <ConnectLink
@@ -133,30 +140,30 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
       <CarnetSection label="Sources" title="Tes appareils et tes comptes">
         {hub ? (
           <ReadingList>
-            {/* Garmin's key form is iPhone-only and allowlisted: list it once linked. */}
-            {SOURCES.filter((source) => source.key !== 'garmin' || hub.garmin.account).map(
-              (source) => {
-                const view = hub[source.key];
-                const linked = Boolean(view.account) && !view.needsReconnect;
-                const canLink = Boolean(
-                  source.connectPath && (!('configured' in view) || view.configured !== false),
-                );
-                return (
-                  <li key={source.key} className="flex items-center justify-between gap-6 py-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <IntegrationLogo className="size-8 shrink-0" id={source.id} />
-                      <div className="min-w-0">
-                        <p className="font-medium">{source.name}</p>
-                        <p className="text-muted-foreground mt-0.5 text-sm">
-                          {view.account || view.needsReconnect ? sinceLine(view) : 'Pas relié'}
-                        </p>
-                      </div>
+            {/* Garmin's key form is allowlisted (ADR-103): others see it only once linked. */}
+            {SOURCES.filter(
+              (source) => source.key !== 'garmin' || hub.garmin.available || hub.garmin.account,
+            ).map((source) => {
+              const view = hub[source.key];
+              const linked = Boolean(view.account) && !view.needsReconnect;
+              const canLink = Boolean(
+                source.connectPath && (!('configured' in view) || view.configured !== false),
+              );
+              return (
+                <li key={source.key} className="flex items-center justify-between gap-6 py-3">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <IntegrationLogo className="size-8 shrink-0" id={source.id} />
+                    <div className="min-w-0">
+                      <p className="font-medium">{source.name}</p>
+                      <p className="text-muted-foreground mt-0.5 text-sm">
+                        {view.account || view.needsReconnect ? sinceLine(view) : 'Pas relié'}
+                      </p>
                     </div>
-                    {sourceAction(source, view, linked, canLink)}
-                  </li>
-                );
-              },
-            )}
+                  </div>
+                  {sourceAction(source, view, linked, canLink)}
+                </li>
+              );
+            })}
             <li className="flex items-center gap-3 py-3">
               <IntegrationLogo className="size-8 shrink-0" id="apple-health" />
               <div className="min-w-0">
@@ -171,8 +178,8 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
           <Unreadable what="L'état de tes sources" />
         )}
         <Quiet>
-          Garmin et Apple Santé se relient depuis ton iPhone. Pour Google, choisis l&apos;agenda
-          cible ici une fois relié.
+          Apple Santé se relie depuis ton iPhone. Garmin se relie avec ta clé API personnelle, ici
+          ou dans l&apos;app. Pour Google, choisis l&apos;agenda cible ici une fois relié.
         </Quiet>
         <InApp>Délier une source, choisir la source principale de chaque donnée</InApp>
       </CarnetSection>

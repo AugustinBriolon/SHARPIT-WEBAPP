@@ -3,6 +3,7 @@ import type {
   IntegrationProviderView,
   IntegrationsHubPayload,
 } from '@sharpit/app/lib/web/payloads';
+import { canUseGarminPersonalKey } from '@sharpit/server/lib/integrations/garmin/garmin-access';
 import { getGarminAccount } from '@sharpit/server/lib/integrations/garmin/garmin-sync';
 import { isGoogleConfigured } from '@sharpit/server/lib/integrations/google/google';
 import {
@@ -34,6 +35,7 @@ const DISPLAY_FIELDS = [
   'fullName',
   'targetCalendarId',
   'targetCalendarName',
+  'apiKeyLast4',
 ] as const;
 
 export function toAccountView(account: object | null | undefined): IntegrationAccountView | null {
@@ -72,7 +74,10 @@ export async function loadIntegrationsHub(athleteId: string): Promise<Integratio
   ]);
   return {
     strava: { ...providerView(strava, isOAuthAccountConnected), configured: isStravaConfigured() },
-    garmin: providerView(garmin, isGarminAccountConnected),
+    garmin: {
+      ...providerView(garmin, isGarminAccountConnected),
+      available: canUseGarminPersonalKey(athleteId),
+    },
     renpho: providerView(renpho, isRenphoAccountConnected),
     withings: {
       ...providerView(withings, isOAuthAccountConnected),
