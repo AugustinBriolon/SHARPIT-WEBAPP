@@ -7,7 +7,7 @@ Performance operating system for endurance athletes — training load management
 **What this application does:**
 
 - Tracks training activities (run, bike, swim, strength) with load and performance metrics
-- Monitors health, recovery, and sleep via Garmin (official Personal API key, [ADR-103](./docs/adr/ADR-103-garmin-returns-through-the-personal-api-with-a-write-only-key.md)), Apple Health, Strava and Withings — one session per workout, the primary source per data class leading and the others filling gaps
+- Monitors health, recovery, and sleep via Garmin (Connect Developer Program OAuth and push, [ADR-105](./docs/adr/ADR-105-garmin-connects-through-the-developer-program-oauth-and-push.md)), Apple Health, Strava and Withings — one session per workout, the primary source per data class leading and the others filling gaps
 - Computes four scientific intelligence states via a Digital Twin: Recovery, Fatigue, Adaptation, and cross-model Reasoning
 - Provides AI-powered coaching recommendations via the Claude API
 - Manages training planning, periodization, and race goal tracking
@@ -18,12 +18,11 @@ Performance operating system for endurance athletes — training load management
 - Replace medical advice or clinical health assessment
 - Provide real-time device data streaming (syncs are batch-based)
 - Compute power curve or VO2max from device data (future capability)
-- Send sessions to a Garmin watch — Garmin reserves its Training API to business tiers (returns with Startup OAuth, ADR-103)
 
 **Main dependencies:**
 
 - **Neon / PostgreSQL** — persistent storage for activities, health, and Digital Twin state
-- **Garmin Connect Personal API** — activity and health data sync, read-only, one encrypted key per allowlisted athlete
+- **Garmin Connect Developer Program** — OAuth2 PKCE; activities and health pushed to `/api/garmin/push`
 - **Strava API** — activity sync
 - **Anthropic Claude API** — AI coach reasoning and recommendations
 
@@ -150,7 +149,9 @@ Open [http://localhost:3000](http://localhost:3000).
 | `STRAVA_CLIENT_ID`                  | Strava API client ID                                                                                  |
 | `STRAVA_CLIENT_SECRET`              | Strava API client secret                                                                              |
 | `STRAVA_REDIRECT_URI`               | `http://localhost:3000/api/strava/callback`                                                           |
-| `GARMIN_PERSONAL_KEY_ATHLETES`      | Athlete ids (comma-separated) allowed to link Garmin with a Personal API key; empty closes Garmin     |
+| `GARMIN_CLIENT_ID`                  | Garmin Connect Developer Program OAuth client id                                                      |
+| `GARMIN_CLIENT_SECRET`              | Garmin OAuth client secret (server only: token exchange and refresh)                                  |
+| `GARMIN_PUSH_SECRET`                | Secret Garmin's push URLs carry as `?key=` (`/api/garmin/push`)                                       |
 | `ANTHROPIC_API_KEY`                 | Claude API key for AI coaching                                                                        |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk authentication public key                                                                       |
 | `CLERK_SECRET_KEY`                  | Clerk authentication secret key                                                                       |
@@ -266,7 +267,7 @@ and `/progress` routes no longer exist — they were replaced by `/plan`, `/acti
 
 ### Garmin
 
-Set `GARMIN_CONSUMER_KEY` and `GARMIN_CONSUMER_SECRET` in `.env`, then connect via **Settings → Integrations → Garmin**.
+Set `GARMIN_CLIENT_ID`, `GARMIN_CLIENT_SECRET` and `GARMIN_PUSH_SECRET` in `apps/api/.env`, configure `https://api.sharpit.app/api/garmin/push?key=<GARMIN_PUSH_SECRET>` for every summary type at apis.garmin.com/tools/endpoints, then connect via **Compte → Sources → Garmin**.
 
 Garmin is the only integration SHARPIT **writes** to. A planned session can be sent to
 Connect as a structured workout, scheduled on the athlete calendar, and picked up by the

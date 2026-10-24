@@ -1,6 +1,6 @@
 # ADR-103: Garmin returns through the official Personal API with a write-only key
 
-**Status:** Accepted  
+**Status:** Superseded by [ADR-105](./ADR-105-garmin-connects-through-the-developer-program-oauth-and-push.md)  
 **Date:** 2026-10-24  
 **Author:** Augustin Briolon (with Claude Code)  
 **Supersedes:** [ADR-047](./ADR-047-garmin-connects-in-an-in-app-authentication-session.md)

@@ -34,26 +34,19 @@ Non. Une Apple Watch suffit, par Apple Santé. Si tu as les deux, Garmin fait fo
       slug: 'garmin',
       title: 'Connecter Garmin',
       summary:
-        'Garmin se connecte depuis l’app avec ta clé API personnelle Garmin. SharpIt la garde chiffrée et ne l’affiche plus jamais.',
+        'Garmin se connecte en un geste : tu te connectes chez Garmin et tu autorises SharpIt. Tes nouvelles séances et nuits arrivent ensuite seules.',
       body: `
 ### Le connecter
 
-1. Sur Garmin Connect (web), dans les paramètres de ton compte, crée une clé API personnelle. Garmin ne l’affiche qu’une fois : copie-la. L’app y mène par **Créer ma clé sur Garmin Connect**.
-2. Dans l’app, **Paramètres › Sources de données › +  › Garmin**, colle la clé et touche **Connecter Garmin**.
+Dans l’app, **Paramètres › Sources de données › +  › Garmin**, ou sur le web **Compte › Sources › Garmin › Relier**. Tu te connectes sur la page de Garmin et tu choisis ce que tu partages (activités, santé, envoi de séances). SharpIt ne voit jamais ton mot de passe Garmin.
 
-SharpIt vérifie la clé auprès de Garmin avant de la garder. Elle est chiffrée sur nos serveurs, n’est jamais affichée à nouveau (seuls ses quatre derniers caractères le sont) et ne sert qu’à lire tes données Garmin.
+### Ce qui arrive
 
-### Pendant la bêta
+Dès la connexion, Garmin envoie à SharpIt tes **nouvelles** séances, nuits, VFC, fréquence cardiaque au repos, stress, pas et pesées, à chaque synchronisation de ta montre. L’historique d’avant la connexion n’est pas transmis par Garmin : pour ton passé, relie Strava ou Apple Santé.
 
-La clé personnelle est prévue par Garmin pour l’usage d’une personne : Garmin est ouvert à quelques athlètes de la bêta. La connexion en un geste arrivera quand Garmin aura validé SharpIt.
+### Le déconnecter
 
-### La renouveler ou la révoquer
-
-Une clé expire après la durée choisie chez Garmin (30 jours à un an). Révoque-la quand tu veux sur Garmin Connect : SharpIt arrête de lire et te demande une nouvelle clé. **Déconnecter Garmin** efface la clé de nos serveurs ; ce qui est déjà importé est conservé.
-
-### L’historique
-
-À la connexion, SharpIt importe tes séances et tes nuits récentes, puis se tient à jour seul. Tu peux relancer une synchronisation depuis Sources de données.
+**Paramètres › Sources de données › Garmin › Déconnecter** arrête la synchronisation et prévient Garmin. Tu peux aussi retirer SharpIt depuis les paramètres de ton compte Garmin Connect. Ce qui est déjà importé est conservé.
 
 ### Une montre Garmin sans connexion directe
 

@@ -69,9 +69,9 @@ Vous pouvez retirer un consentement à tout moment (cela peut limiter ou interro
 
 - **Données lues :** activités (séances, durée, distance, fréquence cardiaque, puissance, tracés), sommeil, VFC, fréquence cardiaque au repos, stress, Body Battery, pas, poids. Rien d’autre : Sharpit ne lit pas les données de santé féminine.
 - **Finalités :** calculer votre charge, votre récupération et votre sommeil, adapter votre plan, nourrir le coach IA (uniquement avec votre consentement IA) et, pour les abonnés Pro, envoyer vos séances planifiées à votre montre.
-- **Connexion :** pendant la bêta, une **clé API personnelle** créée par vous sur Garmin Connect. Elle est vérifiée auprès de Garmin, **chiffrée** (AES-256-GCM), jamais réaffichée (seuls ses quatre derniers caractères le sont) et jamais journalisée. Vous pouvez la révoquer à tout moment sur Garmin Connect.
+- **Connexion :** par **OAuth**, sur la page de Garmin : vous choisissez ce que vous partagez, Sharpit ne voit jamais votre mot de passe Garmin. Les jetons d’accès sont **chiffrés** (AES-256-GCM) et jamais journalisés. Garmin envoie ensuite vos nouvelles données à Sharpit ; l’historique antérieur à la connexion n’est pas transmis.
 - **Pas de revente.** Vos données Garmin ne sont ni vendues, ni louées, ni partagées avec des tiers, hors les sous-traitants techniques listés à la section 8. Elles ne servent pas à entraîner, évaluer ou améliorer un modèle d’IA.
-- **Contrôle :** **Paramètres → Sources de données → Garmin → Déconnecter** dans l’app iPhone efface la clé de nos serveurs et arrête toute lecture ; les données déjà importées sont conservées jusqu’à ce que vous les supprimiez avec votre compte (section 9). Vous pouvez aussi les exporter, les corriger (rectification de votre profil et de vos séances) ou les faire supprimer (section 10).
+- **Contrôle :** **Paramètres → Sources de données → Garmin → Déconnecter** dans l’app iPhone efface les jetons de nos serveurs, met fin à l’autorisation chez Garmin et arrête toute réception ; les données déjà importées sont conservées jusqu’à ce que vous les supprimiez avec votre compte (section 9). Vous pouvez aussi les exporter, les corriger (rectification de votre profil et de vos séances) ou les faire supprimer (section 10).
 - **Retrait :** retirer votre consentement aux données de santé ou à l’IA (Confidentialité & conditions) interrompt la synchronisation Garmin ou les usages IA concernés.
 
 **Intégrations non officielles.** Si une connexion à un service tiers n’est pas fournie ni approuvée par son éditeur, elle est signalée comme **non officielle**, proposée « en l’état », peut cesser de fonctionner, et implique un transfert de données vers / depuis ce tiers selon ses propres conditions. Vos identifiants sont alors chiffrés et un accusé de réception est requis avant connexion. À ce jour, aucune connexion proposée n’est dans ce cas.
@@ -111,7 +111,7 @@ Certains prestataires peuvent traiter des données hors de l’Union européenne
 ### 9. Durée de conservation
 
 - Compte actif : conservation aussi longtemps que le compte est nécessaire au service.
-- **Suppression :** à votre demande, le compte est **désactivé immédiatement** et déconnecté de vos sources (la clé Garmin est effacée), puis le compte, l’identifiant de connexion et les données associées sont **supprimés définitivement au bout de 14 jours** (délai de récupération en cas d’erreur).
+- **Suppression :** à votre demande, le compte est **désactivé immédiatement** et déconnecté de vos sources (l’autorisation Garmin est révoquée), puis le compte, l’identifiant de connexion et les données associées sont **supprimés définitivement au bout de 14 jours** (délai de récupération en cas d’erreur).
 - Journaux techniques et rapports de plantage : conservation limitée au besoin d’exploitation et de sécurité.
 - Sur l’iPhone, un cache local (dernières données lues) reste sur l’appareil ; il est effacé à la déconnexion d’un autre compte et à la suppression du compte. Il n’est pas copié dans iCloud.
 

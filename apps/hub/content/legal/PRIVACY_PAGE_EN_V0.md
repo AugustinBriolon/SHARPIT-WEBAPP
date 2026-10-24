@@ -64,9 +64,9 @@ SharpIt reads your Garmin data through the **official Garmin Connect API**, with
 
 - **Data read:** activities (sessions, duration, distance, heart rate, power, tracks), sleep, HRV, resting heart rate, stress, Body Battery, steps, weight. Nothing else: SharpIt does not read women's health data.
 - **Purposes:** compute your training load, recovery and sleep; adapt your plan; feed the AI coach (only with your AI consent); and, for Pro subscribers, send your planned workouts to your watch.
-- **Connection:** during the beta, a **personal API key** that you create on Garmin Connect. It is checked with Garmin, **encrypted** (AES-256-GCM), never shown again (only its last four characters are) and never logged. You can revoke it at any time on Garmin Connect.
+- **Connection:** through **OAuth**, on Garmin's own page: you choose what you share, and SharpIt never sees your Garmin password. Access tokens are **encrypted** (AES-256-GCM) and never logged. Garmin then sends your new data to SharpIt; history from before the connection is not transmitted.
 - **No sale.** Your Garmin data is not sold, rented or shared with third parties, other than the technical processors listed in section 8. It is not used to train, evaluate or improve an AI model.
-- **Control:** **Settings → Data sources → Garmin → Disconnect** in the iPhone app erases the key from our servers and stops all reads. Data already imported is kept until you delete it with your account (section 9). You can also export it, correct it (your profile and sessions) or have it deleted (section 10).
+- **Control:** **Settings → Data sources → Garmin → Disconnect** in the iPhone app erases the tokens from our servers, ends the authorisation at Garmin and stops all data reception. Data already imported is kept until you delete it with your account (section 9). You can also export it, correct it (your profile and sessions) or have it deleted (section 10).
 - **Withdrawal:** withdrawing your health-data or AI consent (Privacy & terms) stops Garmin synchronisation or the AI uses concerned.
 
 **Non-official integrations.** If a connection to a third-party service is not provided or approved by its publisher, it is flagged as **unofficial**, offered "as is", may stop working, and involves a data transfer to / from that third party under its own terms. Your credentials are then encrypted and an acknowledgement is required before connecting. Today, no offered connection is in that case.
@@ -106,7 +106,7 @@ Some providers may process data outside the European Union; these transfers are 
 ### 9. Retention
 
 - Active account: data is kept as long as the account is needed for the service.
-- **Deletion:** on your request, the account is **deactivated immediately** and disconnected from your sources (the Garmin key is erased), then the account, the sign-in identifier and the associated data are **permanently deleted after 14 days** (a recovery window in case of error).
+- **Deletion:** on your request, the account is **deactivated immediately** and disconnected from your sources (the Garmin authorisation is revoked), then the account, the sign-in identifier and the associated data are **permanently deleted after 14 days** (a recovery window in case of error).
 - Technical logs and crash reports: kept only as long as needed for operation and security.
 - On the iPhone, a local cache (latest data read) stays on the device; it is erased when another account signs in and when the account is deleted. It is not copied to iCloud.
 
