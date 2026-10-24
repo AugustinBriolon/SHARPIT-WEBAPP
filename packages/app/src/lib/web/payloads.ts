@@ -1,3 +1,4 @@
+import type { PlanAdherence } from '@sharpit/app/lib/admin/plan-adherence';
 import type { AccessTier, Prisma } from '@prisma/client';
 import type { RaceAnalysis } from '@sharpit/app/lib/activity/race-analysis-types';
 import type { MultisportLeg } from '@sharpit/app/lib/activity/multisport';
@@ -101,6 +102,8 @@ export type AdminAthleteView = {
   tier: AccessTier;
   createdAt: Date;
   email: string | null;
+  /** Week 1–4 plan adherence (ADR-102); null when nothing was ever planned. */
+  adherence: PlanAdherence | null;
 };
 
 export type DemoCoachTranscriptPayload = {

@@ -1,5 +1,5 @@
 import { clerkClient } from '@clerk/nextjs/server';
-import { listAthletesForAdmin } from '@sharpit/server/lib/admin/queries';
+import { listAthletesForAdmin, loadPlanAdherence } from '@sharpit/server/lib/admin/queries';
 import type { AdminAthleteView } from '@sharpit/app/lib/web/payloads';
 import { isDevClerkBypass } from '@sharpit/app/lib/dev/dev-auth';
 
@@ -24,9 +24,13 @@ async function emailsByClerkId(clerkUserIds: string[]): Promise<Map<string, stri
 /** The /admin athlete list with each account's email (operator tooling, admins only). */
 export async function loadAdminAthletes(): Promise<AdminAthleteView[]> {
   const athletes = await listAthletesForAdmin();
-  const emails = await emailsByClerkId(athletes.map((athlete) => athlete.clerkUserId));
+  const [emails, adherence] = await Promise.all([
+    emailsByClerkId(athletes.map((athlete) => athlete.clerkUserId)),
+    loadPlanAdherence(),
+  ]);
   return athletes.map((athlete) => ({
     ...athlete,
     email: emails.get(athlete.clerkUserId) ?? null,
+    adherence: adherence.get(athlete.id) ?? null,
   }));
 }
