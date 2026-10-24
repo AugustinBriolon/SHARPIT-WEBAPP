@@ -56,7 +56,19 @@ the Startup tier in parallel.
    now runs on `GarminPersonalClient` (`garmin-personal-api.ts`) instead of the unofficial
    client. SSO, DI OAuth, the token importer and workout push are not restored: the Personal tier
    cannot write to the watch.
-7. **Official provider.** Garmin is no longer in `UNOFFICIAL_PROVIDERS`, so connecting it asks for
+7. **Multi-source merge.** A session another source recorded first follows the activities'
+   primary (ADR-027). If Garmin leads (it is the primary, or none is set), its measures replace
+   the other source's, and the Core keeps one SESSION for the row: the Apple Health and Strava
+   observations are removed before Garmin's is ingested. The engine's externalId dedup cannot
+   match a Strava id against a Garmin id, so before this change a session Strava sent first was
+   counted twice. If Garmin does not lead, it only fills blanks and ingests nothing. In both cases
+   the title, RPE, feeling and notes the athlete may have written are filled, never replaced
+   (`garmin-merge-policy.ts`). Garmin covers no body class, so its weight only fills a day no
+   scale weighed.
+8. **Web and iOS.** Compte › Sources (web) and Paramètres › Sources de données (iOS) take the key
+   in a dedicated form: create-key link, password field, "Remplacer la clé" once linked. Both show
+   the Garmin mark.
+9. **Official provider.** Garmin is no longer in `UNOFFICIAL_PROVIDERS`, so connecting it asks for
    the health consent only.
 
 ---
@@ -146,7 +158,8 @@ Revisit if Garmin moves to Startup with public users.
   details) are not documented for the Personal API. They are read best-effort and may come back
   empty. This has not been verified against a real key yet.
 - The key expires (up to 1 year). The athlete has to enter a new one when Garmin refuses it.
-- No workout push to the watch until Startup.
+- No workout push to the watch: the Personal API is read-only, and the Training API is for the
+  business tiers. It comes back with Startup OAuth, Pro-gated as before (decided 2026-10-24).
 
 ### Neutral
 

@@ -7,11 +7,10 @@ Performance operating system for endurance athletes — training load management
 **What this application does:**
 
 - Tracks training activities (run, bike, swim, strength) with load and performance metrics
-- Monitors health, recovery, and sleep via Garmin, Strava, and Renpho integrations
+- Monitors health, recovery, and sleep via Garmin (official Personal API key, [ADR-103](./docs/adr/ADR-103-garmin-returns-through-the-personal-api-with-a-write-only-key.md)), Apple Health, Strava and Withings — one session per workout, the primary source per data class leading and the others filling gaps
 - Computes four scientific intelligence states via a Digital Twin: Recovery, Fatigue, Adaptation, and cross-model Reasoning
 - Provides AI-powered coaching recommendations via the Claude API
 - Manages training planning, periodization, and race goal tracking
-- Sends structured sessions to a Garmin watch — steps, repeat groups, and pace, power or heart-rate targets derived from the athlete's own thresholds
 - Serves the same twin at two reading densities — Essential hides the technical metric layer, Expert exposes it ([ADR-023](./docs/adr/ADR-023-reading-density-expert-mode.md))
 
 **What this application does not do:**
@@ -19,12 +18,12 @@ Performance operating system for endurance athletes — training load management
 - Replace medical advice or clinical health assessment
 - Provide real-time device data streaming (syncs are batch-based)
 - Compute power curve or VO2max from device data (future capability)
-- Guide open-water swimming — Garmin structures pool sessions only
+- Send sessions to a Garmin watch — Garmin reserves its Training API to business tiers (returns with Startup OAuth, ADR-103)
 
 **Main dependencies:**
 
 - **Neon / PostgreSQL** — persistent storage for activities, health, and Digital Twin state
-- **Garmin Connect API** — activity and health data sync
+- **Garmin Connect Personal API** — activity and health data sync, read-only, one encrypted key per allowlisted athlete
 - **Strava API** — activity sync
 - **Anthropic Claude API** — AI coach reasoning and recommendations
 
@@ -37,11 +36,11 @@ scripts run with `yarn web <script>` or `yarn api <script>` (database scripts: `
 
 ```
 apps/web/                web.sharpit.app: the UI — Next.js pages only, no database (src/, scripts/, e2e/, public/)
-apps/hub/                sharpit.app: AASA, the native Garmin handoff (/connect/*), /privacy, /terms (content/legal/), the landing at /; /api/* → api.; everything else → web. (ADR-051)
+apps/hub/                sharpit.app: AASA, the OAuth handoffs (/connect/*), /privacy, /terms (content/legal/), the landing at /; /api/* → api.; everything else → web. (ADR-051)
 apps/api/                api.sharpit.app: every route handler — /api/v1, the web's /api routes, crons, migrations, db scripts (port 3001)
 packages/core/           Pure domain: observation, features, inference, digital twin, decision… (@sharpit/core)
 packages/shared/         Framework-free helpers shared by every workspace (@sharpit/shared)
-packages/ui/             What both UIs render: design system CSS, fonts, button, auth shell, providers, Garmin SSO parts, api. clients (@sharpit/ui)
+packages/ui/             What both UIs render: design system CSS, fonts, button, auth shell, providers, api. clients (@sharpit/ui)
 packages/app/            What the web may import: pure modules, view models, api. payload types, Clerk identity helpers (@sharpit/app) — never the server or the database (ADR-050)
 packages/db/             Prisma schema, migrations and client (@sharpit/db/client)
 packages/server/         Server application code (api. only): queries, integrations, engines, handlers (@sharpit/server)
@@ -151,8 +150,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `STRAVA_CLIENT_ID`                  | Strava API client ID                                                                                  |
 | `STRAVA_CLIENT_SECRET`              | Strava API client secret                                                                              |
 | `STRAVA_REDIRECT_URI`               | `http://localhost:3000/api/strava/callback`                                                           |
-| `GARMIN_CONSUMER_KEY`               | Garmin Connect API OAuth key                                                                          |
-| `GARMIN_CONSUMER_SECRET`            | Garmin Connect API OAuth secret                                                                       |
+| `GARMIN_PERSONAL_KEY_ATHLETES`      | Athlete ids (comma-separated) allowed to link Garmin with a Personal API key; empty closes Garmin     |
 | `ANTHROPIC_API_KEY`                 | Claude API key for AI coaching                                                                        |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk authentication public key                                                                       |
 | `CLERK_SECRET_KEY`                  | Clerk authentication secret key                                                                       |
@@ -233,7 +231,7 @@ record and nothing that can expire.
 | `yarn api db:unify:multisport [--athlete id\|--all] [--days n] [--apply]` | Merge split multisport recordings into one race and hide absorbed rows — dry-run unless `--apply` ([ADR-078](docs/adr/ADR-078-one-race-one-activity-multisport-unification-and-goal-link.md)) |
 | `yarn web tokens:ios`                                                     | Regenerate the native client's Swift design tokens ([ADR-041](docs/adr/ADR-041-ios-design-tokens-generated-from-web.md))                                                                      |
 | `yarn web tokens:ios:check`                                               | Fail if the committed Swift tokens are stale                                                                                                                                                  |
-| `yarn api smoke:must-private [origin…]`                                   | Live smoke of the apex (`https://sharpit.app`): AASA, Garmin handoff entry/callback                                                                                                           |
+| `yarn api smoke:must-private [origin…]`                                   | Live smoke of the apex (`https://sharpit.app`): AASA and the OAuth handoff paths                                                                                                              |
 | `yarn api smoke:api-host [origin]`                                        | Live check of the `api.` contract: 401/404 JSON, no cookie, no-store, CORS for `web.` only                                                                                                    |
 | `yarn api bench:coach-models [--models a,b] [--limit n]`                  | Compare chat models on the coach's real prompt (latency, empty answers, answers side by side) — billed calls, local DB, report in `apps/api/.bench/`                                          |
 
