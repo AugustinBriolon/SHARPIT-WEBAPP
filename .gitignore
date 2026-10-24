@@ -75,3 +75,6 @@ apps/api/.bench/
 
 # graft's local graph cache — regenerable, not committed (run `graft build`).
 /graft/
+
+# Garmin Connect Developer Program specs: confidential under the Garmin license, local only.
+docs/garmin/
