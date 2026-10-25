@@ -104,6 +104,7 @@
 | [ADR-106](./ADR-106-planned-sessions-reach-the-watch-through-the-training-api.md)       | Planned endurance sessions sent to the watch by hand through the Training API V2, Pro-only, targets resolved at send time, explicit resend                      | Accepted                          |
 | [ADR-107](./ADR-107-let-the-layout-explain.md)                                          | Let the layout explain: no redundant labels, kickers, leads or row descriptions                                                                                 | Accepted                          |
 | [ADR-108](./ADR-108-corps-reads-on-cards.md)                                            | The Corps page reads on cards; the rest of the carnet keeps its ruled sections (amends ADR-072)                                                                 | Accepted                          |
+| [ADR-109](./ADR-109-every-carnet-page-reads-on-cards.md)                                | Every page of the carnet reads on cards; `CarnetSection` becomes the card (amends ADR-108, ADR-072)                                                             | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
