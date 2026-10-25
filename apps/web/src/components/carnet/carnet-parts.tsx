@@ -21,8 +21,8 @@ export function CarnetPage({
 }: {
   /** The page one level up, named: always above the title, where the eye starts. */
   back?: { href: string; label: string };
-  kicker: string;
-  title: string;
+  kicker: ReactNode;
+  title: ReactNode;
   lead?: ReactNode;
   aside?: ReactNode;
   children: ReactNode;

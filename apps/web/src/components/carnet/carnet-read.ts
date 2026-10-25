@@ -87,3 +87,13 @@ export async function readDayViewModel<T>(route: string): Promise<T | null> {
     `/api/presentation/${route}?trainingDayId=${encodeURIComponent(trainingDayIdForNow())}`,
   );
 }
+
+/** One `api.` section, read on its own and kept in the athlete's browser (ADR-110). */
+export async function readCachedSection<T>(
+  path: string,
+  reviveDateFields = false,
+): Promise<T | null> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  return readSection<T>(path, reviveDateFields);
+}

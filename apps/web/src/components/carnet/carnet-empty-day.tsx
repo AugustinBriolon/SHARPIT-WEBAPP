@@ -15,7 +15,7 @@ export function CarnetEmptyDay({
   race,
 }: {
   aside: ReactNode;
-  kicker: string;
+  kicker: ReactNode;
   title: string;
   description?: string;
   race: RaceMoment | null | undefined;
