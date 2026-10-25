@@ -133,8 +133,9 @@ export type ProviderAccounts = {
   google: Awaited<ReturnType<typeof getGoogleAccount>>;
 };
 
+/** Every linked provider. Garmin pushes instead of being pulled, yet it is linked all the same. */
 function connectedProviderSet(accounts: ProviderAccounts): Set<string> {
-  return new Set(
+  const connected = new Set<string>(
     listConnectedCronProviders({
       strava: accounts.strava,
       withings: accounts.withings,
@@ -142,6 +143,10 @@ function connectedProviderSet(accounts: ProviderAccounts): Set<string> {
       google: accounts.google,
     }),
   );
+  if (accounts.garmin) {
+    connected.add('garmin');
+  }
+  return connected;
 }
 
 function buildProviderSyncSpecs(
