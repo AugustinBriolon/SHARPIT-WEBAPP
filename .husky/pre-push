@@ -1,1 +1,2 @@
-yarn build
+# What CI and Vercel run, on a clean checkout of the pushed commit (scripts/ci/pre-push.sh).
+exec scripts/ci/pre-push.sh
