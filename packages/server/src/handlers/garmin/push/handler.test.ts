@@ -43,6 +43,19 @@ describe('POST /api/garmin/push', () => {
     expect(receiveGarminPush).not.toHaveBeenCalled();
   });
 
+  it('logs a refused key by its length, never its value', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const { POST } = await import('./handler');
+    await POST(push('wrong'));
+    expect(warn).toHaveBeenCalledWith('[garmin-push] refused', {
+      secretConfigured: true,
+      keyLength: 5,
+      queryKeys: ['key'],
+    });
+    expect(JSON.stringify(warn.mock.calls)).not.toContain('wrong');
+    warn.mockRestore();
+  });
+
   it('refuses everything while no secret is configured', async () => {
     delete process.env.GARMIN_PUSH_SECRET;
     const { POST } = await import('./handler');

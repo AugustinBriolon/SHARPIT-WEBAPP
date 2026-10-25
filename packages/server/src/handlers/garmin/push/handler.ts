@@ -17,6 +17,12 @@ export async function POST(request: NextRequest) {
   const secret = process.env.GARMIN_PUSH_SECRET;
   const key = request.nextUrl.searchParams.get('key') ?? '';
   if (!secret || !timingSafeEqualString(key, secret)) {
+    // The key's length only, never its value: enough to tell a missing or cut key at Garmin.
+    console.warn('[garmin-push] refused', {
+      secretConfigured: Boolean(secret),
+      keyLength: key.length,
+      queryKeys: [...request.nextUrl.searchParams.keys()],
+    });
     return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   }
 
