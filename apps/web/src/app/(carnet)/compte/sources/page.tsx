@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
 import type { Metadata } from 'next';
 import { format } from 'date-fns';
@@ -19,6 +20,7 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
+import { Reading, Skel } from '@/components/carnet/carnet-reading';
 
 export const metadata: Metadata = { title: 'Sources de données' };
 
@@ -98,7 +100,19 @@ function sourceAction(
  * the private cache and handed in as plain values: read inside, it would keep the route's App
  * Shell from ever settling.
  */
-export default async function CarnetSourcesPage({
+export default function CarnetSourcesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | undefined>>;
+}) {
+  return (
+    <Suspense fallback={<SourcesReading params={{}} />}>
+      <SourcesWithOutcome searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function SourcesWithOutcome({
   searchParams,
 }: {
   searchParams: Promise<Record<string, string | undefined>>;
@@ -106,10 +120,63 @@ export default async function CarnetSourcesPage({
   return <SourcesReading params={await searchParams} />;
 }
 
-async function SourcesReading({ params }: { params: Record<string, string | undefined> }) {
+async function readHub(): Promise<IntegrationsHubPayload | null> {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
-  const hub = await readSection<IntegrationsHubPayload>('/api/web/integrations-hub', true);
+  return readSection<IntegrationsHubPayload>('/api/web/integrations-hub', true);
+}
+
+/** The sources are fixed text and logos; only their state (linked, since when) is read. */
+function SourceList({ hub }: { hub: IntegrationsHubPayload | undefined }) {
+  return (
+    <ReadingList>
+      {SOURCES.map((source) => {
+        const view = hub?.[source.key];
+        const linked = Boolean(view?.account) && !view?.needsReconnect;
+        const canLink = Boolean(
+          source.connectPath && view && (!('configured' in view) || view.configured !== false),
+        );
+        return (
+          <li key={source.key} className="flex items-center justify-between gap-6 py-3">
+            <div className="flex min-w-0 items-center gap-3">
+              <IntegrationLogo className="size-8 shrink-0" id={source.id} />
+              <div className="min-w-0">
+                <p className="font-medium">{source.name}</p>
+                {view ? (
+                  view.account || view.needsReconnect ? (
+                    <p className="text-muted-foreground mt-0.5 text-sm">{sinceLine(view)}</p>
+                  ) : null
+                ) : (
+                  <Skel className="mt-0.5 h-4 w-40" />
+                )}
+              </div>
+            </div>
+            {view ? sourceAction(source, view, linked, canLink) : <Skel className="h-7 w-16" />}
+          </li>
+        );
+      })}
+      <li className="flex items-center gap-3 py-3">
+        <IntegrationLogo className="size-8 shrink-0" id="apple-health" />
+        <div className="min-w-0">
+          <p className="font-medium">Apple Santé</p>
+          <p className="text-muted-foreground mt-0.5 text-sm">
+            {hub ? (
+              hub.appleHealth.linkedAt ? (
+                'Relié depuis ton iPhone'
+              ) : (
+                'Pas relié'
+              )
+            ) : (
+              <Skel className="h-4 w-32" />
+            )}
+          </p>
+        </div>
+      </li>
+    </ReadingList>
+  );
+}
+
+function SourcesReading({ params }: { params: Record<string, string | undefined> }) {
   const outcomes = SOURCES.flatMap((source) => {
     const outcome = params[source.key];
     return outcome && OUTCOMES[outcome] ? [`${source.name} ${OUTCOMES[outcome]}`] : [];
@@ -130,42 +197,9 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
         </p>
       ) : null}
       <CarnetSection label="Sources" title="Tes appareils et tes comptes">
-        {hub ? (
-          <ReadingList>
-            {SOURCES.map((source) => {
-              const view = hub[source.key];
-              const linked = Boolean(view.account) && !view.needsReconnect;
-              const canLink = Boolean(
-                source.connectPath && (!('configured' in view) || view.configured !== false),
-              );
-              return (
-                <li key={source.key} className="flex items-center justify-between gap-6 py-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <IntegrationLogo className="size-8 shrink-0" id={source.id} />
-                    <div className="min-w-0">
-                      <p className="font-medium">{source.name}</p>
-                      {view.account || view.needsReconnect ? (
-                        <p className="text-muted-foreground mt-0.5 text-sm">{sinceLine(view)}</p>
-                      ) : null}
-                    </div>
-                  </div>
-                  {sourceAction(source, view, linked, canLink)}
-                </li>
-              );
-            })}
-            <li className="flex items-center gap-3 py-3">
-              <IntegrationLogo className="size-8 shrink-0" id="apple-health" />
-              <div className="min-w-0">
-                <p className="font-medium">Apple Santé</p>
-                <p className="text-muted-foreground mt-0.5 text-sm">
-                  {hub.appleHealth.linkedAt ? 'Relié depuis ton iPhone' : 'Pas relié'}
-                </p>
-              </div>
-            </li>
-          </ReadingList>
-        ) : (
-          <Unreadable what="L'état de tes sources" />
-        )}
+        <Reading fallback={<SourceList hub={undefined} />} read={readHub}>
+          {(hub) => (hub ? <SourceList hub={hub} /> : <Unreadable what="L'état de tes sources" />)}
+        </Reading>
         <Quiet>
           Apple Santé se relie depuis ton iPhone. Garmin envoie tes nouvelles séances et nuits dès
           qu&apos;il est relié. Pour Google, choisis l&apos;agenda cible ici une fois relié.

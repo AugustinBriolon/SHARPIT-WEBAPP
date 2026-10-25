@@ -14,6 +14,7 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, type CarnetPro, readPro } from '@/components/carnet/carnet-read';
+import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import { CarnetSignOut } from '@/components/carnet/carnet-sign-out';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -34,35 +35,46 @@ function subscriptionLine(subscription: NonNullable<CarnetPro['subscription']>):
  */
 export const metadata: Metadata = { title: 'Compte' };
 
-export default async function CarnetAccountPage() {
+type Account = { name: string; email: string | null; pro: CarnetPro | null };
+
+async function readAccount(): Promise<Account> {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
   const [user, pro] = await Promise.all([currentUser(), readPro()]);
-  const name = [user?.firstName, user?.lastName].filter(Boolean).join(' ');
-  const email = user?.primaryEmailAddress?.emailAddress ?? null;
+  return {
+    name: [user?.firstName, user?.lastName].filter(Boolean).join(' '),
+    email: user?.primaryEmailAddress?.emailAddress ?? null,
+    pro,
+  };
+}
 
+export default function CarnetAccountPage() {
   return (
     <CarnetPage
       aside={<CarnetSignOut />}
       kicker="Compte"
-      lead={email ?? undefined}
-      title={name || 'Ton compte'}
+      lead={
+        <Reading read={readAccount} skeleton="h-4 w-48">
+          {(account) => account.email}
+        </Reading>
+      }
+      title={
+        <Reading read={readAccount} skeleton="h-8 w-48">
+          {(account) => account.name || 'Ton compte'}
+        </Reading>
+      }
     >
-      <CarnetSection label="SharpIt Pro" title={pro?.tier === 'PRO' ? 'Pro' : 'Gratuit'}>
-        {pro ? (
-          pro.subscription ? (
-            <Quiet>
-              {subscriptionLine(pro.subscription)}{' '}
-              {pro.subscription.source === 'apple'
-                ? "L'abonnement se gère dans les réglages de l'App Store."
-                : ''}
-            </Quiet>
-          ) : (
-            <InApp>Le passage à SharpIt Pro</InApp>
-          )
-        ) : (
-          <Unreadable what="L'abonnement" />
-        )}
+      <CarnetSection
+        label="SharpIt Pro"
+        title={
+          <Reading read={readAccount} skeleton="h-5 w-20">
+            {({ pro }) => (pro?.tier === 'PRO' ? 'Pro' : 'Gratuit')}
+          </Reading>
+        }
+      >
+        <Reading fallback={<Skel className="h-5 w-64" />} read={readAccount}>
+          {({ pro }) => <ProReading pro={pro} />}
+        </Reading>
       </CarnetSection>
 
       <CarnetSection label="Sources et données" title="Ce que tu peux régler ici">
@@ -79,5 +91,22 @@ export default async function CarnetAccountPage() {
         <InApp>Tout le reste (profil, sports, notifications, Garmin, Apple Santé)</InApp>
       </CarnetSection>
     </CarnetPage>
+  );
+}
+
+function ProReading({ pro }: { pro: CarnetPro | null }) {
+  if (!pro) {
+    return <Unreadable what="L'abonnement" />;
+  }
+  if (!pro.subscription) {
+    return <InApp>Le passage à SharpIt Pro</InApp>;
+  }
+  return (
+    <Quiet>
+      {subscriptionLine(pro.subscription)}{' '}
+      {pro.subscription.source === 'apple'
+        ? "L'abonnement se gère dans les réglages de l'App Store."
+        : ''}
+    </Quiet>
   );
 }
