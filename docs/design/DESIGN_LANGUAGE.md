@@ -151,6 +151,7 @@ text-meta:          0.8125rem              — 13px, size + leading only (captio
 - **Verdicts and hero text always left-aligned.** Center alignment is only for empty states and loading placeholders.
 - **`font-heading` (Inter, bold) is the title voice** for `text-page-title`, `text-section-title`, `text-card-title`, and `text-verdict` (+ brand/logo / system chrome). Body and labels stay on sans.
 - **One `<h1>` per page.** Sections use `<h2>`; nested panels use `<h3>`.
+- **Let the layout explain.** No label, kicker, lead, hint or row description that restates the title, the value or the structure around it. Keep text that carries data, names an error and its fix, offers the next step of an actionable empty state, confirms a destructive action, or states consent / legal terms (ADR-107).
 - **Uppercase section headers** (goals lists, etc.) use `text-label` on `<h2>`, not `text-section-title`.
 
 ---

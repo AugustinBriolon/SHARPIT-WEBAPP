@@ -127,6 +127,7 @@ Canonical detail: [`docs/design/DESIGN_LANGUAGE.md`](docs/design/DESIGN_LANGUAGE
 - Competitive card grids on the Today verdict / stacked RadialScoreCards in the plate
 - Decorative grid textures without informational function
 - Invented metrics or motivational micro-copy
+- Labels, kickers, leads or hints that restate what the title, the value or the layout already says (ADR-107)
 - **Route-hop to open a modal** — navigating to another page solely so a query param can mount a dialog the current surface can host. Open the dialog in place; reserve `?generate=` / `?adapt=` deep-links for cross-destination entry (e.g. Today → Plan semaine)
 
 ## Surfaces

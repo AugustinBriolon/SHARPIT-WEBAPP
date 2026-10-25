@@ -102,6 +102,7 @@
 | [ADR-104](./ADR-104-ai-cost-per-athlete-is-priced-from-recorded-tokens.md)              | AI cost per athlete over 30 days, priced from `AiUsageEvent` tokens at the AI Gateway list prices, shown on `/admin`                                            | Accepted                          |
 | [ADR-105](./ADR-105-garmin-connects-through-the-developer-program-oauth-and-push.md)    | Garmin on the Developer Program: OAuth2 PKCE, push to one secret URL kept in an inbox and replayed by cron, no history on Starter                               | Accepted                          |
 | [ADR-106](./ADR-106-planned-sessions-reach-the-watch-through-the-training-api.md)       | Planned endurance sessions sent to the watch by hand through the Training API V2, Pro-only, targets resolved at send time, explicit resend                      | Accepted                          |
+| [ADR-107](./ADR-107-let-the-layout-explain.md)                                          | Let the layout explain: no redundant labels, kickers, leads or row descriptions                                                                                 | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
