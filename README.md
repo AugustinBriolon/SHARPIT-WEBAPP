@@ -270,8 +270,8 @@ and `/progress` routes no longer exist — they were replaced by `/plan`, `/acti
 Set `GARMIN_CLIENT_ID`, `GARMIN_CLIENT_SECRET` and `GARMIN_PUSH_SECRET` in `apps/api/.env`, configure `https://api.sharpit.app/api/garmin/push?key=<GARMIN_PUSH_SECRET>` for every summary type at apis.garmin.com/tools/endpoints, then connect via **Compte → Sources → Garmin**.
 
 Garmin is the only integration SHARPIT **writes** to. A planned session can be sent to
-Connect as a structured workout, scheduled on the athlete calendar, and picked up by the
-watch on its next sync — see [Watch workouts](#watch-workouts).
+Garmin Connect as a structured workout through the Training API V2, scheduled on the athlete
+calendar, and picked up by the watch on its next sync — see [Watch workouts](#watch-workouts).
 
 ### Renpho
 
@@ -279,8 +279,13 @@ Connect via **Settings → Renpho**. Body composition observations are automatic
 
 ## Watch workouts
 
-Planned run, bike and swim sessions are sent to Garmin Connect as structured workouts. The
-watch guides each step and alerts when the athlete leaves the prescribed band.
+Planned run, bike and swim sessions are sent to Garmin Connect as structured workouts, one tap
+per session, for Pro athletes (`POST /api/garmin/workouts/from-planned-session`,
+[ADR-106](./docs/adr/ADR-106-planned-sessions-reach-the-watch-through-the-training-api.md)). The
+watch guides each step and alerts when the athlete leaves the prescribed band. A session already
+sent is resent only on request (`replace`), which deletes the previous workout. Strength sessions
+and bricks are not sent yet. The athlete must have granted `WORKOUT_IMPORT` when connecting
+Garmin, and Starter allows 200 Training API calls per athlete a day.
 
 **How targets are produced.** A session stores its steps with targets expressed _relative_ to
 the athlete's references — percent of threshold speed, FTP or CSS — and they are resolved into
@@ -294,11 +299,11 @@ are defined by being easy rather than by holding a number
 
 **Per sport:**
 
-| Sport | Target              | Reference                  | Notes                                                     |
-| ----- | ------------------- | -------------------------- | --------------------------------------------------------- |
-| Run   | Pace band (`/km`)   | `runThresholdPaceSecPerKm` | Falls back to heart rate when no threshold pace is set    |
-| Bike  | Power band (watts)  | `ftpW`                     | Explicit watts, never a Connect zone index                |
-| Swim  | Pace band (`/100m`) | `swimCssSecPer100m`        | Stroke per step; pool length required; no fallback metric |
+| Sport | Target              | Reference                  | Notes                                                                          |
+| ----- | ------------------- | -------------------------- | ------------------------------------------------------------------------------ |
+| Run   | Pace band (`/km`)   | `runThresholdPaceSecPerKm` | Falls back to heart rate when no threshold pace is set                         |
+| Bike  | Power band (watts)  | `ftpW`                     | Explicit watts, never a Connect zone index                                     |
+| Swim  | Pace band (`/100m`) | `swimCssSecPer100m`        | Stroke per step; pace sent as Garmin's secondary pace zone; no fallback metric |
 
 Thresholds are set or estimated under **Moi → Performance** (`/moi/performance`). Swim CSS is estimated from
 realised pool sessions ([ADR-021](./docs/adr/ADR-021-swim-css-from-session-pace.md)).
@@ -315,7 +320,7 @@ duration and intensity, and reported as derived rather than prescribed.
 - [`docs/adr/`](./docs/adr/) — Architecture Decision Records
 - [`docs/design/DESIGN_LANGUAGE.md`](./docs/design/DESIGN_LANGUAGE.md) — design language
 - [`docs/design/INFORMATION_ARCHITECTURE.md`](./docs/design/INFORMATION_ARCHITECTURE.md) — athlete-facing navigation and surface hierarchy
-- [`docs/adr/ADR-016`](./docs/adr/ADR-016-endurance-prescription-relative-targets.md) · [`ADR-017`](./docs/adr/ADR-017-endurance-prescription-authoring.md) · [`ADR-020`](./docs/adr/ADR-020-readable-easy-bands.md) · [`ADR-021`](./docs/adr/ADR-021-swim-css-from-session-pace.md) — watch workouts
+- [`docs/adr/ADR-016`](./docs/adr/ADR-016-endurance-prescription-relative-targets.md) · [`ADR-017`](./docs/adr/ADR-017-endurance-prescription-authoring.md) · [`ADR-020`](./docs/adr/ADR-020-readable-easy-bands.md) · [`ADR-021`](./docs/adr/ADR-021-swim-css-from-session-pace.md) · [`ADR-106`](./docs/adr/ADR-106-planned-sessions-reach-the-watch-through-the-training-api.md) — watch workouts
 - [`knowledge/README.md`](./knowledge/README.md) — scientific reference corpus
 - [`docs/archive/`](./docs/archive/) — superseded docs, sprint reports, design captures (not law)
 - [`docs/audits/`](./docs/audits/) — point-in-time audits
