@@ -14,6 +14,8 @@ const WEB_ORIGIN = 'https://web.sharpit.app';
 export const LANDING_LINKS = {
   signIn: `${WEB_ORIGIN}/sign-in`,
   demo: `${WEB_ORIGIN}/demo`,
+  // The beta's public TestFlight link (group « Beta-test », 10 testers). Swap for the App Store page at release.
+  download: 'https://testflight.apple.com/join/wgkSyMNr',
   method: '#methode',
   privacy: '/privacy',
   terms: '/terms',
@@ -28,34 +30,7 @@ export const LANDING_HERO = {
   primaryCta: { label: 'Voir la démo', href: LANDING_LINKS.demo },
   secondaryCta: { label: 'Découvrir la méthode', href: LANDING_LINKS.method },
   signIn: { label: 'Connexion', href: LANDING_LINKS.signIn },
-} as const;
-
-/** The hero's iPhone, drawn on example figures: the app's Résumé on a morning that eases. */
-export const LANDING_PHONE = {
-  tag: 'Exemple',
-  time: '07:02',
-  date: 'Mardi 6 octobre',
-  chips: ['Entraînement', 'Journal', '12°'],
-  verdictLabel: 'Verdict du jour',
-  verdict: 'Séance facile',
-  reason: 'Garde tes jambes pour la séance clé de jeudi.',
-  confidence: 'Confiance moyenne',
-  sessionLabel: 'Séance du jour',
-  session: 'Footing facile',
-  sessionMeta: '45 min · endurance',
-  proposal: 'Allégée ce matin',
-  weekLabel: 'Cette semaine',
-  week: [
-    { day: 'L', state: 'done' },
-    { day: 'M', state: 'today' },
-    { day: 'M', state: 'planned' },
-    { day: 'J', state: 'key' },
-    { day: 'V', state: 'rest' },
-    { day: 'S', state: 'key' },
-    { day: 'D', state: 'planned' },
-  ],
-  keyLabel: 'Clé',
-  tabs: ['Résumé', 'Plan', 'Coach', 'Activité', 'Santé'],
+  download: { label: 'Télécharger', href: LANDING_LINKS.download },
 } as const;
 
 /** Read word by word as the visitor scrolls. */
@@ -361,11 +336,6 @@ export function landingCopyStrings(): string[] {
     LANDING_HERO.rulerNote,
     LANDING_HERO.primaryCta.label,
     LANDING_HERO.secondaryCta.label,
-    ...Object.values(LANDING_PHONE).flatMap((value) =>
-      typeof value === 'string'
-        ? [value]
-        : value.map((item) => (typeof item === 'string' ? item : item.day)),
-    ),
     LANDING_MANIFESTO.label,
     LANDING_MANIFESTO.text,
     ...LANDING_CONTRASTS.flatMap((row) => [row.others, row.sharpit]),

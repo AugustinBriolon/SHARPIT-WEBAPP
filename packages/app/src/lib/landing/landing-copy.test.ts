@@ -5,6 +5,7 @@ import { TEASER_FORBIDDEN_COPY } from '@sharpit/app/lib/teaser/screens';
 import { PROVIDER_CATALOG } from '@sharpit/app/lib/integrations/provider-catalog';
 import {
   LANDING_GUARDRAILS,
+  LANDING_HERO,
   LANDING_LINKS,
   LANDING_METHOD,
   LANDING_SOURCES,
@@ -64,5 +65,11 @@ describe('landing copy', () => {
     for (const name of LANDING_SOURCES.upcoming) {
       expect(available, name).not.toContain(name);
     }
+  });
+});
+
+describe('landing download button', () => {
+  it('sends the header to the beta TestFlight page', () => {
+    expect(LANDING_HERO.download.href).toMatch(/^https:\/\/testflight\.apple\.com\/join\//);
   });
 });

@@ -42,15 +42,7 @@ function animateHero() {
       0.9,
     );
 
-  intro
-    .from('[data-phone]', { autoAlpha: 0, y: 80, rotate: 2, duration: 1.4 }, 0.2)
-    .from('[data-phone-item]', { autoAlpha: 0, y: 16, duration: 0.8, stagger: 0.1 }, 0.8)
-    .from('[data-phone-tick]', { scaleY: 0, duration: 0.4, stagger: 0.02, ease: 'power3.out' }, 1.2)
-    .from(
-      '[data-phone-badge]',
-      { autoAlpha: 0, scale: 0.6, duration: 0.6, ease: 'back.out(2)' },
-      1.8,
-    );
+  intro.from('[data-phone]', { autoAlpha: 0, y: 80, rotate: 2, duration: 1.4 }, 0.2);
 
   gsap.to('[data-phone]', {
     yPercent: -10,

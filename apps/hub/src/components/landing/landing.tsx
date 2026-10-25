@@ -20,12 +20,17 @@ export function Landing() {
       <header className="bg-background/75 fixed inset-x-0 top-0 z-20 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
           <Brand />
-          <a
-            className={buttonVariants({ size: 'sm', variant: 'ghost' })}
-            href={LANDING_HERO.signIn.href}
-          >
-            {LANDING_HERO.signIn.label}
-          </a>
+          <div className="flex items-center gap-1.5">
+            <a
+              className={buttonVariants({ size: 'sm', variant: 'ghost' })}
+              href={LANDING_HERO.signIn.href}
+            >
+              {LANDING_HERO.signIn.label}
+            </a>
+            <a className={buttonVariants({ size: 'sm' })} href={LANDING_HERO.download.href}>
+              {LANDING_HERO.download.label}
+            </a>
+          </div>
         </div>
         <span
           className="bg-foreground absolute inset-x-0 bottom-0 h-px origin-left"
