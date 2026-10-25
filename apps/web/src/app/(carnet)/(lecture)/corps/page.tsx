@@ -6,6 +6,7 @@ import type { SleepViewModel } from '@sharpit/app/presentation/sleep-view-model'
 import { CORPS_TONE_TEXT } from '@sharpit/app/lib/ui/metric-tone';
 import {
   CHART_BASE_STROKE,
+  CHART_PRIMARY_STROKE,
   CHART_RECOVERY_STROKE,
   CHART_VO2_STROKE,
 } from '@sharpit/app/lib/theme/chart-theme';
@@ -41,8 +42,8 @@ function Sleep({ vm }: { vm: SleepViewModel }) {
   return (
     <>
       <div className="flex items-center gap-6">
-        <ScoreRing caption="Score" stroke={CHART_BASE_STROKE} value={vm.sleepScore} />
-        <Figures className="flex-1 sm:grid-cols-1 lg:grid-cols-2">
+        <ScoreRing caption="Score" stroke={CHART_PRIMARY_STROKE} value={vm.sleepScore} />
+        <Figures className="flex-1 grid-cols-1 min-[26rem]:grid-cols-2 sm:grid-cols-1 lg:grid-cols-2">
           <Figure label="Durée" value={hoursOf(vm.totalSleepMin)} />
           <Figure label="Cible" value={hoursOf(vm.sleepTargetMin)} />
         </Figures>
@@ -81,10 +82,10 @@ function Recovery({ vm }: { vm: RecoveryViewModel }) {
       <div className="flex items-center gap-6">
         <ScoreRing
           caption="Dispo"
-          stroke={CHART_RECOVERY_STROKE}
+          stroke={CHART_PRIMARY_STROKE}
           value={typeof vm.readinessScore === 'number' ? vm.readinessScore : null}
         />
-        <Figures className="flex-1 sm:grid-cols-1 lg:grid-cols-2">
+        <Figures className="flex-1 grid-cols-1 min-[26rem]:grid-cols-2 sm:grid-cols-1 lg:grid-cols-2">
           <Figure
             label="VFC"
             unit="ms"

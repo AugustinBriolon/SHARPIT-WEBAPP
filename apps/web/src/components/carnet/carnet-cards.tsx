@@ -3,8 +3,8 @@ import { cn } from '@sharpit/app/lib/utils';
 import {
   CHART_BASE_STROKE,
   CHART_CAUTION_STROKE,
+  CHART_PRIMARY_STROKE,
   CHART_RECOVERY_STROKE,
-  CHART_TEMPO_STROKE,
 } from '@sharpit/app/lib/theme/chart-theme';
 import { ringDash, type SleepStage, type SleepStageKey } from './carnet-body';
 
@@ -77,9 +77,9 @@ export function ScoreRing({
 }
 
 const STAGE_STROKE: Record<SleepStageKey, string> = {
-  deep: CHART_BASE_STROKE,
-  rem: CHART_RECOVERY_STROKE,
-  light: CHART_TEMPO_STROKE,
+  deep: CHART_PRIMARY_STROKE,
+  rem: CHART_BASE_STROKE,
+  light: CHART_RECOVERY_STROKE,
   awake: CHART_CAUTION_STROKE,
 };
 
@@ -94,7 +94,7 @@ export function SleepStageBar({ stages }: { stages: readonly SleepStage[] }) {
   }
   return (
     <div className="space-y-3">
-      <div aria-label="Phases du sommeil" className="progress-track flex" role="img">
+      <div aria-label="Phases du sommeil" className="progress-track flex gap-0.5" role="img">
         {stages.map((stage) => (
           <div
             key={stage.key}
