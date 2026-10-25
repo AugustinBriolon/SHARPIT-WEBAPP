@@ -73,6 +73,20 @@ describe('coach system prompt · logFoods intent', () => {
     expect(system).toContain("n'inclus QUE ces items");
     expect(system).toContain('pas une carte seule');
   });
+
+  it('keeps cards for display and asks before guessing', async () => {
+    const { system } = await buildCoachSystemPrompt(
+      'athlete-1',
+      async () => null,
+      coachRequestScope('session'),
+    );
+
+    expect(system).toContain('affichage seul, rien n');
+    expect(system).toContain('Ne réécris pas le déroulé en texte');
+    expect(system).toContain('jamais avec une proposition qui attend sa validation');
+    expect(system).toContain('ne suppose jamais qu');
+    expect(system).toContain('pose UNE question ciblée');
+  });
 });
 
 describe('coach system prompt · learning memory', () => {

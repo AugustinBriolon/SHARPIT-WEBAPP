@@ -1,0 +1,39 @@
+{
+  "type": "tool-presentWorkout",
+  "toolCallId": "call-strength-1",
+  "state": "output-available",
+  "input": {
+    "type": "STRENGTH",
+    "title": "Renfo préventif coureur",
+    "purpose": "Chaîne postérieure et gainage, pour encaisser le volume de la semaine.",
+    "durationMin": 35,
+    "strengthPrescription": {
+      "sets": [
+        {
+          "exercise": "Soulevé de terre jambe tendue",
+          "intent": "STRENGTH",
+          "pattern": "HINGE",
+          "sets": 3,
+          "reps": 10,
+          "weightKg": 20,
+          "restMode": "time",
+          "restSec": 90
+        },
+        {
+          "exercise": "Planche",
+          "intent": "CORE",
+          "pattern": null,
+          "sets": 3,
+          "reps": 0,
+          "durationSec": 45,
+          "weightKg": null,
+          "restMode": "lap",
+          "restSec": null,
+          "notes": null
+        }
+      ]
+    },
+    "warnings": []
+  },
+  "output": { "ok": true, "schemaVersion": 1 }
+}

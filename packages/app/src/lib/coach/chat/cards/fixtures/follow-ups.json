@@ -1,0 +1,13 @@
+{
+  "type": "tool-suggestFollowUps",
+  "toolCallId": "call-follow-1",
+  "state": "output-available",
+  "input": {
+    "suggestions": [
+      "Et si je n’ai que 45 min ?",
+      "Je peux la faire sur home trainer ?",
+      "Quand placer la prochaine séance clé ?"
+    ]
+  },
+  "output": { "ok": true, "schemaVersion": 1 }
+}

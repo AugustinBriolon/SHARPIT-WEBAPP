@@ -1,0 +1,11 @@
+{
+  "type": "tool-presentWorkout",
+  "toolCallId": "call-swim-1",
+  "state": "input-available",
+  "input": {
+    "type": "SWIM",
+    "title": "Nage facile",
+    "purpose": "Délier les épaules après le vélo d’hier.",
+    "warnings": []
+  }
+}

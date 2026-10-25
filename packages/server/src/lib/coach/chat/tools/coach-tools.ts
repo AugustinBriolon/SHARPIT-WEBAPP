@@ -6,6 +6,7 @@ import { buildContextCoachTools } from './coach-tools-context';
 import { buildFoodLogCoachTools } from './coach-tools-food-log';
 import { buildMemoryCoachTools } from './coach-tools-memory';
 import { buildPlaybookCoachTools } from './coach-tools-playbook';
+import { buildPresentCoachTools } from './coach-tools-present';
 import { buildQueryCoachTools } from './coach-tools-query';
 import { buildSessionCoachTools } from './coach-tools-sessions';
 import { coachTypeEnumForSports, travelDisciplineEnumForSports } from './coach-tools-shared';
@@ -45,6 +46,7 @@ export function createCoachTools(
       ...buildPlaybookCoachTools(athleteId),
       ...buildMemoryCoachTools(athleteId),
       ...buildFoodLogCoachTools(athleteId),
+      ...buildPresentCoachTools(practicedSports, proposalTypeEnum),
     },
     COACH_WRITE_TOOLS,
   );

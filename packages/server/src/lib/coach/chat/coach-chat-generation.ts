@@ -1,6 +1,20 @@
-import { stepCountIs } from 'ai';
+import { stepCountIs, type StopCondition, type ToolSet } from 'ai';
 import { COACH_MAX_OUTPUT_TOKENS, coachGatewayOptions } from '@sharpit/server/lib/ai';
 import type { CoachRequestScope } from '@sharpit/server/lib/coach/chat/coach-request-scope';
+
+/** The display tools (ADR-111): once one has drawn its card, the answer is complete. */
+const DISPLAY_TOOLS: ReadonlySet<string> = new Set(['presentWorkout', 'suggestFollowUps']);
+
+/**
+ * Stops after a step whose display card was drawn. A refused card (`ok: false`) lets the model
+ * read why and try again within the step budget.
+ */
+export const drewCoachCard: StopCondition<ToolSet> = ({ steps }) =>
+  (steps.at(-1)?.toolResults ?? []).some(
+    (result) =>
+      DISPLAY_TOOLS.has(result.toolName) &&
+      (result.output as { ok?: unknown } | undefined)?.ok === true,
+  );
 
 /**
  * How the coach chat calls the model, apart from the model itself and the prompt: shared by the
@@ -30,7 +44,7 @@ export function coachChatGenerationSettings(scope: CoachRequestScope) {
       logFoods: 'user-approval',
     },
     // Keep tool loops short — DeepSeek Flash can otherwise re-call list tools and bloat the SSE.
-    stopWhen: stepCountIs(4),
+    stopWhen: [stepCountIs(4), drewCoachCard] as StopCondition<ToolSet>[],
     // No smoothing: a 12 ms pause per word held a long answer back by seconds, on a screen
     // the athlete is waiting on. Clients render the stream as it comes.
     reasoning: scope.reasoning,

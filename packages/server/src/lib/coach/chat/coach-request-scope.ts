@@ -31,7 +31,9 @@ export type CoachToolName =
   | 'logFoods'
   | 'listCoachMemory'
   | 'upsertCoachMemoryNote'
-  | 'archiveCoachMemoryNote';
+  | 'archiveCoachMemoryNote'
+  | 'presentWorkout'
+  | 'suggestFollowUps';
 
 export type CoachRequestScope = {
   intent: CoachIntent;
@@ -65,6 +67,7 @@ const READ_ONLY_TOOLS: readonly CoachToolName[] = [
   'compareSleepVsReadiness',
   'explainTargetBand',
   'listCoachMemory',
+  'suggestFollowUps',
 ];
 
 const SCOPES: Record<CoachIntent, Omit<CoachRequestScope, 'intent'>> = {
@@ -91,7 +94,7 @@ const SCOPES: Record<CoachIntent, Omit<CoachRequestScope, 'intent'>> = {
       'upcoming',
     ]),
     readsAgenda: false,
-    tools: [...READ_ONLY_TOOLS, 'searchWatchExercises'],
+    tools: [...READ_ONLY_TOOLS, 'searchWatchExercises', 'presentWorkout'],
     reasoning: COACH_REASONING_LEVEL.answer,
   },
   nutrition: {
@@ -105,6 +108,7 @@ const SCOPES: Record<CoachIntent, Omit<CoachRequestScope, 'intent'>> = {
     readsAgenda: false,
     tools: [
       ...READ_ONLY_TOOLS,
+      'presentWorkout',
       'setTrainingConstraint',
       'proposePlaybookAction',
       'upsertCoachMemoryNote',

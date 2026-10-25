@@ -1,0 +1,12 @@
+{
+  "type": "tool-presentWorkout",
+  "toolCallId": "call-invalid-1",
+  "state": "output-available",
+  "input": {
+    "type": "RUN",
+    "purpose": "Titre manquant : la carte ne se dessine pas.",
+    "durationMin": "soixante",
+    "warnings": null
+  },
+  "output": { "ok": true, "schemaVersion": 1 }
+}

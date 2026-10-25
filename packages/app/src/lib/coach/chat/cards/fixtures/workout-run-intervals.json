@@ -1,0 +1,33 @@
+{
+  "type": "tool-presentWorkout",
+  "toolCallId": "call-run-1",
+  "state": "output-available",
+  "input": {
+    "type": "RUN",
+    "title": "6 × 1000 m au seuil",
+    "purpose": "Relever ton seuil à six semaines du semi, sur des jambes fraîches (TSB +4).",
+    "intensity": "THRESHOLD",
+    "durationMin": 60,
+    "load": 72,
+    "endurancePrescription": {
+      "blocks": [
+        { "steps": [{ "kind": "warmup", "minutes": 15, "effort": "ENDURANCE" }] },
+        {
+          "times": 6,
+          "steps": [
+            {
+              "kind": "interval",
+              "meters": 1000,
+              "effort": "THRESHOLD",
+              "notes": "Régulier, pas plus vite au dernier."
+            },
+            { "kind": "recovery", "minutes": 2, "effort": "RECOVERY" }
+          ]
+        },
+        { "steps": [{ "kind": "cooldown", "minutes": 10, "effort": "RECOVERY" }] }
+      ]
+    },
+    "warnings": ["Ton mollet gauche était sensible mardi : arrête au moindre pincement."]
+  },
+  "output": { "ok": true, "schemaVersion": 1 }
+}

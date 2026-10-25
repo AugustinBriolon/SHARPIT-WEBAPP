@@ -85,6 +85,16 @@ describe('coachRequestScope', () => {
     expect(scope.tools).toContain('setTrainingConstraint');
     expect(scope.tools).not.toContain('createPlannedSession');
   });
+
+  it('offers follow-ups everywhere and the workout card where a session can come up', () => {
+    for (const intent of ['session', 'nutrition', 'recovery'] as const) {
+      expect(coachRequestScope(intent).tools).toContain('suggestFollowUps');
+    }
+    expect(coachRequestScope('session').tools).toContain('presentWorkout');
+    expect(coachRequestScope('recovery').tools).toContain('presentWorkout');
+    // The workout schema is large: a meal question does not carry it.
+    expect(coachRequestScope('nutrition').tools).not.toContain('presentWorkout');
+  });
 });
 
 describe('message readers', () => {
