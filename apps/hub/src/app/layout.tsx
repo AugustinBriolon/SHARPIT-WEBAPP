@@ -11,8 +11,11 @@ import { ThemeProvider } from '@sharpit/ui/providers/theme-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'SharpIt',
-  description: 'Intelligence sportive — entraînement, récupération, décision.',
+  metadataBase: new URL('https://sharpit.app'),
+  title: { default: 'SharpIt · Coach d’endurance qui répare ton plan', template: '%s' },
+  description:
+    'SharpIt construit ta semaine vers ta course, la relit chaque matin avec ce que ta montre a mesuré et la répare quand la vie s’en mêle. Triathlon, course, vélo, natation.',
+  openGraph: { siteName: 'SharpIt', locale: 'fr_FR', type: 'website' },
 };
 
 export const viewport: Viewport = {

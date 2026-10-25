@@ -101,7 +101,7 @@ export const COMPETITORS: Record<string, CompetitorData> = {
       {
         question: 'Mes séances SharpIt vont-elles sur ma montre Garmin ?',
         answer:
-          'Oui. SharpIt se synchronise directement avec Garmin Connect pour lire vos nuits et exporter vos séances d’entraînement avec leurs allures et cibles précises directement sur votre montre.',
+          'Oui, pour les séances de course, de vélo et de natation. SharpIt lit vos nuits et vos séances dans Garmin Connect, et vous envoyez une séance prévue sur la montre depuis son menu, avec ses étapes et ses cibles calculées d’après vos seuils. L’envoi demande un compte Garmin relié et SharpIt Pro.',
       },
     ],
   },

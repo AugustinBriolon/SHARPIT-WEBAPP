@@ -17,21 +17,21 @@ export default function NotFound() {
         </p>
         <div className="mt-8 flex items-center gap-6">
           <Link
+            className="bg-foreground text-background rounded-full px-6 py-2.5 text-sm font-semibold transition-opacity hover:opacity-90"
             href="/"
-            className="rounded-full bg-foreground px-6 py-2.5 text-sm font-semibold text-background transition-opacity hover:opacity-90"
           >
             Retour à l’accueil
           </Link>
           <Link
+            className="text-muted-foreground hover:text-foreground text-sm font-medium transition-colors"
             href="/aide"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Centre d’aide
           </Link>
         </div>
       </main>
       <footer className={CONTAINER}>
-        <p className="text-xs text-muted-foreground">© 2026 SharpIt</p>
+        <p className="text-muted-foreground text-xs">© 2026 SharpIt</p>
       </footer>
     </div>
   );
