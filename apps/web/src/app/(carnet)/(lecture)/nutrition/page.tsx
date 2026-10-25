@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { cacheLife } from 'next/cache';
 import type {
   NutritionDaySummary,
@@ -19,6 +20,7 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readViewModel } from '@/components/carnet/carnet-read';
+import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import { longDayLabel } from '@/components/carnet/carnet-time';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -97,15 +99,32 @@ function Day({ day }: { day: NutritionDaySummary }) {
   );
 }
 
-export default async function CarnetNutritionPage() {
+/** Which day the page is on: the clock is read inside the private cache, never by the page. */
+async function readToday(): Promise<string> {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
-  const today = trainingDayIdForNow();
-  const vm = await readViewModel<NutritionViewModel>(
-    `/api/presentation/nutrition?trainingDayId=${encodeURIComponent(today)}`,
-  );
+  return trainingDayIdForNow();
+}
 
-  if (!vm) {
+async function readNutrition(): Promise<NutritionViewModel | null> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  return readViewModel<NutritionViewModel>(
+    `/api/presentation/nutrition?trainingDayId=${encodeURIComponent(trainingDayIdForNow())}`,
+  );
+}
+
+export default function CarnetNutritionPage() {
+  return (
+    <Reading fallback={<NutritionFrame vm={undefined} />} read={readNutrition}>
+      {(vm) => <NutritionFrame vm={vm} />}
+    </Reading>
+  );
+}
+
+/** The page's frame: drawn with skeletons while `vm` is awaited, then with the reading. */
+function NutritionFrame({ vm }: { vm: NutritionViewModel | null | undefined }) {
+  if (vm === null) {
     return (
       <CarnetPage kicker="La nutrition" title="Ce que tu manges">
         <Unreadable what="La nutrition" />
@@ -113,17 +132,20 @@ export default async function CarnetNutritionPage() {
     );
   }
 
-  const reading = vm.coachReading?.state === 'ready' ? vm.coachReading : null;
-  const day = vm.selectedDay ?? vm.today;
+  const reading = vm?.coachReading?.state === 'ready' ? vm.coachReading : null;
+  const day = vm ? (vm.selectedDay ?? vm.today) : null;
+  const waiting = <Skel className="block h-24 w-full" />;
+  let lead: ReactNode;
+  if (!vm) {
+    lead = <Skel className="h-4 w-56" />;
+  } else if (vm.diet.labels.length > 0) {
+    lead = `Régime : ${vm.diet.labels.join(', ')}.`;
+  }
 
   return (
-    <CarnetPage
-      kicker="La nutrition"
-      lead={vm.diet.labels.length > 0 ? `Régime : ${vm.diet.labels.join(', ')}.` : undefined}
-      title="Ce que tu manges"
-    >
+    <CarnetPage kicker="La nutrition" lead={lead} title="Ce que tu manges">
       <CarnetSection label="Les derniers jours" title="La régularité">
-        <Regularity history={vm.history} />
+        {vm ? <Regularity history={vm.history} /> : waiting}
       </CarnetSection>
 
       {reading ? (
@@ -135,8 +157,17 @@ export default async function CarnetNutritionPage() {
         </CarnetSection>
       ) : null}
 
-      <CarnetSection label="Aujourd'hui" title={longDayLabel(today)}>
-        {day ? <Day day={day} /> : <Quiet>Rien de noté aujourd&apos;hui.</Quiet>}
+      <CarnetSection
+        label="Aujourd'hui"
+        title={
+          <Reading read={readToday} skeleton="h-5 w-40">
+            {(today) => longDayLabel(today)}
+          </Reading>
+        }
+      >
+        {!vm ? waiting : null}
+        {vm && day ? <Day day={day} /> : null}
+        {vm && !day ? <Quiet>Rien de noté aujourd&apos;hui.</Quiet> : null}
         <InApp>Noter un repas</InApp>
       </CarnetSection>
     </CarnetPage>

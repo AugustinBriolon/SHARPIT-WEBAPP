@@ -1,4 +1,3 @@
-import { cacheLife } from 'next/cache';
 import { format, parseISO } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import type {
@@ -16,7 +15,8 @@ import {
   ReadingRow,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
+import { readCachedSection } from '@/components/carnet/carnet-read';
+import { Reading, Skel } from '@/components/carnet/carnet-reading';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
 export const instant = true;
@@ -64,12 +64,19 @@ function Categories({ categories }: { categories: RecordCategory[] }) {
   );
 }
 
-export default async function CarnetRecordsPage() {
-  'use cache: private';
-  cacheLife(CARNET_FRESHNESS);
-  const records = await readSection<RecordsPayload>('/api/v1/records');
+const readRecords = () => readCachedSection<RecordsPayload>('/api/v1/records');
 
-  if (!records) {
+export default function CarnetRecordsPage() {
+  return (
+    <Reading fallback={<RecordsFrame records={undefined} />} read={readRecords}>
+      {(records) => <RecordsFrame records={records} />}
+    </Reading>
+  );
+}
+
+/** The page's frame: drawn with skeletons while `records` is awaited, then with the reading. */
+function RecordsFrame({ records }: { records: RecordsPayload | null | undefined }) {
+  if (records === null) {
     return (
       <CarnetPage kicker="Les records" title="Tes meilleurs efforts">
         <Unreadable what="Les records" />
@@ -77,38 +84,59 @@ export default async function CarnetRecordsPage() {
     );
   }
 
-  const runBests = records.runBests.filter((b) => b.entries.length > 0);
+  const runBests = records?.runBests.filter((b) => b.entries.length > 0) ?? [];
+  const waiting = <Skel className="block h-24 w-full" />;
 
   return (
     <CarnetPage
       kicker="Les records"
-      lead={`Lus sur ${records.totalActivities} séances, dont ${records.streamsAnalyzed} avec leur enregistrement complet.`}
       title="Tes meilleurs efforts"
+      lead={
+        records ? (
+          `Lus sur ${records.totalActivities} séances, dont ${records.streamsAnalyzed} avec leur enregistrement complet.`
+        ) : (
+          <Skel className="h-4 w-80 max-w-full" />
+        )
+      }
     >
       <CarnetSection label="Course à pied" title="Les meilleurs temps">
-        {runBests.length > 0 ? (
-          <ReadingList>
-            {runBests.map((best) => (
-              <BestRow key={best.meters} entries={best.entries} label={best.label} />
-            ))}
-          </ReadingList>
-        ) : null}
-        <Categories categories={records.prs.run} />
+        {records ? (
+          <>
+            {runBests.length > 0 ? (
+              <ReadingList>
+                {runBests.map((best) => (
+                  <BestRow key={best.meters} entries={best.entries} label={best.label} />
+                ))}
+              </ReadingList>
+            ) : null}
+            <Categories categories={records.prs.run} />
+          </>
+        ) : (
+          waiting
+        )}
       </CarnetSection>
 
       <CarnetSection label="Vélo" title="Puissance et distances">
-        {records.powerCurve.length > 1 ? (
-          <CarnetLineChart
-            data={records.powerCurve.map((p) => ({ label: p.label, watts: p.watts }))}
-            series={[{ key: 'watts', name: 'Puissance', stroke: CHART_RECORD_STROKE, unit: 'W' }]}
-            title="Courbe de puissance"
-          />
-        ) : null}
-        <Categories categories={records.prs.bike} />
+        {records ? (
+          <>
+            {records.powerCurve.length > 1 ? (
+              <CarnetLineChart
+                data={records.powerCurve.map((p) => ({ label: p.label, watts: p.watts }))}
+                title="Courbe de puissance"
+                series={[
+                  { key: 'watts', name: 'Puissance', stroke: CHART_RECORD_STROKE, unit: 'W' },
+                ]}
+              />
+            ) : null}
+            <Categories categories={records.prs.bike} />
+          </>
+        ) : (
+          waiting
+        )}
       </CarnetSection>
 
       <CarnetSection label="Natation" title="Dans l'eau">
-        <Categories categories={records.prs.swim} />
+        {records ? <Categories categories={records.prs.swim} /> : waiting}
       </CarnetSection>
     </CarnetPage>
   );

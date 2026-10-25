@@ -11,6 +11,7 @@ import {
   Quiet,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readPro, readSection } from '@/components/carnet/carnet-read';
+import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import { dayIdOf, dayOf, weekLabel, weekStartsEndingAt } from '@/components/carnet/carnet-time';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -57,7 +58,8 @@ function ReviewFigures({ stats }: { stats: WeeklyStats }) {
   );
 }
 
-export default async function CarnetReviewsPage() {
+/** The reviews of the last weeks, or `'free'` for an account the weekly review is not part of. */
+async function readReviews(): Promise<Review[] | 'free'> {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
   const today = dayOf(trainingDayIdForNow());
@@ -65,11 +67,7 @@ export default async function CarnetReviewsPage() {
 
   const pro = await readPro();
   if (pro && pro.tier !== 'PRO') {
-    return (
-      <CarnetPage kicker="Les bilans" title="Le bilan de la semaine">
-        <InApp>Le passage à SharpIt Pro</InApp>
-      </CarnetPage>
-    );
+    return 'free';
   }
 
   const answers = await Promise.all(
@@ -80,7 +78,7 @@ export default async function CarnetReviewsPage() {
     ),
   );
   const seen = new Set<string>();
-  const reviews = answers
+  return answers
     .map((answer) => answer?.review ?? null)
     .filter((review): review is Review => {
       if (!review || seen.has(review.id)) {
@@ -89,32 +87,50 @@ export default async function CarnetReviewsPage() {
       seen.add(review.id);
       return true;
     });
+}
 
+export default function CarnetReviewsPage() {
   return (
     <CarnetPage kicker="Les bilans" title="Tes semaines">
-      {reviews.length === 0 ? (
-        <>
-          <Quiet>Aucun bilan sur les {WEEKS} dernières semaines.</Quiet>
-          <InApp>Demander le bilan de la semaine</InApp>
-        </>
-      ) : (
-        reviews.map((review) => (
-          <CarnetSection
-            key={review.id}
-            label="Semaine"
-            title={weekLabel(dayOf(review.weekStart.slice(0, 10)))}
-          >
-            {review.stats ? <ReviewFigures stats={review.stats} /> : null}
-            <CarnetMarkdown content={review.content} />
-            <Quiet>
-              Dans l&apos;app : régénère la semaine à partir de ce bilan, ou ouvre le coach avec «
-              Discute de mon bilan de la semaine du{' '}
-              {weekLabel(dayOf(review.weekStart.slice(0, 10)))} ».
-            </Quiet>
+      <Reading
+        read={readReviews}
+        fallback={
+          <CarnetSection label="Semaine" title={<Skel className="h-5 w-40" />}>
+            <Skel className="block h-32 w-full" />
           </CarnetSection>
-        ))
-      )}
+        }
+      >
+        {(reviews) => <ReviewList reviews={reviews} />}
+      </Reading>
       <InApp>Régénérer une semaine · Discuter du bilan avec le coach</InApp>
     </CarnetPage>
   );
+}
+
+function ReviewList({ reviews }: { reviews: Review[] | 'free' }) {
+  if (reviews === 'free') {
+    return <InApp>Le passage à SharpIt Pro</InApp>;
+  }
+  if (reviews.length === 0) {
+    return (
+      <>
+        <Quiet>Aucun bilan sur les {WEEKS} dernières semaines.</Quiet>
+        <InApp>Demander le bilan de la semaine</InApp>
+      </>
+    );
+  }
+  return reviews.map((review) => (
+    <CarnetSection
+      key={review.id}
+      label="Semaine"
+      title={weekLabel(dayOf(review.weekStart.slice(0, 10)))}
+    >
+      {review.stats ? <ReviewFigures stats={review.stats} /> : null}
+      <CarnetMarkdown content={review.content} />
+      <Quiet>
+        Dans l&apos;app : régénère la semaine à partir de ce bilan, ou ouvre le coach avec « Discute
+        de mon bilan de la semaine du {weekLabel(dayOf(review.weekStart.slice(0, 10)))} ».
+      </Quiet>
+    </CarnetSection>
+  ));
 }
