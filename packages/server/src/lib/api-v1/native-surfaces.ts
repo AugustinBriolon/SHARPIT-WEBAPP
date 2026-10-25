@@ -59,6 +59,7 @@ export const NATIVE_V1_SURFACES = [
   { path: 'food-log/recipes/[id]', methods: ['PUT'] },
   { path: 'food-log/targets', methods: ['PUT'] },
   { path: 'garmin/disconnect', methods: ['POST'] },
+  { path: 'garmin/workouts/from-planned-session', methods: ['POST'] },
   { path: 'withings/disconnect', methods: ['POST'] },
   { path: 'strava/disconnect', methods: ['POST'] },
   { path: 'google/disconnect', methods: ['POST'] },
