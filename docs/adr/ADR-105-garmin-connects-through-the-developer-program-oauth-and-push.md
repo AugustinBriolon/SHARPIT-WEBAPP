@@ -42,7 +42,7 @@ Garmin becomes an OAuth provider like Strava and Withings, fed by push.
    (`/api/v1/garmin/handoff`, `/connect/garmin/start|callback` on the apex). `GarminAccount` holds
    `garminUserId` (unique: one Garmin account feeds one athlete), encrypted access and refresh
    tokens, `expiresAt` (ten minutes early) and the consented `permissions`.
-2. **Push.** A single endpoint, `/api/garmin/push?key=<GARMIN_PUSH_SECRET>`, is configured for
+2. **Push.** A single endpoint, `/api/garmin/push/<GARMIN_PUSH_SECRET>` (the portal cuts a `?key=` on save, so the secret rides in the path; the query form is still read), is configured for
    every summary type. Garmin signs nothing, so the secret is the authentication, compared in
    constant time. Each summary list is stored as a `GarminPushInbox` row before the 200.
    Processing runs in `after()`, and the sync cron replays unprocessed rows (five tries).

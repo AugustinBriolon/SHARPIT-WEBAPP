@@ -151,7 +151,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `STRAVA_REDIRECT_URI`               | `http://localhost:3000/api/strava/callback`                                                           |
 | `GARMIN_CLIENT_ID`                  | Garmin Connect Developer Program OAuth client id                                                      |
 | `GARMIN_CLIENT_SECRET`              | Garmin OAuth client secret (server only: token exchange and refresh)                                  |
-| `GARMIN_PUSH_SECRET`                | Secret Garmin's push URLs carry as `?key=` (`/api/garmin/push`)                                       |
+| `GARMIN_PUSH_SECRET`                | Secret Garmin's push URLs end with (`/api/garmin/push/<secret>`)                                      |
 | `ANTHROPIC_API_KEY`                 | Claude API key for AI coaching                                                                        |
 | `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk authentication public key                                                                       |
 | `CLERK_SECRET_KEY`                  | Clerk authentication secret key                                                                       |
@@ -267,7 +267,7 @@ and `/progress` routes no longer exist — they were replaced by `/plan`, `/acti
 
 ### Garmin
 
-Set `GARMIN_CLIENT_ID`, `GARMIN_CLIENT_SECRET` and `GARMIN_PUSH_SECRET` in `apps/api/.env`, configure `https://api.sharpit.app/api/garmin/push?key=<GARMIN_PUSH_SECRET>` for every summary type at apis.garmin.com/tools/endpoints, then connect via **Compte → Sources → Garmin**.
+Set `GARMIN_CLIENT_ID`, `GARMIN_CLIENT_SECRET` and `GARMIN_PUSH_SECRET` in `apps/api/.env`, configure `https://api.sharpit.app/api/garmin/push/<GARMIN_PUSH_SECRET>` for every summary type at apis.garmin.com/tools/endpoints, then connect via **Compte → Sources → Garmin**.
 
 Garmin is the only integration SHARPIT **writes** to. A planned session can be sent to
 Garmin Connect as a structured workout through the Training API V2, scheduled on the athlete

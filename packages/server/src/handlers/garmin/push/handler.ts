@@ -7,15 +7,17 @@ import {
 
 /**
  * Garmin's push endpoint (Health and Activity APIs), configured at apis.garmin.com/tools as
- * `https://api.sharpit.app/api/garmin/push?key=<GARMIN_PUSH_SECRET>` for every summary type.
- * Garmin signs nothing, so the secret in the URL is the authentication. The payload is kept,
+ * `https://api.sharpit.app/api/garmin/push/<GARMIN_PUSH_SECRET>` for every summary type. The
+ * portal drops a query string when it saves a URL (a `?key=` came back cut), so the secret rides
+ * in the path; `?key=` is still read for an endpoint saved before. Garmin signs nothing, so the
+ * secret in the URL is the authentication. The payload is kept,
  * the 200 sent at once (Garmin's 30 s rule), and processing runs after the response.
  * shortcut: Vercel caps a request body at 4.5 MB, so the per-second details of a very long
  * session can be refused; move such sessions to Activity Files (FIT) if that shows up.
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, context?: { params: Promise<{ key?: string }> }) {
   const secret = process.env.GARMIN_PUSH_SECRET;
-  const key = request.nextUrl.searchParams.get('key') ?? '';
+  const key = (await context?.params)?.key ?? request.nextUrl.searchParams.get('key') ?? '';
   if (!secret || !timingSafeEqualString(key, secret)) {
     // The key's length only, never its value: enough to tell a missing or cut key at Garmin.
     console.warn('[garmin-push] refused', {

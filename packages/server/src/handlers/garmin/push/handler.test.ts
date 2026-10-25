@@ -56,6 +56,18 @@ describe('POST /api/garmin/push', () => {
     warn.mockRestore();
   });
 
+  it('takes the secret from the path, where the Garmin portal lets it stay', async () => {
+    const { POST } = await import('./handler');
+    const request = new NextRequest('https://api.sharpit.app/api/garmin/push/push-secret', {
+      method: 'POST',
+      body: JSON.stringify({ dailies: [{ userId: 'u1' }] }),
+    });
+    const accepted = await POST(request, { params: Promise.resolve({ key: 'push-secret' }) });
+    expect(accepted.status).toBe(200);
+    const refused = await POST(request, { params: Promise.resolve({ key: 'wrong' }) });
+    expect(refused.status).toBe(401);
+  });
+
   it('refuses everything while no secret is configured', async () => {
     delete process.env.GARMIN_PUSH_SECRET;
     const { POST } = await import('./handler');
