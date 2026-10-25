@@ -3,6 +3,7 @@
  * Presentation + Decision Memory only (Core frozen).
  */
 
+import { Prisma } from '@prisma/client';
 import { endOfDay, startOfDay } from 'date-fns';
 import type { GateProposal, GateSessionResult } from '@sharpit/app/lib/plan-gate/types';
 import { buildDecisionSnapshotContext } from '@sharpit/server/lib/decision-memory/build-snapshot-context';
@@ -23,6 +24,7 @@ import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/sna
 import { hasMorningWellnessCheckin } from '@sharpit/server/lib/journal/wellness-checkin';
 import { prisma } from '@sharpit/db/client';
 import { updatePlannedSession } from '@sharpit/server/lib/queries';
+import { recalibratedStructure } from '@sharpit/server/lib/morning-recalibration/recalibrated-structure';
 import { dayKeyFromDate } from '@sharpit/app/lib/date/day-key';
 import { nightEvidenceReady } from '@sharpit/app/lib/today/rich/morning-orientation';
 
@@ -410,14 +412,33 @@ export async function acceptMorningRecalibration(
     return validated;
   }
 
-  const { sessionId } = validated.decision.proposal;
+  const { sessionId, intensity, durationMin, load } = validated.decision.proposal;
   const mr = validated.decision.snapshotContext.morningRecalibration!;
+  const session = await prisma.plannedSession.findFirst({
+    where: { id: sessionId!, athleteId },
+    select: { type: true, endurancePrescription: true, durationMin: true, intensity: true },
+  });
+  const structure = recalibratedStructure({
+    type: session?.type ?? '',
+    endurancePrescription: session?.endurancePrescription ?? null,
+    durationMin: durationMin ?? session?.durationMin ?? null,
+    intensity: intensity ?? session?.intensity ?? null,
+    toDescription: mr.toDescription,
+  });
 
   await updatePlannedSession(athleteId, sessionId!, {
-    intensity: validated.decision.proposal.intensity ?? undefined,
-    durationMin: validated.decision.proposal.durationMin ?? undefined,
-    load: validated.decision.proposal.load ?? undefined,
-    description: mr.toDescription ?? undefined,
+    intensity: intensity ?? undefined,
+    durationMin: durationMin ?? undefined,
+    load: load ?? undefined,
+    description: structure.description,
+    ...(structure.endurancePrescription === undefined
+      ? {}
+      : {
+          endurancePrescription:
+            structure.endurancePrescription === null
+              ? Prisma.DbNull
+              : (structure.endurancePrescription as Prisma.InputJsonValue),
+        }),
   });
 
   await recordDecisionAction(athleteId, {

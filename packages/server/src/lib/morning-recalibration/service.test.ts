@@ -23,6 +23,9 @@ vi.mock('@sharpit/server/lib/journal/wellness-checkin', () => ({
 vi.mock('@sharpit/app/lib/today/rich/morning-orientation', () => ({
   nightEvidenceReady: vi.fn().mockReturnValue(true),
 }));
+vi.mock('@sharpit/server/lib/queries', () => ({
+  updatePlannedSession: vi.fn().mockResolvedValue({}),
+}));
 
 const swim = {
   id: 'ps-swim',
@@ -125,5 +128,70 @@ describe('morning recalibration service', () => {
     expect(repo.expireDecision).not.toHaveBeenCalled();
     expect(repo.createCoachingDecision).not.toHaveBeenCalled();
     expect(result.presentation?.status).toBe('ACCEPTED');
+  });
+});
+
+describe('acceptMorningRecalibration', () => {
+  it('writes the lightened length into the run’s steps, not only its duration', async () => {
+    const { prisma, repo } = await deps();
+    const { updatePlannedSession } = await import('@sharpit/server/lib/queries');
+    vi.mocked(repo.findCoachingDecisionById).mockResolvedValue({
+      status: 'PRESENTED',
+      proposal: { sessionId: 'ps-run', intensity: 'RECOVERY', durationMin: 60, load: 40 },
+      snapshotContext: {
+        morningRecalibration: { toDescription: 'ancien déroulé', why: 'nuit courte' },
+      },
+    } as never);
+    vi.mocked(prisma.plannedSession.findFirst).mockResolvedValue({
+      type: 'RUN',
+      durationMin: 80,
+      intensity: 'ENDURANCE',
+      endurancePrescription: {
+        version: 1,
+        sport: 'RUN',
+        blocks: [
+          {
+            kind: 'step',
+            step: {
+              kind: 'warmup',
+              duration: { type: 'time', seconds: 900 },
+              target: { metric: 'none' },
+            },
+          },
+          {
+            kind: 'step',
+            step: {
+              kind: 'interval',
+              duration: { type: 'time', seconds: 3300 },
+              target: { metric: 'pace', pctMin: 72.5, pctMax: 87.5 },
+            },
+          },
+          {
+            kind: 'step',
+            step: {
+              kind: 'cooldown',
+              duration: { type: 'time', seconds: 600 },
+              target: { metric: 'none' },
+            },
+          },
+        ],
+      },
+    } as never);
+
+    const { acceptMorningRecalibration } = await import('./service');
+    await expect(acceptMorningRecalibration('athlete-1', 'decision-1')).resolves.toEqual({
+      ok: true,
+      sessionId: 'ps-run',
+    });
+    expect(updatePlannedSession).toHaveBeenCalledWith(
+      'athlete-1',
+      'ps-run',
+      expect.objectContaining({
+        durationMin: 60,
+        intensity: 'RECOVERY',
+        description: '15 min échauffement · 35 min récup · 10 min retour au calme',
+        endurancePrescription: expect.objectContaining({ sport: 'RUN' }),
+      }),
+    );
   });
 });
