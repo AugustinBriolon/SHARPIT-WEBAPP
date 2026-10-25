@@ -16,11 +16,7 @@ export default async function ReadingLayout({ children }: { children: ReactNode 
   }
   if (viewer && (viewer.consentWallHref || viewer.needsOnboarding)) {
     return (
-      <CarnetPage
-        kicker="Bienvenue"
-        lead="Ton carnet se remplit dès que ton compte est prêt."
-        title="Encore une étape"
-      >
+      <CarnetPage kicker="Bienvenue" title="Encore une étape">
         <div className="max-w-xl space-y-4">
           <Quiet>
             {viewer.consentWallHref

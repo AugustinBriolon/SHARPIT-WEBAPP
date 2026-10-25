@@ -225,11 +225,7 @@ export default async function CarnetBodyPage() {
   ]);
 
   return (
-    <CarnetPage
-      kicker="Le corps"
-      lead="Ta nuit, ta récupération, ton corps, et les zones à ménager."
-      title="Comment tu vas"
-    >
+    <CarnetPage kicker="Le corps" title="Comment tu vas">
       <CarnetSection label="La nuit" title={sleep?.adequacyDisplay.label}>
         {sleep ? <Sleep vm={sleep} /> : <Unreadable what="Le sommeil" />}
       </CarnetSection>

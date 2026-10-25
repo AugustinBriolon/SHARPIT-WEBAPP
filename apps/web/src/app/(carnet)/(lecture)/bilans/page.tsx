@@ -66,11 +66,7 @@ export default async function CarnetReviewsPage() {
   const pro = await readPro();
   if (pro && pro.tier !== 'PRO') {
     return (
-      <CarnetPage
-        kicker="Les bilans"
-        lead="Chaque lundi, le coach relit ta semaine : ce qui a marché, ce qui reste à surveiller, la semaine qui vient."
-        title="Le bilan de la semaine"
-      >
+      <CarnetPage kicker="Les bilans" title="Le bilan de la semaine">
         <InApp>Le passage à SharpIt Pro</InApp>
       </CarnetPage>
     );
@@ -95,11 +91,7 @@ export default async function CarnetReviewsPage() {
     });
 
   return (
-    <CarnetPage
-      kicker="Les bilans"
-      lead="Les relectures du coach, semaine après semaine."
-      title="Tes semaines"
-    >
+    <CarnetPage kicker="Les bilans" title="Tes semaines">
       {reviews.length === 0 ? (
         <>
           <Quiet>Aucun bilan sur les {WEEKS} dernières semaines.</Quiet>

@@ -119,7 +119,6 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
     <CarnetPage
       back={{ href: '/compte', label: 'Compte' }}
       kicker="Compte"
-      lead="Ce que tu relies ici alimente aussi l'app."
       title="Sources de données"
     >
       {outcomes.length > 0 ? (
@@ -145,9 +144,9 @@ async function SourcesReading({ params }: { params: Record<string, string | unde
                     <IntegrationLogo className="size-8 shrink-0" id={source.id} />
                     <div className="min-w-0">
                       <p className="font-medium">{source.name}</p>
-                      <p className="text-muted-foreground mt-0.5 text-sm">
-                        {view.account || view.needsReconnect ? sinceLine(view) : 'Pas relié'}
-                      </p>
+                      {view.account || view.needsReconnect ? (
+                        <p className="text-muted-foreground mt-0.5 text-sm">{sinceLine(view)}</p>
+                      ) : null}
                     </div>
                   </div>
                   {sourceAction(source, view, linked, canLink)}

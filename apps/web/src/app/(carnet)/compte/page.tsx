@@ -68,21 +68,11 @@ export default async function CarnetAccountPage() {
       <CarnetSection label="Sources et données" title="Ce que tu peux régler ici">
         <ReadingList>
           <ReadingRow href="/compte/sources">
-            <div>
-              <p className="font-medium">Sources de données</p>
-              <p className="text-muted-foreground mt-0.5 text-sm">
-                Relier Withings ou Google Agenda, qui passent par le navigateur.
-              </p>
-            </div>
+            <p className="font-medium">Sources de données</p>
             <RowArrow />
           </ReadingRow>
           <ReadingRow href="/compte/donnees">
-            <div>
-              <p className="font-medium">Confidentialité et données</p>
-              <p className="text-muted-foreground mt-0.5 text-sm">
-                Tes consentements, l&apos;export de tes données, la suppression du compte.
-              </p>
-            </div>
+            <p className="font-medium">Confidentialité et données</p>
             <RowArrow />
           </ReadingRow>
         </ReadingList>
