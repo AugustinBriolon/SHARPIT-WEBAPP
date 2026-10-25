@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -29,6 +30,7 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
+import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import { RaceReading } from '@/components/carnet/carnet-race-analysis';
 import { HR_ZONES } from '@/components/carnet/carnet-race-reading';
 import { streamProfile } from '@/components/carnet/carnet-stream';
@@ -150,7 +152,15 @@ function SessionHrZones({
 
 // The address (URL data) is read outside the private cache and handed in as plain values:
 // read inside, it would keep the route's App Shell from ever settling.
-export default async function CarnetSessionPage({ params }: PageProps) {
+export default function CarnetSessionPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<SessionPending />}>
+      <SessionWithId params={params} />
+    </Suspense>
+  );
+}
+
+async function SessionWithId({ params }: PageProps) {
   const { id } = await params;
   return <SessionReading id={id} />;
 }
@@ -241,7 +251,12 @@ function PlanDebrief({
   );
 }
 
-async function SessionReading({ id }: { id: string }) {
+type SessionRead = {
+  detail: ActivityDetailPayload | null;
+  streams: ActivityStreamPayload | null;
+};
+
+async function readSession(id: string): Promise<SessionRead> {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
   const encodedId = encodeURIComponent(id);
@@ -249,7 +264,42 @@ async function SessionReading({ id }: { id: string }) {
     readSection<ActivityDetailPayload>(`/api/web/activity-detail/${encodedId}`, true),
     readSection<ActivityStreamPayload>(`/api/v1/activities/${encodedId}/streams`),
   ]);
+  return { detail, streams };
+}
 
+function SessionReading({ id }: { id: string }) {
+  return (
+    <Reading fallback={<SessionPending />} read={() => readSession(id)}>
+      {({ detail, streams }) => <SessionLoaded detail={detail} streams={streams} />}
+    </Reading>
+  );
+}
+
+/** The page while the session is read: its frame stays, the values and the sections wait. */
+function SessionPending() {
+  return (
+    <div className="activity-reading">
+      <CarnetPage
+        back={SESSIONS}
+        kicker={<Skel className="h-3 w-48" />}
+        title={<Skel className="h-8 w-64" />}
+      >
+        <CarnetSection label="Les chiffres">
+          <Skel className="block h-16 w-full" />
+        </CarnetSection>
+        <InApp>Modifier, lier ou supprimer cette séance</InApp>
+      </CarnetPage>
+    </div>
+  );
+}
+
+function SessionLoaded({
+  detail,
+  streams,
+}: {
+  detail: ActivityDetailPayload | null;
+  streams: ActivityStreamPayload | null;
+}) {
   // A private cache cannot answer « not found »: a session that cannot be read says so.
   if (!detail) {
     return (

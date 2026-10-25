@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { cacheLife } from 'next/cache';
 import Link from 'next/link';
 import { ActivityType } from '@prisma/client';
@@ -15,6 +16,7 @@ import {
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
+import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import {
   type SessionListItem,
   sessionDistanceM,
@@ -113,20 +115,50 @@ function SessionRow({ item }: { item: SessionListItem }) {
 
 // The address (URL data) is read outside the private cache and handed in as plain values:
 // read inside, it would keep the route's App Shell from ever settling.
-export default async function CarnetSessionsPage({ searchParams }: PageProps) {
+export default function CarnetSessionsPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<SessionsFrame all={false} items={undefined} sport={null} />}>
+      <SessionsWithFilter searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function SessionsWithFilter({ searchParams }: PageProps) {
   const params = await searchParams;
   return <SessionsReading all={params.tout === '1'} sport={parseSport(params.sport)} />;
 }
 
-async function SessionsReading({ all, sport }: { all: boolean; sport: ActivityType | null }) {
+async function readActivities(all: boolean): Promise<SessionListItem[] | null> {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
-  const items = await readSection<SessionListItem[]>(
+  return readSection<SessionListItem[]>(
     all ? '/api/v1/activities' : `/api/v1/activities?sinceDays=${RECENT_DAYS}`,
     true,
   );
+}
 
-  if (!items) {
+function SessionsReading({ all, sport }: { all: boolean; sport: ActivityType | null }) {
+  return (
+    <Reading
+      fallback={<SessionsFrame all={all} items={undefined} sport={sport} />}
+      read={() => readActivities(all)}
+    >
+      {(items) => <SessionsFrame all={all} items={items} sport={sport} />}
+    </Reading>
+  );
+}
+
+/** The page's frame: drawn with skeletons while `items` is awaited, then with the reading. */
+function SessionsFrame({
+  all,
+  sport,
+  items,
+}: {
+  all: boolean;
+  sport: ActivityType | null;
+  items: SessionListItem[] | null | undefined;
+}) {
+  if (items === null) {
     return (
       <CarnetPage kicker="Les séances" title="Ton historique">
         <Unreadable what="L'historique" />
@@ -134,17 +166,34 @@ async function SessionsReading({ all, sport }: { all: boolean; sport: ActivityTy
     );
   }
 
-  const shown = sport ? items.filter((i) => i.type === sport) : items;
-  const months = sessionsByMonth(shown);
+  const shown = items && sport ? items.filter((i) => i.type === sport) : items;
+  const months = shown ? sessionsByMonth(shown) : [];
 
   return (
     <CarnetPage
-      aside={<SportFilter all={all} current={sport} sports={sportsByFrequency(items)} />}
       kicker="Les séances"
-      lead={`${shown.length} séance${shown.length > 1 ? 's' : ''} ${all ? 'en tout' : 'sur les douze derniers mois'}.`}
       title="Ton historique"
+      aside={
+        items ? (
+          <SportFilter all={all} current={sport} sports={sportsByFrequency(items)} />
+        ) : (
+          <Skel className="h-6 w-56" />
+        )
+      }
+      lead={
+        shown ? (
+          `${shown.length} séance${shown.length > 1 ? 's' : ''} ${all ? 'en tout' : 'sur les douze derniers mois'}.`
+        ) : (
+          <Skel className="h-4 w-64" />
+        )
+      }
     >
-      {months.length === 0 ? <Quiet>Aucune séance sur cette période.</Quiet> : null}
+      {shown && months.length === 0 ? <Quiet>Aucune séance sur cette période.</Quiet> : null}
+      {shown ? null : (
+        <CarnetSection label="Séances" title={<Skel className="h-5 w-32" />}>
+          <Skel className="block h-40 w-full" />
+        </CarnetSection>
+      )}
       {months.map((month) => (
         <CarnetSection
           key={month.key}
