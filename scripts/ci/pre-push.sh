@@ -24,11 +24,16 @@ cleanup() {
 trap cleanup EXIT
 git worktree add -q --detach "$tmp" HEAD
 
-# Dependencies are shared with the working copy: the root and each workspace's own node_modules.
-ln -s "$root/node_modules" "$tmp/node_modules"
+# Dependencies come from the working copy, cloned rather than linked: Turbopack refuses a
+# node_modules symlink that leaves the project root. `cp -c` is a copy-on-write clone (APFS,
+# instant); the hard-link and plain copies are the fallbacks.
+clone() {
+  cp -cR "$1" "$2" 2>/dev/null || cp -al "$1" "$2" 2>/dev/null || cp -R "$1" "$2"
+}
+clone "$root/node_modules" "$tmp/node_modules"
 for dir in apps/* packages/*; do
   if [ -d "$root/$dir/node_modules" ]; then
-    ln -s "$root/$dir/node_modules" "$tmp/$dir/node_modules"
+    clone "$root/$dir/node_modules" "$tmp/$dir/node_modules"
   fi
 done
 
