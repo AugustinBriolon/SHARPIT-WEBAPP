@@ -125,3 +125,17 @@ describe('coach system prompt · scope (ADR-099)', () => {
     expect(system.indexOf('## Périmètre')).toBeLessThan(system.indexOf('---\ncontexte'));
   });
 });
+
+describe('coach system prompt · acting and the athlete’s choices', () => {
+  it('forbids a tool call written as text, technical ids, and overriding what the athlete chose', async () => {
+    const { system } = await buildCoachSystemPrompt(
+      'athlete-1',
+      async () => null,
+      coachRequestScope('general'),
+    );
+
+    expect(system).toContain("N'écris JAMAIS un appel d'outil dans ta réponse");
+    expect(system).toContain("Ne montre jamais d'identifiant technique");
+    expect(system).toContain("Ce que l'athlète a choisi fait foi");
+  });
+});
