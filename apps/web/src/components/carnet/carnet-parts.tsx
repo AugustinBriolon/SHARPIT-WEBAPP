@@ -103,8 +103,10 @@ export function Figure({
   );
 }
 
-export function Figures({ children }: { children: ReactNode }) {
-  return <dl className="grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4">{children}</dl>;
+export function Figures({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <dl className={cn('grid grid-cols-2 gap-x-8 gap-y-6 sm:grid-cols-4', className)}>{children}</dl>
+  );
 }
 
 /** Lines of reasoning, as the server wrote them. */

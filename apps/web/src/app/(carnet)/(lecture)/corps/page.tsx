@@ -11,9 +11,10 @@ import {
 } from '@sharpit/app/lib/theme/chart-theme';
 import { trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { CarnetBarChart, CarnetLineChart } from '@/components/carnet/carnet-charts';
+import { sleepStages } from '@/components/carnet/carnet-body';
+import { CarnetCard, ScoreRing, SleepStageBar } from '@/components/carnet/carnet-cards';
 import {
   CarnetPage,
-  CarnetSection,
   Figure,
   Figures,
   InApp,
@@ -39,18 +40,21 @@ function hoursOf(minutes: number | null): string {
 function Sleep({ vm }: { vm: SleepViewModel }) {
   return (
     <>
-      <Figures>
-        <Figure
-          label="Score"
-          unit="/100"
-          value={
-            typeof vm.sleepScore === 'number' ? Math.round(vm.sleepScore) : (vm.sleepScore ?? '—')
-          }
-        />
-        <Figure label="Durée" value={hoursOf(vm.totalSleepMin)} />
-        <Figure label="Profond" value={hoursOf(vm.deepMin)} />
-        <Figure label="Paradoxal" value={hoursOf(vm.remMin)} />
-      </Figures>
+      <div className="flex items-center gap-6">
+        <ScoreRing caption="Score" stroke={CHART_BASE_STROKE} value={vm.sleepScore} />
+        <Figures className="flex-1 sm:grid-cols-1 lg:grid-cols-2">
+          <Figure label="Durée" value={hoursOf(vm.totalSleepMin)} />
+          <Figure label="Cible" value={hoursOf(vm.sleepTargetMin)} />
+        </Figures>
+      </div>
+      <SleepStageBar
+        stages={sleepStages({
+          deep: vm.deepMin,
+          rem: vm.remMin,
+          light: vm.lightMin,
+          awake: vm.awakeMin,
+        })}
+      />
       {vm.recoveryNote ? <Quiet>{vm.recoveryNote}</Quiet> : null}
       {vm.barData.some((b) => b.minutes !== null) ? (
         <CarnetBarChart
@@ -74,29 +78,27 @@ function Recovery({ vm }: { vm: RecoveryViewModel }) {
         <span className="font-medium">{vm.signal.label}</span>
         {vm.limiterLabel ? ` · ${vm.limiterLabel}` : ''}
       </p>
-      <Figures>
-        <Figure
-          label="Disponibilité"
-          unit="/100"
-          value={
-            typeof vm.readinessScore === 'number'
-              ? Math.round(vm.readinessScore)
-              : (vm.readinessScore ?? '—')
-          }
+      <div className="flex items-center gap-6">
+        <ScoreRing
+          caption="Dispo"
+          stroke={CHART_RECOVERY_STROKE}
+          value={typeof vm.readinessScore === 'number' ? vm.readinessScore : null}
         />
-        <Figure
-          label="VFC"
-          unit="ms"
-          value={vm.hrv !== null ? Math.round(vm.hrv) : '—'}
-          hint={
-            vm.baselineLow !== null && vm.baselineHigh !== null
-              ? `ta zone : ${Math.round(vm.baselineLow)}–${Math.round(vm.baselineHigh)}`
-              : undefined
-          }
-        />
-        <Figure label="FC repos" unit="bpm" value={vm.restingHr ?? '—'} />
-        {vm.bodyBattery !== null ? <Figure label="Body Battery" value={vm.bodyBattery} /> : null}
-      </Figures>
+        <Figures className="flex-1 sm:grid-cols-1 lg:grid-cols-2">
+          <Figure
+            label="VFC"
+            unit="ms"
+            value={vm.hrv !== null ? Math.round(vm.hrv) : '—'}
+            hint={
+              vm.baselineLow !== null && vm.baselineHigh !== null
+                ? `ta zone : ${Math.round(vm.baselineLow)}–${Math.round(vm.baselineHigh)}`
+                : undefined
+            }
+          />
+          <Figure label="FC repos" unit="bpm" value={vm.restingHr ?? '—'} />
+          {vm.bodyBattery !== null ? <Figure label="Body Battery" value={vm.bodyBattery} /> : null}
+        </Figures>
+      </div>
       {vm.sparkHrv.some((p) => p.value !== null) ? (
         <CarnetLineChart
           title="VFC et fréquence cardiaque au repos"
@@ -226,18 +228,20 @@ export default async function CarnetBodyPage() {
 
   return (
     <CarnetPage kicker="Le corps" title="Comment tu vas">
-      <CarnetSection label="La nuit" title={sleep?.adequacyDisplay.label}>
-        {sleep ? <Sleep vm={sleep} /> : <Unreadable what="Le sommeil" />}
-      </CarnetSection>
-      <CarnetSection label="La récupération" title={recovery?.intensityLabel}>
-        {recovery ? <Recovery vm={recovery} /> : <Unreadable what="La récupération" />}
-      </CarnetSection>
-      <CarnetSection label="La composition" title="Poids et composition">
-        {body ? <Body vm={body} /> : <Unreadable what="La composition" />}
-      </CarnetSection>
-      <CarnetSection label="Les zones sensibles" title={physical?.aggregate.decisionLabel}>
-        {physical ? <Zones vm={physical} /> : <Unreadable what="Les zones sensibles" />}
-      </CarnetSection>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <CarnetCard label="La nuit" title={sleep?.adequacyDisplay.label}>
+          {sleep ? <Sleep vm={sleep} /> : <Unreadable what="Le sommeil" />}
+        </CarnetCard>
+        <CarnetCard label="La récupération" title={recovery?.intensityLabel}>
+          {recovery ? <Recovery vm={recovery} /> : <Unreadable what="La récupération" />}
+        </CarnetCard>
+        <CarnetCard label="La composition" title="Poids et composition">
+          {body ? <Body vm={body} /> : <Unreadable what="La composition" />}
+        </CarnetCard>
+        <CarnetCard label="Les zones sensibles" title={physical?.aggregate.decisionLabel}>
+          {physical ? <Zones vm={physical} /> : <Unreadable what="Les zones sensibles" />}
+        </CarnetCard>
+      </div>
     </CarnetPage>
   );
 }
