@@ -9,7 +9,6 @@ import {
   CarnetNav,
   CarnetNavRow,
 } from '@/components/carnet/carnet-nav';
-import { CarnetSkeletonFrame } from '@/components/carnet/carnet-skeleton';
 
 /**
  * The web is the carnet: a place to read, the iPhone app the place to act (ADR-072).
@@ -41,10 +40,9 @@ export default function CarnetLayout({ children }: { children: ReactNode }) {
         </div>
       </header>
       <main className="mx-auto max-w-5xl px-4 pt-10 sm:px-8">
-        {/* The header paints at once; each page's `loading.tsx` holds its place under it.
-            This boundary only serves a session's page loaded cold, whose address (its id)
-            is read at request time: a navigation never reaches it. */}
-        <Suspense fallback={<CarnetSkeletonFrame label="" />}>
+        {/* The header paints at once and each page draws its own frame, with a skeleton on the
+            values it still reads (ADR-110): nothing waits here but the address. */}
+        <Suspense fallback={null}>
           <CarnetHeading>{children}</CarnetHeading>
         </Suspense>
       </main>
