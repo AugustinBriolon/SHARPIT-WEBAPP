@@ -50,6 +50,11 @@ Garmin becomes an OAuth provider like Strava and Withings, fed by push.
    (`garmin-push-mappers.ts`): activities → Connect `IActivity` (merge rules of ADR-103 point 7
    unchanged), details → `RawStreams` (at most 2 000 points), and dailies, sleeps, HRV and body
    composition → `GarminDailyHealth` partial days. Each push writes only its own fields.
+   The effort and the feel the athlete answers on the watch are in no summary, only in the
+   session of the activity's FIT file: an Activity Files push is downloaded from its
+   `callbackURL` (Garmin's host only, with the athlete's token) and read with `@garmin/fitsdk`
+   (`workout_rpe` is CR10 × 10 → RPE 1-10; `workout_feel` 0-100 → the five feeling words). They fill
+   an activity's RPE and feeling only where empty, so what the athlete wrote stands.
    `userMetrics` VO2max goes to the profile. Multisport parents and transitions are dropped, and
    the legs are unified as for every provider (ADR-078).
 4. **Lifecycle.** Disconnecting or deleting the account calls `DELETE /user/registration`, best

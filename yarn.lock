@@ -2,7 +2,7 @@
 # Manual changes might be lost - proceed with caution!
 
 __metadata:
-  version: 9
+  version: 8
   cacheKey: 10c0
 
 "@ai-sdk/gateway@npm:4.0.24":
@@ -1024,6 +1024,13 @@ __metadata:
     oauth-1.0a: "npm:^2.2.6"
     qs: "npm:^6.11.2"
   checksum: 10c0/c0ae1684c118f62a062e81f21d7ac12f06d5f6d06782258d0bc55349b68faeadadc2a4409a6143056cebf89bea6df0e31cc526807ed9c2ea3826d2f521b86815
+  languageName: node
+  linkType: hard
+
+"@garmin/fitsdk@npm:^21.218.0":
+  version: 21.218.0
+  resolution: "@garmin/fitsdk@npm:21.218.0"
+  checksum: 10c0/67edc124fbe2cf8bfe5970ba6824c762a7c46ddbe96971bab9efed123dc002f291d5e12ea8a09634c76e3067ea2501ce6b49d02790fd3076fbffb34fd690233f
   languageName: node
   linkType: hard
 
@@ -2836,6 +2843,7 @@ __metadata:
     "@clerk/nextjs": "npm:^7.5.9"
     "@clerk/themes": "npm:2.4.57"
     "@flow-js/garmin-connect": "npm:^1.6.17"
+    "@garmin/fitsdk": "npm:^21.218.0"
     "@langfuse/otel": "npm:^5.11.1"
     "@langfuse/tracing": "npm:^5.11.1"
     "@langfuse/vercel-ai-sdk": "npm:^5.11.1"

@@ -3,6 +3,7 @@ import { prisma } from '@sharpit/db/client';
 import { onProviderSyncCompleted } from '@sharpit/server/lib/athlete-state/orchestrator';
 import { persistStream } from '@sharpit/server/lib/streams/streams';
 import type { GarminDailyHealth } from '@sharpit/server/lib/integrations/garmin/garmin';
+import { processActivityFiles } from '@sharpit/server/lib/integrations/garmin/garmin-activity-files';
 import { ingestGarminActivities } from '@sharpit/server/lib/integrations/garmin/garmin-activity-sync';
 import {
   isGarminSessionActivity,
@@ -37,6 +38,7 @@ export const GARMIN_PUSH_TYPES = new Set([
   ...Object.keys(HEALTH_MAPPERS),
   ...ACTIVITY_TYPES,
   'activityDetails',
+  'activityFiles',
   'userMetrics',
   'deregistrations',
   'userPermissionsChange',
@@ -141,6 +143,10 @@ async function processForAthlete(athleteId: string, summaryType: string, items: 
   }
   if (summaryType === 'activityDetails') {
     return processDetails(athleteId, items);
+  }
+  if (summaryType === 'activityFiles') {
+    await processActivityFiles(athleteId, items);
+    return null;
   }
   if (summaryType === 'userMetrics') {
     return processUserMetrics(athleteId, items);

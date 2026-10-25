@@ -35,10 +35,11 @@ describe('receiveGarminPush', () => {
     const ids = await receiveGarminPush({
       dailies: [{ userId: 'u1' }],
       epochs: [{ userId: 'u1' }],
+      activityFiles: [{ userId: 'u1' }],
       sleeps: [],
     });
-    expect(ids).toEqual(['row-dailies']);
-    expect(inbox.create).toHaveBeenCalledTimes(1);
+    expect(ids).toEqual(['row-dailies', 'row-activityFiles']);
+    expect(inbox.create).toHaveBeenCalledTimes(2);
   });
 
   it('stores nothing for a body that is not a push', async () => {
