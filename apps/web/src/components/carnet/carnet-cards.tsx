@@ -1,5 +1,3 @@
-import type { ReactNode } from 'react';
-import { cn } from '@sharpit/app/lib/utils';
 import {
   CHART_BASE_STROKE,
   CHART_CAUTION_STROKE,
@@ -7,32 +5,6 @@ import {
   CHART_RECOVERY_STROKE,
 } from '@sharpit/app/lib/theme/chart-theme';
 import { ringDash, type SleepStage, type SleepStageKey } from './carnet-body';
-
-/**
- * The card grammar of the Corps page (ADR-108): a surface that holds one reading, its name
- * above, its verdict as the title. Pure: props in, markup out.
- */
-export function CarnetCard({
-  label,
-  title,
-  className,
-  children,
-}: {
-  label: string;
-  title?: ReactNode;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className={cn('card-surface min-w-0 space-y-6', className)} data-reveal>
-      <header>
-        <p className="text-label text-muted-foreground">{label}</p>
-        {title ? <h2 className="text-card-title mt-1.5">{title}</h2> : null}
-      </header>
-      {children}
-    </section>
-  );
-}
 
 const RING_RADIUS = 42;
 

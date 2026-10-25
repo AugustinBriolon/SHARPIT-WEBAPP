@@ -13,9 +13,10 @@ import {
 import { trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { CarnetBarChart, CarnetLineChart } from '@/components/carnet/carnet-charts';
 import { sleepStages } from '@/components/carnet/carnet-body';
-import { CarnetCard, ScoreRing, SleepStageBar } from '@/components/carnet/carnet-cards';
+import { ScoreRing, SleepStageBar } from '@/components/carnet/carnet-cards';
 import {
   CarnetPage,
+  CarnetSection,
   Figure,
   Figures,
   InApp,
@@ -230,18 +231,18 @@ export default async function CarnetBodyPage() {
   return (
     <CarnetPage kicker="Le corps" title="Comment tu vas">
       <div className="grid gap-6 lg:grid-cols-2">
-        <CarnetCard label="La nuit" title={sleep?.adequacyDisplay.label}>
+        <CarnetSection label="La nuit" title={sleep?.adequacyDisplay.label}>
           {sleep ? <Sleep vm={sleep} /> : <Unreadable what="Le sommeil" />}
-        </CarnetCard>
-        <CarnetCard label="La récupération" title={recovery?.intensityLabel}>
+        </CarnetSection>
+        <CarnetSection label="La récupération" title={recovery?.intensityLabel}>
           {recovery ? <Recovery vm={recovery} /> : <Unreadable what="La récupération" />}
-        </CarnetCard>
-        <CarnetCard label="La composition" title="Poids et composition">
+        </CarnetSection>
+        <CarnetSection label="La composition" title="Poids et composition">
           {body ? <Body vm={body} /> : <Unreadable what="La composition" />}
-        </CarnetCard>
-        <CarnetCard label="Les zones sensibles" title={physical?.aggregate.decisionLabel}>
+        </CarnetSection>
+        <CarnetSection label="Les zones sensibles" title={physical?.aggregate.decisionLabel}>
           {physical ? <Zones vm={physical} /> : <Unreadable what="Les zones sensibles" />}
-        </CarnetCard>
+        </CarnetSection>
       </div>
     </CarnetPage>
   );

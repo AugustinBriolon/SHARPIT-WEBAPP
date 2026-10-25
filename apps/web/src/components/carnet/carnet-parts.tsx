@@ -6,8 +6,9 @@ import { CarnetCount } from './carnet-animated';
 import { CarnetIntentLink } from './carnet-intent-link';
 
 /**
- * The carnet's page grammar: a page is a title and a lead, then ruled sections read top
- * down. No cards, no buttons — figures, sentences and the occasional chart.
+ * The carnet's page grammar (ADR-109): a page is a title and a lead, then cards read top
+ * down, each one section (`CarnetSection`). No buttons — figures, sentences and the
+ * occasional chart.
  */
 
 export function CarnetPage({
@@ -27,7 +28,7 @@ export function CarnetPage({
   children: ReactNode;
 }) {
   return (
-    <article className="space-y-12 pb-24">
+    <article className="space-y-8 pb-24">
       <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
         <div className="max-w-2xl min-w-0">
           {back ? (
@@ -48,6 +49,7 @@ export function CarnetPage({
   );
 }
 
+/** A card holding one reading: its name above, its verdict as the title, the reading below. */
 export function CarnetSection({
   label,
   title,
@@ -60,14 +62,12 @@ export function CarnetSection({
   className?: string;
 }) {
   return (
-    <section className={cn('border-border/70 border-t pt-6', className)} data-reveal>
-      <div className="grid gap-6 lg:grid-cols-[12rem_minmax(0,1fr)] lg:gap-10">
-        <div>
-          <p className="text-label text-muted-foreground">{label}</p>
-          {title ? <h2 className="text-section-title mt-2">{title}</h2> : null}
-        </div>
-        <div className="min-w-0 space-y-6">{children}</div>
-      </div>
+    <section className={cn('card-surface min-w-0 space-y-6', className)} data-reveal>
+      <header>
+        <p className="text-label text-muted-foreground">{label}</p>
+        {title ? <h2 className="text-card-title mt-1.5">{title}</h2> : null}
+      </header>
+      {children}
     </section>
   );
 }
