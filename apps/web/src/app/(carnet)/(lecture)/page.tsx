@@ -1,9 +1,11 @@
+import { Suspense, type ReactNode } from 'react';
 import { cacheLife } from 'next/cache';
 import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
 import { limiterSignalChipForMode } from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import { addTrainingDays, trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { CARNET_FRESHNESS, readViewModel } from '@/components/carnet/carnet-read';
+import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import { carnetHref, longDayLabel, resolveDayParam } from '@/components/carnet/carnet-time';
 import {
   CarnetPage,
@@ -60,26 +62,24 @@ function DayPager({ day, today }: { day: string; today: string }) {
   );
 }
 
-function Signals({ hero }: { hero: TodayViewModel['hero'] }) {
-  const previews = new Map(hero.signalPreviews.map((p) => [p.key, p]));
+function Signals({ hero }: { hero: TodayViewModel['hero'] | undefined }) {
+  const previews = new Map((hero?.signalPreviews ?? []).map((p) => [p.key, p]));
   return (
     <Figures>
       {SIGNALS.map((signal) => {
-        const rawScore = hero.metricsRow[signal.score];
+        const rawScore = hero?.metricsRow[signal.score];
         const preview = previews.get(signal.key);
-        const score =
-          typeof rawScore === 'number'
-            ? signal.key === 'effort'
-              ? Math.round(rawScore * 10) / 10
-              : Math.round(rawScore)
-            : (rawScore ?? '—');
+        let score: string | number | null | undefined = rawScore ?? '—';
+        if (typeof rawScore === 'number') {
+          score = signal.key === 'effort' ? Math.round(rawScore * 10) / 10 : Math.round(rawScore);
+        }
         return (
           <Figure
             key={signal.key}
-            hint={preview?.subtitle ?? null}
+            hint={hero ? (preview?.subtitle ?? null) : <Skel className="h-3 w-20" />}
             label={signal.label}
-            unit={rawScore !== null && rawScore !== undefined ? '/100' : null}
-            value={score}
+            unit={hero && rawScore !== null && rawScore !== undefined ? '/100' : null}
+            value={hero ? score : <Skel className="h-7 w-12" />}
           />
         );
       })}
@@ -126,33 +126,88 @@ function TheDay({ vm }: { vm: TodayViewModel }) {
 
 // The address (URL data) is read outside the private cache and handed in as plain values:
 // read inside, it would keep the route's App Shell from ever settling.
-export default async function CarnetTodayPage({ searchParams }: PageProps) {
+export default function CarnetTodayPage({ searchParams }: PageProps) {
+  return (
+    <Suspense fallback={<TodayFrame jour={undefined} vm={undefined} />}>
+      <TodayWithDay searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+async function TodayWithDay({ searchParams }: PageProps) {
   const { jour } = await searchParams;
   return <TodayReading jour={jour} />;
 }
 
-async function TodayReading({ jour }: { jour?: string | string[] }) {
+type TodayDay = { today: string; day: string };
+
+/** Which day the page is on: the clock is read inside the private cache, never by the page. */
+async function readTodayDay(jour: string | undefined): Promise<TodayDay> {
   'use cache: private';
   cacheLife(CARNET_FRESHNESS);
   const today = trainingDayIdForNow();
-  const day = resolveDayParam(jour, today);
-  const vm = await readViewModel<TodayViewModel>(
+  return { today, day: resolveDayParam(jour, today) };
+}
+
+async function readTodayViewModel(jour: string | undefined): Promise<TodayViewModel | null> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  const { day } = await readTodayDay(jour);
+  return readViewModel<TodayViewModel>(
     `/api/presentation/today?trainingDayId=${encodeURIComponent(day)}`,
   );
-  const kicker = day === today ? `Aujourd'hui · ${longDayLabel(day)}` : longDayLabel(day);
+}
 
-  if (!vm) {
+function TodayReading({ jour }: { jour: string | string[] | undefined }) {
+  const single = Array.isArray(jour) ? jour[0] : jour;
+  return (
+    <Reading
+      fallback={<TodayFrame jour={single} vm={undefined} />}
+      read={() => readTodayViewModel(single)}
+    >
+      {(vm) => <TodayFrame jour={single} vm={vm} />}
+    </Reading>
+  );
+}
+
+/**
+ * The page's frame, drawn while the reading is awaited (`vm` undefined: every label shows, each
+ * value is a skeleton) and again once it landed. The day itself is read separately: it takes no
+ * API call, so the kicker and the pager are there at once.
+ */
+function TodayFrame({
+  jour,
+  vm,
+}: {
+  jour: string | undefined;
+  vm: TodayViewModel | null | undefined;
+}) {
+  const readDay = () => readTodayDay(jour);
+  const kicker = (
+    <Reading read={readDay} skeleton="h-3 w-44">
+      {({ day, today }) =>
+        day === today ? `Aujourd'hui · ${longDayLabel(day)}` : longDayLabel(day)
+      }
+    </Reading>
+  );
+  const aside = (
+    <Reading fallback={null} read={readDay}>
+      {({ day, today }) => <TodayAside day={day} today={today} />}
+    </Reading>
+  );
+
+  if (vm === null) {
     return (
-      <CarnetPage aside={<TodayAside day={day} today={today} />} kicker={kicker} title="Ta journée">
+      <CarnetPage aside={aside} kicker={kicker} title="Ta journée">
         <Unreadable what="Cette journée" />
       </CarnetPage>
     );
   }
 
-  if (!vm.hasContent && vm.emptyState) {
+  if (vm && !vm.hasContent && vm.emptyState) {
     return (
       <CarnetEmptyDay
-        aside={<TodayAside day={day} today={today} />}
+        aside={aside}
         description={vm.emptyState.description}
         kicker={kicker}
         race={vm.race}
@@ -161,76 +216,83 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
     );
   }
 
-  const { hero, actionRow } = vm;
-  const trust = hero.twinTrustStrip;
+  const hero = vm?.hero;
+  const actionRow = vm?.actionRow;
+  const trust = hero?.twinTrustStrip;
   // Prefer instruction; skip actionLine when it mirrors instruction (legacy fill).
-  const reasons = [
-    trust.instruction ? null : hero.actionLine,
-    hero.goalLine,
-    ...hero.adaptationReminders,
-  ].filter((line): line is string => Boolean(line));
-  const pageTitle = trust.showHeadline === false ? 'Ta journée' : hero.headline;
+  const reasons = hero
+    ? [
+        trust?.instruction ? null : hero.actionLine,
+        hero.goalLine,
+        ...hero.adaptationReminders,
+      ].filter((line): line is string => Boolean(line))
+    : [];
+
+  let title: ReactNode = <Skel className="h-8 w-56" />;
+  if (hero && trust) {
+    title = trust.showHeadline === false ? 'Ta journée' : hero.headline;
+  }
 
   return (
     <CarnetPage
-      aside={<TodayAside day={day} today={today} />}
+      aside={aside}
       kicker={kicker}
-      lead={hero.subline}
-      title={pageTitle}
+      lead={hero ? hero.subline : <Skel className="h-4 w-80 max-w-full" />}
+      title={title}
     >
-      <RaceBand race={vm.race} />
+      {vm ? <RaceBand race={vm.race} /> : null}
 
       <CarnetSection
         label="Le verdict"
-        title={
-          hero.postureLabel || trust.vsYesterdayLabel ? (
-            <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              {hero.postureLabel ? <span>{hero.postureLabel}</span> : null}
-              {trust.vsYesterdayLabel ? (
-                <span className="text-muted-foreground text-sm font-normal">
-                  {trust.vsYesterdayLabel}
-                </span>
-              ) : null}
-            </span>
-          ) : undefined
-        }
+        title={hero ? <Verdict hero={hero} /> : <Skel className="h-5 w-44" />}
       >
-        {vm.statusMessage ? <Quiet>{vm.statusMessage}</Quiet> : null}
-        {trust.explanation?.essential ? (
-          <p className="text-sm leading-relaxed">{trust.explanation.essential}</p>
-        ) : null}
-        {trust.instruction ? (
-          <p className="text-sm leading-relaxed font-medium">{trust.instruction}</p>
-        ) : null}
-        {trust.limiterCountLabel ? (
-          <p className="text-label text-muted-foreground">Frein · {trust.limiterCountLabel}</p>
-        ) : trust.limiterSignals[0] ? (
-          <p className="text-label text-muted-foreground">
-            {limiterSignalChipForMode(trust.limiterSignals[0], 'essential')}
-          </p>
-        ) : null}
-        <Reasons items={reasons} />
-        {actionRow.morningRecalibration?.status === 'PRESENTED' ? (
+        {vm && hero && trust ? (
           <>
-            <p className="text-sm leading-relaxed">
-              <span className="font-medium">Proposition du matin.</span>{' '}
-              {actionRow.morningRecalibration.changeSummary} {actionRow.morningRecalibration.why}
-            </p>
-            <InApp>Accepter ou garder le plan</InApp>
+            {vm.statusMessage ? <Quiet>{vm.statusMessage}</Quiet> : null}
+            {trust.explanation?.essential ? (
+              <p className="text-sm leading-relaxed">{trust.explanation.essential}</p>
+            ) : null}
+            {trust.instruction ? (
+              <p className="text-sm leading-relaxed font-medium">{trust.instruction}</p>
+            ) : null}
+            {trust.limiterCountLabel ? (
+              <p className="text-label text-muted-foreground">Frein · {trust.limiterCountLabel}</p>
+            ) : null}
+            {!trust.limiterCountLabel && trust.limiterSignals[0] ? (
+              <p className="text-label text-muted-foreground">
+                {limiterSignalChipForMode(trust.limiterSignals[0], 'essential')}
+              </p>
+            ) : null}
+            <Reasons items={reasons} />
+            {actionRow?.morningRecalibration?.status === 'PRESENTED' ? (
+              <>
+                <p className="text-sm leading-relaxed">
+                  <span className="font-medium">Proposition du matin.</span>{' '}
+                  {actionRow.morningRecalibration.changeSummary}{' '}
+                  {actionRow.morningRecalibration.why}
+                </p>
+                <InApp>Accepter ou garder le plan</InApp>
+              </>
+            ) : null}
           </>
-        ) : null}
+        ) : (
+          <div className="space-y-2">
+            <Skel className="block h-4 w-full" />
+            <Skel className="block h-4 w-2/3" />
+          </div>
+        )}
       </CarnetSection>
 
       <CarnetSection label="Les signaux" title="Ce que le corps dit">
         <Signals hero={hero} />
-        {trust.limitingCauseText || trust.confidenceLabel ? (
+        {vm && trust && (trust.limitingCauseText || trust.confidenceLabel) ? (
           <Quiet>
             {trust.limitingCauseText}
             {trust.limitingCauseText && trust.confidenceLabel ? ' ' : ''}
             {trust.confidenceLabel ? `Confiance : ${trust.confidenceLabel.toLowerCase()}.` : ''}
           </Quiet>
         ) : null}
-        {actionRow.limitingFacts.length > 0 ? (
+        {actionRow && actionRow.limitingFacts.length > 0 ? (
           <Figures>
             {actionRow.limitingFacts.map((fact) => (
               <Figure key={fact.label} hint={fact.hint} label={fact.label} value={fact.value} />
@@ -239,11 +301,14 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
         ) : null}
       </CarnetSection>
 
-      <CarnetSection label="La journée" title={actionRow.actionLabel}>
-        <TheDay vm={vm} />
+      <CarnetSection
+        label="La journée"
+        title={actionRow ? actionRow.actionLabel : <Skel className="h-5 w-40" />}
+      >
+        {vm ? <TheDay vm={vm} /> : <Skel className="block h-16 w-full" />}
       </CarnetSection>
 
-      {vm.insights.length > 0 ? (
+      {vm && vm.insights.length > 0 ? (
         <CarnetSection label="À retenir" title="Ce que le coach remarque">
           <div className="space-y-5">
             {vm.insights.map((insight) => (
@@ -258,5 +323,20 @@ async function TodayReading({ jour }: { jour?: string | string[] }) {
         </CarnetSection>
       ) : null}
     </CarnetPage>
+  );
+}
+
+function Verdict({ hero }: { hero: TodayViewModel['hero'] }) {
+  const trust = hero.twinTrustStrip;
+  if (!hero.postureLabel && !trust.vsYesterdayLabel) {
+    return null;
+  }
+  return (
+    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      {hero.postureLabel ? <span>{hero.postureLabel}</span> : null}
+      {trust.vsYesterdayLabel ? (
+        <span className="text-muted-foreground text-sm font-normal">{trust.vsYesterdayLabel}</span>
+      ) : null}
+    </span>
   );
 }
