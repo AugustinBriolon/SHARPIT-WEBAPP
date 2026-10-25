@@ -4,6 +4,7 @@ import {
   CHART_PRIMARY_STROKE,
   CHART_RECOVERY_STROKE,
 } from '@sharpit/app/lib/theme/chart-theme';
+import { Skel } from './carnet-reading';
 import { ringDash, type SleepStage, type SleepStageKey } from './carnet-body';
 
 const RING_RADIUS = 42;
@@ -87,6 +88,41 @@ export function SleepStageBar({ stages }: { stages: readonly SleepStage[] }) {
             <span className="text-instrument ml-auto tabular-nums">
               {stageDuration(stage.minutes)}
             </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/** The ring while its score is read: the track and the caption stay, only the number waits. */
+export function ScoreRingSkel({ caption }: { caption: string }) {
+  return (
+    <div className="relative size-28 shrink-0">
+      <svg className="size-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
+        <circle cx="50" cy="50" fill="none" r={RING_RADIUS} stroke="var(--track)" strokeWidth="9" />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <Skel className="h-8 w-10" />
+        <span className="text-label text-muted-foreground mt-0.5 text-[0.6875rem]">{caption}</span>
+      </div>
+    </div>
+  );
+}
+
+/** The night's stage bar while it is read; the legend's stage names are fixed text. */
+export function SleepStageSkel() {
+  return (
+    <div className="space-y-3" aria-hidden>
+      <div className="progress-track">
+        <div className="bg-muted h-full w-full animate-pulse motion-reduce:animate-none" />
+      </div>
+      <ul className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
+        {['Profond', 'Paradoxal', 'Léger', 'Éveil'].map((name) => (
+          <li key={name} className="flex items-center gap-2">
+            <span className="bg-muted size-2 shrink-0 rounded-full" />
+            <span className="text-muted-foreground">{name}</span>
+            <Skel className="ml-auto h-4 w-10" />
           </li>
         ))}
       </ul>

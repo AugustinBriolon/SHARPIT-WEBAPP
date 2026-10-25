@@ -2,6 +2,7 @@ import 'server-only';
 
 import { cacheLife } from 'next/cache';
 import type { WebViewer } from '@sharpit/app/lib/web/payloads';
+import { trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { serverApiJson } from '@sharpit/ui/server/api-client';
 
 /**
@@ -65,4 +66,24 @@ export async function readViewer(): Promise<WebViewer | null> {
     cacheLife(CARNET_FRESHNESS);
   }
   return viewer;
+}
+
+/**
+ * One presentation view model, read on its own and kept in the athlete's browser for the carnet's
+ * freshness (ADR-110). The page never awaits it: each value that depends on it sits in a `Reading`,
+ * and every `Reading` of one path shares this entry.
+ */
+export async function readCachedViewModel<T>(path: string): Promise<T | null> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  return readViewModel<T>(path);
+}
+
+/** The same read for a training-day view model; the day is taken inside the cache, never by the page. */
+export async function readDayViewModel<T>(route: string): Promise<T | null> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  return readViewModel<T>(
+    `/api/presentation/${route}?trainingDayId=${encodeURIComponent(trainingDayIdForNow())}`,
+  );
 }
