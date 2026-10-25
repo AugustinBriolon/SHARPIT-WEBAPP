@@ -1,4 +1,5 @@
 import { cacheLife } from 'next/cache';
+import { Suspense } from 'react';
 import { addDays } from 'date-fns';
 import type { AdaptationViewModel } from '@sharpit/app/presentation/adaptation-view-model';
 import type { EffortViewModel } from '@sharpit/app/presentation/effort-view-model';
@@ -18,7 +19,15 @@ import {
   Reasons,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { CARNET_FRESHNESS, readSection, readViewModel } from '@/components/carnet/carnet-read';
+import {
+  CARNET_FRESHNESS,
+  readCachedSection,
+  readCachedViewModel,
+  readDayViewModel,
+  readSection,
+} from '@/components/carnet/carnet-read';
+import { ChartSkel, Reading, ReadingFigure, Skel } from '@/components/carnet/carnet-reading';
+import { CarnetCount } from '@/components/carnet/carnet-animated';
 import { UpcomingSessions } from '@/components/carnet/carnet-upcoming-sessions';
 import {
   closedAdherence,
@@ -153,161 +162,275 @@ function nextRaceLead(goals: ClientGoal[] | null, today: Date): string {
     : 'Les semaines passées, celle en cours et la suivante.';
 }
 
-function Adherence({
-  sessions,
-  weeks,
-  adherence,
-}: {
-  sessions: SeasonSession[] | null;
-  weeks: ReturnType<typeof seasonWeeks>;
-  adherence: number | null;
-}) {
-  if (!sessions) {
-    return <Unreadable what="Le plan" />;
-  }
+/** Which day the page is on: the clock is read inside the private cache, never by the page. */
+async function readSeasonToday(): Promise<string> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  return trainingDayIdForNow();
+}
+
+type Season = { today: string; sessions: SeasonSession[] | null };
+
+async function readSeason(): Promise<Season> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  const today = trainingDayIdForNow();
+  const mondays = seasonMondays(today);
+  const from = dayIdOf(mondays[0] ?? dayOf(today));
+  const to = dayIdOf(addDays(mondays.at(-1) ?? dayOf(today), 6));
+  const sessions = await readSection<SeasonSession[]>(
+    `/api/v1/planned-sessions?from=${from}&to=${to}`,
+  );
+  return { today, sessions };
+}
+
+function seasonMondays(todayId: string): Date[] {
+  return weekStartsEndingAt(addDays(dayOf(todayId), 7), WEEKS_BACK + 1);
+}
+
+const readGoals = () => readCachedSection<ClientGoal[]>('/api/v1/goals', true);
+const readBrief = () =>
+  readCachedViewModel<WeeklyCoachingBriefViewModel>('/api/presentation/weekly-coaching-brief');
+const readEffort = () => readDayViewModel<EffortViewModel>('effort');
+const readAdaptation = () => readDayViewModel<AdaptationViewModel>('adaptation');
+
+const BLOCK = 'block h-24 w-full';
+
+function seasonWeeksOf({ today, sessions }: Season) {
+  return sessions ? seasonWeeks(sessions, seasonMondays(today), today) : [];
+}
+
+function Adherence() {
   return (
     <>
       <Figures>
         <Figure
           hint={`sur les ${WEEKS_BACK} dernières semaines`}
           label="Séances faites"
-          unit={adherence === null ? null : '%'}
-          value={percent(adherence)}
+          value={
+            <Reading read={readSeason} skeleton="h-7 w-14">
+              {(season) => {
+                const adherence = season.sessions ? closedAdherence(seasonWeeksOf(season)) : null;
+                return (
+                  <>
+                    <CarnetCount text={percent(adherence)} />
+                    {adherence === null ? null : (
+                      <span className="text-muted-foreground text-data ml-1 text-xs">%</span>
+                    )}
+                  </>
+                );
+              }}
+            </Reading>
+          }
         />
       </Figures>
-      <CarnetBarChart
-        data={weeks.map((w) => ({ label: w.label, planned: w.planned, done: w.done }))}
-        title="Séances par semaine"
-        series={[
-          {
-            key: 'planned',
-            name: 'Prévues',
-            stroke: 'var(--muted-foreground)',
-            dashed: true,
-          },
-          { key: 'done', name: 'Faites', stroke: CHART_BASE_STROKE },
-        ]}
-      />
+      <Reading fallback={<ChartSkel title="Séances par semaine" />} read={readSeason}>
+        {(season) =>
+          season.sessions ? (
+            <CarnetBarChart
+              title="Séances par semaine"
+              data={seasonWeeksOf(season).map((w) => ({
+                label: w.label,
+                planned: w.planned,
+                done: w.done,
+              }))}
+              series={[
+                {
+                  key: 'planned',
+                  name: 'Prévues',
+                  stroke: 'var(--muted-foreground)',
+                  dashed: true,
+                },
+                { key: 'done', name: 'Faites', stroke: CHART_BASE_STROKE },
+              ]}
+            />
+          ) : (
+            <Unreadable what="Le plan" />
+          )
+        }
+      </Reading>
     </>
   );
 }
 
-function Adaptation({ adaptation }: { adaptation: AdaptationViewModel | null }) {
-  if (!adaptation) {
-    return <Unreadable what="L'adaptation" />;
-  }
+function Adaptation() {
   return (
-    <>
-      <p className="text-sm leading-relaxed">
-        <span className="font-medium">{adaptation.verdictLabel}</span>
-        {adaptation.trendLabel ? ` · ${adaptation.trendLabel}` : ''}
-      </p>
-      {adaptation.limitingFactor ? <Quiet>Frein : {adaptation.limitingFactor}</Quiet> : null}
-      <Reasons items={[...adaptation.rationale, ...adaptation.keyEvidence]} />
-    </>
+    <Reading fallback={<Skel className={BLOCK} />} read={readAdaptation}>
+      {(adaptation) =>
+        adaptation ? (
+          <>
+            <p className="text-sm leading-relaxed">
+              <span className="font-medium">{adaptation.verdictLabel}</span>
+              {adaptation.trendLabel ? ` · ${adaptation.trendLabel}` : ''}
+            </p>
+            {adaptation.limitingFactor ? <Quiet>Frein : {adaptation.limitingFactor}</Quiet> : null}
+            <Reasons items={[...adaptation.rationale, ...adaptation.keyEvidence]} />
+          </>
+        ) : (
+          <Unreadable what="L'adaptation" />
+        )
+      }
+    </Reading>
   );
 }
 
-function Load({ effort }: { effort: EffortViewModel }) {
+function Load() {
   return (
     <>
-      <p className="text-sm leading-relaxed">
-        <span className="font-medium">{effort.verdict}</span>
-        {effort.fatigueTypeLabel ? ` · ${effort.fatigueTypeLabel}` : ''}
-      </p>
+      <Reading fallback={<Skel className="h-5 w-56" />} read={readEffort}>
+        {(effort) =>
+          effort ? (
+            <p className="text-sm leading-relaxed">
+              <span className="font-medium">{effort.verdict}</span>
+              {effort.fatigueTypeLabel ? ` · ${effort.fatigueTypeLabel}` : ''}
+            </p>
+          ) : (
+            <Unreadable what="La charge" />
+          )
+        }
+      </Reading>
       <Figures>
-        <Figure label="Forme chronique" value={effort.pmcSeries.at(-1)?.ctl ?? '—'} />
-        <Figure label="Fatigue aiguë" value={effort.pmcSeries.at(-1)?.atl ?? '—'} />
-        <Figure label="Forme nette" value={effort.tsb !== null ? Math.round(effort.tsb) : '—'} />
+        <Figure
+          label="Forme chronique"
+          value={<ReadingFigure pick={(e) => e.pmcSeries.at(-1)?.ctl} read={readEffort} />}
+        />
+        <Figure
+          label="Fatigue aiguë"
+          value={<ReadingFigure pick={(e) => e.pmcSeries.at(-1)?.atl} read={readEffort} />}
+        />
+        <Figure
+          label="Forme nette"
+          value={
+            <ReadingFigure
+              pick={(e) => (e.tsb !== null ? Math.round(e.tsb) : null)}
+              read={readEffort}
+            />
+          }
+        />
         <Figure
           hint="charge aiguë / chronique"
           label="Ratio"
-          value={Number.isFinite(effort.acwr) ? effort.acwr.toFixed(2) : '—'}
+          value={
+            <ReadingFigure
+              pick={(e) => (Number.isFinite(e.acwr) ? e.acwr.toFixed(2) : null)}
+              read={readEffort}
+            />
+          }
         />
       </Figures>
-      {effort.pmcSeries.length > 0 ? (
-        <CarnetLineChart
-          title="Charge contre forme"
-          data={effort.pmcSeries.map((p) => ({
-            label: p.label,
-            ctl: p.ctl,
-            atl: p.atl,
-            tsb: p.tsb,
-          }))}
-          series={[
-            { key: 'ctl', name: 'Forme chronique', stroke: CHART_BASE_STROKE },
-            { key: 'atl', name: 'Fatigue aiguë', stroke: CHART_COUNTER_STROKE, dashed: true },
-            { key: 'tsb', name: 'Forme nette', stroke: 'var(--muted-foreground)' },
-          ]}
-          zeroLine
-        />
-      ) : null}
-      {effort.weeklyTss.some((w) => w.tss > 0) ? (
-        <CarnetBarChart
-          average={effort.avgWeeklyTss}
-          data={effort.weeklyTss.map((w) => ({ label: w.week, tss: w.tss }))}
-          series={[{ key: 'tss', name: 'Charge', stroke: CHART_BASE_STROKE }]}
-          title="Charge par semaine"
-        />
-      ) : null}
-      <Reasons items={effort.keyEvidence} />
+      <Reading fallback={<ChartSkel title="Charge contre forme" />} read={readEffort}>
+        {(effort) =>
+          effort && effort.pmcSeries.length > 0 ? (
+            <CarnetLineChart
+              title="Charge contre forme"
+              data={effort.pmcSeries.map((p) => ({
+                label: p.label,
+                ctl: p.ctl,
+                atl: p.atl,
+                tsb: p.tsb,
+              }))}
+              series={[
+                { key: 'ctl', name: 'Forme chronique', stroke: CHART_BASE_STROKE },
+                { key: 'atl', name: 'Fatigue aiguë', stroke: CHART_COUNTER_STROKE, dashed: true },
+                { key: 'tsb', name: 'Forme nette', stroke: 'var(--muted-foreground)' },
+              ]}
+              zeroLine
+            />
+          ) : null
+        }
+      </Reading>
+      <Reading fallback={<ChartSkel title="Charge par semaine" />} read={readEffort}>
+        {(effort) =>
+          effort && effort.weeklyTss.some((w) => w.tss > 0) ? (
+            <CarnetBarChart
+              average={effort.avgWeeklyTss}
+              data={effort.weeklyTss.map((w) => ({ label: w.week, tss: w.tss }))}
+              series={[{ key: 'tss', name: 'Charge', stroke: CHART_BASE_STROKE }]}
+              title="Charge par semaine"
+            />
+          ) : null
+        }
+      </Reading>
+      <Reading fallback={null} read={readEffort}>
+        {(effort) => (effort ? <Reasons items={effort.keyEvidence} /> : null)}
+      </Reading>
     </>
   );
 }
 
-export default async function CarnetSeasonPage() {
-  'use cache: private';
-  cacheLife(CARNET_FRESHNESS);
-  const todayId = trainingDayIdForNow();
-  const today = dayOf(todayId);
-  const mondays = weekStartsEndingAt(addDays(today, 7), WEEKS_BACK + 1);
-  const from = dayIdOf(mondays[0] ?? today);
-  const to = dayIdOf(addDays(mondays.at(-1) ?? today, 6));
-  const day = encodeURIComponent(todayId);
+async function NextRaceLead() {
+  const [goals, todayId] = await Promise.all([readGoals(), readSeasonToday()]);
+  return nextRaceLead(goals, dayOf(todayId));
+}
 
-  const [goals, sessions, brief, effort, adaptation] = await Promise.all([
-    readSection<ClientGoal[]>('/api/v1/goals', true),
-    readSection<SeasonSession[]>(`/api/v1/planned-sessions?from=${from}&to=${to}`),
-    readViewModel<WeeklyCoachingBriefViewModel>('/api/presentation/weekly-coaching-brief'),
-    readViewModel<EffortViewModel>(`/api/presentation/effort?trainingDayId=${day}`),
-    readViewModel<AdaptationViewModel>(`/api/presentation/adaptation?trainingDayId=${day}`),
-  ]);
+async function GoalsReading() {
+  const [goals, todayId] = await Promise.all([readGoals(), readSeasonToday()]);
+  return goals ? (
+    <Goals goals={goals} today={dayOf(todayId)} />
+  ) : (
+    <Unreadable what="Les objectifs" />
+  );
+}
 
-  const weeks = sessions ? seasonWeeks(sessions, mondays, todayId) : [];
-  const upcoming = sessions ? upcomingSeasonSessions(sessions, todayId) : null;
-  const adherence = closedAdherence(weeks);
-
+export default function CarnetSeasonPage() {
   return (
-    <CarnetPage kicker="La saison" lead={nextRaceLead(goals, today)} title="Où tu en es">
+    <CarnetPage
+      kicker="La saison"
+      title="Où tu en es"
+      lead={
+        <Suspense fallback={<Skel className="h-4 w-72 max-w-full" />}>
+          <NextRaceLead />
+        </Suspense>
+      }
+    >
       <CarnetSection
         label="La semaine"
-        title={brief ? `${brief.weekStartLabel} – ${brief.weekEndLabel}` : undefined}
+        title={
+          <Reading read={readBrief} skeleton="h-5 w-44">
+            {(brief) => (brief ? `${brief.weekStartLabel} – ${brief.weekEndLabel}` : null)}
+          </Reading>
+        }
       >
-        {brief ? <Brief brief={brief} /> : <Unreadable what="La semaine" />}
+        <Reading fallback={<Skel className={BLOCK} />} read={readBrief}>
+          {(brief) => (brief ? <Brief brief={brief} /> : <Unreadable what="La semaine" />)}
+        </Reading>
       </CarnetSection>
 
       <CarnetSection label="Prochaines séances" title="À venir, dans le plan">
-        {upcoming ? (
-          <UpcomingSessions sessions={upcoming} today={todayId} />
-        ) : (
-          <Unreadable what="Les prochaines séances" />
-        )}
+        <Reading fallback={<Skel className={BLOCK} />} read={readSeason}>
+          {({ today, sessions }) =>
+            sessions ? (
+              <UpcomingSessions sessions={upcomingSeasonSessions(sessions, today)} today={today} />
+            ) : (
+              <Unreadable what="Les prochaines séances" />
+            )
+          }
+        </Reading>
       </CarnetSection>
 
       <CarnetSection label="La régularité" title="Séances prévues, séances faites">
-        <Adherence adherence={adherence} sessions={sessions} weeks={weeks} />
+        <Adherence />
       </CarnetSection>
 
       <CarnetSection label="La charge" title="Ce que l'entraînement coûte">
-        {effort ? <Load effort={effort} /> : <Unreadable what="La charge" />}
+        <Load />
       </CarnetSection>
 
-      <CarnetSection label="L'adaptation" title={adaptation?.statusLabel}>
-        <Adaptation adaptation={adaptation} />
+      <CarnetSection
+        label="L'adaptation"
+        title={
+          <Reading read={readAdaptation} skeleton="h-5 w-36">
+            {(adaptation) => adaptation?.statusLabel}
+          </Reading>
+        }
+      >
+        <Adaptation />
       </CarnetSection>
 
       <CarnetSection label="Les objectifs" title="Vers quoi tu vas">
-        {goals ? <Goals goals={goals} today={today} /> : <Unreadable what="Les objectifs" />}
+        <Suspense fallback={<Skel className={BLOCK} />}>
+          <GoalsReading />
+        </Suspense>
       </CarnetSection>
     </CarnetPage>
   );
