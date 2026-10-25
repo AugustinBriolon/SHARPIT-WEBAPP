@@ -69,12 +69,15 @@ describe('api host guards', () => {
       '/api/withings/callback',
       '/api/google/callback',
       '/api/billing/apple/notifications',
+      '/api/garmin/push',
+      '/api/garmin/push/a-secret-in-the-path',
     ]) {
       expect(isSelfAuthenticatedPath(path)).toBe(true);
       expect(screenApiHostRequest(request(`https://api.sharpit.app${path}`))).toBeNull();
     }
     expect(isSelfAuthenticatedPath('/api/strava/connect')).toBe(false);
     expect(isSelfAuthenticatedPath('/api/strava/callback/extra')).toBe(false);
+    expect(isSelfAuthenticatedPath('/api/garmin/push/a/b')).toBe(false);
   });
 
   it('lets a Bearer request through to authentication', () => {

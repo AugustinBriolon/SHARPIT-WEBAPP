@@ -35,7 +35,7 @@ const CRON_PATH = /^\/api\/cron\/[a-z-]+$/;
 const PUBLIC_PATHS = [
   /^\/api\/(strava|withings|google|garmin)\/callback$/,
   /^\/api\/billing\/apple\/notifications$/,
-  /^\/api\/garmin\/push$/,
+  /^\/api\/garmin\/push(\/[^/]+)?$/,
 ];
 
 /** What `api.` serves: route handlers under `/api/` — never a page. */
