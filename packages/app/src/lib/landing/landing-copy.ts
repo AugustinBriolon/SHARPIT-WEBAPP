@@ -264,7 +264,7 @@ export const LANDING_REFUSALS = {
 export const LANDING_SOURCES = {
   title: 'Branché sur tes appareils',
   subtitle: 'La montre change, ton modèle reste.',
-  connected: ['Strava', 'Apple Santé', 'Withings', 'Google Agenda'],
+  connected: ['Garmin', 'Strava', 'Apple Santé', 'Withings', 'Google Agenda'],
   upcomingLabel: 'Bientôt',
   upcoming: ['Polar'],
 } as const;
@@ -278,7 +278,7 @@ export const LANDING_FAQ = {
     {
       question: 'Faut-il une montre connectée ?',
       answer:
-        'Non. Une Apple Watch ou Strava suffisent. Les séances viennent de Strava et d’Apple Santé. Pour les mesures du matin, Apple Santé et Withings font foi.',
+        'Non. Une Apple Watch, une montre Garmin ou Strava suffisent. Les séances viennent de Garmin, de Strava et d’Apple Santé. Pour les mesures du matin, Garmin, Apple Santé et Withings font foi.',
     },
     {
       question: 'Pour quels sports ?',
