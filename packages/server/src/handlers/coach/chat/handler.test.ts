@@ -1,6 +1,14 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NextResponse } from 'next/server';
 
+const afterCallbacks: Array<() => unknown> = [];
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  after: vi.fn((callback: () => unknown) => {
+    afterCallbacks.push(callback);
+  }),
+}));
+
 vi.mock('ai', async (importOriginal) => {
   const actual = await importOriginal<typeof import('ai')>();
   return {
@@ -563,6 +571,7 @@ describe('POST /api/coach/chat · server-owned conversation', () => {
   });
 
   it('saves the thread with the answer when the stream ends', async () => {
+    afterCallbacks.length = 0;
     const ai = await import('ai');
     vi.mocked(ai.streamText).mockImplementation(((options: {
       onEnd: (end: Record<string, unknown>) => void;
@@ -599,6 +608,9 @@ describe('POST /api/coach/chat · server-owned conversation', () => {
 
     const { saveConversationMessages } = await import('@sharpit/server/lib/coach/conversations');
     await vi.waitFor(() => expect(saveConversationMessages).toHaveBeenCalled());
+    // The function stays alive until the save lands: Vercel freezes it once the response ends.
+    expect(afterCallbacks).toHaveLength(1);
+    await expect(afterCallbacks[0]!()).resolves.toBeUndefined();
     const [athleteId, id, saved] = vi.mocked(saveConversationMessages).mock.calls[0]!;
     expect([athleteId, id]).toEqual(['athlete-1', 'c1']);
     const thread = saved as Array<{ id: string; role: string; parts: Array<{ text?: string }> }>;
@@ -613,10 +625,12 @@ describe('POST /api/coach/chat · server-owned conversation', () => {
   });
 
   it('saves nothing for a thread the client owns', async () => {
+    afterCallbacks.length = 0;
     const { POST } = await importRoute();
     await POST(chatRequest());
     const { saveConversationMessages } = await import('@sharpit/server/lib/coach/conversations');
     expect(saveConversationMessages).not.toHaveBeenCalled();
+    expect(afterCallbacks).toHaveLength(0);
   });
 });
 

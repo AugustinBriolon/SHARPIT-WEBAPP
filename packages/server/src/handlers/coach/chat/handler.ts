@@ -14,7 +14,7 @@ import {
   type UIMessage,
   type UIMessageStreamWriter,
 } from 'ai';
-import { NextResponse } from 'next/server';
+import { after, NextResponse } from 'next/server';
 import {
   COACH_EMPTY_ANSWER_RETRY_MODEL,
   COACH_MODEL,
@@ -187,12 +187,13 @@ async function streamCoachReply(
   abortSignal: AbortSignal,
 ): Promise<Response> {
   const generate = await coachGenerator(input, abortSignal);
+  const save = saveWhenTheAnswerEnds(input);
   const stream = createUIMessageStream({
     originalMessages: input.messages,
     onError: () => COACH_STREAM_ERROR_COPY,
     onEnd: ({ messages, isAborted }) => {
       // Save what landed: the full answer, or the user turn + any partial if the athlete stopped.
-      void saveServerHistory(input, messages);
+      save(messages);
       if (isAborted) {
         console.info('[coach-chat] aborted', { conversationId: input.conversationId });
       }
@@ -226,9 +227,10 @@ function fixedCoachReply(
   input: Pick<CoachReplyInput, 'athleteId' | 'messages' | 'conversationId'>,
   text: string,
 ): Response {
+  const save = saveWhenTheAnswerEnds(input);
   const stream = createUIMessageStream({
     originalMessages: input.messages,
-    onEnd: ({ messages }) => void saveServerHistory(input, messages),
+    onEnd: ({ messages }) => save(messages),
     execute: ({ writer }) => {
       writer.write({ type: 'start' });
       writer.write({ type: 'text-start', id: 'fixed' });
@@ -242,6 +244,24 @@ function fixedCoachReply(
     },
   });
   return createUIMessageStreamResponse({ stream, consumeSseStream: consumeStream });
+}
+
+/**
+ * The save `onEnd` starts, kept alive past the response: Vercel freezes the function once the
+ * stream closes, and a save left floating there was lost — the next question then reached the
+ * model without the answer before it (2026-10-25). `after` must be registered while the request
+ * runs, so it is set up here and waits for whatever `onEnd` started.
+ */
+function saveWhenTheAnswerEnds(
+  input: Pick<CoachReplyInput, 'athleteId' | 'conversationId'>,
+): (messages: UIMessage[]) => void {
+  let pending: Promise<void> | undefined;
+  if (input.conversationId) {
+    after(() => pending);
+  }
+  return (messages) => {
+    pending = saveServerHistory(input, messages);
+  };
 }
 
 async function saveServerHistory(
