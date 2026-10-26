@@ -48,7 +48,10 @@ import {
   selectableDatedGoalIds,
 } from '@sharpit/app/lib/planned-session/plan-goal';
 import { intensityLabels } from '@sharpit/app/lib/planned-session/sessions';
-import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
+import {
+  formatStrengthFrequencyRule,
+  formatStrengthSessionRules,
+} from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import {
   adaptPlanGenerationSchema,
   adaptPlanSchema,
@@ -178,7 +181,8 @@ ${formatStrengthSessionRules()}
 ${COACH_COPY_DASH_RULE}
 
 FORMAT : le schéma de sortie fait autorité — noms de champs, valeurs autorisées et types viennent de lui, jamais de ce texte. N'ajoute aucun champ hors schéma et n'invente aucune valeur d'énumération.
-- Si le plan manque de renfo/mobilité préventive alors qu'un objectif sportif est actif ET que le renfo ou la mobilité figure dans les sports pratiqués, ADD des séances STRENGTH (préventif + mobilité) adaptées au sport — sauf MOBILITY_ONLY/NONE / REST_ONLY. Sinon, n'ajoute pas de STRENGTH.
+- Si le plan est sous la dose de renfo ci-dessous, ADD les séances STRENGTH manquantes.
+${formatStrengthFrequencyRule()}
 Réponds en français.`;
 
 function adaptErrorMessage(error: unknown): string {

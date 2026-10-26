@@ -9,6 +9,7 @@ import { dataSufficiencyRule } from './rules/data-sufficiency';
 import { calendarConflictRule } from './rules/calendar-conflict';
 import { sensitiveZoneRule } from './rules/sensitive-zone';
 import { strengthCompletenessRule } from './rules/strength-completeness';
+import { strengthFrequencyRule } from './rules/strength-frequency';
 import { practicedSportsRule } from './rules/practiced-sports';
 import { weeklyLoadRule } from './rules/weekly-load';
 import { intensityDistributionRule } from './rules/intensity-distribution';
@@ -45,6 +46,7 @@ const PLAN_LEVEL_RULES: readonly PlanLevelGateRule[] = [
   weeklyLoadRule,
   intensityDistributionRule,
   zoneRampRule,
+  strengthFrequencyRule,
 ];
 
 function worstStatus(findings: readonly RuleFinding[]): GateStatus {

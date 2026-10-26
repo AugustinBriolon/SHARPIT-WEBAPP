@@ -52,6 +52,11 @@ export type GateContext = {
   readonly practicedSports: readonly PracticedSportId[];
   /** Reference "now" for past-date / spacing checks — injected, not read from Date.now() inside rules. */
   readonly now: Date;
+  /**
+   * Days a whole-plan generation covers. Absent for a targeted adaptation, where
+   * week-level dose rules (strength frequency) have nothing complete to judge.
+   */
+  readonly planWindow?: { readonly start: Date; readonly days: number };
 };
 
 export type GateExistingSession = {
@@ -61,6 +66,7 @@ export type GateExistingSession = {
   readonly intensity: SessionIntensity | null;
   readonly completed: boolean;
   readonly load: number | null;
+  readonly durationMin?: number | null;
 };
 
 /** A normalized LLM-proposed session, mapped from coachPlanSchema or adaptPlanSchema. */

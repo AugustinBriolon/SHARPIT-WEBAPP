@@ -39,7 +39,7 @@ export const STRENGTH_BLOCKS: readonly StrengthBlock[] = [
     share: 0.35,
     minExercises: 3,
     guidance:
-      'Avec une zone sensible déclarée : toute la chaîne autour de l’articulation (agonistes, antagonistes, stabilisateurs, au moins un exercice unilatéral). Sans zone sensible : exercices accessoires et progressions au service de l’objectif.',
+      'Avec une zone sensible déclarée : toute la chaîne autour de l’articulation (agonistes, antagonistes, stabilisateurs, au moins un exercice unilatéral). Sans zone sensible : tendons et accessoires du sport (isométrie lourde puis excentrique lent) et progressions au service de l’objectif.',
   },
   {
     role: 'STRENGTH',
@@ -71,6 +71,19 @@ const MINUTES_PER_EXERCISE = 4;
  * short mobility filler, not a structured one.
  */
 const MIN_STRUCTURED_MINUTES = 35;
+
+/**
+ * Structured strength sessions an endurance athlete should get per week. Two is
+ * the dose the tendon and running-economy evidence rests on (Rønnestad & Mujika
+ * 2014, Beyer et al. 2015); one keeps the adaptation through a light week.
+ */
+export const WEEKLY_STRENGTH_TARGET = 2;
+export const LIGHT_WEEK_STRENGTH_TARGET = 1;
+
+/** A short mobility filler is not renfo: only a structured session counts toward the weekly dose. */
+export function isStructuredStrengthSession(durationMin: number | null | undefined): boolean {
+  return isSet(durationMin) && durationMin >= MIN_STRUCTURED_MINUTES;
+}
 const DEFAULT_SESSION_MINUTES = 45;
 
 /** Rep cadence used to estimate work time when no duration is prescribed. */
@@ -202,6 +215,11 @@ export function auditStrengthPrescription(input: {
   };
 }
 
+/** Weekly strength dose rule, shared by the plan generator and the chat coach. */
+export function formatStrengthFrequencyRule(): string {
+  return `- Renfo préventif (impératif dès qu'un sport d'endurance est pratiqué, que le renfo soit coché ou non) : ${WEEKLY_STRENGTH_TARGET} séances STRENGTH structurées (≥ ${MIN_STRUCTURED_MINUTES} min) par semaine, ${LIGHT_WEEK_STRENGTH_TARGET} seule en semaine de récupération, d'affûtage ou de course, aucune sous contrainte voyage MOBILITY_ONLY/NONE ou capacité REST_ONLY. Une mobilité courte ne compte pas comme renfo. Chaque séance charge les tendons du sport, avec une progression d'une semaine à l'autre : mollets/Achille, rotulien et ischios pour la course ; quadriceps, fessiers et lombaires pour le vélo ; coiffe des rotateurs et omoplates pour la natation. Place-la après une séance facile, ou le soir d'une séance dure (≥ 6 h après), jamais la veille d'une séance clé ; 48 h entre deux séances sur les mêmes muscles.`;
+}
+
 /** Compact FR rules block injected in coach prompts. */
 export function formatStrengthSessionRules(): string {
   const blocks = STRENGTH_BLOCKS.map((block) => `${block.label} (${block.guidance})`).join(' · ');
@@ -210,7 +228,7 @@ export function formatStrengthSessionRules(): string {
     `- Structure obligatoire, dans cet ordre : ${blocks}`,
     "- Chaque exercice sert l'objectif déclaré. Pour un objectif de force ou de skill (muscle-up, traction, squat, handstand…), la force et les progressions spécifiques de ce geste sont le cœur de la séance ; la mobilité et les étirements visent les articulations qu'il sollicite.",
     "- Le nombre d'exercices suit durationMin (~1 exercice par 4 min) : 30 min ≈ 6-10, 45 min ≈ 9-13, 60 min ≈ 13-17. Une séance de 3 à 5 exercices au-delà de 20 min est un échec.",
-    "- Prévention articulaire, seulement pour une zone sensible déclarée dans le contexte : couvre toute la chaîne autour (agonistes, antagonistes, stabilisateurs), avec du travail unilatéral et au moins un exercice excentrique. Sans zone sensible, n'invente pas de pathologie à prévenir.",
+    "- Prévention articulaire, seulement pour une zone sensible déclarée dans le contexte : couvre toute la chaîne autour (agonistes, antagonistes, stabilisateurs), avec du travail unilatéral et au moins un exercice excentrique. Sans zone sensible, n'invente pas de pathologie : le travail tendineux du sport reste la base.",
     '- Libellés FR proches du catalogue Garmin Connect — vérifie avec searchWatchExercises quand tu hésites, sinon la montre affichera un nom générique.',
     "- Pour CHAQUE exercice, déclare intent et pattern : c'est ce qui permet de vérifier qu'un étirement n'est pas compté comme une mise en charge, et qu'aucune zone sensible n'est chargée. Un étirement ou un auto-massage est intent=MOBILITY, pattern=null.",
   ].join('\n');

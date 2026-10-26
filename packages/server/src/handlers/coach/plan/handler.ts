@@ -55,7 +55,10 @@ import type { GateProposal } from '@sharpit/app/lib/plan-gate/types';
 import { computeTrainingDayId } from '@sharpit/core/training/training-day';
 import { buildDecisionSnapshotContext } from '@sharpit/server/lib/decision-memory/build-snapshot-context';
 import { createCoachingDecision } from '@sharpit/server/lib/decision-memory/repository';
-import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
+import {
+  formatStrengthFrequencyRule,
+  formatStrengthSessionRules,
+} from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import { buildCoachKnowledgeQuery } from '@sharpit/server/lib/coach/knowledge/build-query';
 import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/format-knowledge-rag-block';
 import {
@@ -104,7 +107,7 @@ Règles :
 
 Sécurité (impératif) :
 - Respecte ABSOLUMENT la condition physique déclarée : n'aggrave jamais une zone sensible, baisse l'intensité, cible renfo/mobilité. Réduis la charge dès que la récupération signale une fatigue excessive.
-- Dès qu'un objectif sportif est présent, et SI le renfo ou la mobilité figure dans les sports pratiqués, inclus dans la fenêtre — sauf voyage MOBILITY_ONLY/NONE ou capacité REST_ONLY — au moins une séance STRENGTH préventive spécifique au sport (stabilisateurs, chaîne postérieure, core, hanches/genoux/épaules) ET un bloc mobilité/étirements ciblés. Sinon, n'ajoute pas de STRENGTH.
+${formatStrengthFrequencyRule()}
 - Information manquante → hypothèse CONSERVATRICE. N'invente jamais de données.
 
 ${formatStrengthSessionRules()}
@@ -353,6 +356,7 @@ async function buildPreparedPlan(
   return {
     ok: true as const,
     start,
+    days,
     goalId: goalId ?? null,
     prompt,
     budgetWarning,
@@ -444,7 +448,7 @@ export async function generatePlan(
       }),
   );
   void recordAiUsage(athleteId, feature, { ...usage, model: COACH_STRUCTURED_MODEL });
-  return finalizePlan(athleteId, output, prepared.start, prepared.goalId ?? null);
+  return finalizePlan(athleteId, output, prepared.start, prepared.days, prepared.goalId ?? null);
 }
 
 export async function POST(req: Request) {
@@ -510,6 +514,7 @@ async function finalizePlan(
   athleteId: string,
   rawOutput: unknown,
   start: Date,
+  days: number,
   goalId: string | null,
 ): Promise<PlanPayload> {
   {
@@ -551,6 +556,7 @@ async function finalizePlan(
       trainingDayId: computeTrainingDayId(start),
       proposals,
       goalId,
+      planWindow: { start, days },
     });
     const gate = evaluatePlan(gateContext, proposals);
 

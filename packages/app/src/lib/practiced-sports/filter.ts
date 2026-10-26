@@ -92,7 +92,9 @@ export function hasComplementaryCoachStrength(sports: readonly PracticedSportId[
 
 /**
  * Activity types the coach may propose (ADD / create).
- * Triathlon expands to RUN+BIKE+SWIM. STRENGTH only when complementary strength/mobility/stretching.
+ * Triathlon expands to RUN+BIKE+SWIM. STRENGTH whenever an endurance sport is practiced —
+ * tendon prevention is part of the plan, not an option (ADR-112) — or when
+ * complementary strength/mobility/stretching is.
  */
 export function coachActivityTypesForPracticed(
   sports: readonly PracticedSportId[],
@@ -100,7 +102,7 @@ export function coachActivityTypesForPracticed(
   const types: CoachActivityType[] = enduranceActivityTypesForPracticed(sports).filter(
     (t): t is CoachActivityType => t === 'RUN' || t === 'BIKE' || t === 'SWIM',
   );
-  if (hasComplementaryCoachStrength(sports)) {
+  if (types.length > 0 || hasComplementaryCoachStrength(sports)) {
     types.push('STRENGTH');
   }
   return types;

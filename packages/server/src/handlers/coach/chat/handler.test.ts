@@ -79,6 +79,7 @@ vi.mock('@sharpit/server/lib/ai/usage', () => ({
 
 vi.mock('@sharpit/server/lib/planned-session/strength/strength-session-template', () => ({
   formatStrengthSessionRules: () => '',
+  formatStrengthFrequencyRule: () => '',
 }));
 
 vi.mock('@sharpit/server/lib/queries', () => ({

@@ -29,13 +29,12 @@ describe('practicedSportsRule', () => {
     expect(findings).toEqual([]);
   });
 
-  it('rejects STRENGTH ADD when only core endurance is practiced', () => {
+  it('allows preventive STRENGTH ADD when only core endurance is practiced', () => {
     const findings = practicedSportsRule(
       baseContext({ practicedSports: ['run', 'bike', 'swim', 'triathlon'] }),
       baseProposal({ type: 'STRENGTH' }),
     );
-    expect(findings).toHaveLength(1);
-    expect(findings[0]?.ruleCode).toBe('SPORT_NOT_PRACTICED');
+    expect(findings).toEqual([]);
   });
 
   it('allows MODIFY of an existing non-practiced session without changing type', () => {

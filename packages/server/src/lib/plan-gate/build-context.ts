@@ -75,6 +75,7 @@ function mapGateExistingSessions(
     intensity: s.intensity,
     completed: s.completed,
     load: s.load,
+    durationMin: s.durationMin,
   }));
 }
 
@@ -130,8 +131,9 @@ export async function buildGateContext(params: {
   proposals: readonly GateProposal[];
   goalId?: string | null;
   now?: Date;
+  planWindow?: GateContext['planWindow'];
 }): Promise<{ context: GateContext; snapshot: AthleteSnapshot }> {
-  const { athleteId, trainingDayId, proposals, goalId, now = new Date() } = params;
+  const { athleteId, trainingDayId, proposals, goalId, now = new Date(), planWindow } = params;
   const { proposalDates, windowStart, windowEnd } = gateWindowBounds(proposals, now);
 
   const [
@@ -181,7 +183,7 @@ export async function buildGateContext(params: {
     athleteProfile,
     now,
   });
-  const context: GateContext = { ...payload, trainingZones };
+  const context: GateContext = { ...payload, trainingZones, planWindow };
 
   return { context, snapshot };
 }

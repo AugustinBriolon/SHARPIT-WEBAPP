@@ -139,27 +139,32 @@ describe('intention / goals filtering', () => {
 });
 
 describe('coach / twin proposal filtering', () => {
-  it('offers only RUN for a run-only athlete', () => {
-    expect(coachActivityTypesForPracticed(['run'])).toEqual([ActivityType.RUN]);
+  it('offers RUN and preventive STRENGTH for a run-only athlete', () => {
+    expect(coachActivityTypesForPracticed(['run'])).toEqual([
+      ActivityType.RUN,
+      ActivityType.STRENGTH,
+    ]);
     expect(isCoachActivityTypeAllowed('BIKE', ['run'])).toBe(false);
-    expect(isCoachActivityTypeAllowed('STRENGTH', ['run'])).toBe(false);
+    expect(isCoachActivityTypeAllowed('STRENGTH', ['run'])).toBe(true);
   });
 
-  it('expands triathlon to run+bike+swim without STRENGTH', () => {
+  it('expands triathlon to run+bike+swim plus preventive STRENGTH', () => {
     expect(coachActivityTypesForPracticed(['triathlon'])).toEqual([
       ActivityType.RUN,
       ActivityType.BIKE,
       ActivityType.SWIM,
+      ActivityType.STRENGTH,
     ]);
   });
 
-  it('null normalize → all core, so coach allowlist is run+bike+swim', () => {
+  it('null normalize → all core, so coach allowlist is run+bike+swim+strength', () => {
     const { sports } = normalizeAthletePracticedSports(null);
     expect(sports).toEqual([...DEFAULT_CORE_PRACTICED_SPORTS]);
     expect(coachActivityTypesForPracticed(sports)).toEqual([
       ActivityType.RUN,
       ActivityType.BIKE,
       ActivityType.SWIM,
+      ActivityType.STRENGTH,
     ]);
   });
 

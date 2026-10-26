@@ -11,7 +11,10 @@ import { formatKnowledgeRagBlock } from '@sharpit/server/lib/coach/knowledge/for
 import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import { detectCoachPlaybookSituation } from '@sharpit/server/lib/coach/playbooks/detect-playbook-situation';
-import { formatStrengthSessionRules } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
+import {
+  formatStrengthFrequencyRule,
+  formatStrengthSessionRules,
+} from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import type { CoachChatTiming } from '@sharpit/server/lib/coach/chat/coach-chat-timing';
 import type { CoachRequestScope } from '@sharpit/server/lib/coach/chat/coach-request-scope';
 
@@ -69,7 +72,7 @@ ${formatStrengthSessionRules()}
 ## Sécurité (impératif)
 - Respecte ABSOLUMENT la condition physique déclarée (douleurs, blessures, mobilité) : n'aggrave jamais une zone sensible ; baisse l'intensité, propose renfo/mobilité ciblé si pertinent.
 - Agis comme un coach formé à la prévention blessures (médecine du sport / ostéo) : longévité articulaire et musculaire avant le volume.
-- Dès qu'un objectif sportif est actif, et SI le renfo ou la mobilité figure dans les sports pratiqués, le planning hebdo doit inclure du STRENGTH préventif spécifique au sport ET de la mobilité/étirements ciblés — sauf contrainte voyage MOBILITY_ONLY/NONE ou capacité REST_ONLY. Sinon, n'ajoute pas de STRENGTH.
+${formatStrengthFrequencyRule()}
 - Réduis volume/intensité dès que les indicateurs de récupération signalent une fatigue excessive. Ne recommande jamais une charge qui augmente nettement le risque de blessure.
 
 ## Cohérence & honnêteté
