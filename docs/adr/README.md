@@ -107,6 +107,7 @@
 | [ADR-109](./ADR-109-every-carnet-page-reads-on-cards.md)                                | Every page of the carnet reads on cards; `CarnetSection` becomes the card (amends ADR-108, ADR-072)                                                             | Accepted                          |
 | [ADR-110](./ADR-110-the-carnet-waits-on-values-not-on-pages.md)                         | The carnet waits on values, not on pages: static text shows at once, a micro-skeleton stands only on a value being read (amends ADR-072)                        | Accepted                          |
 | [ADR-111](./ADR-111-the-coach-draws-cards-through-display-tools.md)                     | The coach draws native cards (workout, follow-ups) through display tools validated by zod, not a JSON envelope                                                  | Accepted                          |
+| [ADR-112](./ADR-112-every-endurance-plan-carries-two-strength-sessions.md)              | Every endurance plan carries two structured strength sessions a week (one in a light week), tendon-focused, checked by a plan-level gate rule                   | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
