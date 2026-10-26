@@ -29,7 +29,7 @@ export const GUIDES: Record<string, GuideData> = {
       'Si vous avez manqué une séance d’entraînement, la règle d’or est formelle : ne doublez jamais votre volume le lendemain et ne cherchez pas à combler le kilométrage manquant. Si la séance ratée était un simple footing en endurance fondamentale, ignorez-la : son impact sur votre forme est négligeable (< 2 %). S’il s’agissait d’une séance clé (fractionné, seuil ou sortie longue), déplacez-la au surlendemain en remplaçant un footing léger, à condition de conserver au moins 24 à 48 heures de récupération avant votre prochaine séance intense. Ne programmez jamais deux séances dures en deux jours consécutifs.',
     calloutTitle: 'Comment SharpIt gère vos séances manquées',
     calloutText:
-      'Dans SharpIt, la commande « Rattraper ma semaine » rééquilibre automatiquement vos jours restants en préservant vos séances clés et en appliquant nos 14 garde-fous physiologiques.',
+      'Dans SharpIt, la commande « Rattraper ma semaine » rééquilibre automatiquement vos jours restants en préservant vos séances clés et en appliquant nos 15 garde-fous physiologiques.',
     steps: [
       {
         title: 'Étape 1 : Classifier la séance manquée',

@@ -46,7 +46,7 @@ export const ROUNDUPS: Record<string, RoundupData> = {
         strengths: [
           'Un plan qui se répare automatiquement dès qu’une séance saute.',
           'Une proposition chaque matin pour alléger ou maintenir l’effort selon la nuit.',
-          '14 garde-fous stricts empêchant le surentraînement.',
+          '15 garde-fous stricts empêchant le surentraînement.',
           'Synchronisation Garmin Connect native avec explications claires.',
         ],
         weaknesses: [

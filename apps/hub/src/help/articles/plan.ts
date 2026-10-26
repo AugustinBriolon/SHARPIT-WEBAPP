@@ -52,13 +52,13 @@ Le badge **Clé** apparaît dans le Plan, dans le Résumé et sur les propositio
     },
     {
       slug: 'garde-fous',
-      title: 'Les quatorze garde-fous du plan',
+      title: 'Les quinze garde-fous du plan',
       summary:
-        'Le coach rédige, des règles fixes vérifient. Chaque séance proposée passe quatorze contrôles avant d’arriver dans ton plan.',
+        'Le coach rédige, des règles fixes vérifient. Chaque séance proposée passe quinze contrôles avant d’arriver dans ton plan.',
       body: `
 Une proposition n’est jamais modifiée en silence : elle passe, elle est signalée, elle attend ta confirmation, ou elle est retirée.
 
-### Les quatorze contrôles
+### Les quinze contrôles
 
 1. Compatible avec le verdict du jour **et** son [niveau de confiance](/aide/methode/niveau-de-confiance) (confiance faible ou insuffisante : la séance est retirée)
 2. Respecte ton état physique
@@ -72,8 +72,9 @@ Une proposition n’est jamais modifiée en silence : elle passe, elle est signa
 10. Une séance faite n’est jamais réécrite
 11. Seulement les sports que tu pratiques
 12. Séances de renforcement complètes
-13. Sans seuils connus, il demande ta confirmation
-14. Ni doublon, ni séance mal formée
+13. Deux séances de renfo par semaine (une en semaine d’affûtage ou de course) pour protéger tes tendons ; une mobilité courte ne compte pas
+14. Sans seuils connus, il demande ta confirmation
+15. Ni doublon, ni séance mal formée
 
 Ces contrôles s’appliquent à la semaine préparée par le coach, aux ajustements et aux changements proposés dans la conversation.
 `,
