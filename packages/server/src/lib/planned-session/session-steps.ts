@@ -16,6 +16,11 @@ import { previewEnduranceSteps } from '@sharpit/app/lib/planned-session/enduranc
 import { effectiveEndurancePrescription } from '@sharpit/app/lib/planned-session/endurance/endurance-session';
 import type { AthleteThresholds } from '@sharpit/app/lib/planned-session/endurance/endurance-targets';
 import { parseStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
+import {
+  resolveSessionRoutines,
+  type SessionRoutines,
+} from '@sharpit/app/lib/planned-session/routines/session-routines';
+import type { ZoneCondition } from '@sharpit/app/lib/physical-health/sensitive-zones';
 
 export type PlannedSessionStep = {
   /** Stable within one session, so a client can key a list on it. */
@@ -43,6 +48,8 @@ export type PlannedSessionBreakdown = {
   derived: boolean;
   /** Why a target could not be resolved — an athlete-facing reason, not a stack trace. */
   warnings: string[];
+  /** Warm-up before and stretches after (ADR-114) — endurance sessions only. */
+  routines?: SessionRoutines | null;
 };
 
 const NO_THRESHOLDS: AthleteThresholds = {
@@ -72,12 +79,13 @@ export type PlannedSessionForSteps = {
   intensity: SessionIntensity | null;
   endurancePrescription?: unknown;
   strengthPrescription?: unknown;
+  routines?: unknown;
 };
 
 export function buildPlannedSessionSteps(
   session: PlannedSessionForSteps,
   thresholds: AthleteThresholds,
-  options?: { defaultPoolLengthM?: number | null },
+  options?: { defaultPoolLengthM?: number | null; zones?: readonly ZoneCondition[] },
 ): PlannedSessionBreakdown {
   if (session.type === 'STRENGTH') {
     return strengthBreakdown(session.strengthPrescription);
@@ -107,7 +115,12 @@ export function buildPlannedSessionSteps(
     notes: step.notes,
   }));
 
-  return { steps, derived, warnings };
+  const routines = resolveSessionRoutines({
+    type: session.type,
+    routines: session.routines,
+    zones: options?.zones,
+  });
+  return { steps, derived, warnings, routines };
 }
 
 function strengthBreakdown(raw: unknown): PlannedSessionBreakdown {

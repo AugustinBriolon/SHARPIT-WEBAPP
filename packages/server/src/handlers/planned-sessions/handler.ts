@@ -5,6 +5,7 @@ import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import {
   createPlannedSession,
   getAthleteProfile,
+  getTrainingZoneNotes,
   getPlannedSessionById,
   getPlannedSessions,
   isOwnGoalOrNone,
@@ -81,9 +82,10 @@ export async function GET(request: NextRequest) {
 
   try {
     const athleteId = await getCurrentAthleteId();
-    const [sessions, profile] = await Promise.all([
+    const [sessions, profile, zones] = await Promise.all([
       getPlannedSessions(athleteId, plannedSessionsRange(fromParam, toParam)),
       getAthleteProfile(athleteId),
+      getTrainingZoneNotes(athleteId),
     ]);
 
     // Targets are stored relative to thresholds and resolved for reading, so the
@@ -102,6 +104,7 @@ export async function GET(request: NextRequest) {
         rationale: purposes.get(session.id) ?? null,
         breakdown: buildPlannedSessionSteps(session, thresholds, {
           defaultPoolLengthM: profile?.defaultPoolLengthM,
+          zones,
         }),
       })),
     );

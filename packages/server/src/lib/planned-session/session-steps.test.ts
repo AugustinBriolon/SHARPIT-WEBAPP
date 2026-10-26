@@ -32,6 +32,17 @@ describe('buildPlannedSessionSteps', () => {
     expect(result.derived).toBe(true);
   });
 
+  it('carries the warm-up and stretches, with the zones the athlete declared (ADR-114)', () => {
+    const result = buildPlannedSessionSteps(session({}), thresholds, {
+      zones: [{ bodyRegion: 'Sciatique' }],
+    });
+
+    expect(result.routines?.warmup.moves.length).toBeGreaterThan(0);
+    expect(result.routines?.cooldown.moves.map((m) => m.name)).toContain(
+      'Glissements du nerf sciatique, allongé',
+    );
+  });
+
   it('reads a stored structure rather than deriving one', () => {
     const result = buildPlannedSessionSteps(
       session({

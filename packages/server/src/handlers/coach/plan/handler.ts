@@ -36,7 +36,7 @@ import {
 import { runStructuredCoachStream } from '@sharpit/server/lib/coach/stream-structured-generation';
 import { withCoachTrace } from '@sharpit/server/lib/ai/coach-trace';
 import { buildBusySummary } from '@sharpit/server/lib/coach/plan/calendar-availability';
-import { getAthleteProfile, getGoalById } from '@sharpit/server/lib/queries';
+import { getAthleteProfile, getGoalById, getTrainingZoneNotes } from '@sharpit/server/lib/queries';
 import {
   athleteThresholds,
   buildPlannedSessionSteps,
@@ -114,7 +114,7 @@ ${formatStrengthSessionRules()}
 
 ${COACH_COPY_DASH_RULE}
 
-Sortie : le schéma fait autorité pour les noms de champs, les types et les valeurs d'énumération — jamais ce texte. N'ajoute aucun champ hors schéma. Séance STRENGTH : strengthPrescription obligatoire (noms français, blocs et volume ci-dessus) ; RUN/BIKE/SWIM : null. Séance RUN, BIKE ou SWIM, même continue : endurancePrescription obligatoire (échauffement, corps, retour au calme) — étapes et groupes répétés avec leur intensité, jamais d'allure ni de watts, l'app les dérive des seuils. Textes courts : titre, une phrase de justification.`;
+Sortie : le schéma fait autorité pour les noms de champs, les types et les valeurs d'énumération — jamais ce texte. N'ajoute aucun champ hors schéma. Séance STRENGTH : strengthPrescription obligatoire (noms français, blocs et volume ci-dessus) ; RUN/BIKE/SWIM : null. routines : null par défaut, l'app ajoute l'échauffement articulaire et les étirements du sport et des zones sensibles ; écris-les seulement si la séance l'exige (VMA, côtes, zone sensible, course), 3 à 6 mouvements chacun. Séance RUN, BIKE ou SWIM, même continue : endurancePrescription obligatoire (échauffement, corps, retour au calme) — étapes et groupes répétés avec leur intensité, jamais d'allure ni de watts, l'app les dérive des seuils. Textes courts : titre, une phrase de justification.`;
 
 function buildGoalBlock(goal: NonNullable<Awaited<ReturnType<typeof getGoalById>>>, start: Date) {
   const daysToGo = goal.targetDate
@@ -585,7 +585,10 @@ async function finalizePlan(
       kept.length === proposals.length ? gate : evaluatePlan(gateContext, keptProposals);
 
     // Resolved like a planned session's, so a proposal opens on the steps it would store.
-    const profile = await getAthleteProfile(athleteId);
+    const [profile, zones] = await Promise.all([
+      getAthleteProfile(athleteId),
+      getTrainingZoneNotes(athleteId),
+    ]);
     const thresholds = athleteThresholds(profile);
     const keySessions = chooseKeySessions(kept.map((index) => sessions[index]));
     const sessionsWithDecisionId = kept.map((index, position) => {
@@ -595,6 +598,7 @@ async function finalizePlan(
         key: keySessions.has(position),
         breakdown: buildPlannedSessionSteps(s, thresholds, {
           defaultPoolLengthM: profile?.defaultPoolLengthM,
+          zones,
         }),
         title: sanitizeCoachCopy(s.title),
         // Written from the steps, not by the coach: the model spends no time on prose.

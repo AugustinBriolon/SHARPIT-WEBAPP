@@ -1,3 +1,4 @@
+import type { SessionRoutines } from '@sharpit/app/lib/planned-session/routines/session-routines';
 import { ActivityType, SessionIntensity } from '@prisma/client';
 import { addDays } from 'date-fns';
 import { comparePlannedSessionsBySchedule } from '@sharpit/app/lib/planned-session/planned-session-dates';
@@ -18,6 +19,8 @@ export type SeasonSession = {
   description?: string | null;
   load?: number | null;
   rationale?: string | null;
+  /** The server's reading of the session; only its warm-up and stretches are read here. */
+  breakdown?: { routines?: SessionRoutines | null } | null;
 };
 
 export type SeasonWeek = {

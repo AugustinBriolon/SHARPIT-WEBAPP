@@ -70,7 +70,10 @@ const REGION_GROUPS: ReadonlyArray<{
     groups: ['lower legs'],
   },
   { match: ['bassin', 'sacro', 'abdo', 'gainage', 'core', 'oblique'], groups: ['waist'] },
-  { match: ['lombaire', 'dos', 'rachis', 'dorsale', 'thoracique', 'trapeze'], groups: ['back'] },
+  {
+    match: ['lombaire', 'sciatique', 'dos', 'rachis', 'dorsale', 'thoracique', 'trapeze'],
+    groups: ['back'],
+  },
   { match: ['epaule', 'coiffe', 'deltoide', 'acromio'], groups: ['shoulders'] },
   // Before the neck: « coude » contains « cou ».
   { match: ['coude', 'poignet', 'avant-bras', 'main'], groups: ['lower arms'] },

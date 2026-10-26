@@ -22,6 +22,34 @@ describe('normalizePlanStartTime', () => {
 });
 
 describe('normalizeCoachPlanGeneration', () => {
+  it('keeps a coach routine that holds, drops one that does not (ADR-114)', () => {
+    const run = (routines: unknown) =>
+      normalizeCoachPlanGeneration({
+        summary: 'x',
+        sessions: [
+          {
+            dayOffset: 0,
+            type: 'RUN',
+            intensity: 'VO2MAX',
+            title: 'VMA',
+            durationMin: 50,
+            load: 60,
+            rationale: 'x',
+            routines,
+          },
+        ],
+      });
+    const moves = [
+      { name: 'Gammes A', dose: '2 × 20 m' },
+      { name: 'Skipping', dose: '2 × 20 m' },
+      { name: 'Accélérations', dose: '3 × 80 m' },
+    ];
+    const kept = run({ warmup: moves, cooldown: null });
+    expect(kept.ok && kept.plan.sessions[0]?.routines?.warmup).toHaveLength(3);
+    const dropped = run({ warmup: [{ name: 'x' }], cooldown: null });
+    expect(dropped.ok && dropped.plan.sessions[0]?.routines).toBeNull();
+  });
+
   it('rounds floats and coerces invented strength enums to null', () => {
     const result = normalizeCoachPlanGeneration({
       summary: 'Semaine légère',

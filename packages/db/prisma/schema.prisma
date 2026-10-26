@@ -1743,6 +1743,8 @@ model PlannedSession {
   endurancePrescription Json?
   /// Session-specific accessories (EquipmentItemId[]) — athlete prep checklist.
   accessories           Json?
+  /// Coach-written warm-up / stretches for this session (ADR-114); null → the sport's library.
+  routines              Json?
   durationMin           Int? // durée prévue en minutes
   load                  Float? // charge / TSS prévue
   intensity             SessionIntensity?

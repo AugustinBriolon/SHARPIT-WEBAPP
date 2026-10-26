@@ -1,3 +1,4 @@
+import { coachSessionRoutinesSchema } from '@sharpit/app/lib/planned-session/routines/session-routines';
 import { ActivityType, SessionIntensity } from '@prisma/client';
 import { z } from 'zod';
 import { isSet } from '@sharpit/shared/value';
@@ -73,6 +74,12 @@ const optionalAccessories = z
     return ids.length > 0 ? ids : null;
   });
 
+// Absent rather than null: a Prisma Json column refuses a bare null.
+const optionalRoutines = coachSessionRoutinesSchema
+  .nullable()
+  .optional()
+  .transform((v) => v ?? undefined);
+
 const basePlannedSessionSchema = z.object({
   type: activityTypeSchema,
   date: z.coerce.date(),
@@ -82,6 +89,7 @@ const basePlannedSessionSchema = z.object({
   strengthPrescription: optionalStrengthPrescription,
   endurancePrescription: optionalEndurancePrescription,
   accessories: optionalAccessories,
+  routines: optionalRoutines,
   durationMin: optionalNumber,
   load: optionalNumber,
   intensity: sessionIntensitySchema.optional().nullable(),
@@ -149,6 +157,7 @@ export const createPlannedSessionSchema = basePlannedSessionSchema
     ...data,
     strengthPrescription: data.type === ActivityType.STRENGTH ? data.strengthPrescription : null,
     endurancePrescription: data.type === ActivityType.STRENGTH ? null : data.endurancePrescription,
+    routines: data.type === ActivityType.STRENGTH ? undefined : data.routines,
   }));
 
 function shouldSkipSessionPatchRefine(data: {

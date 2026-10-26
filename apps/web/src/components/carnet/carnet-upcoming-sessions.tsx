@@ -12,6 +12,7 @@ import {
   intensityOrder,
 } from '@sharpit/app/lib/planned-session/sessions';
 import { formatPlannedSessionRelativeDay } from '@sharpit/app/lib/planned-session/planned-session-dates';
+import type { SessionRoutine } from '@sharpit/app/lib/planned-session/routines/session-routines';
 import { isSet } from '@sharpit/shared/value';
 import { Button } from '@sharpit/ui/components/ui/button';
 import { sendJson } from '@/client/query/send-json';
@@ -148,6 +149,28 @@ function Field({
   );
 }
 
+function RoutineField({ label, routine }: { label: string; routine: SessionRoutine }) {
+  return (
+    <div>
+      <dt className="text-label text-muted-foreground">
+        {label} · ~{routine.minutes} min{routine.source === 'coach' ? ' · sur mesure' : ''}
+      </dt>
+      <dd className="mt-1">
+        <ul className="space-y-1 text-sm leading-relaxed">
+          {routine.moves.map((move) => (
+            <li key={move.name}>
+              {move.name} <span className="text-muted-foreground">· {move.dose}</span>
+              {move.cue ? (
+                <span className="text-muted-foreground block text-xs">{move.cue}</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      </dd>
+    </div>
+  );
+}
+
 function SessionFields({
   session,
   draft,
@@ -246,6 +269,12 @@ function SessionFields({
           </select>
         }
       />
+      {!editing && session.breakdown?.routines ? (
+        <>
+          <RoutineField label="Avant" routine={session.breakdown.routines.warmup} />
+          <RoutineField label="Après" routine={session.breakdown.routines.cooldown} />
+        </>
+      ) : null}
       {editing || session.description || session.rationale ? (
         <Field
           editing={editing}

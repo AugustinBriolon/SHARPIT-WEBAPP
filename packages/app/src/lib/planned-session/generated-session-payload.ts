@@ -19,6 +19,7 @@ export type GeneratedSessionInput = {
   description: string;
   strengthPrescription?: CoachStrengthPrescription | null;
   endurancePrescription?: CoachEndurancePrescription | null;
+  routines?: unknown;
   durationMin: number;
   load: number;
   decisionId: string | null;
@@ -47,6 +48,7 @@ export function generatedSessionPayload(session: GeneratedSessionInput, goalId: 
     description: endurance.description ?? session.title,
     strengthPrescription: strength.strengthPrescription,
     endurancePrescription: endurance.endurancePrescription,
+    routines: session.routines ?? undefined,
     durationMin: session.durationMin,
     load: session.load,
     intensity: session.intensity,

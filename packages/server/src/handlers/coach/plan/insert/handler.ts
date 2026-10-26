@@ -23,6 +23,7 @@ const generatedSessionSchema = z.object({
   description: z.string().nullish(),
   strengthPrescription: z.unknown().nullish(),
   endurancePrescription: z.unknown().nullish(),
+  routines: z.unknown().nullish(),
   durationMin: z.number(),
   load: z.number(),
   decisionId: z.string().nullish(),

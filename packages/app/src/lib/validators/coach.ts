@@ -1,3 +1,4 @@
+import { coachSessionRoutinesSchema } from '@sharpit/app/lib/planned-session/routines/session-routines';
 import { z } from 'zod';
 import {
   coachEndurancePrescriptionGenerationSchema,
@@ -128,6 +129,7 @@ export const coachPlanSchema = z.object({
           .describe(
             'Déroulé structuré pour RUN et BIKE dès que la séance a une structure (fractionné, blocs au seuil, progressif). null pour STRENGTH, SWIM, et pour une sortie continue sans structure.',
           ),
+        routines: coachSessionRoutinesSchema.nullable().optional(),
         durationMin: z.number().int().min(10).max(420),
         load: z.number().int().min(0).max(400).describe('Charge / TSS estimé de la séance.'),
         rationale: z.string().describe('Justification courte : pourquoi cette séance maintenant.'),
@@ -176,6 +178,7 @@ const generatedSessionSchema = z.discriminatedUnion('type', [
     endurancePrescription: coachEndurancePrescriptionGenerationSchema.describe(
       'Déroulé : échauffement, corps, retour au calme — même pour une sortie continue.',
     ),
+    routines: coachSessionRoutinesSchema.nullable().optional(),
   }),
   generatedSessionBaseSchema.extend({
     type: z.literal('STRENGTH'),

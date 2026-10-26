@@ -4,6 +4,7 @@
  * Generation uses a permissive schema (floats, unknown strength enums as strings,
  * startTime without regex). One invented pattern must not discard a whole week.
  */
+import { coachSessionRoutinesSchema } from '@sharpit/app/lib/planned-session/routines/session-routines';
 import {
   movementIntentSchema,
   movementPatternSchema,
@@ -254,6 +255,12 @@ function sessionTypeAndIntensity(raw: Record<string, unknown>): {
   return { type, intensity };
 }
 
+/** A malformed custom routine falls back to the library rather than sinking the session. */
+function normalizeRoutines(raw: unknown) {
+  const parsed = coachSessionRoutinesSchema.safeParse(raw);
+  return parsed.success && (parsed.data.warmup || parsed.data.cooldown) ? parsed.data : null;
+}
+
 function normalizeSession(raw: Record<string, unknown>) {
   const typed = sessionTypeAndIntensity(raw);
   if (!typed) {
@@ -268,6 +275,7 @@ function normalizeSession(raw: Record<string, unknown>) {
     description: asNullableString(raw.description)?.trim() || '',
     strengthPrescription: normalizeStrengthPrescription(raw.strengthPrescription),
     endurancePrescription: normalizeEndurancePrescription(raw.endurancePrescription),
+    routines: normalizeRoutines(raw.routines),
     durationMin: clampInt(raw.durationMin, 10, 420, 45),
     load: clampInt(raw.load, 0, 400, 0),
     rationale: asNullableString(raw.rationale)?.trim() || '',
