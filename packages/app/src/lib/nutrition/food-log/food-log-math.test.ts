@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { portionNutrients, projectFoodLogDay, type LoggedEntry } from './food-log-math';
+import {
+  isFoodLogDayComplete,
+  portionNutrients,
+  projectFoodLogDay,
+  type LoggedEntry,
+} from './food-log-math';
 
 const SKYR = {
   kcalPer100g: 62,
@@ -63,5 +68,13 @@ describe('projectFoodLogDay', () => {
       sugar: null,
       meals: [],
     });
+  });
+});
+
+describe('isFoodLogDayComplete', () => {
+  it('needs breakfast, lunch and dinner eaten or skipped; snacks are optional', () => {
+    expect(isFoodLogDayComplete(['BREAKFAST', 'DINNER'], [])).toBe(false);
+    expect(isFoodLogDayComplete(['BREAKFAST', 'DINNER'], ['LUNCH'])).toBe(true);
+    expect(isFoodLogDayComplete(['SNACKS'], ['BREAKFAST', 'LUNCH', 'DINNER'])).toBe(true);
   });
 });

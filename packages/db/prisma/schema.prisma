@@ -298,7 +298,7 @@ model AthleteProfile {
 
   /// Densité de lecture choisie par l'athlète : 'essential' | 'expert'.
   /// 'expert' déverrouille les métriques techniques (TSS, IF, CTL/ATL/TSB, seuils…).
-  displayMode String @default("essential")
+  displayMode String  @default("essential")
   /// Language the app shows ('fr' | 'en', ADR-096): server copy, pushes and coach answers follow it.
   /// Null = an older client that never sent it — the request's Accept-Language decides, else French.
   locale      String?
@@ -411,6 +411,7 @@ model AthleteProfile {
   withingsAccount             WithingsAccount?
   calendarBusySnapshots       CalendarBusySnapshot[]
   foodLogEntries              FoodLogEntry[]
+  foodLogSkippedMeals         FoodLogSkippedMeal[]
   customFoods                 FoodProduct[]
   savedMeals                  SavedMeal[]
   coachToolExecutions         CoachToolExecution[]
@@ -751,6 +752,20 @@ model FoodLogEntry {
   updatedAt DateTime @updatedAt
 
   @@index([athleteId, date])
+}
+
+/// A meal the athlete chose not to eat (ADR-113): the analysis reads it as a choice, not a gap in
+/// the diary. Cleared when food is logged in that meal.
+model FoodLogSkippedMeal {
+  id        String         @id @default(cuid())
+  athleteId String
+  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  /// Training day, stored at UTC midnight like FoodLogEntry.date.
+  date      DateTime
+  meal      FoodMeal
+  createdAt DateTime       @default(now())
+
+  @@unique([athleteId, date, meal])
 }
 
 /// Idempotency record for a coach tool call that wrote state (e.g. logFoods after approval).

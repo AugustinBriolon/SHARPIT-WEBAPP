@@ -6,6 +6,17 @@
 export const FOOD_MEALS = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACKS'] as const;
 export type FoodMealKey = (typeof FOOD_MEALS)[number];
 
+/** Snacks are optional: a day is fully logged once these are eaten or skipped (ADR-113). */
+const MAIN_MEALS: readonly FoodMealKey[] = ['BREAKFAST', 'LUNCH', 'DINNER'];
+
+export function isFoodLogDayComplete(
+  mealsWithFood: Iterable<FoodMealKey>,
+  skippedMeals: Iterable<FoodMealKey>,
+): boolean {
+  const covered = new Set([...mealsWithFood, ...skippedMeals]);
+  return MAIN_MEALS.every((meal) => covered.has(meal));
+}
+
 /** `DailyNutrition.meals[].name` — the names MyFitnessPal wrote and `meal-display` labels. */
 const STORED_MEAL_NAME: Record<FoodMealKey, string> = {
   BREAKFAST: 'breakfast',

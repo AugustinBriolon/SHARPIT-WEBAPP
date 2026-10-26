@@ -35,6 +35,8 @@ vi.mock('@sharpit/server/lib/nutrition/food-log/food-log-service', () => {
     listFoodLogDay: vi.fn(),
     listOwnFoods: vi.fn(),
     recentFoods: vi.fn(),
+    skippedMealsOf: vi.fn(),
+    setMealSkipped: vi.fn(),
     searchEatenFoods: vi.fn(async () => []),
     searchOwnFoods: vi.fn(),
     servedProduct: vi.fn((product: object) => ({ ...product, served: true })),
@@ -64,6 +66,7 @@ describe('/api/food-log', () => {
     vi.mocked(log.listFoodLogDay).mockResolvedValue([]);
     vi.mocked(log.getNutritionTargets).mockResolvedValue({ kcal: 2600 } as never);
     vi.mocked(log.recentFoods).mockResolvedValue([]);
+    vi.mocked(log.skippedMealsOf).mockResolvedValue(['LUNCH']);
 
     const response = await GET(new NextRequest(`${BASE}?trainingDayId=2026-10-01`));
 
@@ -71,6 +74,7 @@ describe('/api/food-log', () => {
     expect(await response.json()).toEqual({
       trainingDayId: '2026-10-01',
       entries: [],
+      skippedMeals: ['LUNCH'],
       health: {
         day: null,
         meals: { BREAKFAST: null, LUNCH: null, DINNER: null, SNACKS: null },
@@ -144,6 +148,23 @@ describe('/api/food-log', () => {
     const empty = await POST(json('POST', '/entries/batch', { entries: [] }));
     expect(empty.status).toBe(400);
     expect(log.addFoodLogEntries).toHaveBeenCalledTimes(1);
+  });
+
+  it('marks a meal skipped and refuses an unknown meal (ADR-113)', async () => {
+    const { PUT } = await import('./skipped/handler');
+    const log = await service();
+    vi.mocked(log.setMealSkipped).mockResolvedValue(['LUNCH']);
+
+    const marked = await PUT(
+      json('PUT', '/skipped', { trainingDayId: '2026-10-01', meal: 'LUNCH', skipped: true }),
+    );
+    expect(await marked.json()).toEqual({ skippedMeals: ['LUNCH'] });
+    expect(log.setMealSkipped).toHaveBeenCalledWith('athlete-1', '2026-10-01', 'LUNCH', true);
+
+    const refused = await PUT(
+      json('PUT', '/skipped', { trainingDayId: '2026-10-01', meal: 'BRUNCH', skipped: true }),
+    );
+    expect(refused.status).toBe(400);
   });
 
   it('deletes an entry', async () => {

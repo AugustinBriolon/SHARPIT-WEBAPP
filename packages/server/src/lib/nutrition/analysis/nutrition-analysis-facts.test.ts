@@ -143,6 +143,18 @@ describe('buildNutritionAnalysisFacts', () => {
         meals: [meal('Déjeuner', 30, ['Riz', 'Poulet']), meal('Dîner', 0, [])],
       }),
     );
-    expect(facts.logging).toEqual({ entryCount: 2, mealCount: 1, complete: false });
+    expect(facts.logging).toEqual({
+      entryCount: 2,
+      mealCount: 1,
+      complete: false,
+      skippedMeals: [],
+    });
+  });
+
+  it('carries the meals skipped on purpose to the reading', () => {
+    const facts = buildNutritionAnalysisFacts(
+      input({ complete: true, skippedMeals: ['Déjeuner'], meals: [meal('Dîner', 50, ['Riz'])] }),
+    );
+    expect(facts.logging.skippedMeals).toEqual(['Déjeuner']);
   });
 });

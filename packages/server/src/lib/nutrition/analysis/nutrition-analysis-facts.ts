@@ -56,6 +56,8 @@ export type NutritionAnalysisPlannedInput = {
 export type NutritionAnalysisInput = {
   day: string;
   complete: boolean;
+  /** Labels of the meals skipped on purpose (ADR-113). */
+  skippedMeals?: readonly string[];
   totals: {
     calories: number;
     protein: number;
@@ -76,7 +78,12 @@ export type NutritionAnalysisInput = {
 
 export type NutritionAnalysisFacts = {
   day: string;
-  logging: { entryCount: number; mealCount: number; complete: boolean };
+  logging: {
+    entryCount: number;
+    mealCount: number;
+    complete: boolean;
+    skippedMeals: string[];
+  };
   totals: NutritionAnalysisInput['totals'];
   weightKg: number | null;
   load: {
@@ -242,6 +249,7 @@ export function buildNutritionAnalysisFacts(raw: NutritionAnalysisInput): Nutrit
       entryCount: countLoggedEntries(input.meals),
       mealCount: input.meals.filter((meal) => meal.calories > 0).length,
       complete: input.complete,
+      skippedMeals: [...(input.skippedMeals ?? [])],
     },
     totals: { ...input.totals },
     weightKg: input.weightKg,

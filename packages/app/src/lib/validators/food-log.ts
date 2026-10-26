@@ -9,6 +9,13 @@ const trainingDayId = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const grams = z.coerce.number().positive().max(5000);
 const per100g = z.coerce.number().min(0).max(1000);
 
+/** Marks a meal of a day skipped on purpose, or clears the mark (ADR-113). */
+export const foodLogSkippedMealSchema = z.object({
+  trainingDayId,
+  meal: z.enum(FOOD_MEALS),
+  skipped: z.boolean(),
+});
+
 /** A new entry: a known product (scanned, searched, own) or a quick add typed in by hand. */
 export const foodLogEntryCreateSchema = z
   .object({

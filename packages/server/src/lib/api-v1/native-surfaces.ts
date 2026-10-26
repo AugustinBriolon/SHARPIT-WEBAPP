@@ -46,6 +46,7 @@ export const NATIVE_V1_SURFACES = [
   { path: 'food-log', methods: ['GET', 'POST'] },
   { path: 'food-log/[id]', methods: ['PATCH', 'DELETE'] },
   { path: 'food-log/copy', methods: ['POST'] },
+  { path: 'food-log/skipped', methods: ['PUT'] },
   { path: 'food-log/describe', methods: ['POST'] },
   { path: 'food-log/foods', methods: ['GET', 'POST'] },
 

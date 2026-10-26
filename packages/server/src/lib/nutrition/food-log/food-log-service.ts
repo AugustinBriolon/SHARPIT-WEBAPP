@@ -1,6 +1,7 @@
 import type { FoodLogEntry, FoodProduct } from '@prisma/client';
 import { prisma } from '@sharpit/db/client';
 import {
+  isFoodLogDayComplete,
   portionNutrients,
   projectFoodLogDay,
   type FoodMealKey,
@@ -95,6 +96,7 @@ async function ingestDayObservation(
   athleteId: string,
   trainingDayId: string,
   entries: FoodLogEntry[],
+  complete: boolean,
 ) {
   const day = projectFoodLogDay(entries.map(asLogged));
   const targets = await loadTargets(athleteId);
@@ -114,7 +116,7 @@ async function ingestDayObservation(
       goalProteinG: targets.goalProtein ?? undefined,
       goalCarbohydratesG: targets.goalCarbohydrates ?? undefined,
       goalFatG: targets.goalFat ?? undefined,
-      diaryComplete: false,
+      diaryComplete: complete,
       entryCount: entries.length,
     });
   } catch (error) {
@@ -141,14 +143,67 @@ export async function recomputeFoodLogDay(athleteId: string, trainingDayId: stri
     return;
   }
 
+  const skipped = await reconcileSkippedMeals(athleteId, date, entries);
+  const complete = isFoodLogDayComplete(
+    entries.map((entry) => entry.meal as FoodMealKey),
+    skipped,
+  );
   const day = projectFoodLogDay(entries.map(asLogged));
-  const fields = { ...day, ...(await loadTargets(athleteId)) };
+  const fields = { ...day, complete, ...(await loadTargets(athleteId)) };
   await prisma.dailyNutrition.upsert({
     where: key,
     create: { athleteId, date, provider: SHARPIT_NUTRITION_PROVIDER, ...fields },
     update: fields,
   });
-  await ingestDayObservation(athleteId, trainingDayId, entries);
+  await ingestDayObservation(athleteId, trainingDayId, entries, complete);
+}
+
+/** Food logged in a skipped meal means it was eaten after all: the skip goes (ADR-113). */
+async function reconcileSkippedMeals(
+  athleteId: string,
+  date: Date,
+  entries: FoodLogEntry[],
+): Promise<FoodMealKey[]> {
+  const eaten = [...new Set(entries.map((entry) => entry.meal))];
+  await prisma.foodLogSkippedMeal.deleteMany({ where: { athleteId, date, meal: { in: eaten } } });
+  return listSkippedMeals(athleteId, date);
+}
+
+async function listSkippedMeals(athleteId: string, date: Date): Promise<FoodMealKey[]> {
+  const rows = await prisma.foodLogSkippedMeal.findMany({
+    where: { athleteId, date },
+    select: { meal: true },
+  });
+  return rows.map((row) => row.meal as FoodMealKey);
+}
+
+/** The meals of a day the athlete skipped on purpose. */
+export function skippedMealsOf(athleteId: string, trainingDayId: string): Promise<FoodMealKey[]> {
+  return listSkippedMeals(athleteId, foodLogDayDate(trainingDayId));
+}
+
+/**
+ * Marks a meal skipped, or not. A meal that holds food cannot be skipped: the rebuild drops the
+ * mark at once. Answers the day's skipped meals after the change.
+ */
+export async function setMealSkipped(
+  athleteId: string,
+  trainingDayId: string,
+  meal: FoodMealKey,
+  skipped: boolean,
+): Promise<FoodMealKey[]> {
+  const date = foodLogDayDate(trainingDayId);
+  if (skipped) {
+    await prisma.foodLogSkippedMeal.upsert({
+      where: { athleteId_date_meal: { athleteId, date, meal } },
+      create: { athleteId, date, meal },
+      update: {},
+    });
+  } else {
+    await prisma.foodLogSkippedMeal.deleteMany({ where: { athleteId, date, meal } });
+  }
+  await recomputeFoodLogDay(athleteId, trainingDayId);
+  return skippedMealsOf(athleteId, trainingDayId);
 }
 
 /**

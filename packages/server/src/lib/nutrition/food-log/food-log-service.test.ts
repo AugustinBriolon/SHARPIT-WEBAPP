@@ -21,6 +21,7 @@ vi.mock('@sharpit/db/client', () => ({
       delete: vi.fn(),
     },
     dailyNutrition: { upsert: vi.fn(), deleteMany: vi.fn() },
+    foodLogSkippedMeal: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
     athleteProfile: { findUnique: vi.fn(), update: vi.fn() },
   },
 }));
@@ -106,6 +107,7 @@ async function setup() {
     nutritionTargetCarbsG: null,
     nutritionTargetFatG: null,
   } as never);
+  vi.mocked(prisma.foodLogSkippedMeal.findMany).mockResolvedValue([]);
   return { prisma, service, observationEngine };
 }
 
@@ -113,6 +115,43 @@ describe('food log service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  it('marks a day complete once the main meals are eaten or skipped (ADR-113)', async () => {
+    const { prisma, service, observationEngine } = await setup();
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([
+      storedEntry(),
+      storedEntry({ id: 'e2', meal: 'DINNER' }),
+    ] as never);
+    vi.mocked(prisma.foodLogSkippedMeal.findMany).mockResolvedValue([{ meal: 'LUNCH' }] as never);
+
+    const skipped = await service.setMealSkipped('athlete-1', '2026-10-01', 'LUNCH', true);
+
+    expect(prisma.foodLogSkippedMeal.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ create: { athleteId: 'athlete-1', date: DAY, meal: 'LUNCH' } }),
+    );
+    expect(prisma.foodLogSkippedMeal.deleteMany).toHaveBeenCalledWith({
+      where: { athleteId: 'athlete-1', date: DAY, meal: { in: ['BREAKFAST', 'DINNER'] } },
+    });
+    expect(prisma.dailyNutrition.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: expect.objectContaining({ complete: true }) }),
+    );
+    expect(observationEngine.ingest).toHaveBeenCalledWith(
+      'athlete-1',
+      expect.objectContaining({ diaryComplete: true }),
+    );
+    expect(skipped).toEqual(['LUNCH']);
+  });
+
+  it('keeps a day incomplete while a main meal is neither eaten nor skipped', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([storedEntry()] as never);
+
+    await service.recomputeFoodLogDay('athlete-1', '2026-10-01');
+
+    expect(prisma.dailyNutrition.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ update: expect.objectContaining({ complete: false }) }),
+    );
   });
 
   it('logs a portion of a product, snapshotting its nutrients, then rebuilds the day', async () => {

@@ -5,7 +5,8 @@ import {
   parseJournalPrefs,
 } from '@sharpit/app/lib/journal/journal-prefs';
 import { getLatestBodyWeightKg } from '@sharpit/server/lib/nutrition/body-weight-for-fuel';
-import { normalizeStoredMeals } from '@sharpit/server/lib/nutrition/meal-display';
+import { formatMealLabel, normalizeStoredMeals } from '@sharpit/server/lib/nutrition/meal-display';
+import { skippedMealsOf } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
 import { getAthleteProfile } from '@sharpit/server/lib/queries';
 import { prisma } from '@sharpit/db/client';
 import { pickNutritionRow } from '@sharpit/app/lib/nutrition/food-log/nutrition-source';
@@ -86,15 +87,17 @@ export async function loadNutritionAnalysisInput(
   if (!row || meals.every((meal) => meal.entries.length === 0)) {
     return null;
   }
-  const [profile, weightKg, sessions, nextDayPlanned] = await Promise.all([
+  const [profile, weightKg, sessions, nextDayPlanned, skipped] = await Promise.all([
     getAthleteProfile(athleteId),
     getLatestBodyWeightKg(athleteId, trainingDayId),
     loadDaySessions(athleteId, trainingDayId),
     loadNextDayPlanned(athleteId, trainingDayId),
+    skippedMealsOf(athleteId, trainingDayId),
   ]);
   return {
     day: trainingDayId,
     complete: row.complete,
+    skippedMeals: skipped.map((meal) => formatMealLabel(meal.toLowerCase())),
     totals: {
       calories: row.calories,
       protein: row.protein,

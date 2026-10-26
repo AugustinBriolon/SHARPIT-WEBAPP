@@ -6,6 +6,7 @@ import {
   foodLogEntryBatchCreateSchema,
   foodLogEntryCreateSchema,
   foodLogEntryUpdateSchema,
+  foodLogSkippedMealSchema,
   nutritionTargetsSchema,
 } from '@sharpit/app/lib/validators/food-log';
 import { isBarcode } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
@@ -28,7 +29,9 @@ import {
   searchEatenFoods,
   searchOwnFoods,
   servedProduct,
+  setMealSkipped,
   setNutritionTargets,
+  skippedMealsOf,
   updateCustomFood,
   updateFoodLogEntry,
 } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
@@ -82,21 +85,40 @@ export async function getDay(request: NextRequest) {
   try {
     const athleteId = await getCurrentAthleteId();
     const diets = loadDeclaredDiet(athleteId);
-    const [entries, targets, recent, declared] = await Promise.all([
+    const [entries, targets, recent, declared, skippedMeals] = await Promise.all([
       diets.then((declared) => listFoodLogDay(athleteId, trainingDayId, declared)),
       getNutritionTargets(athleteId),
       recentFoods(athleteId),
       diets,
+      skippedMealsOf(athleteId, trainingDayId),
     ]);
     return NextResponse.json({
       trainingDayId,
       entries,
+      skippedMeals,
       health: foodLogDayHealth(entries),
       targets,
       recent: recent.map((item) => ({ ...item, product: servedProduct(item.product, declared) })),
     });
   } catch (error) {
     return failure('day', error);
+  }
+}
+
+/** `PUT /api/v1/food-log/skipped` — marks a meal skipped on purpose, or clears it (ADR-113). */
+export async function putSkippedMeal(request: NextRequest) {
+  try {
+    const athleteId = await getCurrentAthleteId();
+    const body = await parseBody(request, foodLogSkippedMealSchema);
+    if (!body.ok) {
+      return body.response;
+    }
+    const { trainingDayId, meal, skipped } = body.data;
+    return NextResponse.json({
+      skippedMeals: await setMealSkipped(athleteId, trainingDayId, meal, skipped),
+    });
+  } catch (error) {
+    return failure('skip meal', error);
   }
 }
 
