@@ -8,6 +8,7 @@ import {
   LANDING_HERO,
   LANDING_LINKS,
   LANDING_METHOD,
+  LANDING_SOCIAL_LINKS,
   LANDING_SOURCES,
   landingCopyStrings,
 } from '@sharpit/app/lib/landing/landing-copy';
@@ -40,6 +41,13 @@ describe('landing copy', () => {
     expect(LANDING_LINKS.signIn).toBe('https://web.sharpit.app/sign-in');
     expect(LANDING_LINKS.demo).toBe('https://web.sharpit.app/demo');
     expect(LANDING_LINKS.privacy).toBe('/privacy');
+  });
+
+  it('points the footer social links at the public Instagram and X accounts', () => {
+    expect(LANDING_SOCIAL_LINKS.map((link) => link.href)).toEqual([
+      'https://www.instagram.com/sharpit.app/',
+      'https://x.com/sharpitapp',
+    ]);
   });
 
   it('anchors the method section the hero links to', () => {

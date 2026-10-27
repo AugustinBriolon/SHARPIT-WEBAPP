@@ -20,6 +20,8 @@ export const LANDING_LINKS = {
   privacy: '/privacy',
   terms: '/terms',
   help: '/aide',
+  instagram: 'https://www.instagram.com/sharpit.app/',
+  x: 'https://x.com/sharpitapp',
 } as const;
 
 export const LANDING_HERO = {
@@ -326,6 +328,11 @@ export const LANDING_FOOTER_LINKS = [
   { label: 'Confidentialité', href: LANDING_LINKS.privacy },
   { label: 'Conditions', href: LANDING_LINKS.terms },
   { label: 'Connexion', href: LANDING_LINKS.signIn },
+] as const;
+
+export const LANDING_SOCIAL_LINKS = [
+  { label: 'Instagram', href: LANDING_LINKS.instagram },
+  { label: 'X', href: LANDING_LINKS.x },
 ] as const;
 
 /** Every athlete-facing string on the landing, for the forbidden-copy guard. */

@@ -7,6 +7,7 @@ import {
   LANDING_FAQ,
   LANDING_FOOTER_LINKS,
   LANDING_REFUSALS,
+  LANDING_SOCIAL_LINKS,
   LANDING_SOURCES,
 } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
@@ -203,6 +204,17 @@ function Closing() {
               <Link key={link.href} className="underline-offset-4 hover:underline" href={link.href}>
                 {link.label}
               </Link>
+            ))}
+            {LANDING_SOCIAL_LINKS.map((link) => (
+              <a
+                key={link.href}
+                className="underline-offset-4 hover:underline"
+                href={link.href}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                {link.label}
+              </a>
             ))}
           </nav>
         </footer>
