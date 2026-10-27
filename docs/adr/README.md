@@ -114,6 +114,7 @@
 | [ADR-116](./ADR-116-many-row-queries-on-athlete-data-must-name-the-athlete.md)             | A Prisma query extension rejects many-row queries on athlete data that do not name the athlete (throws outside production, logs in production; `acrossAthletes` for provider webhooks)                          | Accepted                          |
 | [ADR-117](./ADR-117-every-coach-turn-is-stored-as-the-model-saw-it.md)                     | Each coach turn is stored as the model saw it (full prompt, outcome, tokens, latency) for the coach evals                                                                                                       | Accepted                          |
 | [ADR-118](./ADR-118-coach-answers-are-checked-deterministically-before-any-model-judge.md) | Coach answers are checked by deterministic rules on their tool calls before any model judge                                                                                                                     | Accepted                          |
+| [ADR-119](./ADR-119-data-cards-are-the-read-tools-own-numbers.md)                          | Data cards are the read tools' own numbers, never typed by the model                                                                                                                                            | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
