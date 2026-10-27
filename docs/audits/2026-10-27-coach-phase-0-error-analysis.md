@@ -133,3 +133,20 @@ measured yet.
 | internal-codes        | 5               |
 | audit-warning-ignored | 3               |
 | denied-misread        | 1               |
+
+## Precision of the deterministic checks (hand review)
+
+Each of the 14 findings above was read against its answer and its tool calls:
+
+| Check                 | Findings | Judged true                                           |
+| --------------------- | -------- | ----------------------------------------------------- |
+| writes-then-asks      | 3        | 3                                                     |
+| internal-codes        | 5        | 5 (verdict codes, and session ids shown in backticks) |
+| audit-warning-ignored | 3        | 3                                                     |
+| denied-misread        | 1        | 1                                                     |
+| claims-without-tool   | 1        | 1                                                     |
+| raw-tool-json         | 1        | 1                                                     |
+
+Caveats: the rules were written from these same answers, so this measures fit, not how the rules
+generalise. Recall is not measured: answers the checks did not flag were not read for missed
+failures. The sample is 19 answers from one athlete.
