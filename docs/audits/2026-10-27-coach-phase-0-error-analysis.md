@@ -116,3 +116,20 @@ Briefings were read in full for one athlete: they tell that athlete to « survei
 genou droit » and their feet and pelvis. Past days are served as stored (web ADR-101), so these
 briefings and snapshots still show if an athlete opens one of those days. `DigitalTwin` rows and
 `CoachingDecision.snapshotContext` are clean.
+
+## Baseline with the deterministic checks (ADR-118)
+
+Run on the 21 stored conversations that remain after the purge (19 assistant answers; the
+purged conversation of athlete B held one more). Checks in
+`packages/server/src/lib/coach/evals/turn-checks.ts`. Counts are upper bounds: precision is not
+measured yet.
+
+| Check                 | Answers flagged |
+| --------------------- | --------------- |
+| empty-answer          | 0               |
+| writes-then-asks      | 3               |
+| claims-without-tool   | 1               |
+| raw-tool-json         | 1               |
+| internal-codes        | 5               |
+| audit-warning-ignored | 3               |
+| denied-misread        | 1               |
