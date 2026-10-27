@@ -111,6 +111,7 @@
 | [ADR-113](./ADR-113-a-skipped-meal-is-a-choice-not-a-gap.md)                            | A meal can be marked skipped on purpose; a SHARPIT day is complete once its main meals are eaten or skipped, and the nutrition reading never calls a skipped meal a gap                                         | Accepted                          |
 | [ADR-114](./ADR-114-endurance-sessions-carry-a-warm-up-and-stretches.md)                | Endurance sessions carry a joint warm-up and stretches: a library per sport completed by the declared zones, or the coach's own when the session calls for it; served in the breakdown, never sent to the watch | Accepted, amended by ADR-115      |
 | [ADR-115](./ADR-115-warm-ups-are-dosed-by-the-session-and-stretches-are-targeted.md)    | Warm-ups dosed by intensity, strides carved into the warm-up step (sent to the watch), optional targeted stretches, ramp-up sets in strength, and the athlete's done / shortened / skipped read by the coach    | Accepted                          |
+| [ADR-116](./ADR-116-many-row-queries-on-athlete-data-must-name-the-athlete.md)          | A Prisma query extension rejects many-row queries on athlete data that do not name the athlete (throws outside production, logs in production; `acrossAthletes` for provider webhooks)                          | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

@@ -41,7 +41,7 @@ packages/core/           Pure domain: observation, features, inference, digital 
 packages/shared/         Framework-free helpers shared by every workspace (@sharpit/shared)
 packages/ui/             What both UIs render: design system CSS, fonts, button, auth shell, providers, api. clients (@sharpit/ui)
 packages/app/            What the web may import: pure modules, view models, api. payload types, Clerk identity helpers (@sharpit/app) — never the server or the database (ADR-050)
-packages/db/             Prisma schema, migrations and client (@sharpit/db/client)
+packages/db/             Prisma schema, migrations and client (@sharpit/db/client), with the athlete-scope guard (ADR-116)
 packages/server/         Server application code (api. only): queries, integrations, engines, handlers (@sharpit/server)
 packages/eslint-config/  The lint rules every workspace extends
 docs/                    ADRs, architecture, product and design documentation

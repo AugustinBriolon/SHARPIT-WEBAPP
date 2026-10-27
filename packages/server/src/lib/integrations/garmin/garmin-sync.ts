@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { isSet } from '@sharpit/shared/value';
 import { prisma } from '@sharpit/db/client';
+import { acrossAthletes } from '@sharpit/db/athlete-scope';
 import type { GarminDailyHealth } from '@sharpit/server/lib/integrations/garmin/garmin';
 import {
   deleteGarminRegistration,
@@ -126,11 +127,16 @@ export async function endGarminRegistration(athleteId: string): Promise<void> {
 
 /** Garmin's own deregistration push: the athlete removed SharpIt from Garmin Connect. */
 export async function forgetGarminUser(garminUserId: string) {
-  await prisma.garminAccount.deleteMany({ where: { garminUserId } });
+  // Garmin names its own user, not ours: the push arrives with no athlete session.
+  await acrossAthletes('Garmin deregistration push', () =>
+    prisma.garminAccount.deleteMany({ where: { garminUserId } }),
+  );
 }
 
 export async function updateGarminPermissions(garminUserId: string, permissions: string[]) {
-  await prisma.garminAccount.updateMany({ where: { garminUserId }, data: { permissions } });
+  await acrossAthletes('Garmin permission push', () =>
+    prisma.garminAccount.updateMany({ where: { garminUserId }, data: { permissions } }),
+  );
 }
 
 async function ingestGarminHealth(

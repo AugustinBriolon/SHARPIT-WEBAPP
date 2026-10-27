@@ -1,5 +1,6 @@
 import { PrismaNeon } from '@prisma/adapter-neon';
 import { PrismaClient } from '@prisma/client';
+import { athleteScopeExtension } from './athlete-scope';
 import { shouldUseNeonAdapter } from './neon-adapter';
 
 const globalForPrisma = globalThis as unknown as {
@@ -11,12 +12,11 @@ function createPrismaClient() {
   const log =
     process.env.NODE_ENV === 'development' ? (['error', 'warn'] as const) : (['error'] as const);
 
-  if (shouldUseNeonAdapter(connectionString, process.env.PRISMA_NEON_ADAPTER)) {
-    const adapter = new PrismaNeon({ connectionString });
-    return new PrismaClient({ adapter, log: [...log] });
-  }
-
-  return new PrismaClient({ log: [...log] });
+  const client = shouldUseNeonAdapter(connectionString, process.env.PRISMA_NEON_ADAPTER)
+    ? new PrismaClient({ adapter: new PrismaNeon({ connectionString }), log: [...log] })
+    : new PrismaClient({ log: [...log] });
+  // A query extension leaves every model's API as it was, so the client keeps its type.
+  return client.$extends(athleteScopeExtension()) as unknown as PrismaClient;
 }
 
 /** Bust dev HMR cache when schema delegates are missing (e.g. after prisma generate). */

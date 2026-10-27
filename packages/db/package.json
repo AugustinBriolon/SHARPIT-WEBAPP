@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "exports": {
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./athlete-scope": "./src/athlete-scope.ts"
   },
   "scripts": {
     "test": "vitest run",
