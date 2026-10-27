@@ -1,6 +1,6 @@
 # ADR-114: Endurance sessions carry a joint warm-up and stretches
 
-**Status:** Accepted
+**Status:** Accepted — amended by [ADR-115](./ADR-115-warm-ups-are-dosed-by-the-session-and-stretches-are-targeted.md)
 **Date:** 2026-10-26
 **Author:** Augustin Briolon (with Claude Code)
 **Related:** [ADR-017](./ADR-017-endurance-prescription-authoring.md), [ADR-068](./ADR-068-a-declared-zone-has-a-strategy-and-a-lifecycle.md), [ADR-112](./ADR-112-every-endurance-plan-carries-two-strength-sessions.md)

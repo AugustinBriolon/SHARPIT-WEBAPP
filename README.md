@@ -296,9 +296,14 @@ when a reference it depends on moves ([ADR-016](./docs/adr/ADR-016-endurance-pre
 **Around the steps.** Every generated week holds two structured, tendon-focused strength sessions
 (one in a taper or race week), for every endurance athlete
 ([ADR-112](./docs/adr/ADR-112-every-endurance-plan-carries-two-strength-sessions.md)). Each run, ride
-and swim reads with a joint warm-up before and stretches after — the sport's library completed
-for the athlete's declared zones, or the coach's own — shown in the app and never sent to the watch
-([ADR-114](./docs/adr/ADR-114-endurance-sessions-carry-a-warm-up-and-stretches.md)).
+and swim reads with a joint warm-up before and optional, targeted stretches after — the sport's
+library dosed by the session's intensity and completed for the athlete's declared zones, or the
+coach's own — shown in the app, never sent to the watch
+([ADR-114](./docs/adr/ADR-114-endurance-sessions-carry-a-warm-up-and-stretches.md)). Before tempo,
+threshold or VO2 work, strides are carved out of the warm-up step, so the watch shows them and the
+session keeps its length; the athlete says whether each routine was done, shortened or skipped,
+and the coach reads it beside the session's first block
+([ADR-115](./docs/adr/ADR-115-warm-ups-are-dosed-by-the-session-and-stretches-are-targeted.md)).
 
 **What carries a target.** Work steps do. Warm-up, recovery, rest and cool-down do not: they
 are defined by being easy rather than by holding a number
