@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   COACH_DATA_CARD_SCHEMA_VERSION,
@@ -9,6 +9,12 @@ import {
 const FIXTURES = new URL('./data-fixtures/', import.meta.url);
 
 type FixturePart = { type: string; output: { schemaVersion: number; card: unknown } };
+
+// The iPhone app decodes its own copy of these files (SHARPIT-APP, sibling repository).
+const IOS_FIXTURES = new URL(
+  '../../../../../../../../SHARPIT-APP/SHARPIT-APPTests/Fixtures/CoachDataCards/',
+  import.meta.url,
+);
 
 const names = readdirSync(FIXTURES).filter((name) => name.endsWith('.json'));
 
@@ -49,5 +55,13 @@ describe('coach data cards contract v1', () => {
       ok: true,
       markdown: 'texte',
     });
+  });
+
+  it.skipIf(!existsSync(IOS_FIXTURES))('matches the iPhone copy of every fixture', () => {
+    for (const name of names) {
+      expect(readFileSync(new URL(name, IOS_FIXTURES), 'utf8')).toBe(
+        readFileSync(new URL(name, FIXTURES), 'utf8'),
+      );
+    }
   });
 });
