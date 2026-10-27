@@ -1726,6 +1726,9 @@ model CoachTurnTrace {
   intent            String
   model             String?
   systemPrompt      String
+  /// The answer as the athlete got it: `{ text, tools: [{ name, input, output, state }] }`. Null on
+  /// traces written before it was stored, and when the turn produced no assistant message.
+  turn              Json?
   /// 'ok' | 'empty' | 'error' | 'aborted'
   outcome           String
   finishReason      String?

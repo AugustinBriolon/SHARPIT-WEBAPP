@@ -51,6 +51,7 @@ import { withCoachTrace } from '@sharpit/server/lib/ai/coach-trace';
 import {
   coachTurnOutcome,
   coachTurnTraceRecord,
+  coachTurnFromMessages,
   saveCoachTurnTrace,
   type CoachTurnOutcome,
 } from '@sharpit/server/lib/coach/chat/coach-turn-trace';
@@ -202,7 +203,7 @@ async function streamCoachReply(
     onEnd: ({ messages, isAborted }) => {
       // Save what landed: the full answer, or the user turn + any partial if the athlete stopped.
       save(messages);
-      recordTrace({ isAborted, end: lastEnd });
+      recordTrace({ isAborted, end: lastEnd, messages });
       if (isAborted) {
         console.info('[coach-chat] aborted', { conversationId: input.conversationId });
       }
@@ -264,10 +265,14 @@ function fixedCoachReply(
  */
 function coachTurnRecorder(
   input: CoachReplyInput,
-): (ended: { isAborted: boolean; end: CoachAttemptEnd | undefined }) => void {
+): (ended: {
+  isAborted: boolean;
+  end: CoachAttemptEnd | undefined;
+  messages: UIMessage[];
+}) => void {
   let pending: Promise<void> | undefined;
   after(() => pending);
-  return ({ isAborted, end }) => {
+  return ({ isAborted, end, messages }) => {
     const outcome: CoachTurnOutcome = coachTurnOutcome({
       isAborted,
       finishedWithoutAnswer: end ? end.outcome.emptyAnswer : null,
@@ -278,6 +283,7 @@ function coachTurnRecorder(
         conversationId: input.conversationId,
         intent: input.scope.intent,
         systemPrompt: input.system,
+        turn: coachTurnFromMessages(messages),
         outcome,
         model: end?.outcome.servedModel ?? null,
         finishReason: end?.outcome.finishReason ?? null,

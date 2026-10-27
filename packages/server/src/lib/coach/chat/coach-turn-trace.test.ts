@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { coachTurnOutcome, coachTurnTraceRecord } from './coach-turn-trace';
+import type { UIMessage } from 'ai';
+import { coachTurnFromMessages, coachTurnOutcome, coachTurnTraceRecord } from './coach-turn-trace';
 
 // The coach evals replay the turns recorded here, so a turn's outcome and numbers must match
 // what the athlete got (ADR-117).
@@ -27,6 +28,7 @@ describe('coachTurnTraceRecord', () => {
     conversationId: 'conv-1',
     intent: 'plan',
     systemPrompt: 'system',
+    turn: null,
     outcome: 'ok' as const,
     model: 'gateway/model',
     finishReason: 'stop',
@@ -75,5 +77,50 @@ describe('coachTurnTraceRecord', () => {
     expect(record.systemPrompt).toBe('system');
     expect(record.athleteId).toBe('athlete-b');
     expect(record.conversationId).toBe('conv-1');
+  });
+});
+
+describe('coachTurnFromMessages', () => {
+  const user: UIMessage = { id: 'u', role: 'user', parts: [{ type: 'text', text: 'Mon TSB ?' }] };
+
+  it('keeps the text and each tool call with its input, output and state', () => {
+    const answer = {
+      id: 'a',
+      role: 'assistant',
+      parts: [
+        {
+          type: 'tool-explainDayScores',
+          toolCallId: 't1',
+          state: 'output-available',
+          input: { day: 'today' },
+          output: { tsb: -12 },
+        },
+        { type: 'text', text: 'Ton TSB est ' },
+        { type: 'text', text: 'de -12.' },
+      ],
+    } as UIMessage;
+
+    expect(coachTurnFromMessages([user, answer])).toEqual({
+      text: 'Ton TSB est de -12.',
+      tools: [
+        {
+          name: 'explainDayScores',
+          input: { day: 'today' },
+          output: { tsb: -12 },
+          state: 'output-available',
+        },
+      ],
+    });
+  });
+
+  it('reads the last assistant message, not an earlier one', () => {
+    const earlier = { id: 'a0', role: 'assistant', parts: [{ type: 'text', text: 'avant' }] };
+    const last = { id: 'a1', role: 'assistant', parts: [{ type: 'text', text: 'après' }] };
+
+    expect(coachTurnFromMessages([earlier, user, last] as UIMessage[])?.text).toBe('après');
+  });
+
+  it('returns null when the thread holds no assistant message', () => {
+    expect(coachTurnFromMessages([user])).toBeNull();
   });
 });
