@@ -64,7 +64,7 @@ async function loadDailyStrainData(athleteId: string, trainingDayId: string) {
       orderBy: { date: 'asc' },
     }),
     prisma.athleteProfile.findUnique({ where: { id: athleteId } }),
-    prisma.googleAccount.findFirst({ select: { timeZone: true } }),
+    prisma.googleAccount.findUnique({ where: { athleteId }, select: { timeZone: true } }),
     prisma.dailyHealth.findUnique({
       where: {
         athleteId_date: { athleteId, date: new Date(`${trainingDayId}T00:00:00.000Z`) },
