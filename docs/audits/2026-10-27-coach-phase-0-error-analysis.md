@@ -150,3 +150,20 @@ Each of the 14 findings above was read against its answer and its tool calls:
 Caveats: the rules were written from these same answers, so this measures fit, not how the rules
 generalise. Recall is not measured: answers the checks did not flag were not read for missed
 failures. The sample is 19 answers from one athlete.
+
+## Recall pass and rule additions
+
+The hand review of unflagged answers (above) found five answers with a failure the checks had
+missed. Four rules were added for them, and the baseline was run again on the same 19 answers:
+
+| Check                                     | Findings | Judged true |
+| ----------------------------------------- | -------- | ----------- |
+| logged-quantity-mismatch (new)            | 1        | 1           |
+| unsupported-physiology (new)              | 3        | 3           |
+| writes-then-asks (« on reste sur » added) | 1 new    | 1           |
+| internal-codes (REPOS added)              | 1 new    | 1           |
+
+The six new findings are all true. The recall of those five answers is now 5 of 5, but that is
+circular: the rules were written from them. Recall on answers not yet seen is still unmeasured.
+The distance error in a third answer (180 km of cycling for a 90 km half-Ironman) needs
+domain knowledge and is not covered by any rule.
