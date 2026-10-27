@@ -362,7 +362,9 @@ async function coachGenerator(input: CoachReplyInput, abortSignal: AbortSignal) 
       abortSignal,
       ...coachChatGenerationSettings(scope),
       reasoning: attempt.reasoning,
-      telemetry: { functionId: 'coach-chat' },
+      // Spans keep tokens, latency and outcome; the prompt and the answer, which carry the athlete's
+      // health context, stay in our database and are not sent to Langfuse (ADR-117).
+      telemetry: { functionId: 'coach-chat', recordInputs: false, recordOutputs: false },
       onChunk: ({ chunk }) => {
         if (chunk.type === 'text-delta') {
           timing.firstText();
