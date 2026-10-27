@@ -22,7 +22,10 @@ not something the evals can query from the app.
 - A `CoachTurnTrace` row is written when each coach turn ends: the full system prompt the model
   saw (health context included), the intent, the model that served the last step, the finish
   reason, the outcome (`ok`, `empty`, `error`, `aborted`), steps, input / cached / output tokens,
-  time to first text and total latency. The row cascades from the athlete profile, so account
+  time to first text and total latency. It also holds the answer the athlete got (`turn`: its text
+  and every tool call with the input the model wrote and the output the server returned), added by
+  migration `20261028090000_coach_turn_trace_turn`, so a figure or a card can be checked against the
+  tool output behind it. The row cascades from the athlete profile, so account
   deletion erases it with the rest.
 - The row is written from the handler's existing timing summary and turn outcome, so no second
   measurement exists. A retry on an empty answer records the retry's numbers.
@@ -60,6 +63,8 @@ second, lossy copy of the context whose fidelity the evals would have to check.
 
 ### Negative
 
+- `turn` stores tool outputs (health data read by the coach) beside the prompt, with the same
+  lifetime. Rows written before the column existed have it null.
 - Health context is stored in our database per turn. Retention is not yet bounded; it follows the
   account until deletion. A retention window is a follow-up decision.
 - Langfuse receives coach turns' timing and token spans, without prompts or answers: the coach's
