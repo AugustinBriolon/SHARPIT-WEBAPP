@@ -400,6 +400,7 @@ model AthleteProfile {
   weeklyReviews               WeeklyReview[]
   performanceRecords          PerformanceRecord[]
   conversations               Conversation[]
+  coachTurnTraces             CoachTurnTrace[]
   plannedSessions             PlannedSession[]
   travelContexts              AthleteTravelContext[]
   dayJournals                 AthleteDayJournal[]
@@ -1713,6 +1714,30 @@ model Conversation {
 
   @@index([updatedAt])
   @@index([athleteId])
+}
+
+/// One coach turn as the model saw it: the system prompt (health context included), the cost and
+/// timing the handler measured, and how the turn ended. The coach evals replay these (ADR-117).
+model CoachTurnTrace {
+  id                String         @id @default(cuid())
+  athleteId         String
+  athlete           AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  conversationId    String?
+  intent            String
+  model             String?
+  systemPrompt      String
+  /// 'ok' | 'empty' | 'error' | 'aborted'
+  outcome           String
+  finishReason      String?
+  steps             Int
+  inputTokens       Int
+  cachedInputTokens Int
+  outputTokens      Int
+  latencyMs         Int
+  firstTextMs       Int?
+  createdAt         DateTime       @default(now())
+
+  @@index([athleteId, createdAt])
 }
 
 /// One race-day finish projection per ISO week and race goal — the projection's history, written on read.

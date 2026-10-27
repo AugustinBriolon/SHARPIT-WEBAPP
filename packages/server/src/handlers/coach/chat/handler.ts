@@ -48,6 +48,12 @@ import {
   type CoachChatOutcome,
 } from '@sharpit/server/lib/coach/chat/coach-chat-outcome';
 import { withCoachTrace } from '@sharpit/server/lib/ai/coach-trace';
+import {
+  coachTurnOutcome,
+  coachTurnTraceRecord,
+  saveCoachTurnTrace,
+  type CoachTurnOutcome,
+} from '@sharpit/server/lib/coach/chat/coach-turn-trace';
 import { lastCoachDiscussMetadata } from '@sharpit/server/lib/coach/chat/discuss/coach-discuss-metadata-parse';
 import {
   classifyCoachIntent,
@@ -188,12 +194,15 @@ async function streamCoachReply(
 ): Promise<Response> {
   const generate = await coachGenerator(input, abortSignal);
   const save = saveWhenTheAnswerEnds(input);
+  const recordTrace = coachTurnRecorder(input);
+  let lastEnd: CoachAttemptEnd | undefined;
   const stream = createUIMessageStream({
     originalMessages: input.messages,
     onError: () => COACH_STREAM_ERROR_COPY,
     onEnd: ({ messages, isAborted }) => {
       // Save what landed: the full answer, or the user turn + any partial if the athlete stopped.
       save(messages);
+      recordTrace({ isAborted, end: lastEnd });
       if (isAborted) {
         console.info('[coach-chat] aborted', { conversationId: input.conversationId });
       }
@@ -206,8 +215,11 @@ async function streamCoachReply(
       });
       await pipeAttempt(writer, first.stream, { sendFinish: false });
       const end = first.end();
+      lastEnd = end;
       if (end?.outcome.emptyAnswer) {
-        await pipeAttempt(writer, generate(EMPTY_ANSWER_RETRY).stream, { sendStart: false });
+        const retry = generate(EMPTY_ANSWER_RETRY);
+        await pipeAttempt(writer, retry.stream, { sendStart: false });
+        lastEnd = retry.end();
         return;
       }
       writer.write({ type: 'finish', finishReason: end?.finishReason });
@@ -244,6 +256,35 @@ function fixedCoachReply(
     },
   });
   return createUIMessageStreamResponse({ stream, consumeSseStream: consumeStream });
+}
+
+/**
+ * Writes the turn's trace when it ends, kept alive past the response like the save. The model's
+ * own numbers come from the attempt that ran last, the retry when there was one.
+ */
+function coachTurnRecorder(
+  input: CoachReplyInput,
+): (ended: { isAborted: boolean; end: CoachAttemptEnd | undefined }) => void {
+  let pending: Promise<void> | undefined;
+  after(() => pending);
+  return ({ isAborted, end }) => {
+    const outcome: CoachTurnOutcome = coachTurnOutcome({
+      isAborted,
+      finishedWithoutAnswer: end ? end.outcome.emptyAnswer : null,
+    });
+    pending = saveCoachTurnTrace(
+      coachTurnTraceRecord({
+        athleteId: input.athleteId,
+        conversationId: input.conversationId,
+        intent: input.scope.intent,
+        systemPrompt: input.system,
+        outcome,
+        model: end?.outcome.servedModel ?? null,
+        finishReason: end?.outcome.finishReason ?? null,
+        measures: input.timing.summary(),
+      }),
+    );
+  };
 }
 
 /**

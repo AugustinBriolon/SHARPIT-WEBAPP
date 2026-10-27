@@ -609,9 +609,12 @@ describe('POST /api/coach/chat · server-owned conversation', () => {
 
     const { saveConversationMessages } = await import('@sharpit/server/lib/coach/conversations');
     await vi.waitFor(() => expect(saveConversationMessages).toHaveBeenCalled());
-    // The function stays alive until the save lands: Vercel freezes it once the response ends.
-    expect(afterCallbacks).toHaveLength(1);
-    await expect(afterCallbacks[0]!()).resolves.toBeUndefined();
+    // The function stays alive until the save and the turn trace land: Vercel freezes it once the
+    // response ends.
+    expect(afterCallbacks).toHaveLength(2);
+    for (const keepAlive of afterCallbacks) {
+      await expect(keepAlive()).resolves.toBeUndefined();
+    }
     const [athleteId, id, saved] = vi.mocked(saveConversationMessages).mock.calls[0]!;
     expect([athleteId, id]).toEqual(['athlete-1', 'c1']);
     const thread = saved as Array<{ id: string; role: string; parts: Array<{ text?: string }> }>;
@@ -625,13 +628,14 @@ describe('POST /api/coach/chat · server-owned conversation', () => {
     vi.mocked(ai.toUIMessageStream).mockImplementation((() => new ReadableStream()) as never);
   });
 
-  it('saves nothing for a thread the client owns', async () => {
+  it('saves nothing for a thread the client owns, but still traces the turn', async () => {
     afterCallbacks.length = 0;
     const { POST } = await importRoute();
     await POST(chatRequest());
     const { saveConversationMessages } = await import('@sharpit/server/lib/coach/conversations');
     expect(saveConversationMessages).not.toHaveBeenCalled();
-    expect(afterCallbacks).toHaveLength(0);
+    // Only the trace waits: every coach turn is recorded, not only the server-owned ones.
+    expect(afterCallbacks).toHaveLength(1);
   });
 });
 
