@@ -20,19 +20,26 @@ export type TurnCheckId =
   | 'raw-tool-json'
   | 'internal-codes'
   | 'audit-warning-ignored'
-  | 'denied-misread';
+  | 'denied-misread'
+  | 'unsupported-physiology'
+  | 'logged-quantity-mismatch';
 
 export type TurnFinding = { check: TurnCheckId; detail: string };
 
 const WRITE_TOOLS: ReadonlySet<string> = new Set(['createPlannedSession', 'updatePlannedSession']);
 
 const ASKS_FOR_APPROVAL =
-  /(te convient|ça te va|on valide|valides[- ]tu|souhaites[- ]tu|veux[- ]tu|on garde|est-ce que .{0,80}\?)/i;
+  /(te convient|ça te va|on valide|valides[- ]tu|souhaites[- ]tu|veux[- ]tu|on garde|on reste|est-ce que .{0,80}\?)/i;
 const CLAIMS_A_WRITE =
   /\b(je (mets|ai mis|ai déplacé|ai ajouté|ai créé|ai modifié|ai inversé|ai décalé|viens de)|j'ai (mis|déplacé|ajouté|créé|modifié|inversé|décalé|enregistré))\b|\b(est|sont) (bien )?(enregistrée?s?|créée?s?|déplacée?s?|mise?s? à jour)\b/i;
 const RAW_TOOL_JSON = /"(createPlannedSession|updatePlannedSession|suggestFollowUps)"\s*:/;
 const INTERNAL_CODES =
-  /\b(RECOVER|TRAIN_EASY|TRAIN_HARD|TRAIN_MODERATE|PROTECT)\b|`cm[a-z0-9]{20,}`/;
+  /\b(RECOVER|REPOS|TRAIN_EASY|TRAIN_HARD|TRAIN_MODERATE|PROTECT)\b|`cm[a-z0-9]{20,}`/;
+// Stated as fact, without a source in the context: the phase 0 audit found them in several answers.
+const UNSUPPORTED_PHYSIOLOGY =
+  /drainage lymphatique|déchets métaboliques|drainer les toxines|toxines/i;
+// « Poulet (40g) » in the answer, against the grams the same turn logged for « Poulet blanc ».
+const QUANTITY_IN_TEXT = /(\p{L}+)[^\n(]{0,40}\((\d+)\s*g\b/gu;
 const UNDERFILLED = /sous-remplie|sous remplie/i;
 const ACKNOWLEDGES_UNDERFILL = /(sous-remplie|courte|étoff|rallong|complète|ajout|plus long)/i;
 const DENIAL_MISREAD = /(petite erreur|il semble y avoir eu|une erreur)/i;
@@ -45,6 +52,29 @@ function successfulWrites(turn: CoachTurn): CoachToolCall[] {
   return turn.tools.filter(
     (tool) => WRITE_TOOLS.has(tool.name) && tool.state === 'output-available' && isOk(tool.output),
   );
+}
+
+type LoggedFood = { name: string; grams: number };
+
+function loggedFoods(turn: CoachTurn): LoggedFood[] {
+  return turn.tools
+    .filter((tool) => tool.name === 'logFoods')
+    .flatMap((tool) => {
+      const items = (tool.input as { items?: unknown } | null)?.items;
+      return Array.isArray(items) ? (items as LoggedFood[]) : [];
+    });
+}
+
+/** The first mismatch between a quantity the text states and the grams logged for that food. */
+function quantityMismatch(turn: CoachTurn): string | null {
+  const logged = loggedFoods(turn);
+  for (const [, word, grams] of turn.text.matchAll(QUANTITY_IN_TEXT)) {
+    const food = logged.find((item) => item.name.toLowerCase().includes(word!.toLowerCase()));
+    if (food && food.grams !== Number(grams)) {
+      return `${word} stated at ${grams} g, logged at ${food.grams} g`;
+    }
+  }
+  return null;
 }
 
 function underfilledWarnings(turn: CoachTurn): string[] {
@@ -80,6 +110,12 @@ export function checkTurn(turn: CoachTurn): TurnFinding[] {
       : null,
     turn.tools.some((tool) => tool.state === 'output-denied') && DENIAL_MISREAD.test(text)
       ? { check: 'denied-misread', detail: 'a refused tool call is described as an error' }
+      : null,
+    UNSUPPORTED_PHYSIOLOGY.test(text)
+      ? { check: 'unsupported-physiology', detail: 'bodily mechanism stated without a source' }
+      : null,
+    quantityMismatch(turn) !== null
+      ? { check: 'logged-quantity-mismatch', detail: quantityMismatch(turn)! }
       : null,
   ];
   return findings.filter((finding): finding is TurnFinding => finding !== null);

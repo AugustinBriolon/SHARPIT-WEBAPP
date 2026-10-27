@@ -80,3 +80,41 @@ describe('checkTurn', () => {
     expect(checkTurn({ text: 'Bonne séance, reste sur ton rythme.', tools: [] })).toEqual([]);
   });
 });
+
+const logFoods = (items: Array<{ name: string; grams: number }>): CoachToolCall => ({
+  name: 'logFoods',
+  input: { items },
+  output: { ok: true },
+  state: 'output-available',
+});
+
+// Found by the recall review (ADR-118): none of these four was flagged before.
+describe('checkTurn, recall additions', () => {
+  it('flags a stated quantity that differs from the grams logged for that food', () => {
+    const tools = [logFoods([{ name: 'Poulet blanc', grams: 200 }])];
+
+    expect(checksOf('* Poulet (40g)', tools)).toContain('logged-quantity-mismatch');
+  });
+
+  it('does not flag a stated quantity that matches the logged grams', () => {
+    const tools = [logFoods([{ name: 'Poulet blanc', grams: 40 }])];
+
+    expect(checksOf('* Poulet (40g)', tools)).not.toContain('logged-quantity-mismatch');
+  });
+
+  it('flags a question on the plan after a write, phrased as « on reste sur »', () => {
+    expect(checksOf('On reste sur ce planning pour demain ?', [written()])).toContain(
+      'writes-then-asks',
+    );
+  });
+
+  it('flags the verdict label REPOS in capitals', () => {
+    expect(checksOf('Verdict : REPOS aujourd’hui.')).toContain('internal-codes');
+  });
+
+  it('flags a bodily mechanism stated as fact', () => {
+    expect(checksOf('La marche aide le drainage lymphatique après l’effort.')).toContain(
+      'unsupported-physiology',
+    );
+  });
+});
