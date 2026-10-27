@@ -22,7 +22,8 @@ export type TurnCheckId =
   | 'audit-warning-ignored'
   | 'denied-misread'
   | 'unsupported-physiology'
-  | 'logged-quantity-mismatch';
+  | 'logged-quantity-mismatch'
+  | 'card-figure-mismatch';
 
 export type TurnFinding = { check: TurnCheckId; detail: string };
 
@@ -40,6 +41,8 @@ const UNSUPPORTED_PHYSIOLOGY =
   /drainage lymphatique|déchets métaboliques|drainer les toxines|toxines/i;
 // « Poulet (40g) » in the answer, against the grams the same turn logged for « Poulet blanc ».
 const QUANTITY_IN_TEXT = /(\p{L}+)[^\n(]{0,40}\((\d+)\s*g\b/gu;
+// « 66/100 » in the answer, against the numbers of the data card the same turn drew (ADR-119).
+const OUT_OF_HUNDRED = /(\d{1,3})\s*\/\s*100/g;
 const UNDERFILLED = /sous-remplie|sous remplie/i;
 const ACKNOWLEDGES_UNDERFILL = /(sous-remplie|courte|étoff|rallong|complète|ajout|plus long)/i;
 const DENIAL_MISREAD = /(petite erreur|il semble y avoir eu|une erreur)/i;
@@ -72,6 +75,37 @@ function quantityMismatch(turn: CoachTurn): string | null {
     const food = logged.find((item) => item.name.toLowerCase().includes(word!.toLowerCase()));
     if (food && food.grams !== Number(grams)) {
       return `${word} stated at ${grams} g, logged at ${food.grams} g`;
+    }
+  }
+  return null;
+}
+
+function numbersIn(value: unknown): number[] {
+  if (typeof value === 'number') {
+    return [value];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap(numbersIn);
+  }
+  if (typeof value === 'object' && value !== null) {
+    return Object.values(value).flatMap(numbersIn);
+  }
+  return [];
+}
+
+/** The first « x/100 » the text states that no data card of the turn holds. */
+function cardFigureMismatch(turn: CoachTurn): string | null {
+  const cards = turn.tools.flatMap((tool) => {
+    const card = (tool.output as { card?: unknown } | null | undefined)?.card;
+    return card === undefined ? [] : [card];
+  });
+  if (cards.length === 0) {
+    return null;
+  }
+  const shown = new Set(cards.flatMap(numbersIn));
+  for (const [, figure] of turn.text.matchAll(OUT_OF_HUNDRED)) {
+    if (!shown.has(Number(figure))) {
+      return `${figure}/100 stated, absent from the card`;
     }
   }
   return null;
@@ -116,6 +150,9 @@ export function checkTurn(turn: CoachTurn): TurnFinding[] {
       : null,
     quantityMismatch(turn) !== null
       ? { check: 'logged-quantity-mismatch', detail: quantityMismatch(turn)! }
+      : null,
+    cardFigureMismatch(turn) !== null
+      ? { check: 'card-figure-mismatch', detail: cardFigureMismatch(turn)! }
       : null,
   ];
   return findings.filter((finding): finding is TurnFinding => finding !== null);

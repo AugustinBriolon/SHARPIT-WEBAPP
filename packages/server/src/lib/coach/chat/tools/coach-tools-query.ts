@@ -26,6 +26,12 @@ import {
   formatExplainDayScoresMarkdown,
   formatExplainTargetBandMarkdown,
 } from '@sharpit/server/lib/coach/chat/tools/coach-insights-format';
+import { coachDataCardOutput } from '@sharpit/app/lib/coach/chat/cards/coach-data-cards';
+import {
+  dayScoresCard,
+  roundedBand,
+  roundedScore,
+} from '@sharpit/server/lib/coach/chat/tools/coach-insights-cards';
 import { trainingDayIdNow } from '@sharpit/server/lib/athlete-state/freshness-service';
 
 function buildListPlannedSessionsTool(athleteId: string) {
@@ -164,14 +170,11 @@ function buildExplainDayScoresTool(athleteId: string) {
         loadV1DayScores(athleteId, dayId),
         getOrBuildAthleteSnapshot(athleteId, dayId),
       ]);
-      return {
-        ok: true as const,
-        markdown: formatExplainDayScoresMarkdown({
-          trainingDayId: dayId,
-          scores,
-          readiness: snapshot.readiness ?? null,
-        }),
-      };
+      const readiness = snapshot.readiness ?? null;
+      return coachDataCardOutput(
+        formatExplainDayScoresMarkdown({ trainingDayId: dayId, scores, readiness }),
+        dayScoresCard(dayId, scores, readiness),
+      );
     },
   });
 }
@@ -198,10 +201,14 @@ function buildCompareSleepVsReadinessTool(athleteId: string) {
           readiness: entry.recoveryScore ?? null,
         }))
         .sort((a, b) => a.trainingDayId.localeCompare(b.trainingDayId));
-      return {
-        ok: true as const,
-        markdown: formatCompareSleepVsReadinessMarkdown(points, windowDays),
-      };
+      return coachDataCardOutput(formatCompareSleepVsReadinessMarkdown(points, windowDays), {
+        kind: 'sleepVsReadiness',
+        windowDays,
+        points: points.map((point) => ({
+          ...point,
+          readiness: roundedScore(point.readiness),
+        })),
+      });
     },
   });
 }
@@ -229,14 +236,20 @@ function buildExplainTargetBandTool(athleteId: string) {
           error: "Cible d'effort indisponible pour ce jour (données insuffisantes).",
         };
       }
-      return {
-        ok: true as const,
-        markdown: formatExplainTargetBandMarkdown({
+      const readiness = snapshot.readiness ?? null;
+      return coachDataCardOutput(
+        formatExplainTargetBandMarkdown({
           trainingDayId: dayId,
           band: scores.targetBand,
-          readiness: snapshot.readiness ?? null,
+          readiness,
         }),
-      };
+        {
+          kind: 'targetBand',
+          trainingDayId: dayId,
+          band: roundedBand(scores.targetBand),
+          readiness: roundedScore(readiness),
+        },
+      );
     },
   });
 }

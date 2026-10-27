@@ -118,3 +118,30 @@ describe('checkTurn, recall additions', () => {
     );
   });
 });
+
+const dayScoresCall = (output: unknown): CoachToolCall => ({
+  name: 'explainDayScores',
+  input: {},
+  output,
+  state: 'output-available',
+});
+
+describe('checkTurn, data cards', () => {
+  const output = { ok: true, card: { kind: 'dayScores', readiness: 66, stress: 38 } };
+
+  it('flags a figure out of 100 that the card of the turn does not hold', () => {
+    expect(checksOf('Ta forme est à 72/100.', [dayScoresCall(output)])).toContain(
+      'card-figure-mismatch',
+    );
+  });
+
+  it('accepts a figure out of 100 that the card holds', () => {
+    expect(checksOf('Ta forme est à 66/100.', [dayScoresCall(output)])).not.toContain(
+      'card-figure-mismatch',
+    );
+  });
+
+  it('does not judge a figure when the turn drew no card', () => {
+    expect(checksOf('Ta forme est à 72/100.', [dayScoresCall({ ok: true })])).toEqual([]);
+  });
+});

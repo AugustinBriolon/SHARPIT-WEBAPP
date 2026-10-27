@@ -1,0 +1,18 @@
+{
+  "type": "tool-compareSleepVsReadiness",
+  "state": "output-available",
+  "input": { "windowDays": 7 },
+  "output": {
+    "ok": true,
+    "markdown": "## Sommeil vs forme (7 j)",
+    "schemaVersion": 1,
+    "card": {
+      "kind": "sleepVsReadiness",
+      "windowDays": 7,
+      "points": [
+        { "trainingDayId": "2026-10-26", "sleepMinutes": 410, "readiness": 62 },
+        { "trainingDayId": "2026-10-27", "sleepMinutes": null, "readiness": 55 }
+      ]
+    }
+  }
+}

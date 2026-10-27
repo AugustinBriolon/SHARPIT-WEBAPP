@@ -1,0 +1,18 @@
+{
+  "type": "tool-explainDayScores",
+  "state": "output-available",
+  "input": {},
+  "output": {
+    "ok": true,
+    "markdown": "## Scores du 2026-10-27",
+    "schemaVersion": 1,
+    "card": {
+      "kind": "dayScores",
+      "trainingDayId": "2026-10-27",
+      "energyBank": { "value": 71, "typicalBaseline": 64 },
+      "stress": 38,
+      "targetBand": { "low": 8, "high": 12, "status": "within" },
+      "readiness": 66
+    }
+  }
+}

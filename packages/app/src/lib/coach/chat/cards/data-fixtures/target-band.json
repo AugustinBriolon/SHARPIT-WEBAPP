@@ -1,0 +1,16 @@
+{
+  "type": "tool-explainTargetBand",
+  "state": "output-available",
+  "input": {},
+  "output": {
+    "ok": true,
+    "markdown": "## Cible d'effort · 2026-10-27",
+    "schemaVersion": 1,
+    "card": {
+      "kind": "targetBand",
+      "trainingDayId": "2026-10-27",
+      "band": { "low": 8, "high": 12, "status": "below" },
+      "readiness": null
+    }
+  }
+}
