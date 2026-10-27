@@ -43,6 +43,43 @@ describe('buildPlannedSessionSteps', () => {
     );
   });
 
+  it('doses the routines by intensity and carries what the athlete said (ADR-115)', () => {
+    const recovery = buildPlannedSessionSteps(
+      session({ intensity: 'RECOVERY', warmupStatus: 'SKIPPED' }),
+      thresholds,
+    );
+    expect(recovery.routines?.warmup.moves).toHaveLength(2);
+    expect(recovery.routines?.warmup.status).toBe('SKIPPED');
+    expect(recovery.routines?.cooldown.moves).toHaveLength(0);
+  });
+
+  it('shows the strides a threshold session gains at the end of its warm-up (ADR-115)', () => {
+    const easy = { metric: 'none' };
+    const result = buildPlannedSessionSteps(
+      session({
+        intensity: 'THRESHOLD',
+        endurancePrescription: {
+          version: 1,
+          sport: 'RUN',
+          blocks: [
+            {
+              kind: 'step',
+              step: { kind: 'warmup', duration: { type: 'time', seconds: 900 }, target: easy },
+            },
+            {
+              kind: 'step',
+              step: { kind: 'interval', duration: { type: 'time', seconds: 1200 }, target: easy },
+            },
+          ],
+        },
+      }),
+      thresholds,
+    );
+    const strides = result.steps.filter((step) => step.group === '1');
+    expect(strides.map((step) => step.repeat)).toEqual([4, 4]);
+    expect(strides[0]?.notes).toMatch(/Ligne droite/);
+  });
+
   it('reads a stored structure rather than deriving one', () => {
     const result = buildPlannedSessionSteps(
       session({

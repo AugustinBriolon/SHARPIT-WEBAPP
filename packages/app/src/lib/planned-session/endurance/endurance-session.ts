@@ -16,6 +16,7 @@ import {
   type EnduranceSport,
   type EnduranceTarget,
 } from '@sharpit/app/lib/planned-session/endurance/endurance-prescription';
+import { withPotentiation } from '@sharpit/app/lib/planned-session/endurance/endurance-potentiation';
 import {
   defaultHrTargetForIntensity,
   defaultTargetForIntensity,
@@ -105,7 +106,8 @@ export function fallbackTarget(
 /**
  * Resolve what the session prescribes. The sport always comes from the session's
  * own activity type: a stored prescription carrying a different sport would
- * otherwise send a run workout to Connect for a ride.
+ * otherwise send a run workout to Connect for a ride. A stored warm-up gains its
+ * strides here, at read time, so the screen and the watch get the same ones.
  */
 export function effectiveEndurancePrescription(input: {
   sport: EnduranceSport;
@@ -119,7 +121,10 @@ export function effectiveEndurancePrescription(input: {
   const stored = parseEndurancePrescription(input.stored);
   if (stored) {
     return {
-      prescription: withPoolLength({ ...stored, sport: input.sport }, input.defaultPoolLengthM),
+      prescription: withPoolLength(
+        withPotentiation({ ...stored, sport: input.sport }, input.intensity),
+        input.defaultPoolLengthM,
+      ),
       derived: false,
       warnings: [],
     };

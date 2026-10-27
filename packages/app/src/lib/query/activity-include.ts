@@ -124,6 +124,8 @@ export const plannedSessionCoachSelect = {
   completed: true,
   isKey: true,
   analysis: true,
+  warmupStatus: true,
+  cooldownStatus: true,
   exposureSetting: true,
   locationLabel: true,
   brickGroupId: true,

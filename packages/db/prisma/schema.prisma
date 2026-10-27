@@ -40,6 +40,12 @@ enum GoalPriority {
   C
 }
 
+enum RoutineStatus {
+  DONE
+  SHORTENED
+  SKIPPED
+}
+
 enum SessionIntensity {
   RECOVERY
   ENDURANCE
@@ -1745,6 +1751,9 @@ model PlannedSession {
   accessories           Json?
   /// Coach-written warm-up / stretches for this session (ADR-114); null → the sport's library.
   routines              Json?
+  /// What the athlete said they did with the warm-up / the stretches (ADR-115); null until said.
+  warmupStatus          RoutineStatus?
+  cooldownStatus        RoutineStatus?
   durationMin           Int? // durée prévue en minutes
   load                  Float? // charge / TSS prévue
   intensity             SessionIntensity?

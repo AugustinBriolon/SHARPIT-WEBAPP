@@ -149,11 +149,26 @@ function Field({
   );
 }
 
+const ROUTINE_STATUS_FR: Record<NonNullable<SessionRoutine['status']>, string> = {
+  DONE: 'fait',
+  SHORTENED: 'raccourci',
+  SKIPPED: 'sauté',
+};
+
 function RoutineField({ label, routine }: { label: string; routine: SessionRoutine }) {
+  if (routine.moves.length === 0) {
+    return null;
+  }
+  const meta = [
+    `~${routine.minutes} min`,
+    routine.optional ? 'facultatif' : null,
+    routine.source === 'coach' ? 'sur mesure' : null,
+    routine.status ? ROUTINE_STATUS_FR[routine.status] : null,
+  ].filter(Boolean);
   return (
     <div>
       <dt className="text-label text-muted-foreground">
-        {label} · ~{routine.minutes} min{routine.source === 'coach' ? ' · sur mesure' : ''}
+        {label} · {meta.join(' · ')}
       </dt>
       <dd className="mt-1">
         <ul className="space-y-1 text-sm leading-relaxed">
@@ -271,8 +286,8 @@ function SessionFields({
       />
       {!editing && session.breakdown?.routines ? (
         <>
-          <RoutineField label="Avant" routine={session.breakdown.routines.warmup} />
-          <RoutineField label="Après" routine={session.breakdown.routines.cooldown} />
+          <RoutineField label="Mobilité avant" routine={session.breakdown.routines.warmup} />
+          <RoutineField label="Étirements ciblés" routine={session.breakdown.routines.cooldown} />
         </>
       ) : null}
       {editing || session.description || session.rationale ? (

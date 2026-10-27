@@ -1,3 +1,4 @@
+import type { RoutineStatus } from '@prisma/client';
 import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import { generateText, Output } from 'ai';
 import { isSet } from '@sharpit/shared/value';
@@ -114,11 +115,25 @@ function appendPlannedBikeTargetLines(
   }
 }
 
+const ROUTINE_STATUS_FR: Record<RoutineStatus, string> = {
+  DONE: 'fait',
+  SHORTENED: 'raccourci',
+  SKIPPED: 'sauté',
+};
+
+/** ADR-115: the declared warm-up lets the analysis tie a missed first block to it. */
+function warmupStatusLine(status: RoutineStatus | null): string | null {
+  return status
+    ? `Échauffement articulaire déclaré : ${ROUTINE_STATUS_FR[status]} — si le premier bloc intense est manqué, dis-le en lien avec l'échauffement.`
+    : null;
+}
+
 function plannedEnduranceHeaderBits(p: PlannedWithActivity): string[] {
   return [
     p.intensity ? `Intensité prévue : ${intensityLabels[p.intensity]}` : null,
     isSet(p.durationMin) ? `Durée prévue : ${p.durationMin} min` : null,
     isSet(p.load) ? `Charge prévue : ${Math.round(p.load)} TSS` : null,
+    warmupStatusLine(p.warmupStatus),
   ].filter(Boolean) as string[];
 }
 

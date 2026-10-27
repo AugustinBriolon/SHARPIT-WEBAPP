@@ -46,7 +46,8 @@ export const STRENGTH_BLOCKS: readonly StrengthBlock[] = [
     label: 'Force / charge',
     share: 0.2,
     minExercises: 2,
-    guidance: 'Mouvements globaux chargés (ou tempo lent au poids du corps) pour la force.',
+    guidance:
+      'Mouvements globaux chargés (ou tempo lent au poids du corps) pour la force. Le premier mouvement chargé commence par 2 à 3 séries d’approche (50, 70 puis 85 % de la charge de travail), écrites dans sa note et non comptées dans ses séries.',
   },
   {
     role: 'CORE',

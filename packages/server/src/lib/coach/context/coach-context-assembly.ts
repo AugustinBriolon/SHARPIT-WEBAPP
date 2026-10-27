@@ -2,6 +2,7 @@
  * The coach context's data: the sources read into the athlete's state, section by section.
  * Pure: no I/O, the sources come in loaded.
  */
+import { summarizeWarmupAdherence } from '@sharpit/app/lib/planned-session/routines/session-routines';
 import { differenceInCalendarDays, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { isSet } from '@sharpit/shared/value';
 import { fr } from 'date-fns/locale';
@@ -655,6 +656,7 @@ function assembleCoachActivitySections(
     availableDays: buildAvailableDays(activities, today),
     recent: activities.slice(0, 14).map((a) => mapActivityForCoachRecent(a, today)),
     realizedSessions: pastPlanned.filter((p) => p.completed && p.analysis).map(mapRealizedSession),
+    warmupAdherence: summarizeWarmupAdherence(pastPlanned),
     upcomingPlanned: planned.map(mapUpcomingPlanned),
   };
 }

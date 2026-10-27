@@ -1,4 +1,7 @@
-import { coachSessionRoutinesSchema } from '@sharpit/app/lib/planned-session/routines/session-routines';
+import {
+  coachSessionRoutinesSchema,
+  routineStatusSchema,
+} from '@sharpit/app/lib/planned-session/routines/session-routines';
 import { ActivityType, SessionIntensity } from '@prisma/client';
 import { z } from 'zod';
 import { isSet } from '@sharpit/shared/value';
@@ -90,6 +93,8 @@ const basePlannedSessionSchema = z.object({
   endurancePrescription: optionalEndurancePrescription,
   accessories: optionalAccessories,
   routines: optionalRoutines,
+  warmupStatus: routineStatusSchema.optional().nullable(),
+  cooldownStatus: routineStatusSchema.optional().nullable(),
   durationMin: optionalNumber,
   load: optionalNumber,
   intensity: sessionIntensitySchema.optional().nullable(),

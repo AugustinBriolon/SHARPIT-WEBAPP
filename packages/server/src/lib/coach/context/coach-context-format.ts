@@ -633,10 +633,20 @@ function formatAvailabilitySection(
   return lines.length > 0 ? [`\n## Disponibilités\n${lines.join('\n')}`] : [];
 }
 
+/** ADR-115: what the athlete said of their warm-ups lets the coach read a missed first block. */
+function formatWarmupAdherenceLine(adherence: CoachContext['warmupAdherence']): string | null {
+  if (!adherence) {
+    return null;
+  }
+  return `- Échauffements articulaires (14 j) : ${adherence.DONE} faits, ${adherence.SHORTENED} raccourcis, ${adherence.SKIPPED} sautés, ${adherence.unsaid} non renseignés.`;
+}
+
 function formatRealizedSessionsSection(
   realizedSessions: CoachContext['realizedSessions'],
+  warmupAdherence: CoachContext['warmupAdherence'],
 ): string[] {
-  if (!realizedSessions.length) {
+  const adherenceLine = formatWarmupAdherenceLine(warmupAdherence);
+  if (!realizedSessions.length && !adherenceLine) {
     return [];
   }
   return [
@@ -645,6 +655,7 @@ function formatRealizedSessionsSection(
       (r) =>
         `- ${r.date} · ${r.type}${titlePart(r.title)} → conformité ${r.score ?? '?'}/100${r.verdict ? ` (${r.verdict})` : ''}${r.summary ? ` — ${r.summary}` : ''}`,
     ),
+    ...(adherenceLine ? [adherenceLine] : []),
   ];
 }
 
@@ -752,7 +763,7 @@ function coachContextSections(ctx: CoachContext): Array<[CoachContextSection, st
     ['availability', formatAvailabilitySection(ctx.trainingAvailability, ctx.availableDays)],
     ['goals', formatGoalsSection(ctx)],
     ['recent', formatRecentActivitiesSection(ctx.recent)],
-    ['realized', formatRealizedSessionsSection(ctx.realizedSessions)],
+    ['realized', formatRealizedSessionsSection(ctx.realizedSessions, ctx.warmupAdherence)],
     ['physical', [...formatPhysicalSection(ctx.physical), ...nonEmpty(ctx.zoneTrainingRules)]],
     ['activityStatus', formatActivityStatusSection(ctx.activityStatus)],
     ['travel', formatTravelSection(ctx.travel)],

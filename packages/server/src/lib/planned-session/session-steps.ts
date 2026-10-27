@@ -18,6 +18,7 @@ import type { AthleteThresholds } from '@sharpit/app/lib/planned-session/enduran
 import { parseStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
 import {
   resolveSessionRoutines,
+  type RoutineStatus,
   type SessionRoutines,
 } from '@sharpit/app/lib/planned-session/routines/session-routines';
 import type { ZoneCondition } from '@sharpit/app/lib/physical-health/sensitive-zones';
@@ -48,7 +49,7 @@ export type PlannedSessionBreakdown = {
   derived: boolean;
   /** Why a target could not be resolved — an athlete-facing reason, not a stack trace. */
   warnings: string[];
-  /** Warm-up before and stretches after (ADR-114) — endurance sessions only. */
+  /** Warm-up before and stretches after (ADR-114, ADR-115) — endurance sessions only. */
   routines?: SessionRoutines | null;
 };
 
@@ -80,6 +81,8 @@ export type PlannedSessionForSteps = {
   endurancePrescription?: unknown;
   strengthPrescription?: unknown;
   routines?: unknown;
+  warmupStatus?: RoutineStatus | null;
+  cooldownStatus?: RoutineStatus | null;
 };
 
 export function buildPlannedSessionSteps(
@@ -117,8 +120,11 @@ export function buildPlannedSessionSteps(
 
   const routines = resolveSessionRoutines({
     type: session.type,
+    intensity: session.intensity,
     routines: session.routines,
     zones: options?.zones,
+    warmupStatus: session.warmupStatus,
+    cooldownStatus: session.cooldownStatus,
   });
   return { steps, derived, warnings, routines };
 }
