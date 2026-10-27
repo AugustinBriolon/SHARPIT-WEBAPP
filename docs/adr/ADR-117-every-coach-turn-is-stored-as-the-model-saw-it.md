@@ -62,10 +62,11 @@ second, lossy copy of the context whose fidelity the evals would have to check.
 
 - Health context is stored in our database per turn. Retention is not yet bounded; it follows the
   account until deletion. A retention window is a follow-up decision.
-- Langfuse still receives the same prompts. This ADR does not change that; a separate decision is
-  needed on whether it stays.
-- The migration `20261027120000_coach_turn_traces` must be applied before the table exists.
-  Until then the write fails, is logged, and the answer is unaffected.
+- Langfuse receives coach turns' timing and token spans, without prompts or answers: the coach's
+  `streamText` records no inputs or outputs. Other AI features still send their prompts; whether
+  they keep doing so is a separate decision.
+- The migration `20261027120000_coach_turn_traces` was applied to production on 2026-10-27. Before
+  it was, the write failed, was logged, and the answer was unaffected.
 
 ### Neutral
 
