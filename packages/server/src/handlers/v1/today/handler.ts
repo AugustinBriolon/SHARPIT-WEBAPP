@@ -19,6 +19,8 @@ import { loadV1DayScores } from '@sharpit/server/lib/presentation/v1/day-scores'
 import { loadV1DayTimeline } from '@sharpit/server/lib/presentation/v1/day-timeline';
 import { projectV1TodayFromViewModel } from '@sharpit/server/lib/presentation/v1/today';
 import { readPlanHorizonView } from '@sharpit/server/lib/coach/plan/plan-horizon';
+import { readTravelConflictView } from '@sharpit/server/lib/travel-context/travel-conflict';
+import { prisma } from '@sharpit/db/client';
 import { isSettledTrainingDay, todayIsoDate } from '@sharpit/app/lib/health/activity-status';
 import { startServerTiming } from '@sharpit/server/lib/http/server-timing';
 
@@ -158,17 +160,23 @@ export async function GET(request: NextRequest) {
       return [];
     });
     timing.mark('timeline');
-    // Only today speaks of the plan's end: a past day reads as it was.
-    const planHorizon =
-      trainingDayId === todayIsoDate()
-        ? await readPlanHorizonView(athleteId, trainingDayId).catch((error) => {
+    // Only today speaks of the plan ahead (its end, a trip it no longer fits): a past day reads as it was.
+    const isToday = trainingDayId === todayIsoDate();
+    const [planHorizon, travelConflict] = isToday
+      ? await Promise.all([
+          readPlanHorizonView(athleteId, trainingDayId).catch((error) => {
             console.error('[api/v1/today/plan-horizon]', error);
             return null;
-          })
-        : null;
+          }),
+          readTravelConflictView(prisma, athleteId, trainingDayId).catch((error) => {
+            console.error('[api/v1/today/travel-conflict]', error);
+            return null;
+          }),
+        ])
+      : [null, null];
     timing.mark('horizon');
     return NextResponse.json(
-      { ...projected, timeline, planHorizon },
+      { ...projected, timeline, planHorizon, travelConflict },
       { headers: { 'server-timing': timing.header('today') } },
     );
   } catch (error) {

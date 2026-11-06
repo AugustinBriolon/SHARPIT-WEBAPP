@@ -47,6 +47,9 @@ vi.mock('@sharpit/server/lib/planned-session/linking/session-linking', () => ({
   analyzeLinkedPlannedSessions: vi.fn().mockResolvedValue(0),
 }));
 
+vi.mock('@sharpit/server/lib/travel-context/travel-conflict', () => ({
+  readTravelConflictView: vi.fn().mockResolvedValue(null),
+}));
 vi.mock('@sharpit/server/lib/queries', () => ({
   getActivitiesList: vi.fn().mockResolvedValue([]),
   getHealthEntries: vi.fn().mockResolvedValue([]),
@@ -100,6 +103,35 @@ describe('GET /api/v1/today', () => {
       webOrigin: 'https://sharpit.app',
     });
     vi.unstubAllEnvs();
+  });
+
+  it('tells today only of a trip the plan no longer fits', async () => {
+    const { buildTodayPresentationViewModel } =
+      await import('@sharpit/server/lib/presentation/today/today');
+    const { readTravelConflictView } =
+      await import('@sharpit/server/lib/travel-context/travel-conflict');
+    vi.mocked(buildTodayPresentationViewModel).mockResolvedValue({} as never);
+    const conflict = {
+      travelId: 'trip',
+      type: 'TRAVEL' as const,
+      name: 'Lyon',
+      startDate: '2026-11-07',
+      endDate: '2026-11-08',
+      trainingConstraint: 'NONE' as const,
+      sessionCount: 2,
+    };
+    vi.mocked(readTravelConflictView).mockResolvedValue(conflict);
+    const { GET } = await importRoute();
+
+    const today = await GET(
+      new NextRequest(`http://localhost/api/v1/today?trainingDayId=${todayIsoDate()}`),
+    );
+    expect((await today.json()).travelConflict).toEqual(conflict);
+
+    const past = await GET(
+      new NextRequest('http://localhost/api/v1/today?trainingDayId=2026-09-10'),
+    );
+    expect((await past.json()).travelConflict).toBeNull();
   });
 
   describe('auto-link', () => {

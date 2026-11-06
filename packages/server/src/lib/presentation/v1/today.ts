@@ -1,4 +1,5 @@
 import type { ActivityType } from '@prisma/client';
+import type { TravelConflictView } from '@sharpit/server/lib/travel-context/travel-conflict';
 import type { V1TodayConsistency } from '@sharpit/server/lib/presentation/v1/consistency';
 import type { PresentationEmptyState } from '@sharpit/app/presentation/types';
 import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model';
@@ -531,6 +532,11 @@ export type V1TodayProjectionInput = {
    * for the athlete to look at it. Today only; null otherwise.
    */
   planHorizon?: { startDate: string; sessionCount: number } | null;
+  /**
+   * The first trip or constraint over the next two weeks with sessions to do that do not fit
+   * it (`readTravelConflictView`): Résumé offers to adjust the plan. Today only; null otherwise.
+   */
+  travelConflict?: TravelConflictView;
 };
 
 function stressCaption(value: number): string {
