@@ -116,6 +116,7 @@
 | [ADR-118](./ADR-118-coach-answers-are-checked-deterministically-before-any-model-judge.md) | Coach answers are checked by deterministic rules on their tool calls before any model judge                                                                                                                     | Accepted                          |
 | [ADR-119](./ADR-119-data-cards-are-the-read-tools-own-numbers.md)                          | Data cards are the read tools' own numbers, never typed by the model                                                                                                                                            | Accepted                          |
 | [ADR-120](./ADR-120-today-names-a-trip-the-plan-no-longer-fits.md)                         | Today names a trip the plan no longer fits                                                                                                                                                                      | Accepted                          |
+| [ADR-121](./ADR-121-a-strength-set-is-shaped-as-it-is-done.md)                             | A strength set is shaped as it is done (no 0 kg load, holds, per side)                                                                                                                                          | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
