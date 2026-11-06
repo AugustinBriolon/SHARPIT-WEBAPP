@@ -215,6 +215,31 @@ describe('buildPlannedSessionSteps', () => {
     expect(result.steps[0].detail).toBe('3 × 45 s');
   });
 
+  it('reads a one-rep 0 kg stretch as a hold on each side, with no load', () => {
+    const result = buildPlannedSessionSteps(
+      session({
+        type: 'STRENGTH',
+        strengthPrescription: {
+          version: 1,
+          sets: [
+            {
+              exercise: 'Étirement des fléchisseurs de la hanche',
+              intent: 'MOBILITY',
+              sets: 3,
+              reps: 1,
+              weightKg: 0,
+              order: 0,
+            },
+          ],
+        },
+      }),
+      thresholds,
+    );
+
+    expect(result.steps[0].detail).toBe('3 × 30 s par côté');
+    expect(result.steps[0].target).toBeNull();
+  });
+
   it('never claims a strength session was derived', () => {
     // Duration and intensity imply nothing about which exercises to do.
     const result = buildPlannedSessionSteps(session({ type: 'STRENGTH' }), thresholds);

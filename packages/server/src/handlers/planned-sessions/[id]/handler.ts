@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { presentStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
 import { NextRequest, NextResponse } from 'next/server';
 import type { z } from 'zod';
 import {
@@ -33,7 +34,11 @@ export async function GET(_request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Séance planifiée introuvable' }, { status: 404 });
     }
     const rationale = await findSessionPurposeForPlannedSession(athleteId, id);
-    return NextResponse.json({ ...session, rationale });
+    return NextResponse.json({
+      ...session,
+      strengthPrescription: presentStrengthPrescription(session.strengthPrescription),
+      rationale,
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

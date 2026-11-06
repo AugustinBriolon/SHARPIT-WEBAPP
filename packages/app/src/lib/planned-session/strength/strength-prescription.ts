@@ -7,6 +7,7 @@ import {
   type MovementPattern,
 } from '@sharpit/app/lib/exercises/movement-taxonomy';
 import { resolveExerciseMedia } from '@sharpit/app/lib/exercises/resolve';
+import { resolveMovement } from '@sharpit/app/lib/exercises/movement-taxonomy';
 
 /** Resolved Garmin Connect identity persisted with the prescription set. */
 export const strengthPrescriptionGarminSchema = z.object({
@@ -35,6 +36,8 @@ export const strengthPrescriptionSetSchema = z.object({
   reps: z.coerce.number().int().min(0).max(500),
   durationSec: z.coerce.number().int().min(0).max(3600).optional().nullable(),
   weightKg: z.coerce.number().min(0).max(1000).optional().nullable(),
+  /** Done one side then the other: reps and duration are per side (ADR-121). */
+  perSide: z.boolean().optional().nullable(),
   /** Timed rest seconds — only used when restMode === 'time'. */
   restSec: z.coerce.number().int().min(0).max(3600).optional().nullable(),
   /**
@@ -88,7 +91,9 @@ export const coachStrengthSetSchema = z.object({
     .int()
     .min(0)
     .max(100)
-    .describe('Répétitions par série. 0 si isométrie chronométrée (planche…).'),
+    .describe(
+      'Répétitions par série (par côté si perSide). 0 si maintien chronométré : planche, étirement, posture de mobilité.',
+    ),
   durationSec: z
     .number()
     .int()
@@ -96,14 +101,25 @@ export const coachStrengthSetSchema = z.object({
     .max(3600)
     .nullable()
     .optional()
-    .describe('Durée d’une série en secondes (isométrie). null sinon.'),
+    .describe(
+      'Durée d’une série en secondes (par côté si perSide) pour un maintien : isométrie, étirement. null sinon.',
+    ),
   weightKg: z
     .number()
     .min(0)
     .max(500)
     .nullable()
     .optional()
-    .describe('Charge cible en kg si pertinente, sinon null.'),
+    .describe(
+      'Charge cible en kg si pertinente. null sans charge (poids du corps, étirement), jamais 0.',
+    ),
+  perSide: z
+    .boolean()
+    .nullable()
+    .optional()
+    .describe(
+      'true si l’exercice se fait un côté puis l’autre (fente, étirement d’une jambe, rotation…) : reps et durée sont alors par côté. null sinon.',
+    ),
   restMode: strengthRestModeSchema
     .nullable()
     .optional()
@@ -134,6 +150,58 @@ export const coachStrengthPrescriptionSchema = z
   );
 
 export type CoachStrengthPrescription = z.infer<typeof coachStrengthPrescriptionSchema>;
+
+/** A stretch or mobility hold written without its length: the length the routines use. */
+export const DEFAULT_MOBILITY_HOLD_SEC = 30;
+
+/**
+ * Puts a set in the shape it is done in (ADR-121): no load on a movement that takes none (a 0 kg
+ * read as a load), a mobility move written as one rep becomes a timed hold, and a one-sided
+ * movement says so — declared by the coach, else known by the movement taxonomy. Applied on
+ * write and on read, so sessions written before keep reading right.
+ */
+export function shapeStrengthSet<T extends StrengthPrescriptionSet>(set: T): T {
+  const movement = resolveMovement({
+    exercise: set.exercise,
+    exerciseCatalogId: set.exerciseCatalogId,
+  });
+  const intent = set.intent ?? movement?.intent ?? null;
+  const loadless = intent === 'MOBILITY' || movement?.modality === 'NONE';
+  return {
+    ...set,
+    weightKg: loadless ? null : prescribedLoad(set.weightKg),
+    perSide: set.perSide ?? movement?.unilateral ?? null,
+    ...(isUntimedStretch(set, intent) ? { reps: 0, durationSec: DEFAULT_MOBILITY_HOLD_SEC } : {}),
+  };
+}
+
+/** 0 kg is no load, not a load of zero. */
+function prescribedLoad(weightKg: number | null | undefined): number | null {
+  return isSet(weightKg) && weightKg > 0 ? weightKg : null;
+}
+
+/** A mobility move written as zero or one rep with no length is a hold whose length was left out. */
+function isUntimedStretch(set: StrengthPrescriptionSet, intent: MovementIntent | null): boolean {
+  const hasHold = isSet(set.durationSec) && set.durationSec > 0;
+  return intent === 'MOBILITY' && !hasHold && set.reps <= 1;
+}
+
+export function shapeStrengthPrescription(
+  prescription: StrengthPrescription,
+): StrengthPrescription {
+  return { ...prescription, sets: prescription.sets.map(shapeStrengthSet) };
+}
+
+/** A stored prescription as clients read it: parsed and shaped, or null. */
+export function readStrengthPrescription(raw: unknown): StrengthPrescription | null {
+  const parsed = parseStrengthPrescription(raw);
+  return parsed ? shapeStrengthPrescription(parsed) : null;
+}
+
+/** What a client is sent: the shaped prescription, or the stored value as is when it does not parse. */
+export function presentStrengthPrescription(raw: unknown): unknown {
+  return readStrengthPrescription(raw) ?? raw ?? null;
+}
 
 export function emptyStrengthPrescription(): StrengthPrescription {
   return { version: 1, sets: [] };
@@ -207,6 +275,7 @@ function coachSetDetails(set: NormalizableSet, restMode: StrengthRestMode) {
     pattern: set.pattern ?? null,
     durationSec: set.durationSec ?? null,
     weightKg: set.weightKg ?? null,
+    perSide: set.perSide ?? null,
     restMode,
     restSec: restMode === 'time' ? (set.restSec ?? 90) : null,
     notes: set.notes ?? null,
@@ -239,16 +308,14 @@ export function normalizeCoachStrengthPrescription(
   }
 
   if ('version' in raw && raw.version === 1) {
-    const parsed = parseStrengthPrescription(raw);
-    return parsed ?? null;
+    return readStrengthPrescription(raw);
   }
 
   const sets = raw.sets
     .map((set, order) => coachSetToNormalized(set, order))
     .filter((s): s is NonNullable<typeof s> => isSet(s));
 
-  const parsed = parseStrengthPrescription({ version: 1, sets });
-  return parsed ?? null;
+  return readStrengthPrescription({ version: 1, sets });
 }
 
 function isNumberedExerciseDump(trimmed: string): boolean {
@@ -340,7 +407,8 @@ export function formatStrengthPrescriptionSummary(prescription: StrengthPrescrip
           ? `${set.sets}×${set.durationSec}s`
           : `${set.sets}×${set.reps}`;
       const weight = isSet(set.weightKg) && set.weightKg > 0 ? ` @ ${set.weightKg}kg` : '';
-      return `${set.exercise} ${volume}${weight}`;
+      const side = set.perSide ? ' par côté' : '';
+      return `${set.exercise} ${volume}${side}${weight}`;
     })
     .join(' · ');
 }

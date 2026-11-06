@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { presentStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
 import { defaultExposureForActivityType } from '@sharpit/core/planned-session/defaults';
 import { pushSessionToGoogle } from '@sharpit/server/lib/integrations/google/google-sync';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
@@ -100,6 +101,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       sessions.map((session) => ({
         ...session,
+        strengthPrescription: presentStrengthPrescription(session.strengthPrescription),
         // Decision Memory holds the coach's "why" — PlannedSession does not store prose.
         rationale: purposes.get(session.id) ?? null,
         breakdown: buildPlannedSessionSteps(session, thresholds, {

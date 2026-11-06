@@ -1,4 +1,5 @@
 import type { ActivityType } from '@prisma/client';
+import { presentStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
 import type { TravelConflictView } from '@sharpit/server/lib/travel-context/travel-conflict';
 import type { V1TodayConsistency } from '@sharpit/server/lib/presentation/v1/consistency';
 import type { PresentationEmptyState } from '@sharpit/app/presentation/types';
@@ -468,7 +469,8 @@ function projectSessions(
     plannedSessionId: line.plannedSessionId ?? null,
     isKey: line.isKey ?? false,
     rationale: line.purpose ?? null,
-    strengthPrescription: line.kind === 'planned' ? (line.strengthPrescription ?? null) : null,
+    strengthPrescription:
+      line.kind === 'planned' ? presentStrengthPrescription(line.strengthPrescription) : null,
     brickLegs:
       line.brickLegs?.map(({ id, type, title, durationMin, completed, activityId, actual }) => ({
         id,

@@ -15,7 +15,7 @@ import { enduranceSportFromActivityType } from '@sharpit/app/lib/planned-session
 import { previewEnduranceSteps } from '@sharpit/app/lib/planned-session/endurance/endurance-preview';
 import { effectiveEndurancePrescription } from '@sharpit/app/lib/planned-session/endurance/endurance-session';
 import type { AthleteThresholds } from '@sharpit/app/lib/planned-session/endurance/endurance-targets';
-import { parseStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
+import { readStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
 import {
   resolveSessionRoutines,
   type RoutineStatus,
@@ -130,7 +130,7 @@ export function buildPlannedSessionSteps(
 }
 
 function strengthBreakdown(raw: unknown): PlannedSessionBreakdown {
-  const prescription = parseStrengthPrescription(raw);
+  const prescription = readStrengthPrescription(raw);
   if (!prescription) {
     return EMPTY;
   }
@@ -152,12 +152,18 @@ function strengthBreakdown(raw: unknown): PlannedSessionBreakdown {
   return { steps, derived: false, warnings: [] };
 }
 
-function strengthDetail(set: { sets: number; reps: number; durationSec?: number | null }): string {
+function strengthDetail(set: {
+  sets: number;
+  reps: number;
+  durationSec?: number | null;
+  perSide?: boolean | null;
+}): string {
+  const side = set.perSide ? ' par côté' : '';
   if (set.reps > 0) {
-    return `${set.sets} × ${set.reps}`;
+    return `${set.sets} × ${set.reps}${side}`;
   }
   if (set.durationSec) {
-    return `${set.sets} × ${set.durationSec} s`;
+    return `${set.sets} × ${set.durationSec} s${side}`;
   }
   return `${set.sets} séries`;
 }

@@ -978,7 +978,9 @@
       "id": "etirement-flechisseur-hanche",
       "labels": [
         "Étirement fléchisseur de la hanche en fente",
-        "Étirement du fléchisseur de hanche"
+        "Étirement du fléchisseur de hanche",
+        "Étirement des fléchisseurs de la hanche",
+        "Étirement des fléchisseurs de hanche"
       ],
       "pattern": null,
       "intent": "MOBILITY",
