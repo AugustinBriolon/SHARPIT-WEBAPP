@@ -119,6 +119,7 @@
 | [ADR-121](./ADR-121-a-strength-set-is-shaped-as-it-is-done.md)                             | A strength set is shaped as it is done (no 0 kg load, holds, per side)                                                                                                                                          | Accepted                          |
 | [ADR-122](./ADR-122-fruits-and-vegetables-are-pinned-to-their-ciqual-entry.md)             | Fruits and vegetables are pinned to their Ciqual entry                                                                                                                                                          | Accepted                          |
 | [ADR-123](./ADR-123-keep-fit-goal-and-wanted-intensity.md)                                 | A keep-fit goal and a wanted intensity                                                                                                                                                                          | Accepted                          |
+| [ADR-124](./ADR-124-health-grounds-are-a-sourced-catalog.md)                               | Health grounds are a sourced catalog                                                                                                                                                                            | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
