@@ -395,6 +395,7 @@ model AthleteProfile {
   goals                       Goal[]
   trainingPlans               TrainingPlan[]
   physicalNotes               PhysicalNote[]
+  healthGrounds               HealthGround[]
   conditions                  Condition[]
   conditionObservations       ConditionObservation[]
   dailyBriefings              DailyBriefing[]
@@ -1165,6 +1166,22 @@ model PlanWeek {
   @@unique([planId, weekIndex])
   @@index([planId])
   @@index([weekStart])
+}
+
+/// A health ground (ADR-124): a condition with no single body zone and the stage the athlete
+/// is at — keys and stages are the catalog's (`@sharpit/app/lib/health-grounds/catalog`).
+model HealthGround {
+  id        String         @id @default(cuid())
+  athleteId String
+  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  key       String
+  stage     String
+  details   String?
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([athleteId, key])
+  @@index([athleteId])
 }
 
 model PhysicalNote {

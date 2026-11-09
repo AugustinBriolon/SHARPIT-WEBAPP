@@ -742,6 +742,7 @@ export const COACH_CONTEXT_SECTIONS = [
   'recent',
   'realized',
   'physical',
+  'healthGrounds',
   'activityStatus',
   'travel',
   'constraints',
@@ -775,6 +776,12 @@ function coachContextSections(ctx: CoachContext): Array<[CoachContextSection, st
     ['recent', formatRecentActivitiesSection(ctx.recent)],
     ['realized', formatRealizedSessionsSection(ctx.realizedSessions, ctx.warmupAdherence)],
     ['physical', [...formatPhysicalSection(ctx.physical), ...nonEmpty(ctx.zoneTrainingRules)]],
+    [
+      'healthGrounds',
+      ctx.healthGrounds.length > 0
+        ? [`\n## Terrain de santé\n${ctx.healthGrounds.join('\n')}`]
+        : [],
+    ],
     ['activityStatus', formatActivityStatusSection(ctx.activityStatus)],
     ['travel', formatTravelSection(ctx.travel)],
     ['constraints', formatConstraintsSection(ctx.constraints)],

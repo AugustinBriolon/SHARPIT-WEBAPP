@@ -86,6 +86,7 @@ function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
     races: [],
     metricGoals: [],
     habitGoals: [],
+    healthGrounds: [],
     recent: [],
     realizedSessions: [],
     upcomingPlanned: [
@@ -282,6 +283,16 @@ describe('formatCoachContext availability', () => {
     );
 
     expect(text).not.toContain('## Disponibilités');
+  });
+});
+
+describe('formatCoachContext health grounds', () => {
+  it('writes the section only when a ground is declared', () => {
+    expect(formatCoachContext(minimalContext())).not.toContain('## Terrain de santé');
+    const text = formatCoachContext(
+      minimalContext({ healthGrounds: ['Asthme (Contrôlé) :', '- Échauffement long.'] }),
+    );
+    expect(text).toContain('## Terrain de santé\nAsthme (Contrôlé) :\n- Échauffement long.');
   });
 });
 

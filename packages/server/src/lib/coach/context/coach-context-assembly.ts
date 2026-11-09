@@ -6,6 +6,8 @@ import { summarizeWarmupAdherence } from '@sharpit/app/lib/planned-session/routi
 import { differenceInCalendarDays, format, parseISO, startOfDay, subDays } from 'date-fns';
 import { isSet } from '@sharpit/shared/value';
 import { fr } from 'date-fns/locale';
+import { formatHealthGroundsForCoach } from '@sharpit/app/lib/health-grounds/catalog';
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 import {
   getTrainingZoneNotes,
   getActivitiesForCoach,
@@ -750,6 +752,7 @@ export function assembleCoachContextPayload(
     dailyStress,
     nutritionToday,
     activityStatusStore,
+    healthGrounds,
   ] = sources;
 
   const { fitness, load } = buildFitnessContext(anchor, dailyStress, refDate);
@@ -779,6 +782,13 @@ export function assembleCoachContextPayload(
     trainingZones,
     /** What to do with each declared zone (ADR-068), the same block for chat, briefing and plans. */
     zoneTrainingRules: formatZoneTrainingRules(trainingZones, refDate),
+    /** ADR-124: health grounds and the rules each stage brings; details are athlete text. */
+    healthGrounds: formatHealthGroundsForCoach(
+      healthGrounds.map((ground) => ({
+        ...ground,
+        details: ground.details ? athleteText(ground.details) : null,
+      })),
+    ),
     fatigue,
     adaptation,
     decision,

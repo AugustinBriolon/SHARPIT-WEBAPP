@@ -19,6 +19,7 @@ vi.mock('@sharpit/db/client', () => ({
     goal: { findMany: (...args: unknown[]) => findManyMock(...args) },
     plannedSession: { findMany: (...args: unknown[]) => findManyMock(...args) },
     physicalNote: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    healthGround: { findMany: (...args: unknown[]) => findManyMock(...args) },
     condition: { findMany: (...args: unknown[]) => findManyMock(...args) },
     conversation: { findMany: (...args: unknown[]) => findManyMock(...args) },
     dailyBriefing: { findMany: (...args: unknown[]) => findManyMock(...args) },

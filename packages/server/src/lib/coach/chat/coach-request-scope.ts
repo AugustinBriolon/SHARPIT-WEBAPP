@@ -57,6 +57,7 @@ const CORE: readonly CoachContextSection[] = [
   'health',
   'goals',
   'physical',
+  'healthGrounds',
   'activityStatus',
 ];
 
