@@ -117,6 +117,7 @@
 | [ADR-119](./ADR-119-data-cards-are-the-read-tools-own-numbers.md)                          | Data cards are the read tools' own numbers, never typed by the model                                                                                                                                            | Accepted                          |
 | [ADR-120](./ADR-120-today-names-a-trip-the-plan-no-longer-fits.md)                         | Today names a trip the plan no longer fits                                                                                                                                                                      | Accepted                          |
 | [ADR-121](./ADR-121-a-strength-set-is-shaped-as-it-is-done.md)                             | A strength set is shaped as it is done (no 0 kg load, holds, per side)                                                                                                                                          | Accepted                          |
+| [ADR-122](./ADR-122-fruits-and-vegetables-are-pinned-to-their-ciqual-entry.md)             | Fruits and vegetables are pinned to their Ciqual entry                                                                                                                                                          | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
