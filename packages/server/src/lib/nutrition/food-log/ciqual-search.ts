@@ -11,7 +11,10 @@ import {
   singular,
   withinOneEdit,
 } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
-import { produceFor } from '@sharpit/app/lib/nutrition/food-log/produce-reference';
+import {
+  isDerivedFromProduce,
+  produceFor,
+} from '@sharpit/app/lib/nutrition/food-log/produce-reference';
 import table from './ciqual-foods.json';
 
 /**
@@ -80,6 +83,28 @@ function pinnedProduce(query: string): CiqualFood[] {
 /** Ciqual energy per 100 g of the food a fruit or vegetable name stands for; null for any other query. */
 export function produceReferenceKcal(query: string): number | null {
   return pinnedProduce(query)[0]?.kcal ?? null;
+}
+
+type ProduceCandidate = { name: string; kcalPer100g: number; ciqualCode?: number | null };
+
+/**
+ * For a fruit or vegetable name: the pinned Ciqual food first, what could be the food itself next,
+ * what is made from it last. The order inside each group is kept (ADR-122). Any other query, and
+ * any list, comes back as it was.
+ */
+export function produceFirst<T extends ProduceCandidate>(query: string, foods: T[]): T[] {
+  const entry = produceFor(query);
+  const referenceKcal = produceReferenceKcal(query);
+  if (!entry || referenceKcal === null) {
+    return foods;
+  }
+  const group = (food: T) => {
+    if (entry.codes.includes(food.ciqualCode ?? -1)) {
+      return 0;
+    }
+    return isDerivedFromProduce(food, referenceKcal) ? 2 : 1;
+  };
+  return [...foods].sort((a, b) => group(a) - group(b));
 }
 
 function rankedMatches(query: string, limit: number): CiqualFood[] {

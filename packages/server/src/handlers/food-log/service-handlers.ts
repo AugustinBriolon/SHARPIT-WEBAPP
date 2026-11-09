@@ -35,6 +35,7 @@ import {
   updateCustomFood,
   updateFoodLogEntry,
 } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
+import { produceFor } from '@sharpit/app/lib/nutrition/food-log/produce-reference';
 import { searchOffProducts } from '@sharpit/server/lib/nutrition/food-log/open-food-facts-client';
 import { searchCiqualFoods } from '@sharpit/server/lib/nutrition/food-log/ciqual-search';
 import { loadDeclaredDiet } from '@sharpit/server/lib/nutrition/analysis/nutrition-analysis-inputs';
@@ -224,6 +225,8 @@ export async function searchFoods(request: NextRequest) {
     ]);
     const eatenIds = new Set(eaten.map((food) => food.product.id));
     const notEaten = (product: { id: string }) => !eatenIds.has(product.id);
+    // The plain fruit or vegetable stays in the base foods even when eaten: it is what the name means.
+    const plainFoods = new Set(produceFor(query)?.codes);
     return NextResponse.json({
       eaten: eaten.map(({ product, timesEaten, lastGrams }) => ({
         product: servedProduct(product, diets),
@@ -231,7 +234,9 @@ export async function searchFoods(request: NextRequest) {
         lastGrams,
       })),
       own: own.filter(notEaten).map((product) => servedProduct(product, diets)),
-      generic: generic.filter(notEaten).map((product) => servedProduct(product, diets)),
+      generic: generic
+        .filter((product) => notEaten(product) || plainFoods.has(product.ciqualCode ?? -1))
+        .map((product) => servedProduct(product, diets)),
       products: (off ?? []).filter(notEaten).map((product) => servedProduct(product, diets)),
       offUnavailable: off === null,
     });

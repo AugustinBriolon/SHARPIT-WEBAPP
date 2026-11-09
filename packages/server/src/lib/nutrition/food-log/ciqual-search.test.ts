@@ -2,7 +2,12 @@ import { PRODUCE } from '@sharpit/app/lib/nutrition/food-log/produce-reference';
 import { describe, expect, it } from 'vitest';
 import type { CiqualFood } from '@sharpit/app/lib/nutrition/food-log/ciqual';
 import table from './ciqual-foods.json';
-import { ciqualFoodByCode, produceReferenceKcal, searchCiqualFoods } from './ciqual-search';
+import {
+  ciqualFoodByCode,
+  produceFirst,
+  produceReferenceKcal,
+  searchCiqualFoods,
+} from './ciqual-search';
 
 function names(query: string): string[] {
   return searchCiqualFoods(query).map((food) => food.name);
@@ -61,6 +66,36 @@ describe('searchCiqualFoods (bundled table)', () => {
     expect(names('pomme golden')[0]).toMatch(/^Pomme Golden/);
     expect(produceReferenceKcal('skyr')).toBeNull();
     expect(produceReferenceKcal('banane')).toBeCloseTo(90.5, 1);
+  });
+});
+
+describe('produceFirst', () => {
+  const food = (name: string, kcalPer100g: number, ciqualCode: number | null = null) => ({
+    name,
+    kcalPer100g,
+    ciqualCode,
+  });
+
+  it('puts the plain Ciqual fruit first and what is made from it last (ADR-122)', () => {
+    const listed = [
+      food('Banane', 520),
+      food('Bananes bio', 92),
+      food('Banane, pulpe, crue', 90.5, 13005),
+      food('Nectar de banane', 60),
+    ];
+
+    expect(produceFirst('banane', listed).map((entry) => entry.name)).toEqual([
+      'Banane, pulpe, crue',
+      'Bananes bio',
+      'Banane',
+      'Nectar de banane',
+    ]);
+  });
+
+  it('leaves a query that is not a fruit or vegetable as it came', () => {
+    const listed = [food('Skyr vanille', 70), food('Skyr', 60)];
+
+    expect(produceFirst('skyr', listed)).toBe(listed);
   });
 });
 

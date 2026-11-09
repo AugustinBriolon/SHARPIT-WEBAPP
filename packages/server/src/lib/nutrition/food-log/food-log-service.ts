@@ -34,7 +34,7 @@ import type {
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import type { MappedGenericFood } from '@sharpit/app/lib/nutrition/food-log/ciqual';
 import { fetchOffProduct } from './open-food-facts-client';
-import { ciqualFoodByCode } from './ciqual-search';
+import { ciqualFoodByCode, produceFirst } from './ciqual-search';
 import type { Prisma } from '@prisma/client';
 
 /**
@@ -719,9 +719,10 @@ export async function searchEatenFoods(
     return [];
   }
   const times = new Map(counts.map((row) => [row.productId, row._count._all] as const));
-  const ranked = rankFoodsByName(query, matching, {
-    preference: (product) => times.get(product.id) ?? 0,
-  }).slice(0, EATEN_SEARCH_RESULTS);
+  const ranked = produceFirst(
+    query,
+    rankFoodsByName(query, matching, { preference: (product) => times.get(product.id) ?? 0 }),
+  ).slice(0, EATEN_SEARCH_RESULTS);
   const lastEntries = await prisma.foodLogEntry.findMany({
     where: { athleteId, productId: { in: ranked.map((product) => product.id) } },
     orderBy: { createdAt: 'desc' },

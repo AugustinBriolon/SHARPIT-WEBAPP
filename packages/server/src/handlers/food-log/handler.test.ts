@@ -226,6 +226,27 @@ describe('/api/food-log/foods', () => {
     });
   });
 
+  it('keeps the plain fruit in the base foods when it was eaten, since it is what the name means (ADR-122)', async () => {
+    const { GET } = await import('./foods/handler');
+    const log = await service();
+    const { searchOffProducts } =
+      await import('@sharpit/server/lib/nutrition/food-log/open-food-facts-client');
+    vi.mocked(log.searchEatenFoods).mockResolvedValue([
+      { product: { id: 'banana' }, timesEaten: 1, lastGrams: 120 },
+    ] as never);
+    vi.mocked(log.cacheGenericFoods).mockResolvedValue([
+      { id: 'banana', ciqualCode: 13005 },
+      { id: 'plantain', ciqualCode: 53101 },
+    ] as never);
+    vi.mocked(log.searchOwnFoods).mockResolvedValue([]);
+    vi.mocked(searchOffProducts).mockResolvedValue([]);
+    vi.mocked(log.cacheSearchResults).mockResolvedValue([]);
+
+    const body = await (await GET(new NextRequest(`${BASE}/foods?q=banane`))).json();
+
+    expect(body.generic.map((food: { id: string }) => food.id)).toEqual(['banana', 'plantain']);
+  });
+
   it('refuses a one-letter search', async () => {
     const { GET } = await import('./foods/handler');
     expect((await GET(new NextRequest(`${BASE}/foods?q=s`))).status).toBe(400);

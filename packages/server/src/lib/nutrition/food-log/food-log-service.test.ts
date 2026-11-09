@@ -563,6 +563,29 @@ describe('food log service', () => {
     ]);
   });
 
+  it('opens « banane » on the Ciqual banana even when a same-named product was eaten more (ADR-122)', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodLogEntry.groupBy).mockResolvedValue([
+      { productId: 'off-banane', _count: { _all: 2 } },
+      { productId: 'ciqual-banane', _count: { _all: 1 } },
+    ] as never);
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([
+      { id: 'off-banane', name: 'Banane', brand: 'Banane', kcalPer100g: 520, ciqualCode: null },
+      {
+        id: 'ciqual-banane',
+        name: 'Banane, pulpe, crue',
+        brand: null,
+        kcalPer100g: 90.5,
+        ciqualCode: 13005,
+      },
+    ] as never);
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([]);
+
+    const eaten = await service.searchEatenFoods('athlete-1', 'banane');
+
+    expect(eaten.map((food) => food.product.id)).toEqual(['ciqual-banane', 'off-banane']);
+  });
+
   it('marks Ciqual foods and producer-given products as verified, never own foods', async () => {
     const { service } = await setup();
     const served = (patch: object) =>
