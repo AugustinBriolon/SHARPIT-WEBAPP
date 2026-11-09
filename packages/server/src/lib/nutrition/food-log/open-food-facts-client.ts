@@ -9,6 +9,8 @@ import {
   dedupeFoods,
   rankFoodsByName,
 } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
+import { isDerivedFromProduce } from '@sharpit/app/lib/nutrition/food-log/produce-reference';
+import { produceReferenceKcal } from './ciqual-search';
 
 /**
  * Open Food Facts, read from the server only (ADR-061): the athlete's device never calls OFF,
@@ -108,5 +110,18 @@ export async function searchOffProducts(
     preference: verifiedFirst,
     quality: labelQuality,
   });
-  return dedupeFoods(ranked).slice(0, limit);
+  return withDerivedLast(query, dedupeFoods(ranked)).slice(0, limit);
+}
+
+/**
+ * For a fruit or vegetable name, what is made from it (a nectar, chips, a « banane » at 520 kcal)
+ * goes below what could be the food itself; the order inside each half is kept (ADR-122).
+ */
+function withDerivedLast(query: string, foods: MappedFood[]): MappedFood[] {
+  const referenceKcal = produceReferenceKcal(query);
+  if (referenceKcal === null) {
+    return foods;
+  }
+  const derived = (food: MappedFood) => isDerivedFromProduce(food, referenceKcal);
+  return [...foods.filter((food) => !derived(food)), ...foods.filter(derived)];
 }

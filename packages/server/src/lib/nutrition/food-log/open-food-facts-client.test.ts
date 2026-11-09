@@ -106,3 +106,38 @@ describe('searchOffProducts', () => {
     ]);
   });
 });
+
+describe('searchOffProducts, fruit and vegetable names (ADR-122)', () => {
+  const hit = (code: string, name: string, kcal: number) => ({
+    code,
+    product_name: name,
+    nutriments: {
+      'energy-kcal_100g': kcal,
+      proteins_100g: 1,
+      carbohydrates_100g: 20,
+      fat_100g: 0.3,
+    },
+  });
+
+  it('lists what is made from the fruit after what could be the fruit', async () => {
+    const fetcher = respond(200, {
+      hits: [
+        hit('1', 'Nectar de banane', 60),
+        hit('2', 'Banane', 520),
+        hit('3', 'Bananes bio', 92),
+      ],
+    });
+
+    const foods = await searchOffProducts('banane', { fetcher });
+
+    expect(foods.map((food) => food.name)).toEqual(['Bananes bio', 'Banane', 'Nectar de banane']);
+  });
+
+  it('keeps the source order for a query that is not a fruit or vegetable', async () => {
+    const fetcher = respond(200, { hits: [hit('1', 'Skyr vanille', 70), hit('2', 'Skyr', 60)] });
+
+    const foods = await searchOffProducts('skyr', { fetcher });
+
+    expect(foods.map((food) => food.name)).toEqual(['Skyr', 'Skyr vanille']);
+  });
+});

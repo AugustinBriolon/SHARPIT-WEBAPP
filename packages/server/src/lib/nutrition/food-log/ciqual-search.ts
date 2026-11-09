@@ -11,6 +11,7 @@ import {
   singular,
   withinOneEdit,
 } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
+import { produceFor } from '@sharpit/app/lib/nutrition/food-log/produce-reference';
 import table from './ciqual-foods.json';
 
 /**
@@ -64,6 +65,24 @@ function plainFoodFirst(food: CiqualFood): number {
  * off count (« yaourth », « bannane »), ranked after the exact matches. ADR-065, ADR-069.
  */
 export function searchCiqualFoods(query: string, limit = 5): MappedGenericFood[] {
+  const pinned = pinnedProduce(query);
+  return [...pinned, ...rankedMatches(query, limit).filter((food) => !pinned.includes(food))]
+    .slice(0, limit)
+    .map(scored);
+}
+
+/** The curated Ciqual foods a fruit or vegetable name stands for, the plain fruit first (ADR-122). */
+function pinnedProduce(query: string): CiqualFood[] {
+  const codes = produceFor(query)?.codes ?? [];
+  return codes.flatMap((code) => BY_CODE.get(code) ?? []);
+}
+
+/** Ciqual energy per 100 g of the food a fruit or vegetable name stands for; null for any other query. */
+export function produceReferenceKcal(query: string): number | null {
+  return pinnedProduce(query)[0]?.kcal ?? null;
+}
+
+function rankedMatches(query: string, limit: number): CiqualFood[] {
   const variants = foodQueryVariants(query).map((variant) => variant.split(' '));
   if (variants.length === 0) {
     return [];
@@ -79,9 +98,7 @@ export function searchCiqualFoods(query: string, limit = 5): MappedGenericFood[]
   return [
     ...rankFoodsByName(query, foods(exact), { preference: plainFoodFirst }),
     ...rankFoodsByName(query, foods(typo)),
-  ]
-    .slice(0, limit)
-    .map(scored);
+  ];
 }
 
 /** One Ciqual food by code, scored by the current formula; null when the table dropped it. */

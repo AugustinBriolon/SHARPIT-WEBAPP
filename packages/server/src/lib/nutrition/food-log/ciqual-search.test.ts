@@ -1,5 +1,8 @@
+import { PRODUCE } from '@sharpit/app/lib/nutrition/food-log/produce-reference';
 import { describe, expect, it } from 'vitest';
-import { ciqualFoodByCode, searchCiqualFoods } from './ciqual-search';
+import type { CiqualFood } from '@sharpit/app/lib/nutrition/food-log/ciqual';
+import table from './ciqual-foods.json';
+import { ciqualFoodByCode, produceReferenceKcal, searchCiqualFoods } from './ciqual-search';
 
 function names(query: string): string[] {
   return searchCiqualFoods(query).map((food) => food.name);
@@ -43,5 +46,40 @@ describe('searchCiqualFoods (bundled table)', () => {
   it('finds a food by its code, scored', () => {
     expect(ciqualFoodByCode(13005)?.health.grade).toBe('excellent');
     expect(ciqualFoodByCode(-1)).toBeNull();
+  });
+
+  it('opens a fruit or vegetable on the food itself, not a dish or a variety list (ADR-122)', () => {
+    expect(names('pomme')[0]).toBe('Pomme Golden, pulpe et peau, crue');
+    expect(names('poire')[0]).toBe('Poire Conférence, pulpe, crue');
+    expect(names('pêche')[0]).toBe('Pêche blanche, pulpe et peau, crue');
+    expect(names('carotte')[0]).toBe('Carotte, crue');
+    expect(names('pomme de terre')[0]).toBe('Pomme de terre, sans peau, crue');
+    expect(names('pommes').slice(0, 3)).toHaveLength(3);
+  });
+
+  it('leaves a query that is not exactly a fruit or vegetable to the ranking', () => {
+    expect(names('pomme golden')[0]).toMatch(/^Pomme Golden/);
+    expect(produceReferenceKcal('skyr')).toBeNull();
+    expect(produceReferenceKcal('banane')).toBeCloseTo(90.5, 1);
+  });
+});
+
+describe('produce reference table', () => {
+  it('points every entry at a fresh fruit or vegetable with a plausible energy', () => {
+    const FRESH = ['0201', '0202', '0204'];
+    for (const entry of PRODUCE) {
+      for (const code of entry.codes) {
+        const food = ciqualFoodByCode(code);
+        expect(food, `${entry.names[0]} → ${code}`).not.toBeNull();
+        expect(food!.kcalPer100g).toBeLessThan(250);
+        const energyFromMacros =
+          4 * food!.proteinPer100g + 4 * food!.carbsPer100g + 9 * food!.fatPer100g;
+        expect(Math.abs(energyFromMacros - food!.kcalPer100g), food!.name).toBeLessThan(
+          Math.max(30, food!.kcalPer100g * 0.4),
+        );
+        const raw = (table as CiqualFood[]).find((candidate) => candidate.code === code);
+        expect(FRESH, food!.name).toContain(raw!.subgroup);
+      }
+    }
   });
 });
