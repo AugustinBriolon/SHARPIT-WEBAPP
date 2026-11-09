@@ -85,6 +85,7 @@ function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
     primaryRace: null,
     races: [],
     metricGoals: [],
+    habitGoals: [],
     recent: [],
     realizedSessions: [],
     upcomingPlanned: [
@@ -244,6 +245,22 @@ describe('formatCoachContext availability', () => {
     expect(text).toContain('Jours observés (8 dernières semaines) : Lundi, Mercredi.');
   });
 
+  it('names the wanted intensity before the count', () => {
+    const text = formatCoachContext(
+      minimalContext({
+        availableDays: [],
+        trainingAvailability: {
+          version: 1,
+          targetSessionsPerWeek: 4,
+          availableWeekdays: [1, 3, 5, 6],
+          intensity: 'hard',
+        },
+      }),
+    );
+
+    expect(text).toContain('Intensité voulue : soutenue.\nSouhaité : 4 séances par semaine.');
+  });
+
   it('still reads the observed days when nothing was declared', () => {
     const text = formatCoachContext(
       minimalContext({
@@ -265,6 +282,15 @@ describe('formatCoachContext availability', () => {
     );
 
     expect(text).not.toContain('## Disponibilités');
+  });
+});
+
+describe('formatCoachContext habit goal', () => {
+  it('tells the plan to aim at consistency, not a peak', () => {
+    const text = formatCoachContext(minimalContext({ habitGoals: ['Garder la forme'] }));
+
+    expect(text).toContain('Pas de course planifiée.');
+    expect(text).toContain('Objectif de régularité : ⟦Garder la forme⟧ — tenir les semaines');
   });
 });
 

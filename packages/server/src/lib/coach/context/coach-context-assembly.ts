@@ -267,6 +267,7 @@ export function buildGoalsContext(goals: Awaited<ReturnType<typeof getGoals>>, t
         target: g.targetValue,
         unit: g.unit,
       })),
+    habitGoals: activeGoals.filter((g) => g.kind === 'HABIT').map((g) => g.title),
   };
 }
 
@@ -687,7 +688,7 @@ function assembleCoachProfileSections(
   goals: CoachContextSources[2],
 ) {
   const health = buildHealthFromEntries(healthEntries, format(today, 'yyyy-MM-dd'), hourOfDay);
-  const { primaryRace, races, metricGoals } = buildGoalsContext(goals, today);
+  const { primaryRace, races, metricGoals, habitGoals } = buildGoalsContext(goals, today);
   return {
     // ISO in parentheses so tools like logFoods can resolve « hier » / relative days precisely.
     today: `${format(today, 'EEEE d MMMM yyyy', { locale: fr })} (${dayKeyFromDate(today)})`,
@@ -700,6 +701,7 @@ function assembleCoachProfileSections(
     primaryRace,
     races,
     metricGoals,
+    habitGoals,
   };
 }
 

@@ -11,6 +11,7 @@ import { formatJours } from '@sharpit/shared/french-plural';
 import { formatEquipmentForCoach } from '@sharpit/app/lib/equipment/format';
 import { formatPracticedSportsForCoach } from '@sharpit/app/lib/practiced-sports';
 import {
+  TRAINING_INTENSITY_LABELS_FR,
   weekdayLabels,
   type TrainingAvailability,
 } from '@sharpit/app/lib/training-availability/types';
@@ -460,6 +461,11 @@ export function formatMetricGoalLine(goal: CoachContext['metricGoals'][number]):
   return `Objectif métrique : ${athleteText(goal.title)} → cible ${goal.target}${goal.unit ?? ''}${current}.`;
 }
 
+/** A HABIT goal has no date and no figure: the plan aims at keeping the weeks, not at a peak. */
+export function formatHabitGoalLine(title: string): string {
+  return `Objectif de régularité : ${athleteText(title)} — tenir les semaines dans la durée, sans pic ni affûtage.`;
+}
+
 function formatGoalsSection(ctx: CoachContext): string[] {
   const lines = ['\n## Objectifs'];
   if (ctx.primaryRace) {
@@ -477,6 +483,7 @@ function formatGoalsSection(ctx: CoachContext): string[] {
     );
   }
   lines.push(...ctx.metricGoals.map(formatMetricGoalLine));
+  lines.push(...ctx.habitGoals.map(formatHabitGoalLine));
   return lines;
 }
 
@@ -621,6 +628,9 @@ function formatAvailabilitySection(
   observedDays: string[],
 ): string[] {
   const lines: string[] = [];
+  if (declared.intensity) {
+    lines.push(`Intensité voulue : ${TRAINING_INTENSITY_LABELS_FR[declared.intensity]}.`);
+  }
   if (declared.targetSessionsPerWeek !== null) {
     lines.push(`Souhaité : ${declared.targetSessionsPerWeek} séances par semaine.`);
   }

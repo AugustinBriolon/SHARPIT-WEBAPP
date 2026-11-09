@@ -82,6 +82,28 @@ describe('sanitizeTrainingAvailabilityForPersist', () => {
   });
 });
 
+describe('intensity', () => {
+  it('keeps a known intensity and drops an unknown one', () => {
+    expect(
+      normalizeTrainingAvailability({
+        targetSessionsPerWeek: 3,
+        availableWeekdays: [2],
+        intensity: 'steady',
+      }),
+    ).toEqual({
+      version: 1,
+      targetSessionsPerWeek: 3,
+      availableWeekdays: [2],
+      intensity: 'steady',
+    });
+    expect(normalizeTrainingAvailability({ availableWeekdays: [2], intensity: 'brutal' })).toEqual({
+      version: 1,
+      targetSessionsPerWeek: null,
+      availableWeekdays: [2],
+    });
+  });
+});
+
 describe('hasDeclaredAvailability', () => {
   it('is false only when neither answer was given', () => {
     expect(hasDeclaredAvailability(EMPTY_TRAINING_AVAILABILITY)).toBe(false);

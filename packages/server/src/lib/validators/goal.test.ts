@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { settleStructuredRace, updateGoalSchema } from '@sharpit/server/lib/validators/goal';
+import {
+  createGoalSchema,
+  settleStructuredRace,
+  updateGoalSchema,
+} from '@sharpit/server/lib/validators/goal';
 
 const STORED = {
   discipline: null,
@@ -94,5 +98,13 @@ describe('settleStructuredRace', () => {
       ok: true,
       data: { discipline: null, formatKey: null, runM: null },
     });
+  });
+});
+
+describe('createGoalSchema habit', () => {
+  it('takes a keep-fit goal with no date and no figure', () => {
+    const parsed = createGoalSchema.parse({ title: 'Garder la forme', kind: 'HABIT' });
+    expect(parsed.kind).toBe('HABIT');
+    expect(parsed.targetDate).toBeUndefined();
   });
 });

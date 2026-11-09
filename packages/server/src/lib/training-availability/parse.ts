@@ -1,5 +1,6 @@
 import {
   EMPTY_TRAINING_AVAILABILITY,
+  isTrainingIntensity,
   isWeekday,
   MAX_SESSIONS_PER_WEEK,
   MIN_SESSIONS_PER_WEEK,
@@ -35,12 +36,21 @@ export function normalizeTrainingAvailability(raw: unknown): TrainingAvailabilit
   if (!raw || typeof raw !== 'object') {
     return EMPTY_TRAINING_AVAILABILITY;
   }
-  const record = raw as { targetSessionsPerWeek?: unknown; availableWeekdays?: unknown };
-  return {
+  const record = raw as {
+    targetSessionsPerWeek?: unknown;
+    availableWeekdays?: unknown;
+    intensity?: unknown;
+  };
+  const availability: TrainingAvailability = {
     version: 1,
     targetSessionsPerWeek: parseSessionsPerWeek(record.targetSessionsPerWeek),
     availableWeekdays: parseWeekdays(record.availableWeekdays),
   };
+  // An unknown word reads as undeclared, like an out-of-range count.
+  if (isTrainingIntensity(record.intensity)) {
+    availability.intensity = record.intensity;
+  }
+  return availability;
 }
 
 /** Explicit null clears the column; anything else is normalised before it is written. */

@@ -9,6 +9,19 @@ import { athleteProfileSchema } from './athlete-profile';
  * cleared the rest of the profile.
  */
 describe('athleteProfileSchema', () => {
+  it('accepts a known training intensity and refuses another word', () => {
+    const availability = { version: 1, targetSessionsPerWeek: 4, availableWeekdays: [1, 3, 5, 6] };
+    expect(
+      athleteProfileSchema.parse({ trainingAvailability: { ...availability, intensity: 'hard' } })
+        .trainingAvailability,
+    ).toEqual({ ...availability, intensity: 'hard' });
+    expect(() =>
+      athleteProfileSchema.parse({
+        trainingAvailability: { ...availability, intensity: 'brutal' },
+      }),
+    ).toThrow();
+  });
+
   it('keeps a one-field patch to one field', () => {
     const parsed = athleteProfileSchema.parse({ ftpW: 215 });
 

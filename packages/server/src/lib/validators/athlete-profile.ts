@@ -7,6 +7,7 @@ import { PRACTICED_SPORTS } from '@sharpit/app/lib/practiced-sports';
 import {
   MAX_SESSIONS_PER_WEEK,
   MIN_SESSIONS_PER_WEEK,
+  TRAINING_INTENSITIES,
 } from '@sharpit/app/lib/training-availability/types';
 import { notificationPrefsPatchSchema } from '@sharpit/server/lib/notifications/notification-prefs';
 import { featurePrefsPatchSchema } from '@sharpit/server/lib/features/feature-prefs';
@@ -109,6 +110,7 @@ export const athleteTrainingAvailabilitySchema = z.object({
     .max(MAX_SESSIONS_PER_WEEK)
     .nullable(),
   availableWeekdays: z.array(z.number().int().min(0).max(6)),
+  intensity: z.enum(TRAINING_INTENSITIES).optional(),
 });
 
 /** Partial patch — personal profile, calibration and equipment save independently. */

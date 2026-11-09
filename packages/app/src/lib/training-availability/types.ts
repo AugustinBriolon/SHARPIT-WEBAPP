@@ -2,8 +2,9 @@
  * Declared training rhythm — which days the athlete can train, and how many
  * sessions that implies for the week.
  *
- * Onboarding captures days only; `targetSessionsPerWeek` is derived as the
- * number of selected days (N days ⇒ N possible sessions). Distinct from the
+ * The web picker captures days only and derives `targetSessionsPerWeek` from them
+ * (N days ⇒ N possible sessions); the iOS onboarding asks an intensity and a count
+ * first, then exactly that many days. Distinct from the
  * days *observed* in past activities: this is intent, and the gap between the
  * two is itself coaching signal.
  */
@@ -36,6 +37,24 @@ export const WEEKDAY_SHORT_LABELS_FR: readonly string[] = [
   'Sam',
 ];
 
+/**
+ * How hard the athlete wants the weeks to be — chosen before the days, it seeds the
+ * session count (iOS onboarding) and tells the generator how much intensity to place.
+ */
+export const TRAINING_INTENSITIES = ['easy', 'steady', 'hard', 'max'] as const;
+export type TrainingIntensity = (typeof TRAINING_INTENSITIES)[number];
+
+export const TRAINING_INTENSITY_LABELS_FR: Record<TrainingIntensity, string> = {
+  easy: 'tranquille',
+  steady: 'régulière',
+  hard: 'soutenue',
+  max: 'intensive',
+};
+
+export function isTrainingIntensity(value: unknown): value is TrainingIntensity {
+  return typeof value === 'string' && (TRAINING_INTENSITIES as readonly string[]).includes(value);
+}
+
 export const MIN_SESSIONS_PER_WEEK = 1;
 export const MAX_SESSIONS_PER_WEEK = 14;
 
@@ -44,11 +63,12 @@ export type TrainingAvailability = {
   version: 1;
   /**
    * Sessions possible per week. Null when no days are declared.
-   * Derived from `availableWeekdays.length` in onboarding (not a separate input).
    */
   targetSessionsPerWeek: number | null;
   /** Days free to train, `Date#getDay` values, stored Monday-first. */
   availableWeekdays: Weekday[];
+  /** Wanted effort; absent for athletes who declared days only. */
+  intensity?: TrainingIntensity;
 };
 
 /** N selected days ⇒ N possible sessions; empty days ⇒ undeclared. */

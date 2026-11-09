@@ -30,6 +30,7 @@ enum GoalHorizon {
 enum GoalKind {
   RACE
   METRIC
+  HABIT // keep fit: no date, no figure — the plan aims at consistency (ADR-123)
 }
 
 // Priorité d'une course (standard triathlon) :
