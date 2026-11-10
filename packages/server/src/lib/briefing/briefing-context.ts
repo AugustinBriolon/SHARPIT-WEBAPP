@@ -128,7 +128,7 @@ export async function buildBriefingDayContext(
   const yesterday = subDays(today, 1);
 
   const [activities, plannedToday] = await Promise.all([
-    getActivities(athleteId, { limit: 40 }),
+    getActivities(athleteId, { limit: 40, forAi: true }),
     getPlannedSessions(athleteId, { from: today, to: today }),
   ]);
 

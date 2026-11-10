@@ -24,7 +24,11 @@ import {
   COACH_COPY_DASH_RULE,
   sanitizeCoachCopy,
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
-import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
+import {
+  aiReadableActivityWhere,
+  visibleActivityWhere,
+} from '@sharpit/app/lib/query/activity-include';
+import { isStravaOnly } from '@sharpit/server/lib/activity/list/activity-dedup';
 
 /** Parallel LLM narratives after multi-activity import — keep low to avoid gateway bursts. */
 const NARRATIVE_CONCURRENCY = 3;
@@ -107,10 +111,17 @@ async function shouldSkipNarrativeAnalysis(
 ): Promise<boolean> {
   const existing = await prisma.activity.findFirst({
     where: { id: activityId, athleteId },
-    select: { narrativeAnalyzedAt: true, date: true, type: true, narrativeAnalysis: true },
+    select: {
+      narrativeAnalyzedAt: true,
+      date: true,
+      type: true,
+      narrativeAnalysis: true,
+      source: true,
+    },
   });
   return (
     !existing ||
+    isStravaOnly(existing.source) ||
     !isEligibleForActivityNarrative(existing.date) ||
     !narrativeReadsActivityType(existing.type, Boolean(options?.onRequest)) ||
     narrativeAlreadyAnalyzed(existing, options?.force) ||
@@ -205,6 +216,7 @@ export async function backfillActivityNarratives(athleteId: string): Promise<{
     where: {
       athleteId,
       ...visibleActivityWhere,
+      ...aiReadableActivityWhere,
       narrativeAnalyzedAt: null,
       date: { gte: NARRATIVE_ANALYSIS_SINCE },
       type: { in: [...AUTO_NARRATIVE_ACTIVITY_TYPES] },

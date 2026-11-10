@@ -2,6 +2,7 @@ import type { RoutineStatus } from '@prisma/client';
 import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
 import { generateText, Output } from 'ai';
 import { isSet } from '@sharpit/shared/value';
+import { isStravaOnly } from '@sharpit/server/lib/activity/list/activity-dedup';
 import { COACH_MODEL, coachAnalysisGatewayOptions } from '@sharpit/server/lib/ai';
 import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
 import {
@@ -33,8 +34,6 @@ import {
   type StrengthCompliance,
 } from '@sharpit/server/lib/planned-session/strength/strength-compliance';
 import { parseStrengthPrescription } from '@sharpit/app/lib/planned-session/strength/strength-prescription';
-import { fetchActivityDetail } from '@sharpit/server/lib/integrations/strava/strava';
-import { getValidAccessToken } from '@sharpit/server/lib/integrations/strava/strava-sync';
 import { prisma } from '@sharpit/db/client';
 import {
   brickAnalysisSchema,
@@ -48,7 +47,6 @@ import {
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 
 /** Prefer local notes when long enough — skip Strava round-trip. */
-export const LOCAL_DESCRIPTION_MIN_CHARS = 40;
 
 const TYPE_FR: Record<string, string> = {
   RUN: 'Course',
@@ -358,54 +356,14 @@ Sois précis, bienveillant et concis. Réponds en français.
 
 ${COACH_COPY_DASH_RULE}`;
 
-/** True when local athlete notes are rich enough to skip a Strava description fetch. */
-export function hasSubstantialLocalDescription(notes: string | null | undefined): boolean {
-  const trimmed = notes?.trim() ?? '';
-  return trimmed.length >= LOCAL_DESCRIPTION_MIN_CHARS;
+/** What the athlete wrote about the session in SHARPIT. Nothing is fetched from Strava (ADR-126). */
+function athleteNotes(activity: LinkedActivity): string | null {
+  return activity.notes?.trim() || null;
 }
 
-function isStravaLinkedActivity(activity: LinkedActivity): boolean {
-  const source = activity.source ?? '';
-  const fromStrava =
-    source === 'strava' || source === 'both' || source.split('+').includes('strava');
-  return fromStrava && isSet(activity.stravaId);
-}
-
-/** Description libre Strava (détail réel). Best-effort : ne lève jamais. */
-async function fetchStravaDescription(
-  athleteId: string,
-  activity: LinkedActivity,
-): Promise<string | null> {
-  if (!isStravaLinkedActivity(activity)) {
-    return null;
-  }
-  try {
-    const token = await getValidAccessToken(athleteId);
-    const detail = await fetchActivityDetail(token, activity.stravaId!);
-    return detail?.description ?? detail?.private_note ?? null;
-  } catch (error) {
-    console.error('[analyze] description Strava non récupérée', error);
-    return null;
-  }
-}
-
-/**
- * Prefer substantial local notes; otherwise best-effort Strava description.
- * Avoids a remote round-trip when the athlete already wrote enough in-app.
- */
-export async function resolveAthleteDescription(
-  athleteId: string,
-  activity: LinkedActivity,
-): Promise<string | null> {
-  const local = activity.notes?.trim() || null;
-  if (hasSubstantialLocalDescription(local)) {
-    return local;
-  }
-  const remote = await fetchStravaDescription(athleteId, activity);
-  if (remote?.trim()) {
-    return remote.trim();
-  }
-  return local;
+/** A session whose only record comes from Strava is not analysed: it may not reach a model. */
+function mayAnalyse(activity: LinkedActivity | null | undefined): activity is LinkedActivity {
+  return Boolean(activity) && !isStravaOnly(activity!.source);
 }
 
 /** Cached watts stream only — never triggers a remote fetch during analysis. */
@@ -450,7 +408,7 @@ function formatAthleteThresholdsLine(
 
 function buildSessionAnalysisPrompt(input: {
   planned: PlannedWithActivity;
-  stravaDescription: string | null;
+  athleteDescription: string | null;
   ftpW: number | null;
   workSummary: BikeWorkSummary | null;
   strengthCompliance: StrengthCompliance | null;
@@ -463,7 +421,7 @@ function buildSessionAnalysisPrompt(input: {
 ${describePlanned(input.planned, { ftpW: input.ftpW })}
 
 # Séance RÉALISÉE
-${describeActual(input.planned.activity!, input.stravaDescription, {
+${describeActual(input.planned.activity!, input.athleteDescription, {
   ftpW: input.ftpW,
   workSummary: input.workSummary,
 })}${strengthBlock}
@@ -475,13 +433,13 @@ async function loadPlannedSessionAnalysisContext(
   athleteId: string,
   planned: PlannedWithActivity,
 ): Promise<{
-  stravaDescription: string | null;
+  athleteDescription: string | null;
   profile: Awaited<ReturnType<typeof getAthleteProfile>>;
   physicalNotes: ActivePhysicalNote[];
   workSummary: BikeWorkSummary | null;
 }> {
-  const [stravaDescription, profile, physicalNotes, watts] = await Promise.all([
-    resolveAthleteDescription(athleteId, planned.activity!),
+  const [athleteDescription, profile, physicalNotes, watts] = await Promise.all([
+    Promise.resolve(athleteNotes(planned.activity!)),
     getAthleteProfile(athleteId),
     getActivePhysicalNotes(athleteId),
     planned.activity!.type === 'BIKE'
@@ -498,7 +456,7 @@ async function loadPlannedSessionAnalysisContext(
           description: planned.description,
         })
       : null;
-  return { stravaDescription, profile, physicalNotes, workSummary };
+  return { athleteDescription, profile, physicalNotes, workSummary };
 }
 
 export async function analyzePlannedSession(
@@ -506,17 +464,17 @@ export async function analyzePlannedSession(
   id: string,
 ): Promise<SessionAnalysis | null> {
   const planned = await getPlannedSessionById(athleteId, id);
-  if (!planned || !planned.activity) {
+  if (!planned || !mayAnalyse(planned.activity)) {
     return null;
   }
 
-  const { stravaDescription, profile, physicalNotes, workSummary } =
+  const { athleteDescription, profile, physicalNotes, workSummary } =
     await loadPlannedSessionAnalysisContext(athleteId, planned);
   const ftpW = profile?.ftpW ?? null;
   const strengthCompliance = resolveStrengthCompliance(planned);
   const prompt = `${formatAthleteThresholdsLine(profile)}${buildSessionAnalysisPrompt({
     planned,
-    stravaDescription,
+    athleteDescription,
     ftpW,
     workSummary,
     strengthCompliance,
@@ -670,14 +628,14 @@ export async function analyzeBrick(
   if (legs.length < 2) {
     return null;
   }
-  if (legs.some((l) => !l.activity)) {
+  if (legs.some((l) => !mayAnalyse(l.activity))) {
     return null;
   }
 
   const [profile, evaluation, descriptions, wattsList] = await Promise.all([
     getAthleteProfile(athleteId),
     getBrickEvaluation(athleteId, brickGroupId),
-    Promise.all(legs.map((l) => resolveAthleteDescription(athleteId, l.activity!))),
+    Promise.resolve(legs.map((l) => athleteNotes(l.activity!))),
     Promise.all(
       legs.map((l) =>
         l.type === 'BIKE' && l.activity ? loadCachedWatts(l.activity.id) : Promise.resolve(null),

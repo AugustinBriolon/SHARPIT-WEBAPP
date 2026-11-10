@@ -175,3 +175,15 @@ describe('activitiesMatch', () => {
     ).toBe(false);
   });
 });
+
+describe('isStravaOnly', () => {
+  it('is true only when Strava is the sole origin', async () => {
+    const { isStravaOnly } = await import('./activity-dedup');
+
+    expect(isStravaOnly('strava')).toBe(true);
+    expect(isStravaOnly('both')).toBe(false);
+    expect(isStravaOnly('strava+apple-health')).toBe(false);
+    expect(isStravaOnly('garmin')).toBe(false);
+    expect(isStravaOnly(null)).toBe(false);
+  });
+});

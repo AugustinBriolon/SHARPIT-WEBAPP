@@ -9,6 +9,7 @@ import {
   activityCoachSelect,
   activityPmcSelect,
   visibleActivityWhere,
+  aiReadableActivityWhere,
 } from '@sharpit/app/lib/query/activity-include';
 import { physicalNoteInclude, planWeekInclude } from '@sharpit/app/lib/query/activity-include';
 import { linkPlannedSessionActivity } from '@sharpit/server/lib/queries/planned-sessions';
@@ -45,10 +46,15 @@ export {
 
 export async function getActivities(
   athleteId: string,
-  params?: { type?: ActivityType; limit?: number },
+  params?: { type?: ActivityType; limit?: number; forAi?: boolean },
 ) {
   return prisma.activity.findMany({
-    where: { athleteId, ...visibleActivityWhere, ...(params?.type ? { type: params.type } : {}) },
+    where: {
+      athleteId,
+      ...visibleActivityWhere,
+      ...(params?.forAi ? aiReadableActivityWhere : {}),
+      ...(params?.type ? { type: params.type } : {}),
+    },
     include: activityInclude,
     orderBy: { date: 'desc' },
     take: params?.limit,
@@ -107,7 +113,11 @@ export async function getActivitiesForCoach(
   athleteId: string,
   params?: { limit?: number; sinceDays?: number },
 ) {
-  const where: Prisma.ActivityWhereInput = { athleteId, ...visibleActivityWhere };
+  const where: Prisma.ActivityWhereInput = {
+    athleteId,
+    ...visibleActivityWhere,
+    ...aiReadableActivityWhere,
+  };
   if (params?.sinceDays) {
     where.date = { gte: startOfDay(addDays(new Date(), -params.sinceDays)) };
   }
@@ -165,7 +175,7 @@ export const getActivityById = cache(async (athleteId: string, id: string) => {
 /** One activity in the Coach prompt shape (same select as `getActivitiesForCoach`). */
 export async function getActivityForCoach(athleteId: string, id: string) {
   return prisma.activity.findFirst({
-    where: { id, athleteId },
+    where: { id, athleteId, ...aiReadableActivityWhere },
     select: activityCoachSelect,
   });
 }

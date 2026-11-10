@@ -19,6 +19,11 @@ export const plannedSessionSummarySelect = {
 /** Rows absorbed into a multisport parent (mergedIntoId set) stay in DB but never surface in reads. */
 export const visibleActivityWhere = { mergedIntoId: null } satisfies Prisma.ActivityWhereInput;
 
+/** Activities an AI model may read: everything but the Strava-only ones (ADR-126). */
+export const aiReadableActivityWhere = {
+  NOT: { source: 'strava' },
+} satisfies Prisma.ActivityWhereInput;
+
 export const activityInclude = {
   runMetrics: true,
   bikeMetrics: true,

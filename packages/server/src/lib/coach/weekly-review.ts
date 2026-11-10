@@ -144,7 +144,7 @@ async function buildWeeklyStats(athleteId: string, weekStart: Date): Promise<Wee
   const prevStart = subDays(weekStart, 7);
 
   const [activities, planned, health, trainingStress] = await Promise.all([
-    getActivities(athleteId, { limit: 200 }),
+    getActivities(athleteId, { limit: 200, forAi: true }),
     getPlannedSessions(athleteId, { from: weekStart, to: weekEnd }),
     getHealthEntries(athleteId, 21),
     // Same Core-derived TSS as the ACWR gauge and fitness chart (pmc-server.ts) —

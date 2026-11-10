@@ -53,6 +53,14 @@ export interface MatchedActivity {
 }
 
 /**
+ * True when Strava is the activity's only origin. Such an activity never reaches an AI
+ * model (ADR-126); one a watch or the athlete also supplied does.
+ */
+export function isStravaOnly(source: string | null | undefined): boolean {
+  return source === 'strava';
+}
+
+/**
  * Provenance tokens stored on `Activity.source`.
  * Legacy `both` = garmin+strava without Apple Health.
  * Composites use `+` (e.g. `strava+apple-health`, `garmin+strava+apple-health`).
