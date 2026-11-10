@@ -25,7 +25,7 @@ Selon votre usage et les connecteurs que vous activez, Sharpit peut traiter :
 | Compte                         | Identifiants et données de compte gérés via **Clerk** (e-mail, prénom et nom, identifiant technique)                                                                                                                   |
 | Profil sportif                 | Taille, date de naissance, sexe, seuils (FTP, FC max, allures), sports pratiqués, matériel, objectifs                                                                                                                  |
 | Apple Santé (iPhone)           | Uniquement si vous l’activez : séances et tracés GPS, sommeil, fréquence cardiaque, VFC, FC de repos, pas, poids. Lues sur l’iPhone et envoyées à Sharpit ; **jamais** utilisées à des fins publicitaires ni revendues |
-| Données des services connectés | Selon les services que vous connectez (**Garmin**, **Withings**, **Google Agenda**) : activité, récupération, composition corporelle, nutrition, créneaux d’agenda, selon les classes activées                         |
+| Données des services connectés | Selon les services que vous connectez (**Garmin**, **Strava**, **Withings**, **Google Agenda**) : activité, récupération, composition corporelle, nutrition, créneaux d’agenda, selon les classes activées             |
 | Saisies de l’athlète           | Ressenti et effort perçu des séances et des bricks, journal du jour (y compris réponses de santé : médicaments, cycle, alcool), notes physiques, messages au coach                                                     |
 | Journal alimentaire            | Repas, aliments, portions et objectifs que vous saisissez dans Sharpit, vos aliments personnels, et l’historique que vous importez depuis un export MyFitnessPal (totaux par repas et par jour)                        |
 | Appareil photo (iPhone)        | Uniquement quand vous scannez un code-barres : l’image est lue sur l’iPhone et n’est jamais envoyée ; seul le numéro du code-barres l’est                                                                              |
@@ -96,7 +96,8 @@ Selon la configuration du service, des prestataires techniques peuvent traiter d
 
 - **Clerk** — authentification et compte ;
 - **Vercel** — hébergement / exécution de l’application, passerelle IA ;
-- **Neon** — base de données PostgreSQL hébergée ;
+- **Neon** — base de données PostgreSQL hébergée à **Londres (Royaume-Uni)**, pays couvert par une décision d’adéquation de la Commission européenne ;
+- **Resend** — envoi des e-mails de service (par exemple la confirmation de suppression de compte) : adresse e-mail et prénom ;
 - **Upstash** — limitation de débit / cache opérationnel ;
 - **Sentry** (hébergement UE) — rapports de plantage et d’erreurs, sans métriques corporelles ;
 - **Apple** — notifications (APNs), achats intégrés, météo (WeatherKit), Apple Santé sur votre iPhone ;
@@ -104,7 +105,7 @@ Selon la configuration du service, des prestataires techniques peuvent traiter d
 - **Google, Anthropic, OpenAI** (modèles d’IA, via la passerelle de Vercel) et **Langfuse** — uniquement si vous avez consenti au traitement IA ;
 - **Garmin** — source des données que vous choisissez de relier, via l’API officielle Garmin Connect.
 
-Les services que **vous** connectez (Garmin, Withings, Google Agenda) reçoivent ou exposent des données selon **leurs** politiques et le périmètre que vous autorisez.
+Les services que **vous** connectez (Garmin, Strava, Withings, Google Agenda) reçoivent ou exposent des données selon **leurs** politiques et le périmètre que vous autorisez.
 
 Certains prestataires peuvent traiter des données hors de l’Union européenne ; ces transferts sont encadrés par les garanties prévues par le RGPD (clauses contractuelles types ou décision d’adéquation).
 
@@ -112,6 +113,7 @@ Certains prestataires peuvent traiter des données hors de l’Union européenne
 
 - Compte actif : conservation aussi longtemps que le compte est nécessaire au service.
 - **Suppression :** à votre demande, le compte est **désactivé immédiatement** et déconnecté de vos sources (l’autorisation Garmin est révoquée), puis le compte, l’identifiant de connexion et les données associées sont **supprimés définitivement au bout de 14 jours** (délai de récupération en cas d’erreur).
+- Messages bruts reçus de Garmin : supprimés **7 jours** après leur traitement ; seules les mesures qui en sont extraites sont conservées avec votre compte.
 - Journaux techniques et rapports de plantage : conservation limitée au besoin d’exploitation et de sécurité.
 - Sur l’iPhone, un cache local (dernières données lues) reste sur l’appareil ; il est effacé à la déconnexion d’un autre compte et à la suppression du compte. Il n’est pas copié dans iCloud.
 
@@ -120,7 +122,7 @@ Certains prestataires peuvent traiter des données hors de l’Union européenne
 Conformément au RGPD, vous disposez notamment des droits d’accès, de rectification, d’effacement, de limitation, d’opposition, de portabilité, et du droit de retirer votre consentement.
 
 - Exercice des droits / questions : [augustin.briolon@gmail.com](mailto:augustin.briolon@gmail.com)
-- Export : export JSON des données personnelles vous concernant détenues par Sharpit, depuis Réglages → Confidentialité sur le web.
+- Export : export JSON des données personnelles vous concernant détenues par Sharpit, depuis Réglages → Confidentialité sur le web. Les flux seconde par seconde de vos séances (tracé, fréquence cardiaque, puissance) et l’historique des calculs intermédiaires n’y figurent pas en raison de leur volume ; le fichier les liste et vous pouvez les obtenir sur demande à l’adresse ci-dessus.
 - Suppression : depuis Réglages → Confidentialité, sur le web comme sur l’iPhone.
 - Réclamation : vous pouvez saisir la **CNIL** ([www.cnil.fr](https://www.cnil.fr)).
 

@@ -25,7 +25,7 @@ Depending on your use and the connectors you enable, SharpIt may process:
 | Account                 | Identifiers and account data managed through **Clerk** (e-mail, first and last name, technical id)                                                                                      |
 | Athletic profile        | Height, date of birth, sex, thresholds (FTP, max heart rate, paces), sports, equipment, goals                                                                                           |
 | Apple Health (iPhone)   | Only if you enable it: workouts and GPS tracks, sleep, heart rate, HRV, resting heart rate, steps, weight. Read on the iPhone and sent to SharpIt; never used for advertising or resold |
-| Connected services      | Depending on what you connect (**Garmin**, **Withings**, **Google Calendar**): activity, recovery, body composition, calendar slots                                                     |
+| Connected services      | Depending on what you connect (**Garmin**, **Strava**, **Withings**, **Google Calendar**): activity, recovery, body composition, calendar slots                                         |
 | Athlete input           | Perceived effort and feeling for sessions, the daily journal (including health answers), physical notes, messages to the coach                                                          |
 | Food log                | Meals, foods, portions and goals you enter                                                                                                                                              |
 | Camera, location, voice | Only when you use the barcode scanner, allow weather by location (about 1 km, sent to Apple Weather, not to SharpIt), or dictate a question to the coach                                |
@@ -91,7 +91,8 @@ Depending on the service configuration, technical providers may process data on 
 
 - **Clerk** — authentication and account;
 - **Vercel** — hosting / execution of the application, AI gateway;
-- **Neon** — hosted PostgreSQL database;
+- **Neon** — PostgreSQL database hosted in **London (United Kingdom)**, a country covered by a European Commission adequacy decision;
+- **Resend** — service e-mails (for example the account deletion confirmation): e-mail address and first name;
 - **Upstash** — rate limiting / operational cache;
 - **Sentry** (EU hosting) — crash and error reports, without body metrics;
 - **Apple** — notifications (APNs), in-app purchases, weather (WeatherKit), Apple Health on your iPhone;
@@ -99,7 +100,7 @@ Depending on the service configuration, technical providers may process data on 
 - **Google, Anthropic, OpenAI** (AI models, through Vercel's gateway) and **Langfuse** — only if you consented to AI processing;
 - **Garmin** — source of the data you choose to connect, through the official Garmin Connect API.
 
-The services **you** connect (Garmin, Withings, Google Calendar) receive or expose data under **their** policies and the scope you authorise.
+The services **you** connect (Garmin, Strava, Withings, Google Calendar) receive or expose data under **their** policies and the scope you authorise.
 
 Some providers may process data outside the European Union; these transfers are covered by the safeguards provided by the GDPR (standard contractual clauses or an adequacy decision).
 
@@ -107,6 +108,7 @@ Some providers may process data outside the European Union; these transfers are 
 
 - Active account: data is kept as long as the account is needed for the service.
 - **Deletion:** on your request, the account is **deactivated immediately** and disconnected from your sources (the Garmin authorisation is revoked), then the account, the sign-in identifier and the associated data are **permanently deleted after 14 days** (a recovery window in case of error).
+- Raw messages received from Garmin: deleted **7 days** after they are processed; only the measurements extracted from them are kept with your account.
 - Technical logs and crash reports: kept only as long as needed for operation and security.
 - On the iPhone, a local cache (latest data read) stays on the device; it is erased when another account signs in and when the account is deleted. It is not copied to iCloud.
 
@@ -115,7 +117,7 @@ Some providers may process data outside the European Union; these transfers are 
 Under the GDPR you have the rights of access, rectification, erasure, restriction, objection, portability, and the right to withdraw your consent.
 
 - Exercising your rights / questions: [augustin.briolon@gmail.com](mailto:augustin.briolon@gmail.com)
-- Export: a JSON export of the personal data SharpIt holds about you, from Settings → Privacy on the web.
+- Export: a JSON export of the personal data SharpIt holds about you, from Settings → Privacy on the web. The second-by-second streams of your sessions (route, heart rate, power) and the history of intermediate computations are left out because of their size; the file lists them and you can obtain them on request at the address above.
 - Deletion: from Settings → Privacy, on the web and on the iPhone.
 - Complaint: you may contact the **CNIL** ([www.cnil.fr](https://www.cnil.fr)).
 
