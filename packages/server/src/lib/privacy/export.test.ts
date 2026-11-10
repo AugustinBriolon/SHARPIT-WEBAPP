@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findUniqueOrThrowMock = vi.fn();
@@ -26,6 +27,25 @@ vi.mock('@sharpit/db/client', () => ({
     weeklyReview: { findMany: (...args: unknown[]) => findManyMock(...args) },
     performanceRecord: { findMany: (...args: unknown[]) => findManyMock(...args) },
     athleteFeedback: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    observation: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    athleteDayJournal: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    journalHabitExperiment: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    foodLogSkippedMeal: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    savedMeal: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    nutritionDayAnalysis: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    trainingPlan: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    hikeTrip: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    athleteTravelContext: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    athleteThresholdSnapshot: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    athleteActivityStatus: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    athleteActivityStatusHistory: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    brickAnalysis: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    brickEvaluation: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    coachingDecision: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    digitalTwin: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    calendarBusySnapshot: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    subscription: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    deviceToken: { findMany: (...args: unknown[]) => findManyMock(...args) },
     garminAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
     stravaAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
     googleAccount: { findUnique: (...args: unknown[]) => findUniqueMock(...args) },
@@ -98,6 +118,26 @@ describe('buildAthleteExportJson', () => {
       maxRows: 5,
       maxAgeDays: 14,
       note: 'Preuves d’analyse : 5 dernières ou 14 jours (la fenêtre la plus courte).',
+    });
+  });
+
+  it('accounts for every database model: exported, or left out with a reason', async () => {
+    const { EXPORT_COVERED_MODELS, EXPORT_EXCLUDED_MODELS } = await import('./export');
+    const accounted = [...EXPORT_COVERED_MODELS, ...Object.keys(EXPORT_EXCLUDED_MODELS)].sort();
+    const models = Prisma.dmmf.datamodel.models.map((model) => model.name).sort();
+
+    expect(accounted).toEqual(models);
+  });
+
+  it('exports the day journal and observations, and never push tokens', async () => {
+    const { buildAthleteExportJson } = await import('./export');
+    const payload = await buildAthleteExportJson('athlete-1');
+
+    expect(payload).toHaveProperty('dayJournal');
+    expect(payload).toHaveProperty('observations');
+    expect(findManyMock).toHaveBeenCalledWith({
+      where: { athleteId: 'athlete-1' },
+      select: { platform: true, enabled: true, lastUsedAt: true, createdAt: true },
     });
   });
 });
