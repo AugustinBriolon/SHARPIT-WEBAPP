@@ -355,6 +355,8 @@ model AthleteProfile {
   unofficialProvidersAckAt DateTime?
   /// Soft-delete marker. Hard purge after PRIVACY_PURGE_DELAY_DAYS (see src/lib/privacy).
   deletedAt                DateTime?
+  /// When the inactivity notice e-mail went out; deletion follows 30 days later unless the athlete returns.
+  inactivityNoticeSentAt   DateTime?
 
   /// Per data-class source preferences: primary + enabled providers (ADR-027).
   /// Shape: { version: 1, classes: { activities: { primary, enabled }, ... } }

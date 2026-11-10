@@ -8,6 +8,12 @@ export const CURRENT_PRIVACY_VERSION = 'v1-2026-10';
  */
 export const PRIVACY_PURGE_DELAY_DAYS = 14;
 
+/** An account nobody signed in to for this long is deleted (GDPR storage limitation). */
+export const INACTIVE_ACCOUNT_MONTHS = 24;
+
+/** Notice sent by e-mail this many days before an inactive account is deleted. */
+export const INACTIVE_ACCOUNT_NOTICE_DAYS = 30;
+
 /** French copy for blocked LLM / briefing paths (AI hard gate). */
 export const AI_CONSENT_REQUIRED_MESSAGE =
   "Le traitement par IA n'est pas activé. Accepte le consentement IA dans Confidentialité pour utiliser le coach et les bilans générés.";
