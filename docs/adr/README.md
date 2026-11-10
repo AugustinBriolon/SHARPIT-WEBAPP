@@ -120,6 +120,7 @@
 | [ADR-122](./ADR-122-fruits-and-vegetables-are-pinned-to-their-ciqual-entry.md)             | Fruits and vegetables are pinned to their Ciqual entry                                                                                                                                                          | Accepted                          |
 | [ADR-123](./ADR-123-keep-fit-goal-and-wanted-intensity.md)                                 | A keep-fit goal and a wanted intensity                                                                                                                                                                          | Accepted                          |
 | [ADR-124](./ADR-124-health-grounds-are-a-sourced-catalog.md)                               | Health grounds are a sourced catalog                                                                                                                                                                            | Accepted                          |
+| [ADR-125](./ADR-125-derived-tables-keep-the-current-state.md)                              | Derived tables keep the current state, not every run                                                                                                                                                            | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

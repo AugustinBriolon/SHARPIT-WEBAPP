@@ -293,8 +293,8 @@ These rules are **non-negotiable** unless this document is explicitly amended.
 ### Source of truth
 
 1. **Observations are the only source of truth.** Twin columns, snapshots, and cache are rebuildable derivatives.
-2. **Every inference must be rebuildable** from observations (+ immutable DecisionRecords for audit).
-3. **DecisionRecords are append-only** — never update or delete inference audit trails.
+2. **Every inference must be rebuildable** from observations.
+3. **One DecisionRecord per athlete, model and training day** — a re-run replaces the day's record ([ADR-125](../adr/ADR-125-derived-tables-keep-the-current-state.md)).
 
 ### Engine boundaries
 
