@@ -17,28 +17,28 @@ assessed here. Scale on 2026-11-10: 12 accounts, one with substantial data.
 
 ## 3. Necessity and proportionality
 
-| Principle          | State                                                                        | Gap                                                                       |
-| ------------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| Purpose limitation | Training assistance only; no advertising, no resale, no model training       | None found                                                                |
-| Lawfulness         | Explicit health consent and a separate AI consent, timestamped and versioned | Models still run daily for accounts with no health consent, on empty data |
-| Minimisation       | Derived tables keep one current row per key (ADR-125)                        | What exactly is sent to the AI models has not been audited field by field |
-| Storage limitation | 14-day purge after deletion; raw Garmin pushes 7 days                        | No rule for inactive accounts                                             |
-| Information        | FR and EN policy, health disclaimer, AI transparency notice                  | Policy version not bumped after the 2026-11-10 edits                      |
-| Rights             | Self-service export and deletion                                             | Raw streams and inference history only on request                         |
-| Processors         | Listed in the policy                                                         | Signed DPAs and data locations not evidenced in the repository            |
-| Transfers          | Database in the UK (adequacy)                                                | US vendors (Clerk, Resend, AI providers): transfer mechanism to confirm   |
+| Principle          | State                                                                        | Gap                                                                                                                        |
+| ------------------ | ---------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Purpose limitation | Training assistance only; no advertising, no resale, no model training       | None found                                                                                                                 |
+| Lawfulness         | Explicit health consent and a separate AI consent, timestamped and versioned | None found: the sync cron skips health-derived refresh without health consent (only the seeded demo account is recomputed) |
+| Minimisation       | Derived tables keep one current row per key (ADR-125)                        | What exactly is sent to the AI models has not been audited field by field                                                  |
+| Storage limitation | 14-day purge after deletion; raw Garmin pushes 7 days                        | No rule for inactive accounts                                                                                              |
+| Information        | FR and EN policy, health disclaimer, AI transparency notice                  | Policy version not bumped after the 2026-11-10 edits                                                                       |
+| Rights             | Self-service export and deletion                                             | Raw streams and inference history only on request                                                                          |
+| Processors         | Listed in the policy                                                         | Signed DPAs and data locations not evidenced in the repository                                                             |
+| Transfers          | Database in the UK (adequacy)                                                | US vendors (Clerk, Resend, AI providers): transfer mechanism to confirm                                                    |
 
 ## 4. Risks to athletes
 
 Severity and likelihood are the controller's to rate; the entries below are the facts to rate them on.
 
-| Risk                       | What could happen                                       | Existing measures                                                           | Open points                                                                                                                  |
-| -------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Illegitimate access        | Health, journal or location data read by a third party  | Clerk auth, athlete-scoped queries, encrypted provider tokens, safe logging | No column-level encryption; console access and MFA not documented; public DB endpoint (no IP allow-list)                     |
-| Unwanted disclosure to AI  | More context than needed reaches a model provider       | Hard consent gate, traces in the EU, erased with the account                | Field-level audit of prompts; providers' retention and no-training terms to evidence                                         |
-| Data kept too long         | Data survives its purpose or a deletion                 | Cascade delete, purge cron, 24 h database history                           | None since the pre-purge Neon backup branch was deleted on 2026-11-10; no rule yet bounds the life of future backup branches |
-| Wrong inference acted upon | An athlete trains through an injury on a wrong estimate | "Estimate, not diagnosis" notices; deterministic gates on recommendations   | Fatigue and adaptation models read duplicated history until ADR-125 ships                                                    |
-| Loss of data               | Athlete history lost                                    | Neon history (24 h), export                                                 | No backup beyond 24 h — acceptable or not is a controller decision                                                           |
+| Risk                       | What could happen                                       | Existing measures                                                           | Open points                                                                                                                                                                                                                                                                            |
+| -------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Illegitimate access        | Health, journal or location data read by a third party  | Clerk auth, athlete-scoped queries, encrypted provider tokens, safe logging | No column-level encryption; console access and MFA not documented; public DB endpoint (no IP allow-list)                                                                                                                                                                               |
+| Unwanted disclosure to AI  | More context than needed reaches a model provider       | Hard consent gate, traces in the EU, erased with the account                | Strava activities, and the Strava description and private note of an analysed session (`coach-analysis.ts`), reach the models with no per-source filter while Strava's API terms restrict AI use; field-level audit of prompts; providers' retention and no-training terms to evidence |
+| Data kept too long         | Data survives its purpose or a deletion                 | Cascade delete, purge cron, 24 h database history                           | None since the pre-purge Neon backup branch was deleted on 2026-11-10; no rule yet bounds the life of future backup branches                                                                                                                                                           |
+| Wrong inference acted upon | An athlete trains through an injury on a wrong estimate | "Estimate, not diagnosis" notices; deterministic gates on recommendations   | Fatigue and adaptation models read duplicated history until ADR-125 ships                                                                                                                                                                                                              |
+| Loss of data               | Athlete history lost                                    | Neon history (24 h), export                                                 | No backup beyond 24 h — acceptable or not is a controller decision                                                                                                                                                                                                                     |
 
 ## 5. Action plan
 
@@ -51,7 +51,7 @@ Severity and likelihood are the controller's to rate; the entries below are the 
 | Decide and implement an inactive-account rule                      | Open             |
 | Collect signed DPAs, locations and transfer mechanisms             | Open             |
 | Audit the context sent to AI models field by field                 | Open             |
-| Skip model runs for accounts without health consent                | Open             |
+| Decide whether Strava data may reach AI models (see section 4)     | Open             |
 | Bump `CURRENT_PRIVACY_VERSION` and ask for re-acceptance           | Open             |
 | Confirm that HDS-certified hosting is not required                 | Open (lawyer)    |
 | Have this DPIA reviewed and signed off                             | Open             |
