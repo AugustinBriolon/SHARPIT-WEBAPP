@@ -32,26 +32,26 @@ assessed here. Scale on 2026-11-10: 12 accounts, one with substantial data.
 
 Severity and likelihood are the controller's to rate; the entries below are the facts to rate them on.
 
-| Risk                       | What could happen                                       | Existing measures                                                           | Open points                                                                                              |
-| -------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Illegitimate access        | Health, journal or location data read by a third party  | Clerk auth, athlete-scoped queries, encrypted provider tokens, safe logging | No column-level encryption; console access and MFA not documented; public DB endpoint (no IP allow-list) |
-| Unwanted disclosure to AI  | More context than needed reaches a model provider       | Hard consent gate, traces in the EU, erased with the account                | Field-level audit of prompts; providers' retention and no-training terms to evidence                     |
-| Data kept too long         | Data survives its purpose or a deletion                 | Cascade delete, purge cron, 24 h database history                           | Neon branch `backup-before-condition-leak-purge-2026-10-27` still holds a full pre-purge copy            |
-| Wrong inference acted upon | An athlete trains through an injury on a wrong estimate | "Estimate, not diagnosis" notices; deterministic gates on recommendations   | Fatigue and adaptation models read duplicated history until ADR-125 ships                                |
-| Loss of data               | Athlete history lost                                    | Neon history (24 h), export                                                 | No backup beyond 24 h — acceptable or not is a controller decision                                       |
+| Risk                       | What could happen                                       | Existing measures                                                           | Open points                                                                                                                  |
+| -------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Illegitimate access        | Health, journal or location data read by a third party  | Clerk auth, athlete-scoped queries, encrypted provider tokens, safe logging | No column-level encryption; console access and MFA not documented; public DB endpoint (no IP allow-list)                     |
+| Unwanted disclosure to AI  | More context than needed reaches a model provider       | Hard consent gate, traces in the EU, erased with the account                | Field-level audit of prompts; providers' retention and no-training terms to evidence                                         |
+| Data kept too long         | Data survives its purpose or a deletion                 | Cascade delete, purge cron, 24 h database history                           | None since the pre-purge Neon backup branch was deleted on 2026-11-10; no rule yet bounds the life of future backup branches |
+| Wrong inference acted upon | An athlete trains through an injury on a wrong estimate | "Estimate, not diagnosis" notices; deterministic gates on recommendations   | Fatigue and adaptation models read duplicated history until ADR-125 ships                                                    |
+| Loss of data               | Athlete history lost                                    | Neon history (24 h), export                                                 | No backup beyond 24 h — acceptable or not is a controller decision                                                           |
 
 ## 5. Action plan
 
-| Action                                                             | Status        |
-| ------------------------------------------------------------------ | ------------- |
-| One current row per key in derived tables; purge raw Garmin pushes | Done, ADR-125 |
-| Export covers every table or states why not                        | Done          |
-| Policy names Strava, Resend and the database location              | Done          |
-| Delete the pre-purge Neon backup branch                            | Open          |
-| Decide and implement an inactive-account rule                      | Open          |
-| Collect signed DPAs, locations and transfer mechanisms             | Open          |
-| Audit the context sent to AI models field by field                 | Open          |
-| Skip model runs for accounts without health consent                | Open          |
-| Bump `CURRENT_PRIVACY_VERSION` and ask for re-acceptance           | Open          |
-| Confirm that HDS-certified hosting is not required                 | Open (lawyer) |
-| Have this DPIA reviewed and signed off                             | Open          |
+| Action                                                             | Status           |
+| ------------------------------------------------------------------ | ---------------- |
+| One current row per key in derived tables; purge raw Garmin pushes | Done, ADR-125    |
+| Export covers every table or states why not                        | Done             |
+| Policy names Strava, Resend and the database location              | Done             |
+| Delete the pre-purge Neon backup branch                            | Done, 2026-11-10 |
+| Decide and implement an inactive-account rule                      | Open             |
+| Collect signed DPAs, locations and transfer mechanisms             | Open             |
+| Audit the context sent to AI models field by field                 | Open             |
+| Skip model runs for accounts without health consent                | Open             |
+| Bump `CURRENT_PRIVACY_VERSION` and ask for re-acceptance           | Open             |
+| Confirm that HDS-certified hosting is not required                 | Open (lawyer)    |
+| Have this DPIA reviewed and signed off                             | Open             |
