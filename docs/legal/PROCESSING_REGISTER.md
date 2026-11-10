@@ -25,7 +25,9 @@ Named in section 1 of the privacy policy (natural person, publisher of Sharpit).
 | 10  | Service e-mails            | Confirm account deletion                           | Contract                                            | E-mail, first name                                                                                                            | No     | Not stored by Sharpit                                |
 | 11  | Errors and security        | Diagnose and protect the service                   | Legitimate interest                                 | Error reports without body metrics, rate-limit counters                                                                       | No     | **To confirm** in Sentry and Upstash settings        |
 
-No inactive-account rule exists yet: an unused account is kept until its owner deletes it. **Open decision.**
+Inactive accounts: 24 months without a sign-in (Clerk `lastActiveAt`) leads to deletion, with an e-mail notice 30 days before; accounts with a renewing subscription are left alone (`packages/server/src/lib/privacy/inactive-accounts.ts`).
+
+Strava-only activities never reach an AI model (ADR-126); aggregate load indicators computed without AI still count them.
 
 ## Recipients and processors (art. 28)
 

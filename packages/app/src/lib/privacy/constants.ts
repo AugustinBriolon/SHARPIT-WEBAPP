@@ -1,5 +1,5 @@
 /** Current Privacy Policy / Terms document version stamped on accept. */
-export const CURRENT_PRIVACY_VERSION = 'v1-2026-10';
+export const CURRENT_PRIVACY_VERSION = 'v2-2026-11';
 
 /**
  * Account deletion grace period before final hard purge (14 days).

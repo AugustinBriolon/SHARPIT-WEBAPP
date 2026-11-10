@@ -1,6 +1,6 @@
 ## SharpIt Privacy Policy
 
-**Last updated:** 24 October 2026
+**Last updated:** 10 November 2026
 
 This is the English version of the [French privacy policy](/privacy). The French version is the reference text.
 
@@ -77,6 +77,7 @@ When you consent to AI processing:
 
 - SharpIt may send the **necessary context** (state, relevant training history, including data from Garmin) to an AI model provider, through the **Vercel** AI gateway, to generate briefings, analyses or coaching answers. The models are provided by **Google** (Gemini), **Anthropic** (Claude) and **OpenAI** (GPT), depending on the model available;
 - these providers process the context only to answer the request;
+- sessions SharpIt knows only through **Strava** (detail, description, notes) are never sent to an AI model, and so are not analysed by the coach; only aggregate load indicators, computed without AI, may take them into account;
 - exchanges with the model are logged at **Langfuse** (EU hosting) for **technical diagnosis only**, and erased with your account; they are not used to evaluate or improve AI models;
 - this consent is **separate** from the health-data consent;
 - **without** AI consent, nothing is sent to a model;
@@ -107,6 +108,7 @@ Some providers may process data outside the European Union; these transfers are 
 ### 9. Retention
 
 - Active account: data is kept as long as the account is needed for the service.
+- **Inactive account:** after **24 months** without a sign-in, the account is deleted. You are warned by e-mail **30 days before**; simply signing in cancels the deletion. An account whose subscription renews is not affected.
 - **Deletion:** on your request, the account is **deactivated immediately** and disconnected from your sources (the Garmin authorisation is revoked), then the account, the sign-in identifier and the associated data are **permanently deleted after 14 days** (a recovery window in case of error).
 - Raw messages received from Garmin: deleted **7 days** after they are processed; only the measurements extracted from them are kept with your account.
 - Technical logs and crash reports: kept only as long as needed for operation and security.

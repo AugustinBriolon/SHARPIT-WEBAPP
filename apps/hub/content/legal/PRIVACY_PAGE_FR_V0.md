@@ -1,6 +1,6 @@
 ## Politique de confidentialité de Sharpit
 
-**Dernière mise à jour :** 24 octobre 2026
+**Dernière mise à jour :** 10 novembre 2026
 
 ### 1. Qui est responsable du traitement ?
 
@@ -82,6 +82,7 @@ Lorsque vous consentez au traitement IA :
 
 - Sharpit peut envoyer le **contexte nécessaire** (état, historique d’entraînement pertinent, etc., y compris des données issues de Garmin) à un prestataire de modèles d’IA, via la passerelle IA de **Vercel**, pour générer des briefings, analyses ou réponses de coaching. Les modèles sont fournis par **Google** (Gemini), **Anthropic** (Claude) et **OpenAI** (GPT), selon le modèle disponible ;
 - ces prestataires traitent le contexte uniquement pour répondre à la demande ;
+- les séances que Sharpit ne connaît que par **Strava** (détail, description, notes) ne sont jamais transmises à un modèle d’IA, et ne sont donc pas analysées par le coach ; seuls des indicateurs de charge agrégés, calculés sans IA, peuvent en tenir compte ;
 - les échanges avec le modèle sont journalisés chez **Langfuse** (hébergement UE) pour le **diagnostic technique uniquement**, et effacés avec votre compte ; ils ne servent pas à évaluer ni à améliorer des modèles d’IA ;
 - ce consentement est **séparé** du consentement données de santé ;
 - **sans** ce consentement IA, aucun envoi de ce type n’a lieu ;
@@ -112,6 +113,7 @@ Certains prestataires peuvent traiter des données hors de l’Union européenne
 ### 9. Durée de conservation
 
 - Compte actif : conservation aussi longtemps que le compte est nécessaire au service.
+- **Compte inactif :** sans connexion pendant **24 mois**, le compte est supprimé. Vous êtes prévenu par e-mail **30 jours avant** ; une simple connexion annule la suppression. Un compte dont l’abonnement se renouvelle n’est pas concerné.
 - **Suppression :** à votre demande, le compte est **désactivé immédiatement** et déconnecté de vos sources (l’autorisation Garmin est révoquée), puis le compte, l’identifiant de connexion et les données associées sont **supprimés définitivement au bout de 14 jours** (délai de récupération en cas d’erreur).
 - Messages bruts reçus de Garmin : supprimés **7 jours** après leur traitement ; seules les mesures qui en sont extraites sont conservées avec votre compte.
 - Journaux techniques et rapports de plantage : conservation limitée au besoin d’exploitation et de sécurité.
