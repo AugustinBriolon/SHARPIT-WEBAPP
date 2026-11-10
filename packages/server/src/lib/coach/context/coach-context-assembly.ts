@@ -3,7 +3,14 @@
  * Pure: no I/O, the sources come in loaded.
  */
 import { summarizeWarmupAdherence } from '@sharpit/app/lib/planned-session/routines/session-routines';
-import { differenceInCalendarDays, format, parseISO, startOfDay, subDays } from 'date-fns';
+import {
+  differenceInCalendarDays,
+  differenceInYears,
+  format,
+  parseISO,
+  startOfDay,
+  subDays,
+} from 'date-fns';
 import { isSet } from '@sharpit/shared/value';
 import { fr } from 'date-fns/locale';
 import { formatHealthGroundsForCoach } from '@sharpit/app/lib/health-grounds/catalog';
@@ -637,6 +644,18 @@ function buildCoachProfile(profile: Awaited<ReturnType<typeof getAthleteProfile>
   };
 }
 
+/**
+ * Age and sex, the two identity facts a plan is written from: without thresholds the coach
+ * estimates heart-rate zones from age, and recovery spacing differs for a master athlete.
+ * Height is left out on purpose — no session changes with it.
+ */
+function buildCoachIdentity(profile: Awaited<ReturnType<typeof getAthleteProfile>>, today: Date) {
+  return {
+    age: profile?.birthDate ? differenceInYears(today, profile.birthDate) : null,
+    sex: profile?.sex === 'female' || profile?.sex === 'male' ? profile.sex : null,
+  };
+}
+
 function buildFitnessContext(
   anchor: Awaited<ReturnType<typeof loadAthletePmcAnchor>>,
   dailyStress: Awaited<ReturnType<typeof loadDailyTrainingStressEntries>>,
@@ -697,6 +716,7 @@ function assembleCoachProfileSections(
     note: coachProfileNote(profile),
     ...coachProfileInventories(profile),
     profile: buildCoachProfile(profile),
+    identity: buildCoachIdentity(profile, today),
     /** ADR-023 — written into the prompt; Coach must not use acronyms in essential. */
     displayMode: profile?.displayMode === 'expert' ? ('expert' as const) : ('essential' as const),
     health,

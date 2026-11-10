@@ -24,10 +24,15 @@ import {
   rateLimiters,
 } from '@sharpit/server/lib/rate-limit';
 import {
+  COACH_CONTEXT_SECTIONS,
   buildCoachContext,
   formatCoachContext,
   type CoachContext,
+  type CoachContextSection,
 } from '@sharpit/server/lib/coach/context/coach-context';
+import { coldStartWeeklyLoad } from '@sharpit/app/lib/plan-gate/cold-start';
+import { formatRaceFeasibilityForCoach } from '@sharpit/app/lib/goals/goal-feasibility';
+import { withRaceProjection } from '@sharpit/server/lib/goals/race-projection';
 import {
   COACH_PROGRESS_HEADERS,
   encodeCoachProgressEvent,
@@ -115,6 +120,31 @@ ${formatStrengthSessionRules()}
 ${COACH_COPY_DASH_RULE}
 
 Sortie : le schéma fait autorité pour les noms de champs, les types et les valeurs d'énumération — jamais ce texte. N'ajoute aucun champ hors schéma. Séance STRENGTH : strengthPrescription obligatoire (noms français, blocs et volume ci-dessus) ; RUN/BIKE/SWIM : null. routines : null par défaut, l'app dose l'échauffement articulaire selon l'intensité et cible les étirements sur les zones sensibles ; écris-les seulement si la séance l'exige (côtes, zone sensible, course), 3 à 6 mouvements chacun. Séance RUN, BIKE ou SWIM, même continue : endurancePrescription obligatoire (échauffement, corps, retour au calme) ; avant un travail TEMPO, SEUIL, VMA ou course, échauffement d'au moins 15 min en une seule étape, l'app y ajoute les lignes droites — étapes et groupes répétés avec leur intensité, jamais d'allure ni de watts, l'app les dérive des seuils. Textes courts : titre, une phrase de justification.`;
+
+/**
+ * What a week is written from. Today's weather and today's plate say nothing of the days ahead,
+ * and the day's verdict only binds a week that starts today: left in, they steer every session.
+ */
+export function planContextSections(start: Date, now: Date): ReadonlySet<CoachContextSection> {
+  const todayOnly = new Set<CoachContextSection>(['environment', 'nutrition']);
+  if (startOfDay(start) > startOfDay(now)) {
+    todayOnly.add('decision');
+  }
+  return new Set(COACH_CONTEXT_SECTIONS.filter((section) => !todayOnly.has(section)));
+}
+
+/** The target against the race projection, so an unreachable time is said and not planned for. */
+async function buildFeasibilityBlock(
+  athleteId: string,
+  goal: Awaited<ReturnType<typeof getGoalById>>,
+): Promise<string> {
+  if (!goal || goal.kind !== 'RACE') {
+    return '';
+  }
+  const [{ projection }] = await withRaceProjection(athleteId, [goal]);
+  const lines = projection ? formatRaceFeasibilityForCoach(projection) : [];
+  return lines.length ? `\n${lines.join('\n')}` : '';
+}
 
 function buildGoalBlock(goal: NonNullable<Awaited<ReturnType<typeof getGoalById>>>, start: Date) {
   const daysToGo = goal.targetDate
@@ -249,10 +279,14 @@ async function buildPlanGenerationContext(
     trainingConstraint: t.trainingConstraint,
     allowedDisciplines: t.allowedDisciplines ?? [],
   }));
+  // No macro-plan and no history: the wanted sessions bound the week, or nothing does.
+  const coldStart = ctx.fitness === null && ctx.load.weeklyLoad === 0;
   const travelResolved = resolvePlanTargetUnderTravel({
     startDate: start,
     days,
-    targetLoad,
+    targetLoad:
+      targetLoad ??
+      (coldStart ? coldStartWeeklyLoad(ctx.trainingAvailability.targetSessionsPerWeek) : undefined),
     planFocus,
     travels: travelWindows,
   });
@@ -303,7 +337,9 @@ async function buildPreparedPlan(
     await buildPlanGenerationContext(athleteId, parsed, start);
 
   const goalBlock =
-    (goal ? buildGoalBlock(goal, start) : '') + buildStepRaceBlock(ctx.races ?? [], start, days);
+    (goal ? buildGoalBlock(goal, start) : '') +
+    (await buildFeasibilityBlock(athleteId, goal)) +
+    buildStepRaceBlock(ctx.races ?? [], start, days);
   const macroBlock = buildMacroBlock({
     effectiveTargetLoad: travelResolved.targetLoad,
     planPhase: planPhase ?? undefined,
@@ -345,7 +381,7 @@ async function buildPreparedPlan(
     days,
     start,
     focus: focus ?? undefined,
-    contextText: formatCoachContext(ctx),
+    contextText: formatCoachContext(ctx, planContextSections(start, new Date())),
     memoryBlock,
     knowledgeBlock,
     goalBlock,

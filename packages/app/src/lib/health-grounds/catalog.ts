@@ -315,13 +315,19 @@ export function healthGroundStage(key: string, stage: string): HealthGroundStage
 
 export type DeclaredHealthGround = { key: string; stage: string; details?: string | null };
 
+/** True when a declared stage owes a medical go-ahead: the plan gate then refuses vigorous work. */
+export function healthGroundsOweClearance(grounds: readonly DeclaredHealthGround[]): boolean {
+  return grounds.some(
+    (ground) => healthGroundStage(ground.key, ground.stage)?.needsClearance === true,
+  );
+}
+
 /**
  * The coach's lines for the declared grounds; unknown keys or stages are dropped, never guessed.
  * `details` is athlete-written: the server wraps it as athlete text before it lands here.
  */
 export function formatHealthGroundsForCoach(grounds: readonly DeclaredHealthGround[]): string[] {
   const lines: string[] = [];
-  let clearanceOwed = false;
   for (const ground of grounds) {
     const entry = healthGroundEntry(ground.key);
     const stage = healthGroundStage(ground.key, ground.stage);
@@ -331,9 +337,8 @@ export function formatHealthGroundsForCoach(grounds: readonly DeclaredHealthGrou
     const details = ground.details?.trim() ? ` — ${ground.details.trim()}` : '';
     lines.push(`${entry.label} (${stage.label})${details} :`);
     lines.push(...stage.rules.map((rule) => `- ${rule}`));
-    clearanceOwed ||= stage.needsClearance === true;
   }
-  if (clearanceOwed) {
+  if (healthGroundsOweClearance(grounds)) {
     lines.push(CLEARANCE_RULE);
   }
   return lines;

@@ -235,6 +235,14 @@ function profileThresholdParts(profile: NonNullable<CoachContext['profile']>): s
   ].filter(Boolean) as string[];
 }
 
+function formatIdentityLines(identity: CoachContext['identity']): string[] {
+  const bits = [
+    identity.age !== null ? `${identity.age} ans` : null,
+    identity.sex ? { female: 'femme', male: 'homme' }[identity.sex] : null,
+  ].filter(Boolean);
+  return bits.length ? [`Athlète : ${bits.join(', ')}.`] : [];
+}
+
 function formatProfileThresholdLines(profile: CoachContext['profile']): string[] {
   if (!profile) {
     return ['Seuils physiologiques : non renseignés (estimations à utiliser).'];
@@ -761,7 +769,10 @@ function coachContextSections(ctx: CoachContext): Array<[CoachContextSection, st
         .split('\n')
         .filter(Boolean),
     ],
-    ['thresholds', formatProfileThresholdLines(ctx.profile)],
+    [
+      'thresholds',
+      [...formatIdentityLines(ctx.identity), ...formatProfileThresholdLines(ctx.profile)],
+    ],
     ['sports', [`\n${formatPracticedSportsForCoach(ctx.practicedSports)}`]],
     ['equipment', [`\n${formatEquipmentForCoach(ctx.equipment)}`]],
     ['pmc', formatPmcSection(ctx)],

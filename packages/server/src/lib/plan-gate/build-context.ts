@@ -22,6 +22,9 @@ import { loadDailyTrainingStressEntries } from '@sharpit/server/lib/training/pmc
 import type { AthleteSnapshot } from '@sharpit/app/athlete-state/snapshot';
 import { normalizeAthletePracticedSports } from '@sharpit/app/lib/practiced-sports';
 import type { GateContext, GateProposal } from '@sharpit/app/lib/plan-gate/types';
+import { healthGroundsOweClearance } from '@sharpit/app/lib/health-grounds/catalog';
+import { getHealthGrounds } from '@sharpit/server/lib/queries/health-grounds';
+import { normalizeTrainingAvailability } from '@sharpit/server/lib/training-availability/parse';
 
 const WINDOW_PADDING_DAYS = 7; // for recovery-spacing / duplicate checks near the proposal window edges
 
@@ -146,6 +149,7 @@ export async function buildGateContext(params: {
     googleAccount,
     trainingZones,
     sourcePrefs,
+    healthGrounds,
   ] = await Promise.all([
     getOrBuildAthleteSnapshot(athleteId, trainingDayId),
     loadDailyTrainingStressEntries(athleteId, { refDate: now }),
@@ -156,6 +160,7 @@ export async function buildGateContext(params: {
     getGoogleAccount(athleteId),
     getTrainingZoneNotes(athleteId, now),
     loadResolvedSourcePrefs(athleteId),
+    getHealthGrounds(athleteId),
   ]);
 
   const calendarGate = googleCalendarGateFromPrefs(sourcePrefs);
@@ -183,7 +188,15 @@ export async function buildGateContext(params: {
     athleteProfile,
     now,
   });
-  const context: GateContext = { ...payload, trainingZones, planWindow };
+  const context: GateContext = {
+    ...payload,
+    trainingZones,
+    planWindow,
+    medicalClearanceOwed: healthGroundsOweClearance(healthGrounds),
+    declaredSessionsPerWeek: normalizeTrainingAvailability(
+      athleteProfile?.trainingAvailability ?? null,
+    ).targetSessionsPerWeek,
+  };
 
   return { context, snapshot };
 }

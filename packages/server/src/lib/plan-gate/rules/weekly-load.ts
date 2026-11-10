@@ -3,6 +3,7 @@ import {
   computeTrainingLoad,
   ACWR_THRESHOLDS,
 } from '@sharpit/server/lib/training/load/training-load';
+import { coldStartWeeklyLoad } from '@sharpit/app/lib/plan-gate/cold-start';
 import type {
   GateContext,
   GateProposal,
@@ -59,11 +60,22 @@ function weeklyLoadFinding(
     severity: 'WARNING',
     rationale: planWeek
       ? `Charge projetée pour la semaine du ${key} (~${Math.round(projectedLoad)} TSS) dépasse la cible du plan (${planWeek.targetLoad} TSS) de plus de 10%.`
-      : `Charge projetée pour la semaine du ${key} (~${Math.round(projectedLoad)} TSS) dépasse largement la charge récente tolérée par l'athlète.`,
+      : `Charge projetée pour la semaine du ${key} (~${Math.round(projectedLoad)} TSS) dépasse largement la charge que l'athlète tolère aujourd'hui.`,
     evidenceRefs: planWeek
       ? [`planWeeks[weekStart=${key}].targetLoad`]
       : ['trainingLoad.weeklyLoad', 'ACWR_THRESHOLDS.OVERLOAD_MODERATE'],
   };
+}
+
+/** What the recent load tolerates; with no history at all, what a first week may carry. */
+function toleratedCeiling(context: GateContext, weekStart: Date): number {
+  const recent =
+    computeTrainingLoad([...context.dailyTrainingStress], weekStart).weeklyLoad *
+    ACWR_THRESHOLDS.OVERLOAD_MODERATE;
+  if (recent > 0 || context.declaredSessionsPerWeek === undefined) {
+    return recent;
+  }
+  return coldStartWeeklyLoad(context.declaredSessionsPerWeek) * WEEKLY_TARGET_TOLERANCE;
 }
 
 export const weeklyLoadRule: PlanLevelGateRule = (
@@ -80,8 +92,7 @@ export const weeklyLoadRule: PlanLevelGateRule = (
     const planWeek = context.planWeeks.find((w) => weekKey(w.weekStart) === key);
     const ceiling = planWeek
       ? planWeek.targetLoad * WEEKLY_TARGET_TOLERANCE
-      : computeTrainingLoad([...context.dailyTrainingStress], weekStart).weeklyLoad *
-        ACWR_THRESHOLDS.OVERLOAD_MODERATE;
+      : toleratedCeiling(context, weekStart);
 
     if (ceiling > 0 && projectedLoad > ceiling) {
       findings.push(weeklyLoadFinding(key, projectedLoad, planWeek));

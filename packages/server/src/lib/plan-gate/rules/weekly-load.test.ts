@@ -67,4 +67,15 @@ describe('weeklyLoadRule', () => {
 
     expect(weeklyLoadRule(context, proposals)).toEqual([]);
   });
+
+  it('bounds the first week of an athlete with no history by the sessions they asked for', () => {
+    const context = baseContext({ declaredSessionsPerWeek: 2 });
+    const within = [baseProposal({ date: '2026-07-14', load: 60 })];
+    const beyond = [...within, baseProposal({ date: '2026-07-16', load: 90 })];
+
+    expect(weeklyLoadRule(context, within)).toEqual([]);
+    expect(weeklyLoadRule(context, beyond).map((f) => f.ruleCode)).toEqual([
+      'WEEKLY_LOAD_EXCEEDED',
+    ]);
+  });
 });

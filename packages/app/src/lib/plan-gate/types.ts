@@ -57,6 +57,13 @@ export type GateContext = {
    * week-level dose rules (strength frequency) have nothing complete to judge.
    */
   readonly planWindow?: { readonly start: Date; readonly days: number };
+  /** ADR-124: a declared health ground owes a medical go-ahead — vigorous sessions are refused. */
+  readonly medicalClearanceOwed?: boolean;
+  /**
+   * Sessions per week the athlete asked for (null: undeclared). Bounds the week of an athlete
+   * with no load history. Absent in legacy fixtures: the cold-start ceiling is then skipped.
+   */
+  readonly declaredSessionsPerWeek?: number | null;
 };
 
 export type GateExistingSession = {

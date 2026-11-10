@@ -1,6 +1,7 @@
 import { decisionCompatibilityRule } from './rules/decision-compatibility';
 import { isSet } from '@sharpit/shared/value';
 import { physicalHealthRule } from './rules/physical-health';
+import { medicalClearanceRule } from './rules/medical-clearance';
 import { malformedAndDuplicateRule } from './rules/malformed-and-duplicate';
 import { completedConflictRule } from './rules/completed-conflict';
 import { recoverySpacingRule } from './rules/recovery-spacing';
@@ -33,6 +34,7 @@ const RULES: readonly PlanGateRule[] = [
   practicedSportsRule,
   decisionCompatibilityRule,
   physicalHealthRule,
+  medicalClearanceRule,
   recoverySpacingRule,
   goalPhaseCoherenceRule,
   dataSufficiencyRule,

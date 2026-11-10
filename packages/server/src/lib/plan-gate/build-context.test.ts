@@ -10,6 +10,10 @@ const prefsStore = vi.hoisted(() => ({
   loadResolvedSourcePrefs: vi.fn(),
 }));
 
+vi.mock('@sharpit/server/lib/queries/health-grounds', () => ({
+  getHealthGrounds: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock('@sharpit/server/lib/integrations/google/google-sync', () => googleSync);
 vi.mock('@sharpit/server/lib/integrations/source-prefs-store', () => prefsStore);
 vi.mock('@sharpit/server/lib/athlete-state/snapshot-service', () => ({

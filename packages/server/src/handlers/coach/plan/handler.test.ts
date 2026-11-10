@@ -29,9 +29,14 @@ vi.mock('@sharpit/server/lib/coach/stream-structured-generation', () => ({
   runStructuredCoachStream: vi.fn(),
 }));
 
-vi.mock('@sharpit/server/lib/coach/context/coach-context', () => ({
+vi.mock('@sharpit/server/lib/coach/context/coach-context', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@sharpit/server/lib/coach/context/coach-context')>()),
   buildCoachContext: vi.fn().mockResolvedValue({ trainingZones: [] }),
   formatCoachContext: () => 'mock coach context',
+}));
+
+vi.mock('@sharpit/server/lib/queries/health-grounds', () => ({
+  getHealthGrounds: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@sharpit/server/lib/integrations/google/google-sync', () => ({
@@ -529,5 +534,19 @@ describe('POST /api/coach/plan · Pro (ADR-097)', () => {
     expect(await response.json()).toEqual({ error: 'pro_required' });
     expect(requirePro).toHaveBeenCalledWith(expect.any(String), { allowOnboardingPreview: true });
     expect(runStructuredCoachStream).not.toHaveBeenCalled();
+  });
+});
+
+describe('planContextSections', () => {
+  it('drops what only speaks of today, and the day verdict for a week starting later', async () => {
+    const { planContextSections } = await import('./handler');
+    const now = new Date('2026-11-10T09:00:00');
+    const today = planContextSections(now, now);
+    const tomorrow = planContextSections(new Date('2026-11-11T00:00:00'), now);
+
+    expect(today.has('environment') || today.has('nutrition')).toBe(false);
+    expect(today.has('decision')).toBe(true);
+    expect(tomorrow.has('decision')).toBe(false);
+    expect(tomorrow.has('healthGrounds') && tomorrow.has('physical')).toBe(true);
   });
 });

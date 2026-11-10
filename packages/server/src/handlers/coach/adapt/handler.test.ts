@@ -34,6 +34,10 @@ vi.mock('@sharpit/server/lib/coach/context/coach-context', () => ({
   formatCoachContext: () => 'mock coach context',
 }));
 
+vi.mock('@sharpit/server/lib/queries/health-grounds', () => ({
+  getHealthGrounds: vi.fn().mockResolvedValue([]),
+}));
+
 vi.mock('@sharpit/server/lib/integrations/google/google-sync', () => ({
   getUpcomingBusy: vi.fn().mockResolvedValue([]),
   getGoogleAccount: vi.fn().mockResolvedValue(null),

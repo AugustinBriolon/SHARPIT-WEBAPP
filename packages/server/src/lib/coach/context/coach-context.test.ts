@@ -58,6 +58,7 @@ function minimalContext(overrides: Partial<CoachContext> = {}): CoachContext {
     equipment: normalizeAthleteEquipment(null),
     practicedSports: ['run', 'bike', 'swim', 'triathlon'],
     profile: null,
+    identity: { age: null, sex: null },
     fitness: { ctl: 50, atl: 40, tsb: 10 },
     load: {
       dailyLoad: 40,
@@ -283,6 +284,14 @@ describe('formatCoachContext availability', () => {
     );
 
     expect(text).not.toContain('## Disponibilités');
+  });
+});
+
+describe('formatCoachContext identity', () => {
+  it('names the age and sex the plan is written from, and nothing when undeclared', () => {
+    expect(formatCoachContext(minimalContext())).not.toContain('Athlète :');
+    const text = formatCoachContext(minimalContext({ identity: { age: 58, sex: 'female' } }));
+    expect(text).toContain('Athlète : 58 ans, femme.');
   });
 });
 

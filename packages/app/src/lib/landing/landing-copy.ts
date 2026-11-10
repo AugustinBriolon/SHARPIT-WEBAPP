@@ -171,12 +171,13 @@ export const LANDING_MORNING = {
 /** One line per rule of the plan's Gate (ADR-005), in the athlete's words. */
 export const LANDING_GUARDRAILS = {
   label: 'Les garde-fous',
-  count: 15,
+  count: 16,
   title: 'contrôles avant que tu voies une séance',
   body: 'Le coach rédige, des règles fixes vérifient. Une proposition n’est jamais modifiée en silence : elle passe, elle est signalée, elle attend ta confirmation, ou elle est retirée.',
   rules: [
     'Compatible avec le verdict du jour',
     'Respecte ton état physique',
+    'Rien d’intense tant qu’un avis médical est attendu',
     'Ne charge pas une zone à protéger',
     'Une zone en reprise remonte par paliers',
     'Charge de la semaine tenable',
