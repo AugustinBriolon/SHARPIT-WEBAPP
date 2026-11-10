@@ -12,7 +12,8 @@ export async function GET() {
   try {
     const athleteId = await getCurrentAthleteId();
     const payload = await buildAthleteExportJson(athleteId);
-    return new NextResponse(JSON.stringify(payload, null, 2), {
+    // Streamed: a full history exceeds the size a buffered function response may have.
+    return new NextResponse(new Blob([JSON.stringify(payload)]).stream(), {
       status: 200,
       headers: {
         'Content-Type': 'application/json; charset=utf-8',
