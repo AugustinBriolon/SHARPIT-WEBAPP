@@ -98,7 +98,7 @@ export const LANDING_METHOD = {
       index: '04',
       label: 'Programmer',
       title: 'Une semaine construite vers ta course',
-      body: 'Le coach propose tes séances selon ton objectif, tes jours libres et ton matériel. Deux ou trois sont marquées clés, les autres sont du bonus. Chaque proposition passe quinze contrôles avant de t’être montrée. Une séance d’endurance part sur ta montre Garmin d’un geste, avec ses étapes et des cibles calculées d’après tes seuils.',
+      body: 'Le coach propose tes séances selon ton objectif, tes jours libres et ton matériel. Deux ou trois sont marquées clés, les autres sont du bonus. Chaque proposition passe dix-sept contrôles avant de t’être montrée. Une séance d’endurance part sur ta montre Garmin d’un geste, avec ses étapes et des cibles calculées d’après tes seuils.',
       note: 'Sprint, M, 70.3, Ironman, ou la course que tu prépares',
     },
     {
@@ -124,7 +124,7 @@ export const LANDING_DIAGRAMS = {
     verdict: 'Séance facile',
     rule: 'La prudence gagne',
   },
-  programme: { days: ['L', 'M', 'M', 'J', 'V', 'S', 'D'], key: 'Clé', checks: '15 / 15 contrôles' },
+  programme: { days: ['L', 'M', 'M', 'J', 'V', 'S', 'D'], key: 'Clé', checks: '17 / 17 contrôles' },
   repair: { missed: 'Ratée', proposal: 'Proposé, à valider' },
 } as const;
 
@@ -171,7 +171,7 @@ export const LANDING_MORNING = {
 /** One line per rule of the plan's Gate (ADR-005), in the athlete's words. */
 export const LANDING_GUARDRAILS = {
   label: 'Les garde-fous',
-  count: 16,
+  count: 17,
   title: 'contrôles avant que tu voies une séance',
   body: 'Le coach rédige, des règles fixes vérifient. Une proposition n’est jamais modifiée en silence : elle passe, elle est signalée, elle attend ta confirmation, ou elle est retirée.',
   rules: [
@@ -181,6 +181,7 @@ export const LANDING_GUARDRAILS = {
     'Ne charge pas une zone à protéger',
     'Une zone en reprise remonte par paliers',
     'Charge de la semaine tenable',
+    'Le nombre de séances et les jours suivent ce que tu as déclaré',
     'Deux à trois séances intenses par semaine, pas plus',
     'Séances intenses espacées de 24 h',
     'Rien après la date de ta course',

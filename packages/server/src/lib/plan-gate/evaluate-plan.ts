@@ -13,6 +13,7 @@ import { strengthCompletenessRule } from './rules/strength-completeness';
 import { strengthFrequencyRule } from './rules/strength-frequency';
 import { practicedSportsRule } from './rules/practiced-sports';
 import { weeklyLoadRule } from './rules/weekly-load';
+import { availabilityMatchRule } from './rules/availability-match';
 import { intensityDistributionRule } from './rules/intensity-distribution';
 import { zoneRampRule, zoneReturnIntensityRule } from './rules/zone-progression';
 import type {
@@ -46,6 +47,7 @@ const RULES: readonly PlanGateRule[] = [
 
 const PLAN_LEVEL_RULES: readonly PlanLevelGateRule[] = [
   weeklyLoadRule,
+  availabilityMatchRule,
   intensityDistributionRule,
   zoneRampRule,
   strengthFrequencyRule,

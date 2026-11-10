@@ -188,14 +188,14 @@ export async function buildGateContext(params: {
     athleteProfile,
     now,
   });
+  const availability = normalizeTrainingAvailability(athleteProfile?.trainingAvailability ?? null);
   const context: GateContext = {
     ...payload,
     trainingZones,
     planWindow,
     medicalClearanceOwed: healthGroundsOweClearance(healthGrounds),
-    declaredSessionsPerWeek: normalizeTrainingAvailability(
-      athleteProfile?.trainingAvailability ?? null,
-    ).targetSessionsPerWeek,
+    declaredSessionsPerWeek: availability.targetSessionsPerWeek,
+    declaredWeekdays: availability.availableWeekdays,
   };
 
   return { context, snapshot };

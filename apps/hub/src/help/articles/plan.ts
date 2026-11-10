@@ -52,30 +52,31 @@ Le badge **Clé** apparaît dans le Plan, dans le Résumé et sur les propositio
     },
     {
       slug: 'garde-fous',
-      title: 'Les seize garde-fous du plan',
+      title: 'Les dix-sept garde-fous du plan',
       summary:
-        'Le coach rédige, des règles fixes vérifient. Chaque séance proposée passe seize contrôles avant d’arriver dans ton plan.',
+        'Le coach rédige, des règles fixes vérifient. Chaque séance proposée passe dix-sept contrôles avant d’arriver dans ton plan.',
       body: `
 Une proposition n’est jamais modifiée en silence : elle passe, elle est signalée, elle attend ta confirmation, ou elle est retirée.
 
-### Les seize contrôles
+### Les dix-sept contrôles
 
 1. Compatible avec le verdict du jour **et** son [niveau de confiance](/aide/methode/niveau-de-confiance) (confiance faible ou insuffisante : la séance est retirée)
 2. Respecte ton état physique
 3. Ne charge pas une zone à protéger
 4. Une zone en reprise remonte par paliers : pas de sauts, pas de VO2max dessus, +10 % par semaine au plus
 5. Charge de la semaine tenable
-6. Deux à trois séances intenses par semaine, pas plus
-7. Séances intenses espacées de 24 h
-8. Rien après la date de ta course
-9. Pas de conflit avec ton agenda
-10. Une séance faite n’est jamais réécrite
-11. Seulement les sports que tu pratiques
-12. Séances de renforcement complètes
-13. Deux séances de renfo par semaine (une en semaine d’affûtage ou de course) pour protéger tes tendons ; une mobilité courte ne compte pas
-14. Sans seuils connus, il demande ta confirmation
-15. Ni doublon, ni séance mal formée
-16. Rien d’intense tant qu’un terrain de santé déclaré attend un avis médical : seule l’endurance passe
+6. Le nombre de séances et les jours suivent ce que tu as déclaré
+7. Deux à trois séances intenses par semaine, pas plus
+8. Séances intenses espacées de 24 h
+9. Rien après la date de ta course
+10. Pas de conflit avec ton agenda
+11. Une séance faite n’est jamais réécrite
+12. Seulement les sports que tu pratiques
+13. Séances de renforcement complètes
+14. Deux séances de renfo par semaine (une en semaine d’affûtage ou de course) pour protéger tes tendons ; une mobilité courte ne compte pas
+15. Sans seuils connus, il demande ta confirmation
+16. Ni doublon, ni séance mal formée
+17. Rien d’intense tant qu’un terrain de santé déclaré attend un avis médical : seule l’endurance passe
 
 Ces contrôles s’appliquent à la semaine préparée par le coach, aux ajustements et aux changements proposés dans la conversation.
 `,

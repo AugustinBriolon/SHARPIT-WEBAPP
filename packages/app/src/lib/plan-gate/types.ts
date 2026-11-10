@@ -64,6 +64,11 @@ export type GateContext = {
    * with no load history. Absent in legacy fixtures: the cold-start ceiling is then skipped.
    */
   readonly declaredSessionsPerWeek?: number | null;
+  /**
+   * Weekdays the athlete said they can train (`Date#getDay`). Empty: undeclared. Absent in
+   * legacy fixtures: the availability-match day check is then skipped.
+   */
+  readonly declaredWeekdays?: readonly number[];
 };
 
 export type GateExistingSession = {
