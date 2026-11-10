@@ -187,6 +187,20 @@ export class PrismaFeatureRepository implements FeatureRepository {
       create: { id: record.id, trainingDayId, sessionObsId, ...base },
       update: { status: record.status, computedAt: record.computedAt },
     });
+    if (record.status === 'COMPUTED') {
+      // Readers only take the latest COMPUTED version; older ones, and the twin a concurrent
+      // run wrote under the same version, are dead weight (ADR-125).
+      await this.prisma.featureSet.deleteMany({
+        where: {
+          athleteId: record.athleteId,
+          category: record.category,
+          trainingDayId,
+          sessionObsId,
+          version: { lte: record.version },
+          id: { not: record.id },
+        },
+      });
+    }
   }
 
   async findSessionFeatures(

@@ -2,7 +2,8 @@
  * INFERENCE LAYER — Prisma DecisionRecord Repository
  *
  * Implements the DecisionRecordRepository port.
- * Records are append-only — never updated or deleted.
+ * One record per (athlete, model, training day): a re-run replaces the day's record
+ * (ADR-125). History is the sequence of days, not of runs.
  */
 
 import { randomUUID } from 'node:crypto';
@@ -17,23 +18,33 @@ export class PrismaDecisionRecordRepository implements DecisionRecordRepository 
   constructor(private readonly prisma: PrismaClient) {}
 
   async save(record: DecisionRecord): Promise<void> {
-    await this.prisma.decisionRecord.create({
-      data: {
-        id: record.id || randomUUID(),
-        athleteId: record.athleteId,
-        trainingDayId: record.trainingDayId,
-        modelId: record.modelId,
-        modelVersion: record.modelVersion,
-        confidence: record.confidence,
-        signals: record.signals as object,
-        stateUpdate: record.stateUpdate as object,
-        decision: record.decision as object,
-        recommendation: record.recommendation as object,
-        explanation: record.explanation ?? '',
-        inputSummary: record.inputSummary as object,
-        computedAt: record.computedAt,
-        createdAt: record.createdAt,
+    const data = {
+      id: record.id || randomUUID(),
+      athleteId: record.athleteId,
+      trainingDayId: record.trainingDayId,
+      modelId: record.modelId,
+      modelVersion: record.modelVersion,
+      confidence: record.confidence,
+      signals: record.signals as object,
+      stateUpdate: record.stateUpdate as object,
+      decision: record.decision as object,
+      recommendation: record.recommendation as object,
+      explanation: record.explanation ?? '',
+      inputSummary: record.inputSummary as object,
+      computedAt: record.computedAt,
+      createdAt: record.createdAt,
+    };
+    await this.prisma.decisionRecord.upsert({
+      where: {
+        athleteId_modelId_trainingDayId: {
+          athleteId: record.athleteId,
+          modelId: record.modelId,
+          trainingDayId: record.trainingDayId,
+        },
       },
+      create: data,
+      // The id moves too: callers keep the id of the run they just made.
+      update: data,
     });
   }
 

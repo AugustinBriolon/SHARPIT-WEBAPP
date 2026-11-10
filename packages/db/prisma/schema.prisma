@@ -1576,8 +1576,8 @@ model DecisionRecord {
   computedAt     DateTime
   createdAt      DateTime       @default(now())
 
+  @@unique([athleteId, modelId, trainingDayId])
   @@index([athleteId, trainingDayId])
-  @@index([athleteId, modelId])
   @@index([computedAt])
 }
 

@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const inbox = { create: vi.fn(), findUnique: vi.fn(), update: vi.fn() };
+const inbox = { create: vi.fn(), findUnique: vi.fn(), update: vi.fn(), deleteMany: vi.fn() };
 const sync = {
   forgetGarminUser: vi.fn(),
   getGarminAccountByUserId: vi.fn(),
@@ -130,5 +130,19 @@ describe('processGarminPushRow', () => {
     expect(inbox.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ attempts: { increment: 1 } }) }),
     );
+  });
+});
+
+describe('purgeProcessedGarminPushes', () => {
+  it('deletes only pushes processed more than a week ago', async () => {
+    inbox.deleteMany.mockResolvedValue({ count: 3 });
+    const { purgeProcessedGarminPushes } = await import('./garmin-push');
+
+    const purged = await purgeProcessedGarminPushes(new Date('2026-11-10T00:00:00Z'));
+
+    expect(purged).toBe(3);
+    expect(inbox.deleteMany).toHaveBeenCalledWith({
+      where: { processedAt: { not: null, lt: new Date('2026-11-03T00:00:00Z') } },
+    });
   });
 });

@@ -181,7 +181,7 @@ export class PrismaObservationRepository implements ObservationRepository {
         ? (observation.externalId ?? null)
         : null;
 
-    await this.prisma.observation.upsert({
+    const write = this.prisma.observation.upsert({
       where: { id: observation.id },
       create: {
         id: observation.id,
@@ -204,6 +204,26 @@ export class PrismaObservationRepository implements ObservationRepository {
         data: toData(observation),
       },
     });
+    if (externalId) {
+      await write;
+      return;
+    }
+    // No source id to dedup on: the same source re-reading the same instant is the same
+    // measurement, so the new reading replaces the old ones (ADR-125).
+    // shortcut: no unique constraint, two concurrent syncs can leave a pair; the next sync collapses it.
+    await this.prisma.$transaction([
+      this.prisma.observation.deleteMany({
+        where: {
+          athleteId: observation.athleteId,
+          type: observation.type,
+          source: observation.source,
+          timestamp: observation.timestamp,
+          externalId: null,
+          id: { not: observation.id },
+        },
+      }),
+      write,
+    ]);
   }
 
   async findById(id: string): Promise<Observation | null> {

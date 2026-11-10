@@ -226,3 +226,17 @@ export async function replayGarminPushInbox(limit = 50): Promise<number> {
   }
   return processed;
 }
+
+const PROCESSED_PUSH_RETENTION_DAYS = 7;
+
+/**
+ * Drops processed pushes after a week: the payload is raw health data with no athlete
+ * link, so no account deletion would ever reach it. A week leaves time to debug a bad sync.
+ */
+export async function purgeProcessedGarminPushes(now = new Date()): Promise<number> {
+  const cutoff = new Date(now.getTime() - PROCESSED_PUSH_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+  const { count } = await prisma.garminPushInbox.deleteMany({
+    where: { processedAt: { not: null, lt: cutoff } },
+  });
+  return count;
+}
