@@ -43,7 +43,7 @@ model, and stop reading Strava descriptions and private notes for prompts.
   provided; excluding merged activities would hide most sessions of athletes who connect both.
 - Filtering where activities are loaded for AI leaves the deterministic engines untouched: load, PMC
   and the plan still count every session.
-- For the one athlete with real data, 47 sessions out of about 600 are Strava-only.
+- For the one athlete with real data, 24 activities out of 606 are Strava-only (measured in production on 2026-11-10).
 
 ---
 
