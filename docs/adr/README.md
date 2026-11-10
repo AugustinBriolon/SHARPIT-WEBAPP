@@ -121,6 +121,7 @@
 | [ADR-123](./ADR-123-keep-fit-goal-and-wanted-intensity.md)                                 | A keep-fit goal and a wanted intensity                                                                                                                                                                          | Accepted                          |
 | [ADR-124](./ADR-124-health-grounds-are-a-sourced-catalog.md)                               | Health grounds are a sourced catalog                                                                                                                                                                            | Accepted                          |
 | [ADR-125](./ADR-125-derived-tables-keep-the-current-state.md)                              | Derived tables keep the current state, not every run                                                                                                                                                            | Accepted                          |
+| [ADR-126](./ADR-126-strava-only-activities-never-reach-an-ai-model.md)                     | Strava-only activities never reach an AI model                                                                                                                                                                  | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
