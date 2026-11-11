@@ -19,16 +19,20 @@ export async function GET(request: Request) {
     const result = await purgeSoftDeletedAthletes();
     const purgedGarminPushes = await purgeProcessedGarminPushes();
     const inactive = await processInactiveAccounts();
-    return NextResponse.json({
-      ok: true,
-      purgedGarminPushes,
-      // ids only — never profile metrics
-      inactiveNotifiedAthleteIds: inactive.notified,
-      inactiveDeletedAthleteIds: inactive.deleted,
-      purgedCount: result.purged.length,
-      // ids only — never profile metrics
-      purgedAthleteIds: result.purged,
-    });
+    // 500 when an erasure is stuck: the run shows as failed, and the body says which step.
+    return NextResponse.json(
+      {
+        ok: result.failed.length === 0,
+        purgedGarminPushes,
+        // ids only — never profile metrics
+        inactiveNotifiedAthleteIds: inactive.notified,
+        inactiveDeletedAthleteIds: inactive.deleted,
+        purgedCount: result.purged.length,
+        purgedAthleteIds: result.purged,
+        failedErasures: result.failed,
+      },
+      { status: result.failed.length === 0 ? 200 : 500 },
+    );
   } catch (error) {
     logSafeError('cron/privacy-purge', error);
     return NextResponse.json({ error: 'Purge failed' }, { status: 500 });

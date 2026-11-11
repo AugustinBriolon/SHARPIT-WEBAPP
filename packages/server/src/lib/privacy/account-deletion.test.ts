@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { CONTROLLER_EMAIL } from '@sharpit/app/lib/privacy/constants';
 
 const updateMock = vi.fn();
 const updateManyMock = vi.fn();
@@ -168,7 +169,9 @@ describe('purgeSoftDeletedAthletes', () => {
 
     await expect(purgeSoftDeletedAthletes(now)).resolves.toEqual({
       purged: ['athlete-old', 'athlete-new'],
+      failed: [],
     });
+    expect(sendEmailMock).not.toHaveBeenCalled();
     expect(findManyMock).toHaveBeenCalledWith({
       where: { deletedAt: { not: null, lte: expectedCutoff } },
       select: { id: true, clerkUserId: true },
@@ -176,5 +179,87 @@ describe('purgeSoftDeletedAthletes', () => {
     expect(deleteUserMock).toHaveBeenCalledTimes(2);
     expect(deleteTracesMock).toHaveBeenCalledWith('athlete-old');
     expect(deleteManyMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('a deletion step that fails is kept, retried and reported', () => {
+  const now = new Date('2026-09-24T03:15:00.000Z');
+  const due = [
+    { id: 'athlete-a', clerkUserId: 'user_a' },
+    { id: 'athlete-b', clerkUserId: 'user_b' },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    findManyMock.mockResolvedValue(due);
+    deleteUserMock.mockResolvedValue({});
+    deleteTracesMock.mockResolvedValue(0);
+    deleteManyMock.mockResolvedValue({ count: 1 });
+    sendEmailMock.mockResolvedValue(true);
+  });
+
+  it('keeps the rows and tells the controller when the Clerk identity cannot be deleted', async () => {
+    deleteUserMock.mockRejectedValueOnce(new Error('clerk down'));
+    const { purgeSoftDeletedAthletes } = await import('./account-deletion');
+
+    await expect(purgeSoftDeletedAthletes(now)).resolves.toEqual({
+      purged: ['athlete-b'],
+      failed: [{ athleteId: 'athlete-a', step: 'clerk-identity' }],
+    });
+    expect(deleteManyMock).toHaveBeenCalledTimes(1);
+    expect(deleteManyMock).toHaveBeenCalledWith({ where: { id: 'athlete-b' } });
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: CONTROLLER_EMAIL, text: expect.stringContaining('athlete-a') }),
+    );
+  });
+
+  it('keeps the rows when the Langfuse traces cannot be deleted', async () => {
+    deleteTracesMock.mockRejectedValueOnce(new Error('langfuse 410'));
+    const { purgeSoftDeletedAthletes } = await import('./account-deletion');
+
+    const result = await purgeSoftDeletedAthletes(now);
+
+    expect(result.failed).toEqual([{ athleteId: 'athlete-a', step: 'coach-traces' }]);
+    expect(result.purged).toEqual(['athlete-b']);
+    expect(deleteManyMock).not.toHaveBeenCalledWith({ where: { id: 'athlete-a' } });
+  });
+
+  it('counts an identity Clerk no longer knows as deleted', async () => {
+    deleteUserMock.mockRejectedValueOnce(Object.assign(new Error('not found'), { status: 404 }));
+    const { purgeSoftDeletedAthletes } = await import('./account-deletion');
+
+    await expect(purgeSoftDeletedAthletes(now)).resolves.toEqual({
+      purged: ['athlete-a', 'athlete-b'],
+      failed: [],
+    });
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it('still deletes the rows when the traces fail on the sign-back-in path, and reports it', async () => {
+    deleteTracesMock.mockRejectedValueOnce(new Error('langfuse 410'));
+    const { eraseAthleteData } = await import('./account-deletion');
+
+    await eraseAthleteData('athlete-a');
+
+    expect(deleteManyMock).toHaveBeenCalledWith({ where: { id: 'athlete-a' } });
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: CONTROLLER_EMAIL, text: expect.stringContaining('athlete-a') }),
+    );
+  });
+
+  it('reports a provider that refused the revocation, since the tokens are wiped right after', async () => {
+    updateMock.mockResolvedValue({ id: 'athlete-a', clerkUserId: 'user_a' });
+    getUserMock.mockResolvedValue({ firstName: null, primaryEmailAddress: null });
+    findSubscriptionMock.mockResolvedValue(null);
+    transactionMock.mockResolvedValue([]);
+    revokeAllMock.mockResolvedValue({ strava: 'failed', google: 'revoked' });
+    const { deleteAthleteAccount } = await import('./account-deletion');
+
+    await deleteAthleteAccount('athlete-a', now);
+
+    expect(sendEmailMock).toHaveBeenCalledTimes(1);
+    expect(sendEmailMock).toHaveBeenCalledWith(
+      expect.objectContaining({ to: CONTROLLER_EMAIL, text: expect.stringContaining('(strava)') }),
+    );
   });
 });

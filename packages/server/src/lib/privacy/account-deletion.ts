@@ -6,6 +6,10 @@ import { endGarminRegistration } from '@sharpit/server/lib/integrations/garmin/g
 import { purgeEligibleBefore } from '@sharpit/server/lib/privacy/consent';
 import { PRIVACY_PURGE_DELAY_DAYS } from '@sharpit/app/lib/privacy/constants';
 import { logSafeError } from '@sharpit/server/lib/privacy/safe-log';
+import {
+  reportDeletionFailures,
+  type DeletionFailure,
+} from '@sharpit/server/lib/privacy/deletion-alert';
 import { accountDeletedEmail } from '@sharpit/app/lib/privacy/account-deleted-email';
 import type { AccountDeletedEmailInput } from '@sharpit/app/lib/privacy/account-deleted-email';
 import { sendTransactionalEmail } from '@sharpit/server/lib/email/transactional-email';
@@ -81,26 +85,55 @@ async function readDeletionNotice(
   }
 }
 
-async function deleteClerkIdentity(clerkUserId: string, athleteId: string): Promise<void> {
+/** True once the identity is gone: deleted now, or already absent (404). */
+async function deleteClerkIdentity(clerkUserId: string, athleteId: string): Promise<boolean> {
   try {
     const client = await clerkClient();
     await client.users.deleteUser(clerkUserId);
+    return true;
   } catch (error) {
-    // Already gone, or Clerk unreachable: the data deletion goes on regardless.
+    if ((error as { status?: number } | null)?.status === 404) {
+      return true;
+    }
     logSafeError('privacy/delete-clerk', error, { athleteId });
+    return false;
   }
 }
 
 /**
- * Coach traces live in Langfuse, outside Postgres. Best effort: a Langfuse outage must
- * not stop the account deletion.
+ * Coach traces live in Langfuse, outside Postgres. True once they are gone; a failure is
+ * logged and returned, never thrown, so the caller decides what it means for the deletion.
  */
-async function deleteCoachTraces(athleteId: string): Promise<void> {
+async function deleteCoachTraces(athleteId: string): Promise<boolean> {
   try {
     await deleteLangfuseTracesForAthlete(athleteId);
+    return true;
   } catch (error) {
     logSafeError('privacy/delete-langfuse', error, { athleteId });
+    return false;
   }
+}
+
+/** The copies outside Postgres. Both are tried, so one retry can settle both. */
+async function eraseExternalCopies(row: {
+  id: string;
+  clerkUserId: string;
+}): Promise<DeletionFailure[]> {
+  const identityGone = await deleteClerkIdentity(row.clerkUserId, row.id);
+  const tracesGone = await deleteCoachTraces(row.id);
+  return [
+    ...(identityGone ? [] : [{ athleteId: row.id, step: 'clerk-identity' as const }]),
+    ...(tracesGone ? [] : [{ athleteId: row.id, step: 'coach-traces' as const }]),
+  ];
+}
+
+function failedRevocations(
+  athleteId: string,
+  outcomes: Awaited<ReturnType<typeof revokeAllProviderAccess>>,
+): DeletionFailure[] {
+  return Object.entries(outcomes)
+    .filter(([, outcome]) => outcome === 'failed')
+    .map(([provider]) => ({ athleteId, step: 'provider-revocation' as const, provider }));
 }
 
 /**
@@ -118,7 +151,11 @@ export async function hardDeleteAthleteData(athleteId: string): Promise<void> {
  * identity stays — it is about to own a fresh profile.
  */
 export async function eraseAthleteData(athleteId: string): Promise<void> {
-  await deleteCoachTraces(athleteId);
+  if (!(await deleteCoachTraces(athleteId))) {
+    // The rows go anyway: the identity is about to own a fresh profile, so no later run
+    // could find these traces again. The controller is told to remove them by hand.
+    await reportDeletionFailures([{ athleteId, step: 'coach-traces' }]);
+  }
   await hardDeleteAthleteData(athleteId);
 }
 
@@ -139,8 +176,10 @@ export async function deleteAthleteAccount(
     select: { id: true, clerkUserId: true },
   });
   const notice = await readDeletionNotice(athleteId, marked.clerkUserId);
-  // Needs the credentials, so before they are wiped. Never throws.
-  await revokeAllProviderAccess(athleteId);
+  // Needs the credentials, so before they are wiped. Never throws; a refusal is reported,
+  // because once the tokens are gone nothing can retry it.
+  const outcomes = await revokeAllProviderAccess(athleteId);
+  await reportDeletionFailures(failedRevocations(athleteId, outcomes));
   await clearAthleteProviderCredentials(athleteId);
 
   // Sent once marked and revoked, informing the user of the 14-day grace period.
@@ -160,14 +199,19 @@ export async function restoreAthleteAccount(athleteId: string): Promise<void> {
   });
 }
 
+export type PurgeResult = { purged: string[]; failed: DeletionFailure[] };
+
 /**
  * Finishes every deletion still pending — accounts marked `deletedAt` whose rows were
- * not removed, including those left by the former 30-day soft-delete: identity first,
- * then the rows. `PRIVACY_PURGE_DELAY_DAYS` is 0, so nothing waits anymore.
+ * not removed: identity and traces first, then the rows.
+ *
+ * The rows are removed only once both outside copies are gone. When one fails, the profile
+ * stays (already unusable, credentials wiped) so the next run retries it, and the controller
+ * is e-mailed. Removing the rows first would leave the failed copy with nothing to find it by.
  *
  * Hook: GET /api/cron/privacy-purge (Bearer CRON_SECRET), scheduled in vercel.json.
  */
-export async function purgeSoftDeletedAthletes(now = new Date()): Promise<{ purged: string[] }> {
+export async function purgeSoftDeletedAthletes(now = new Date()): Promise<PurgeResult> {
   const cutoff = purgeEligibleBefore(now, PRIVACY_PURGE_DELAY_DAYS);
   const due = await prisma.athleteProfile.findMany({
     where: {
@@ -177,11 +221,16 @@ export async function purgeSoftDeletedAthletes(now = new Date()): Promise<{ purg
   });
 
   const purged: string[] = [];
+  const failed: DeletionFailure[] = [];
   for (const row of due) {
-    await deleteClerkIdentity(row.clerkUserId, row.id);
-    await deleteCoachTraces(row.id);
+    const failures = await eraseExternalCopies(row);
+    if (failures.length > 0) {
+      failed.push(...failures);
+      continue;
+    }
     await hardDeleteAthleteData(row.id);
     purged.push(row.id);
   }
-  return { purged };
+  await reportDeletionFailures(failed);
+  return { purged, failed };
 }
