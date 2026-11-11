@@ -17,7 +17,7 @@ import {
   formatCoachContext,
 } from '@sharpit/server/lib/coach/context/coach-context';
 import {
-  COACH_COPY_DASH_RULE,
+  COACH_COPY_STYLE_RULE,
   sanitizeCoachCopy,
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
@@ -83,7 +83,7 @@ Une seule puce : l'action concrète n°1 à faire dès lundi (15 mots au plus). 
 
 Règles : reste concis (12-20 lignes au total). Les listes sont lues d'un coup d'œil : faits courts, sans phrase d'introduction. Appuie-toi sur les chiffres réels, ne les invente pas. Dans "Bilan d'entraînement" et "Sommeil & récupération", mets en **gras** (markdown) les 2-3 chiffres ou notions les plus importants de chaque section — pas plus. Respecte IMPÉRATIVEMENT les douleurs/blessures. Tutoie l'athlète, en français. Sois bienveillant mais honnête.
 
-${COACH_COPY_DASH_RULE}`;
+${COACH_COPY_STYLE_RULE}`;
 }
 
 function utcDateOnly(d: Date): Date {

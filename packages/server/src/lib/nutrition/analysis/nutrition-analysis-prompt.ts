@@ -1,4 +1,4 @@
-import { COACH_COPY_DASH_RULE } from '@sharpit/app/lib/coach/sanitize-coach-copy';
+import { COACH_COPY_STYLE_RULE } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import type { NutritionAnalysisFacts } from './nutrition-analysis-facts';
 
 export const NUTRITION_ANALYSIS_SYSTEM = `Tu es le coach nutrition de SHARPIT, une application d'entraînement d'endurance. Tu lis UNE journée alimentaire d'un athlète et tu rédiges une lecture courte en français, en tutoyant.
@@ -25,7 +25,7 @@ RÈGLES :
 - action : UNE action concrète pour la suite (prochain repas, lendemain ou prochains jours), réaliste avec les aliments que l'athlète mange déjà.
 - flaggedEntries : reprends chaque conflit de diet.conflicts de type « product » (reason diet_conflict), puis les aliments ultra-transformés évidents (reason ultra_processed). Recopie exactement les libellés meal et entry des faits. Liste vide si rien.
 
-${COACH_COPY_DASH_RULE}`;
+${COACH_COPY_STYLE_RULE}`;
 
 export function formatNutritionAnalysisPrompt(facts: NutritionAnalysisFacts): string {
   return `Journée analysée : ${facts.day}.

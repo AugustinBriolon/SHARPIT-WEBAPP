@@ -21,7 +21,7 @@ import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
 import { prisma } from '@sharpit/db/client';
 import { activityNarrativeSchema, type ActivityNarrative } from '@sharpit/app/lib/validators/coach';
 import {
-  COACH_COPY_DASH_RULE,
+  COACH_COPY_STYLE_RULE,
   sanitizeCoachCopy,
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import {
@@ -54,7 +54,7 @@ RÈGLES :
 - Si une section « Renforcement » est présente, c'est une séance de musculation : lis le volume, les charges et le RPE par exercice, relie-les à la récupération et à la charge récente. Ne parle ni d'allure ni de zones cardiaques.
 - Si une section « Course » est présente, c'est une course préparée : dis d'abord ce qui a marché, puis où progresser (une ou deux pistes concrètes tirées des étapes, de la gestion d'effort ou de l'écart à l'objectif). Ton de coach, chaleureux et sobre : pas de superlatifs ni d'emphase.
 
-${COACH_COPY_DASH_RULE}
+${COACH_COPY_STYLE_RULE}
 
 ${ATHLETE_TEXT_RULE}`;
 

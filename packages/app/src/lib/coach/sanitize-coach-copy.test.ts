@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   COACH_COPY_DASH_RULE,
+  COACH_COPY_STYLE_RULE,
   sanitizeCoachCopy,
   sanitizeCoachCopyFields,
   stripAiDashes,
@@ -75,6 +76,12 @@ describe('sanitizeCoachCopy', () => {
   it('documents the dash rule for prompts', () => {
     expect(COACH_COPY_DASH_RULE).toContain('tiret cadratin');
     expect(COACH_COPY_DASH_RULE).toContain('phrase - phrase');
+  });
+
+  it('bundles dash + humanizer rules for athlete-facing prompts', () => {
+    expect(COACH_COPY_STYLE_RULE).toContain('tiret cadratin');
+    expect(COACH_COPY_STYLE_RULE).toContain('STYLE HUMAIN');
+    expect(COACH_COPY_STYLE_RULE).toContain("ce n'est pas X");
   });
 });
 

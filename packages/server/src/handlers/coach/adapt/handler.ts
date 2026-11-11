@@ -59,7 +59,7 @@ import {
   type AdaptPlan,
 } from '@sharpit/app/lib/validators/coach';
 import {
-  COACH_COPY_DASH_RULE,
+  COACH_COPY_STYLE_RULE,
   sanitizeCoachCopy,
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import { buildGateContext } from '@sharpit/server/lib/plan-gate/build-context';
@@ -178,7 +178,7 @@ Principes :
 
 ${formatStrengthSessionRules()}
 
-${COACH_COPY_DASH_RULE}
+${COACH_COPY_STYLE_RULE}
 
 FORMAT : le schéma de sortie fait autorité — noms de champs, valeurs autorisées et types viennent de lui, jamais de ce texte. N'ajoute aucun champ hors schéma et n'invente aucune valeur d'énumération.
 - Si le plan est sous la dose de renfo ci-dessous, ADD les séances STRENGTH manquantes.

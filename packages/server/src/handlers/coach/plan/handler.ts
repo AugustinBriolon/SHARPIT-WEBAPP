@@ -83,7 +83,7 @@ import {
   resolvePlanTargetUnderTravel,
 } from '@sharpit/app/lib/travel-context/training-constraint';
 import {
-  COACH_COPY_DASH_RULE,
+  COACH_COPY_STYLE_RULE,
   sanitizeCoachCopy,
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import { generatedSessionPayload } from '@sharpit/app/lib/planned-session/generated-session-payload';
@@ -117,7 +117,7 @@ ${formatStrengthFrequencyRule()}
 
 ${formatStrengthSessionRules()}
 
-${COACH_COPY_DASH_RULE}
+${COACH_COPY_STYLE_RULE}
 
 Sortie : le schéma fait autorité pour les noms de champs, les types et les valeurs d'énumération — jamais ce texte. N'ajoute aucun champ hors schéma. Séance STRENGTH : strengthPrescription obligatoire (noms français, blocs et volume ci-dessus) ; RUN/BIKE/SWIM : null. routines : null par défaut, l'app dose l'échauffement articulaire selon l'intensité et cible les étirements sur les zones sensibles ; écris-les seulement si la séance l'exige (côtes, zone sensible, course), 3 à 6 mouvements chacun. Séance RUN, BIKE ou SWIM, même continue : endurancePrescription obligatoire (échauffement, corps, retour au calme) ; avant un travail TEMPO, SEUIL, VMA ou course, échauffement d'au moins 15 min en une seule étape, l'app y ajoute les lignes droites — étapes et groupes répétés avec leur intensité, jamais d'allure ni de watts, l'app les dérive des seuils. Textes courts : titre, une phrase de justification.`;
 

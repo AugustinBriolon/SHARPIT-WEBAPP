@@ -40,7 +40,7 @@ describe('session done alert', () => {
   it('has a word for a session well short of the plan or well beyond it', () => {
     const next = { type: 'RUN', intensity: 'THRESHOLD', day: today } as const;
     expect(sessionDoneAlert([{ plannedMin: 60, doneSec: 30 * 60 }], next, today).body).toBe(
-      'Pas tout le plan, mais c’est fait — c’est ce qui compte. On se retrouve plus tard pour ta course seuil.',
+      'Pas tout le plan, mais c’est fait. On se retrouve plus tard pour ta course seuil.',
     );
     expect(sessionDoneAlert([{ plannedMin: 60, doneSec: 90 * 60 }], null, today).body).toMatch(
       /^Plus que prévu : pense à bien récupérer\./,

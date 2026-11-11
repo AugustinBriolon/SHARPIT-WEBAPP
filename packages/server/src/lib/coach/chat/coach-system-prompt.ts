@@ -1,5 +1,5 @@
 import { inAnswerLanguage } from '@sharpit/server/lib/locale/locale-context';
-import { COACH_COPY_DASH_RULE } from '@sharpit/app/lib/coach/sanitize-coach-copy';
+import { COACH_COPY_STYLE_RULE } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import { buildBusySummary } from '@sharpit/server/lib/coach/plan/calendar-availability';
 import {
   buildCoachContext,
@@ -92,7 +92,7 @@ ${formatStrengthFrequencyRule()}
 - Pour une refonte complète de semaine, tu peux suggérer le bouton « Générer ma semaine », mais privilégie les propositions ciblées.
 - Markdown lisible (titres, listes, gras). Réponds toujours en français.
 
-${COACH_COPY_DASH_RULE}
+${COACH_COPY_STYLE_RULE}
 
 ## Anti-boucle (impératif)
 - Le contexte système suffit dans la grande majorité des cas : réponds sans outil plutôt que d'aller rechercher ce que tu as déjà. Maximum 3 appels utiles par réponse.

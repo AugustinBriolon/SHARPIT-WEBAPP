@@ -21,7 +21,7 @@ import {
   invalidateCoachContext,
 } from '@sharpit/server/lib/coach/context/coach-context';
 import {
-  COACH_COPY_DASH_RULE,
+  COACH_COPY_STYLE_RULE,
   sanitizeCoachCopy,
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import { recordAiUsage } from '@sharpit/server/lib/ai/usage';
@@ -96,7 +96,7 @@ Structure (markdown concis, pas de titre niveau 1/2) :
 
 5 à 8 lignes max. Pas de blabla. Respecte IMPÉRATIVEMENT les douleurs/blessures. Français, tutoiement.
 
-${COACH_COPY_DASH_RULE}`;
+${COACH_COPY_STYLE_RULE}`;
 }
 
 function utcDateOnly(d: Date): Date {

@@ -60,11 +60,11 @@ async function firstTime(key: string, ttlSeconds: number): Promise<boolean> {
 const WEEKLY_REVIEW_ALERT: Record<AthleteLocale, { title: string; body: string }> = {
   fr: {
     title: 'Ta semaine en revue est prête',
-    body: 'Ce qui a bien marché, ce qu’on garde à l’œil et ce qui t’attend la semaine prochaine.',
+    body: 'Le bilan et la suite sont prêts.',
   },
   en: {
     title: 'Your week in review is ready',
-    body: 'What went well, what we’re keeping an eye on and what’s waiting for you next week.',
+    body: 'The review and what’s next are ready.',
   },
 };
 

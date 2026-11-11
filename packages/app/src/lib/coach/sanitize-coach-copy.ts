@@ -12,6 +12,19 @@ export const COACH_COPY_DASH_RULE = `PONCTUATION (impératif pour tout texte lu 
 - Préfère un point (« . ») ou une virgule (« , »), ou deux phrases courtes séparées.
 - Les traits d'union dans les mots composés (ex. course-à-pied) et les plages numériques (ex. 2-3, 06:00-21:00) restent autorisés.`;
 
+/** Anti-AI staging / rhythm / inflation — inject with the dash rule on athlete-facing prompts. */
+export const COACH_COPY_HUMANIZER_RULE = `STYLE HUMAIN (impératif pour tout texte lu par l'athlète) :
+- Pas de contraste creux (« ce n'est pas X, c'est Y », « pas seulement… mais… ») sauf pour corriger une croyance réelle de l'athlète.
+- Pas de closer dramatique qui répète le point (« c'est ce qui compte », « retiens ça », « voilà l'essentiel »).
+- Pas de triade forcée (trois items parallèles) si deux faits suffisent.
+- Phrases courtes et concrètes : chiffre ou action avant l'emphase. Évite les mots creux (crucial, pivotal, landscape, delve, robust au sens figuré, highlight comme verbe creux).
+- Tutoiement direct. Une idée par phrase. Coupe tout mot qui n'ajoute pas d'info.`;
+
+/** Dash punctuation + humanizer anti-tells for prompts that write athlete-facing prose. */
+export const COACH_COPY_STYLE_RULE = `${COACH_COPY_DASH_RULE}
+
+${COACH_COPY_HUMANIZER_RULE}`;
+
 /**
  * Replace em/en dash clause joiners and spaced " - " separators with ". ".
  * Preserves compound hyphens and digit ranges.

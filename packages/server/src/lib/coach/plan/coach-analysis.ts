@@ -42,7 +42,7 @@ import {
   type SessionAnalysis,
 } from '@sharpit/app/lib/validators/coach';
 import {
-  COACH_COPY_DASH_RULE,
+  COACH_COPY_STYLE_RULE,
   sanitizeCoachCopy,
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 
@@ -354,7 +354,7 @@ RÉÉVALUATION DU SUIVI PHYSIQUE (champ "physicalReassessments") :
 
 Sois précis, bienveillant et concis. Réponds en français.
 
-${COACH_COPY_DASH_RULE}`;
+${COACH_COPY_STYLE_RULE}`;
 
 /** What the athlete wrote about the session in SHARPIT. Nothing is fetched from Strava (ADR-126). */
 function athleteNotes(activity: LinkedActivity): string | null {
@@ -531,7 +531,7 @@ Si l'athlète a donné son évaluation (RPE global, note des transitions, ressen
 
 Réponds en français, sois précis et concis.
 
-${COACH_COPY_DASH_RULE}`;
+${COACH_COPY_STYLE_RULE}`;
 
 function sanitizeSessionAnalysisCopy(analysis: SessionAnalysis): SessionAnalysis {
   return {
