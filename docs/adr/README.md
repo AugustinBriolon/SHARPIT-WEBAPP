@@ -122,6 +122,7 @@
 | [ADR-124](./ADR-124-health-grounds-are-a-sourced-catalog.md)                               | Health grounds are a sourced catalog                                                                                                                                                                            | Accepted                          |
 | [ADR-125](./ADR-125-derived-tables-keep-the-current-state.md)                              | Derived tables keep the current state, not every run                                                                                                                                                            | Accepted                          |
 | [ADR-126](./ADR-126-strava-only-activities-never-reach-an-ai-model.md)                     | Strava-only activities never reach an AI model                                                                                                                                                                  | Accepted                          |
+| [ADR-127](./ADR-127-account-deletion-keeps-the-rows-until-outside-copies-are-gone.md)      | Account deletion keeps the rows until the outside copies are gone                                                                                                                                               | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

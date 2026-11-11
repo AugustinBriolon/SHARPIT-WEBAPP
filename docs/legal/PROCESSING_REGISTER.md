@@ -60,7 +60,7 @@ own. Open Food Facts receives a product name or barcode with no athlete identifi
 
 ## Data subject rights
 
-Export and deletion are self-service (privacy settings, web and iPhone). The export lists what it
+Export and deletion are self-service (privacy settings, web and iPhone). A deletion step that fails (Clerk identity, Langfuse traces, provider revocation) is e-mailed to the controller, and the daily purge keeps the profile until the outside copies are gone (ADR-127). The export lists what it
 leaves out and why (`EXPORT_EXCLUDED_MODELS` in `packages/server/src/lib/privacy/export.ts`); those
 items are supplied on request. Rectification is done in the app; other requests go to the contact in
 the policy.

@@ -42,16 +42,19 @@ Severity and likelihood are the controller's to rate; the entries below are the 
 
 ## 5. Action plan
 
-| Action                                                             | Status           |
-| ------------------------------------------------------------------ | ---------------- |
-| One current row per key in derived tables; purge raw Garmin pushes | Done, ADR-125    |
-| Export covers every table or states why not                        | Done             |
-| Policy names Strava, Resend and the database location              | Done             |
-| Delete the pre-purge Neon backup branch                            | Done, 2026-11-10 |
-| Inactive accounts: notice at 23 months, deletion at 24             | Done             |
-| Collect signed DPAs, locations and transfer mechanisms             | Open             |
-| Audit the context sent to AI models field by field                 | Open             |
-| Keep Strava-only activities out of AI paths                        | Done, ADR-126    |
-| Policy `v2-2026-11`, re-acceptance required                        | Done             |
-| Confirm that HDS-certified hosting is not required                 | Open (lawyer)    |
-| Have this DPIA reviewed and signed off                             | Open             |
+| Action                                                                                               | Status           |
+| ---------------------------------------------------------------------------------------------------- | ---------------- |
+| One current row per key in derived tables; purge raw Garmin pushes                                   | Done, ADR-125    |
+| Export covers every table or states why not                                                          | Done             |
+| Policy names Strava, Resend and the database location                                                | Done             |
+| Delete the pre-purge Neon backup branch                                                              | Done, 2026-11-10 |
+| Inactive accounts: notice at 23 months, deletion at 24                                               | Done             |
+| Collect signed DPAs, locations and transfer mechanisms                                               | Open             |
+| Audit the context sent to AI models field by field                                                   | Open             |
+| Keep Strava-only activities out of AI paths                                                          | Done, ADR-126    |
+| Deletion failures reported to the controller and retried daily                                       | Done, ADR-127    |
+| Langfuse trace erasure moved to the v2 API (v1 read removed 2026-11-16)                              | Done, ADR-127    |
+| Check that the Clerk identities and Langfuse traces of the 10 accounts purged on 2026-11-11 are gone | Open             |
+| Policy `v2-2026-11`, re-acceptance required                                                          | Done             |
+| Confirm that HDS-certified hosting is not required                                                   | Open (lawyer)    |
+| Have this DPIA reviewed and signed off                                                               | Open             |
