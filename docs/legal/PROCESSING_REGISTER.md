@@ -31,17 +31,17 @@ Strava-only activities never reach an AI model (ADR-126); aggregate load indicat
 
 ## Recipients and processors (art. 28)
 
-| Processor                 | Role                                 | Data                 | Location                              | DPA signed     |
-| ------------------------- | ------------------------------------ | -------------------- | ------------------------------------- | -------------- |
-| Neon                      | PostgreSQL database                  | All activities above | London, UK (adequacy decision)        | **To confirm** |
-| Vercel                    | Hosting, AI gateway, cron            | All, in transit      | **To confirm** function region        | **To confirm** |
-| Clerk                     | Authentication                       | Activity 1           | **To confirm** (US vendor)            | **To confirm** |
-| Google, Anthropic, OpenAI | AI models through the Vercel gateway | Activity 6           | **To confirm**; no-training terms too | **To confirm** |
-| Langfuse                  | AI traces                            | Activity 6           | EU                                    | **To confirm** |
-| Sentry                    | Error reports                        | Activity 11          | EU                                    | **To confirm** |
-| Upstash                   | Rate limiting, cache                 | Technical ids        | **To confirm**                        | **To confirm** |
-| Resend                    | Service e-mails                      | Activity 10          | **To confirm** (US vendor)            | **To confirm** |
-| Apple                     | APNs, in-app purchase, WeatherKit    | Activities 8 and 9   | Apple's terms                         | Apple's terms  |
+| Processor                 | Role                                 | Data                 | Location                                                                                                      | DPA signed     |
+| ------------------------- | ------------------------------------ | -------------------- | ------------------------------------------------------------------------------------------------------------- | -------------- |
+| Neon                      | PostgreSQL database                  | All activities above | London, UK (adequacy decision)                                                                                | **To confirm** |
+| Vercel                    | Hosting, AI gateway, cron            | All, in transit      | London, UK, the only function region (confirmed in the Vercel project settings by the controller, 2026-11-11) | **To confirm** |
+| Clerk                     | Authentication                       | Activity 1           | **To confirm** (US vendor)                                                                                    | **To confirm** |
+| Google, Anthropic, OpenAI | AI models through the Vercel gateway | Activity 6           | **To confirm**; no-training terms too                                                                         | **To confirm** |
+| Langfuse                  | AI traces                            | Activity 6           | EU                                                                                                            | **To confirm** |
+| Sentry                    | Error reports                        | Activity 11          | EU                                                                                                            | **To confirm** |
+| Upstash                   | Rate limiting, cache                 | Technical ids        | **To confirm**                                                                                                | **To confirm** |
+| Resend                    | Service e-mails                      | Activity 10          | **To confirm** (US vendor)                                                                                    | **To confirm** |
+| Apple                     | APNs, in-app purchase, WeatherKit    | Activities 8 and 9   | Apple's terms                                                                                                 | Apple's terms  |
 
 Garmin, Strava, Withings and Google Calendar are sources the athlete connects, each a controller of its
 own. Open Food Facts receives a product name or barcode with no athlete identifier.
