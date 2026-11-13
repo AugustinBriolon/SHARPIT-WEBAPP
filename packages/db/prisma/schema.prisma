@@ -398,6 +398,7 @@ model AthleteProfile {
   trainingPlans               TrainingPlan[]
   physicalNotes               PhysicalNote[]
   healthGrounds               HealthGround[]
+  bloodTests                  BloodTest[]
   conditions                  Condition[]
   conditionObservations       ConditionObservation[]
   dailyBriefings              DailyBriefing[]
@@ -1184,6 +1185,19 @@ model HealthGround {
 
   @@unique([athleteId, key])
   @@index([athleteId])
+}
+
+/// A blood test (ADR-128): the results the athlete confirmed, sealed as one AES-GCM payload
+/// (`queries/blood-tests`). No document, no identity, and no marker name in clear.
+model BloodTest {
+  id            String         @id @default(cuid())
+  athleteId     String
+  athlete       AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  sampledAt     DateTime
+  sealedResults String
+  createdAt     DateTime       @default(now())
+
+  @@index([athleteId, sampledAt])
 }
 
 model PhysicalNote {

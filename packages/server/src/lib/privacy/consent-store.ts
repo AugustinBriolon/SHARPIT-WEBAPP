@@ -243,5 +243,15 @@ export async function updateAthleteConsents(
     }
   }
 
+  // Blood tests exist only under the health consent (ADR-128): withdrawing it erases them.
+  if (input.healthDataConsent === false) {
+    try {
+      const { purgeBloodTests } = await import('@sharpit/server/lib/queries/blood-tests');
+      await purgeBloodTests(athleteId);
+    } catch (error) {
+      logSafeError('privacy/purge-blood-tests-consent', error, { athleteId });
+    }
+  }
+
   return updated;
 }

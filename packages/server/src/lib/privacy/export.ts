@@ -5,6 +5,7 @@ import {
 } from '@sharpit/app/lib/privacy/constants';
 import { ANALYSIS_EVIDENCE_RETENTION } from '@sharpit/server/lib/science/reliability/analysis-evidence';
 import { listAnalysisEvidenceForExport } from '@sharpit/server/lib/science/reliability/analysis-evidence-store';
+import { listBloodTests } from '@sharpit/server/lib/queries/blood-tests';
 
 function serializeEvidenceForExport(
   rows: Awaited<ReturnType<typeof listAnalysisEvidenceForExport>>,
@@ -60,6 +61,7 @@ export const EXPORT_COVERED_MODELS: readonly string[] = [
   'PhysicalNote',
   'PhysicalCheckin',
   'HealthGround',
+  'BloodTest',
   'Condition',
   'ConditionEpisode',
   'ConditionObservation',
@@ -237,6 +239,8 @@ export async function buildAthleteExportJson(athleteId: string) {
     },
   });
 
+  const bloodTests = await listBloodTests(athleteId);
+
   const [
     activities,
     dailyHealth,
@@ -381,6 +385,7 @@ export async function buildAthleteExportJson(athleteId: string) {
         bodyComposition,
         physicalNotes,
         healthGrounds,
+        bloodTests,
         conditions,
       },
     },

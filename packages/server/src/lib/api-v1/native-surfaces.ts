@@ -82,6 +82,8 @@ export const NATIVE_V1_SURFACES = [
 export const NATIVE_V1_ONLY = [
   { path: 'today', methods: ['GET'] },
   { path: 'health-grounds', methods: ['GET', 'PUT'] },
+  { path: 'blood-tests', methods: ['GET', 'POST'] },
+  { path: 'blood-tests/[id]', methods: ['DELETE'] },
   { path: 'sleep', methods: ['GET'] },
   { path: 'recovery', methods: ['GET'] },
   { path: 'effort', methods: ['GET'] },

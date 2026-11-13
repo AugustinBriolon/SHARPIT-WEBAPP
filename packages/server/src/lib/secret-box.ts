@@ -2,8 +2,8 @@ import crypto from 'crypto';
 
 /**
  * `SECRET_ENCRYPTION_KEY` is the only secret this module should ever use —
- * a dedicated value with no purpose but encrypting provider credentials at
- * rest. Production must configure the dedicated key explicitly, since
+ * a dedicated value with no purpose but encrypting provider credentials and
+ * blood test results (ADR-128) at rest. Production must configure the dedicated key explicitly, since
  * silently falling back to a secret rotated for an unrelated reason would
  * make every already-encrypted row unreadable without warning — so the
  * `CRON_SECRET`/`DATABASE_URL` convenience fallback below only ever applies
