@@ -34,6 +34,12 @@ export async function listBloodTests(athleteId: string): Promise<BloodTestView[]
   return rows.map(openBloodTest);
 }
 
+/** One test of the athlete, or null when it is not theirs. */
+export async function getBloodTest(athleteId: string, id: string): Promise<BloodTestView | null> {
+  const row = await prisma.bloodTest.findFirst({ where: { id, athleteId }, select: VIEW_SELECT });
+  return row ? openBloodTest(row) : null;
+}
+
 export async function createBloodTest(
   athleteId: string,
   input: PostBloodTestInput,
