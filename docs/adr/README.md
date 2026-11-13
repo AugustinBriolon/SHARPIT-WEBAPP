@@ -124,6 +124,7 @@
 | [ADR-126](./ADR-126-strava-only-activities-never-reach-an-ai-model.md)                     | Strava-only activities never reach an AI model                                                                                                                                                                  | Accepted                          |
 | [ADR-127](./ADR-127-account-deletion-keeps-the-rows-until-outside-copies-are-gone.md)      | Account deletion keeps the rows until the outside copies are gone                                                                                                                                               | Accepted                          |
 | [ADR-128](./ADR-128-blood-tests-are-kept-as-sealed-results.md)                             | Blood tests are kept as sealed results, never as a document                                                                                                                                                     | Accepted                          |
+| [ADR-129](./ADR-129-blood-tests-get-a-sourced-training-reading.md)                         | Blood tests get a sourced training reading, computed without a model                                                                                                                                            | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
