@@ -1,6 +1,6 @@
 # ADR-085: Ink & Lime brand replaces Botanical-clinical
 
-**Status:** Accepted
+**Status:** Accepted; the "Lime is the only hue" line and the Semantics section are superseded by [ADR-130](ADR-130-data-hues-and-status-sets-join-ink-and-lime.md); muted text, canvas, radii and the Elevation section are superseded by [ADR-131](ADR-131-clinique-neutrals-hairlines-and-capsule-geometry.md)
 **Date:** 2026-10-16
 **Author:** Augustin Briolon
 **Supersedes:** the palette, typography and elevation sections of `design.md` and `docs/design/DESIGN_LANGUAGE.md` (the causal column, IA and copy rules stay)
