@@ -200,6 +200,56 @@
   --record-accent: #cdf21e;
   --record-accent-foreground: #0e0e0e;
   /*
+    Clinique (ADR-130, ADR-131). Added beside the Ink & Lime tokens, which keep
+    their values until each surface is swept. Hues mark data only: rings, glyphs
+    and chart marks, never text or a control.
+  */
+  --slate: #565a7c; /* secondary text */
+  --divider: #e9eaf0; /* row line, card border, ring track */
+  --outline: #dadce6; /* control border */
+  --tile: #f3f4f7; /* icon tile, field, neutral wash */
+  --pillar-sleep: #2e9be6;
+  --pillar-recovery: #8db600;
+  --pillar-nutrition: #f08a24;
+  --pillar-coach: #7c5ce0;
+  --zone-1: var(--pillar-sleep);
+  --zone-2: var(--pillar-recovery);
+  --zone-3: #f0b429;
+  --zone-4: var(--pillar-nutrition);
+  --zone-5: #e5484d;
+  /* Status sets: fill, border, text on the fill, and the dot beside the word. */
+  --status-good: #f1f8d8;
+  --status-good-border: #d5e79a;
+  --status-good-foreground: #4f6b00;
+  --status-good-mark: var(--pillar-recovery);
+  --status-watch: #fff1d6;
+  --status-watch-border: #f5d9a0;
+  --status-watch-foreground: #8a5a00;
+  --status-watch-mark: #e8920c;
+  --status-alert: #fdecec;
+  --status-alert-border: #f6c6c8;
+  --status-alert-foreground: #b4232a;
+  --status-alert-mark: var(--zone-5);
+  --status-unknown: var(--tile);
+  --status-unknown-border: var(--outline);
+  --status-unknown-foreground: var(--slate);
+  --status-unknown-mark: #8a8ea8;
+  --status-protect: #e4f2fd;
+  --status-protect-border: #bbddf6;
+  --status-protect-foreground: #135e96;
+  --status-protect-mark: var(--pillar-sleep);
+  --status-pro: #efebfc;
+  --status-pro-border: #d5cbf7;
+  --status-pro-foreground: #4b32b0;
+  --status-pro-mark: var(--pillar-coach);
+  /* Top-of-sheet wash; fades to the card surface. */
+  --wash-good: #eef6dc;
+  --wash-watch: #fff4dd;
+  --wash-alert: #fdecec;
+  --wash-neutral: var(--tile);
+  --wash-sleep: #e4f2fd;
+  --wash-coach: #efebfc;
+  /*
     Sport identity is the icon, not the colour (ADR-085): every sport tile is ink
     with a lime glyph. Hex mirrors SPORT_IDENTITY_HEX.
   */
@@ -232,6 +282,11 @@
   --size-control: 3.25rem; /* button height */
   --size-row: 3.5rem; /* row min height */
   --size-bar: 0.5rem; /* progress bar thickness */
+  /* Clinique shapes (ADR-131). Buttons and glass controls are capsules: half their height. */
+  --shape-sheet: 1.75rem;
+  --shape-card: 1.25rem;
+  --shape-pill: 0.75rem;
+  --shape-bar: 2rem; /* floating tab bar */
   --sidebar: #ffffff;
   --sidebar-foreground: #0e0e0e;
   --sidebar-primary: #0e0e0e;
@@ -335,6 +390,50 @@
   --health-status-attention-foreground: var(--signal-risk-foreground);
   --record-accent: #cdf21e;
   --record-accent-foreground: #0e0e0e;
+  /* Clinique (ADR-130, ADR-131): hues lifted for the dark surface. */
+  --slate: #a9adc6;
+  --divider: #2c2c30;
+  --outline: #3a3a40;
+  --tile: #242428;
+  --pillar-sleep: #4db2f5;
+  --pillar-recovery: #b4db2a;
+  --pillar-nutrition: #f59b3d;
+  --pillar-coach: #9c82f0;
+  --zone-1: var(--pillar-sleep);
+  --zone-2: var(--pillar-recovery);
+  --zone-3: #f5c24a;
+  --zone-4: var(--pillar-nutrition);
+  --zone-5: #f2686c;
+  --status-good: #1e2a0a;
+  --status-good-border: #3f5412;
+  --status-good-foreground: #c5e86a;
+  --status-good-mark: var(--pillar-recovery);
+  --status-watch: #2e2410;
+  --status-watch-border: #5a4514;
+  --status-watch-foreground: #f2c56b;
+  --status-watch-mark: #f2a93b;
+  --status-alert: #33181a;
+  --status-alert-border: #6a2a2e;
+  --status-alert-foreground: #f5a3a6;
+  --status-alert-mark: var(--zone-5);
+  --status-unknown: var(--tile);
+  --status-unknown-border: var(--outline);
+  --status-unknown-foreground: var(--slate);
+  --status-unknown-mark: #7e829c;
+  --status-protect: #10283a;
+  --status-protect-border: #1f4e73;
+  --status-protect-foreground: #8ccbf7;
+  --status-protect-mark: var(--pillar-sleep);
+  --status-pro: #221a3d;
+  --status-pro-border: #44357a;
+  --status-pro-foreground: #bdaaf7;
+  --status-pro-mark: var(--pillar-coach);
+  --wash-good: #1c2710;
+  --wash-watch: #33270c;
+  --wash-alert: #33181a;
+  --wash-neutral: #1e1e20;
+  --wash-sleep: #0f2636;
+  --wash-coach: #221a3d;
   /* Sport + on-sport stay fixed (inherited from :root). */
   --radial-track: #2c2c2e;
   --radial-empty: #3a3a3e;

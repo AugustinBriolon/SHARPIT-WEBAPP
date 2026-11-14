@@ -117,6 +117,16 @@ describe('renderIosTokens', () => {
     expect(swift).toContain('static let controlHeight: CGFloat = 52.0000');
   });
 
+  it('exports the Clinique tokens beside the Ink & Lime set (ADR-130, ADR-131)', () => {
+    expect(swift).toContain('static let slate = dynamic(');
+    expect(swift).toContain('static let pillarSleep = dynamic(');
+    expect(swift).toContain('static let zone5 = dynamic(');
+    expect(swift).toContain('static let statusUnknownForeground = dynamic(');
+    expect(swift).toContain('static let washCoach = dynamic(');
+    expect(swift).toContain('static let sheetShapeRadius: CGFloat = 28.0000');
+    expect(swift).toContain('static let pillShapeRadius: CGFloat = 12.0000');
+  });
+
   it('emits fixed-precision literals so the committed file is stable', () => {
     expect(swift).not.toMatch(/red: \d+\.\d{5,}/);
   });

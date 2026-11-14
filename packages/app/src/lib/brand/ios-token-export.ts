@@ -8,6 +8,35 @@
 import { SPORT_IDENTITY_HEX } from '../activity/sport-identity';
 import { BRAND } from './brand-tokens';
 
+export const CLINIQUE_STATUSES = ['good', 'watch', 'alert', 'unknown', 'protect', 'pro'] as const;
+export const CLINIQUE_PILLARS = ['sleep', 'recovery', 'nutrition', 'coach'] as const;
+export const CLINIQUE_ZONES = [1, 2, 3, 4, 5] as const;
+export const CLINIQUE_WASHES = ['good', 'watch', 'alert', 'neutral', 'sleep', 'coach'] as const;
+
+function capitalize(word: string): string {
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+/** Clinique tokens (ADR-130, ADR-131), added beside the Ink & Lime set. */
+const CLINIQUE_COLORS: ReadonlyArray<readonly [string, string]> = [
+  ['slate', 'slate'],
+  ['divider', 'divider'],
+  ['outline', 'outline'],
+  ['tile', 'tile'],
+  ...CLINIQUE_PILLARS.map((pillar) => [`pillar-${pillar}`, `pillar${capitalize(pillar)}`] as const),
+  ...CLINIQUE_ZONES.map((zone) => [`zone-${zone}`, `zone${zone}`] as const),
+  ...CLINIQUE_STATUSES.flatMap((status) => {
+    const swift = `status${capitalize(status)}`;
+    return [
+      [`status-${status}`, swift],
+      [`status-${status}-border`, `${swift}Border`],
+      [`status-${status}-foreground`, `${swift}Foreground`],
+      [`status-${status}-mark`, `${swift}Mark`],
+    ] as const;
+  }),
+  ...CLINIQUE_WASHES.map((wash) => [`wash-${wash}`, `wash${capitalize(wash)}`] as const),
+];
+
 /**
  * Semantic tokens the app renders with, as `[css custom property, Swift name]`.
  *
@@ -74,6 +103,7 @@ export const EXPORTED_COLORS: ReadonlyArray<readonly [string, string]> = [
   ['record-accent-foreground', 'recordAccentForeground'],
   ['radial-track', 'radialTrack'],
   ['radial-empty', 'radialEmpty'],
+  ...CLINIQUE_COLORS,
 ];
 
 /**
@@ -112,6 +142,10 @@ export const EXPORTED_GEOMETRY: ReadonlyArray<
   ['size-control', 'controlHeight', ':root'],
   ['size-row', 'rowHeight', ':root'],
   ['size-bar', 'barThickness', ':root'],
+  ['shape-sheet', 'sheetShapeRadius', ':root'],
+  ['shape-card', 'cardShapeRadius', ':root'],
+  ['shape-pill', 'pillShapeRadius', ':root'],
+  ['shape-bar', 'barShapeRadius', ':root'],
 ];
 
 export type Rgba = { red: number; green: number; blue: number; alpha: number };

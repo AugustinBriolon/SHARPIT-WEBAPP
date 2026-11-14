@@ -6,6 +6,10 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  CLINIQUE_PILLARS,
+  CLINIQUE_STATUSES,
+  CLINIQUE_WASHES,
+  CLINIQUE_ZONES,
   parseColor,
   readDeclarations,
   resolveVar,
@@ -123,6 +127,58 @@ describe('accent/onAccent contrast (WCAG AA 4.5:1)', () => {
       const bg = parseColor(SPORT_IDENTITY_HEX[type]);
       const fg = tokenColor(light, on);
       expect(contrastRatio(fg, bg)).toBeGreaterThanOrEqual(4.5);
+    });
+  }
+});
+
+describe('Clinique tokens (ADR-130, ADR-131)', () => {
+  const slateSurfaces = ['card', 'tile', ...CLINIQUE_WASHES.map((wash) => `wash-${wash}`)];
+  const marks = [
+    ...CLINIQUE_PILLARS.map((pillar) => `pillar-${pillar}`),
+    ...CLINIQUE_ZONES.map((zone) => `zone-${zone}`),
+  ];
+
+  for (const mode of [
+    { name: 'light', declarations: light },
+    { name: 'dark', declarations: dark },
+  ] as const) {
+    describe(mode.name, () => {
+      for (const status of CLINIQUE_STATUSES) {
+        it(`status-${status}: text on its fill ≥ 4.5`, () => {
+          const ratio = contrastRatio(
+            tokenColor(mode.declarations, `status-${status}-foreground`),
+            tokenColor(mode.declarations, `status-${status}`),
+          );
+          expect(ratio).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+
+      for (const surface of slateSurfaces) {
+        it(`slate text on ${surface} ≥ 4.5`, () => {
+          const ratio = contrastRatio(
+            tokenColor(mode.declarations, 'slate'),
+            tokenColor(mode.declarations, surface),
+          );
+          expect(ratio).toBeGreaterThanOrEqual(4.5);
+        });
+      }
+
+      // Rings and chart marks are graphics, not text: WCAG 1.4.11 asks 3:1.
+      // Light lime, yellow and orange sit between 1.8 and 2.6 on white, so they are
+      // never the only cue: a ring carries a glyph and a figure, a zone a label.
+      const belowThree =
+        mode.name === 'light'
+          ? ['pillar-recovery', 'pillar-nutrition', 'zone-2', 'zone-3', 'zone-4']
+          : [];
+      for (const mark of marks.filter((name) => !belowThree.includes(name))) {
+        it(`${mark} on card ≥ 3`, () => {
+          const ratio = contrastRatio(
+            tokenColor(mode.declarations, mark),
+            tokenColor(mode.declarations, 'card'),
+          );
+          expect(ratio).toBeGreaterThanOrEqual(3);
+        });
+      }
     });
   }
 });
