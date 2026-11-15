@@ -387,3 +387,30 @@ read by nothing. The mean confidence of 0.94 has nothing behind it.
 - Journal autocorrelation; projection elevation and heat; a check that generated
   strength loads follow the progression rule.
 - Reasoning and environment engines: not read.
+
+# Pass 4 — open points taken up (2026-11-15)
+
+Fixed, each locked by a test:
+
+- F2 — the heart-rate tier sums TRIMP sample by sample when the session has a stream
+  (`sampledTrimpTss`, carried as `stream.hrTrimpTss`); a gap above 30 s between samples
+  is a pause. The mean-pulse formula remains for sessions without a stream.
+- A3 — adaptation reads the efficiency factor over two four-week windows
+  (`efficiencyTrendPercent`): ±3 points per percent, capped at ±5 %, and the dimension is
+  scored on the trend alone when no session carries a drift. Correction to A3: the drift
+  was already a 14-day mean, not one day's.
+- Reproducible history — the resting pulse given to the extractors is the one known on
+  the day extracted, not the latest.
+- Strength — the plan gate flags a prescribed load more than 5 % above the athlete's best
+  (`STRENGTH_LOAD_ABOVE_BEST`, a warning, beside the completeness rule so the landing's
+  count of guardrails stays true).
+
+Still open:
+
+- Strength load from set volume; one load model for the Core and the coach; the ACWR
+  thresholds; short histories.
+- F6 the unread signals; `estimateTimeToFresh`; inputs shared by recovery and fatigue.
+- F7 energy availability (decision on the frozen Core); F8 a benchmark that can fail.
+- Journal autocorrelation; projection elevation and heat; the nutrition reading still
+  takes `Activity.load`.
+- Reasoning and environment engines: not read.
