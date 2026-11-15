@@ -414,3 +414,32 @@ Still open:
 - Journal autocorrelation; projection elevation and heat; the nutrition reading still
   takes `Activity.load`.
 - Reasoning and environment engines: not read.
+
+# Mobility pass (2026-11-15)
+
+The athlete's report: a mobility session comes out as a joint warm-up.
+
+Cause, in three places:
+
+- the strength template named its opening block « Mobilité / activation » and described
+  it as « mobilité articulaire », so the generator learnt that circles and swings are
+  mobility;
+- nothing said what a mobility session is: no target joints, no time under stretch, no
+  end-range work;
+- the iPhone called the warm-up routine before an endurance session « Mobilité avant ».
+
+Fixed:
+
+- the block is « Réveil articulaire / activation », described as preparation;
+- the generator's rules define warm-up, mobility and cool-down stretching as three
+  things, and a mobility session as one or two preparation moves then range work on two
+  or three joints, each exercise 60 to 120 s under tension per side, with a measurable
+  landmark in its note (`MOBILITY_SESSION_RULES`);
+- the plan gate warns when under half of a mobility session's exercises hold at least
+  60 s (`auditMobilitySession`, `MOBILITY_SESSION_IS_WARMUP`);
+- the iPhone reads « Échauffement et étirements » and « Échauffement avant ».
+
+Limits: the check reads time under stretch, the only signal a prescription carries; it
+cannot tell an end-range hold from a comfortable one. Sessions already generated keep
+their exercises. The intent `MOBILITY` still covers stretching, self-massage and range
+work alike.
