@@ -4,6 +4,10 @@ import { decisionState, physicalHealthData } from '@sharpit/server/lib/plan-gate
 import { consumeCoachProgressStream } from '@sharpit/app/lib/coach/chat/transcript/coach-progress-stream';
 import type { AdaptPayload } from './handler';
 
+vi.mock('@sharpit/server/lib/strength/exercise-history', () => ({
+  loadStrengthHistoryBlock: vi.fn(async () => ''),
+}));
+
 vi.mock('@sharpit/server/lib/ai', () => ({
   COACH_MODEL: 'mock-model',
   COACH_STRUCTURED_MODEL: 'mock-structured-model',

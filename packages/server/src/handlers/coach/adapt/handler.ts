@@ -37,6 +37,7 @@ import {
 } from '@sharpit/server/lib/coach/knowledge/knowledge-cues-from-context';
 import { detectCoachPlaybookSituation } from '@sharpit/server/lib/coach/playbooks/detect-playbook-situation';
 import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
+import { loadStrengthHistoryBlock } from '@sharpit/server/lib/strength/exercise-history';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import {
   getActiveTrainingPlan,
@@ -448,8 +449,9 @@ export async function POST(req: Request) {
           hasActivePain: (ctx.physical?.length ?? 0) > 0,
         }),
     };
-    const [memoryBlock, knowledgeBlock] = await Promise.all([
+    const [memoryBlock, strengthHistoryBlock, knowledgeBlock] = await Promise.all([
       loadLearningMemoryBlock(athleteId, today),
+      loadStrengthHistoryBlock(athleteId),
       Promise.resolve(
         formatKnowledgeRagBlock(
           retrieveCoachKnowledgeWithCorrection(
@@ -465,7 +467,7 @@ export async function POST(req: Request) {
       horizon,
       ctx,
       upcomingLines: buildUpcomingLines(upcoming),
-      memoryBlock,
+      memoryBlock: memoryBlock + strengthHistoryBlock,
       knowledgeBlock,
     });
 
