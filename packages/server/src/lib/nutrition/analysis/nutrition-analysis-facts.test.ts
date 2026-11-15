@@ -159,3 +159,26 @@ describe('buildNutritionAnalysisFacts', () => {
     expect(facts.logging.skippedMeals).toEqual(['Déjeuner']);
   });
 });
+
+describe('load band — intensity counts, not minutes alone', () => {
+  it('a short hard session is at least a moderate day', () => {
+    const facts = buildNutritionAnalysisFacts(
+      input({ sessions: [{ type: 'RUN', minutes: 40, tss: 95 }] }),
+    );
+    expect(facts.load.band).toBe('moderate');
+  });
+
+  it('a very hard hour is a high day', () => {
+    const facts = buildNutritionAnalysisFacts(
+      input({ sessions: [{ type: 'BIKE', minutes: 80, tss: 160 }] }),
+    );
+    expect(facts.load.band).toBe('high');
+  });
+
+  it('never lowers the band the minutes give', () => {
+    const facts = buildNutritionAnalysisFacts(
+      input({ sessions: [{ type: 'BIKE', minutes: 300, tss: 90 }] }),
+    );
+    expect(facts.load.band).toBe('very_high');
+  });
+});

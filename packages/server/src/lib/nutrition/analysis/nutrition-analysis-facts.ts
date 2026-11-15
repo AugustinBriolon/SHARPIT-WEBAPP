@@ -11,6 +11,7 @@ import {
   FIBRE_MIN_G,
   KCAL_PER_G,
   LOAD_BAND_MAX_MINUTES,
+  LOAD_BAND_MIN_TSS,
   PROTEIN_G_PER_KG,
   PROTEIN_PER_MEAL_G_PER_KG,
   SUGAR_ENERGY_SHARE_WATCH,
@@ -154,13 +155,32 @@ export function trainingLoadBand(trainingMinutes: number): TrainingLoadBand {
   return bands.find((band) => trainingMinutes <= LOAD_BAND_MAX_MINUTES[band]) ?? 'very_high';
 }
 
+const BAND_ORDER: readonly TrainingLoadBand[] = ['rest', 'light', 'moderate', 'high', 'very_high'];
+
+/** The band the day's stress alone puts it in; null when it says nothing. */
+export function stressLoadBand(tss: number | null): TrainingLoadBand | null {
+  if (tss === null) {
+    return null;
+  }
+  if (tss >= LOAD_BAND_MIN_TSS.high) {
+    return 'high';
+  }
+  return tss >= LOAD_BAND_MIN_TSS.moderate ? 'moderate' : null;
+}
+
+function higherBand(a: TrainingLoadBand, b: TrainingLoadBand | null): TrainingLoadBand {
+  return b !== null && BAND_ORDER.indexOf(b) > BAND_ORDER.indexOf(a) ? b : a;
+}
+
 function buildLoad(sessions: readonly NutritionAnalysisSessionInput[]) {
   const trainingMinutes = sessions.reduce((sum, session) => sum + (session.minutes ?? 0), 0);
   const tssValues = sessions.map((session) => session.tss).filter((tss) => tss !== null);
+  const tss =
+    tssValues.length > 0 ? Math.round(tssValues.reduce((sum, value) => sum + value, 0)) : null;
   return {
-    band: trainingLoadBand(trainingMinutes),
+    band: higherBand(trainingLoadBand(trainingMinutes), stressLoadBand(tss)),
     trainingMinutes,
-    tss: tssValues.length > 0 ? Math.round(tssValues.reduce((sum, tss) => sum + tss, 0)) : null,
+    tss,
     sessions: [...sessions],
   };
 }

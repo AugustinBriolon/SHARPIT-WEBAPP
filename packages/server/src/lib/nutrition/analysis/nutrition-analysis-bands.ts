@@ -51,3 +51,13 @@ export const LOW_CARB_MAX_CARBS_G = 130;
 export const WEIGHT_MAINTAIN_TOLERANCE_KG = 0.5;
 
 export const KCAL_PER_G = { carbohydrates: 4, protein: 4, fat: 9 } as const;
+
+/**
+ * Training stress from which a day is at least this band whatever its minutes: an hour
+ * of intervals empties more glycogen than an hour of easy riding, and the volume bands
+ * alone read both as "moderate".
+ */
+export const LOAD_BAND_MIN_TSS: Record<'moderate' | 'high', number> = {
+  moderate: 80,
+  high: 150,
+};
