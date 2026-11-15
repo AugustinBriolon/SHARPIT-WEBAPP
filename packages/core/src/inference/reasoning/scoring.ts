@@ -79,13 +79,15 @@ export function mapAdaptationDirection(a: AdaptationState | null): Physiological
     return 'UNKNOWN';
   }
   switch (a.adaptationStatus) {
+    // Detraining is too little load, not too much: read as REST it sent an athlete back
+    // from a break, fresh and rested, to a caution verdict instead of to training.
     case 'POSITIVELY_ADAPTING':
     case 'MAINTAINING':
+    case 'DETRAINING':
       return 'TRAIN';
     case 'PLATEAUING':
       return 'EASY';
     case 'MALADAPTING':
-    case 'DETRAINING':
       return 'REST';
     default:
       return 'UNKNOWN';

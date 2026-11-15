@@ -490,3 +490,22 @@ describe('runReasoningModel', () => {
     expect(output.reasoningState.keyFindings[0].evidenceItems[0].code).toBeTruthy();
   });
 });
+
+describe('reasoning — an athlete back from a break trains (audit pass 5)', () => {
+  it('reads detraining as a reason to train, not to rest', () => {
+    expect(mapAdaptationDirection(makeAdaptation({ adaptationStatus: 'DETRAINING' }))).toBe(
+      'TRAIN',
+    );
+  });
+
+  it('does not answer caution to a rested, fresh, detrained athlete', () => {
+    const verdict = synthesizeVerdict(
+      makeRecovery({ readinessCategory: 'OPTIMAL' }),
+      makeFatigue({ fatigueLevel: 'FRESH', trainingCapacity: 'FULL' }),
+      makeAdaptation({ adaptationStatus: 'DETRAINING' }),
+      3,
+    );
+    expect(verdict).not.toBe('CAUTION');
+    expect(verdict).not.toBe('RECOVER');
+  });
+});
