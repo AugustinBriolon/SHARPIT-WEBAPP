@@ -479,3 +479,54 @@ own calibration. Nothing found at that depth.
   is a design decision, not a fix.
 - A benchmark that can fail, the before/after replay, the recomputation of history and
   the repair of relapse counts all need the production database.
+
+# In production (2026-11-15)
+
+Pushed and deployed, then the session features of one athlete recomputed twice (392
+sessions each time, none failed). Load per hour of the latest features, read by
+`apps/api/scripts/inspect-session-load.ts`:
+
+| Sport    | Method         | Before     | After     |
+| -------- | -------------- | ---------- | --------- |
+| Run      | pace           | 106.0 (59) | 93.3 (55) |
+| Run      | heart rate     | 50.3 (47)  | 54.8 (47) |
+| Bike     | power          | 41.2 (78)  | 40.3 (80) |
+| Strength | heart rate     | 12.2 (31)  | none      |
+| Strength | RPE            | 25.4 (4)   | 40.1 (31) |
+| Strength | sport constant | 35.0 (90)  | 34.9 (94) |
+| Swim     | heart rate     | 51.3 (17)  | 58.5 (17) |
+
+The relapse counts needed no repair: 7 zones read, none wrong.
+
+## What the recomputation uncovered
+
+### P1 — History was rescored on today's thresholds (critical, fixed)
+
+The first pass raised power-scored rides from 41.2 to 55.2 per hour. The extraction
+context read FTP, threshold pace and LTHR from the profile, and the profile's FTP had
+gone from 207 W in August to 170 W that day: every ride was rescored on 170 W, by the
+square of the ratio. `thresholdAsOf` now reads each threshold from
+`AthleteThresholdSnapshot` as it stood on the day; the second pass restored 40.3.
+
+### P2 — The threshold estimator only ever walks down (high, bounded)
+
+Estimates come from the best efforts of a 120-day window. Without an all-out effort the
+window's best falls while the athlete loses nothing: 207 → 188 → 170 W in three months.
+A downward revision is now bounded to 5 % of power and 3 % of pace per revision
+(`boundDownwardRevisions`). The stored values are untouched: whether 170 W is right is
+the athlete's call. Run pace still scores 93 per hour against 55 for heart rate, the
+same symptom on the running threshold.
+
+### P3 — Removed sessions kept their load (critical, fixed)
+
+447 sessions had features, 392 had an observation. Nothing ties a feature set to its
+observation, so when a duplicate session is removed its features stay and
+`findSessionFeaturesByRange` kept returning them: 55 phantom sessions, 2 225 points of
+load, 41 of them in the last 56 days. The repository now leaves out a feature set whose
+observation is gone. The rows themselves are not deleted.
+
+## Not done
+
+- A replay of readiness against the next day's outcome: it needs an outcome defined
+  first (reported RPE, compliance), which is a decision, not a query.
+- The stored verdicts of past days are unchanged: nothing replays them.
