@@ -8,9 +8,10 @@
  *   yarn tsx scripts/repair-recurrence-counts.ts
  *   yarn tsx scripts/repair-recurrence-counts.ts --apply
  */
-import { PrismaClient } from '@prisma/client';
+// The shared client: it reaches Neon over WebSocket where a proxy blocks Postgres' port.
+import { prisma } from '@sharpit/db/client';
+import { acrossAthletes } from '@sharpit/db/athlete-scope';
 
-const prisma = new PrismaClient();
 const apply = process.argv.includes('--apply');
 
 /** Relapses a zone with this many episodes has had. */
@@ -19,9 +20,11 @@ function relapsesFromEpisodes(episodeCount: number): number {
 }
 
 async function main() {
-  const conditions = await prisma.condition.findMany({
-    select: { id: true, recurrenceCount: true, _count: { select: { episodes: true } } },
-  });
+  const conditions = await acrossAthletes('repair of every zone', () =>
+    prisma.condition.findMany({
+      select: { id: true, recurrenceCount: true, _count: { select: { episodes: true } } },
+    }),
+  );
   const wrong = conditions.filter(
     (condition) => condition.recurrenceCount !== relapsesFromEpisodes(condition._count.episodes),
   );
@@ -30,10 +33,12 @@ async function main() {
     const expected = relapsesFromEpisodes(condition._count.episodes);
     console.log(`  ${condition.id}: ${condition.recurrenceCount} → ${expected}`);
     if (apply) {
-      await prisma.condition.update({
-        where: { id: condition.id },
-        data: { recurrenceCount: expected },
-      });
+      await acrossAthletes('repair of every zone', () =>
+        prisma.condition.update({
+          where: { id: condition.id },
+          data: { recurrenceCount: expected },
+        }),
+      );
     }
   }
   console.log(apply ? 'Counts written.' : 'Dry run: nothing written. Pass --apply to write.');

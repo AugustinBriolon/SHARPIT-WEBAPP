@@ -14,10 +14,10 @@
  *   yarn db:recompute:session-features --dry-run
  *   yarn db:recompute:session-features
  */
-import { PrismaClient } from '@prisma/client';
+// The shared client: it reaches Neon over WebSocket where a proxy blocks Postgres' port.
+import { prisma } from '@sharpit/db/client';
 import { featureEngine } from '@sharpit/server/lib/engines/feature-engine';
 
-const prisma = new PrismaClient();
 const dryRun = process.argv.includes('--dry-run');
 const ATHLETE_ID = 'default';
 
