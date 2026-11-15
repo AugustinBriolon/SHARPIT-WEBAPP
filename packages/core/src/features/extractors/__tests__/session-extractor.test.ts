@@ -598,3 +598,80 @@ describe('extractSessionFeatures — metadata', () => {
     expect(result.durationSec).toBe(2700);
   });
 });
+
+describe('extractSessionFeatures — load does not depend on the sensor (audit F1)', () => {
+  it('never scores a strength session from heart rate', () => {
+    const ctx = makeContext({ maxHr: 190, restingHr: 50 });
+    const recorded = extractSessionFeatures(
+      input({
+        sportType: 'STRENGTH',
+        durationSec: 3600,
+        hrData: { avgBpm: 100, quality: 'MEASURED_OPTICAL' },
+      }),
+      ctx,
+    );
+    const unrecorded = extractSessionFeatures(
+      input({ sportType: 'STRENGTH', durationSec: 3600 }),
+      ctx,
+    );
+    expect(recorded.tssMethod).toBe('DURATION_FACTOR');
+    expect(recorded.tssScore).toBe(unrecorded.tssScore);
+  });
+
+  it("prefers the athlete's RPE over heart rate for strength", () => {
+    const ctx = makeContext({ maxHr: 190, restingHr: 50 });
+    const result = extractSessionFeatures(
+      input(
+        {
+          sportType: 'STRENGTH',
+          durationSec: 3600,
+          hrData: { avgBpm: 100, quality: 'MEASURED_OPTICAL' },
+        },
+        { rpe: 7 },
+      ),
+      ctx,
+    );
+    expect(result.tssMethod).toBe('RPE_BASED');
+  });
+
+  it('drops the pace tier when the threshold pace is slower than an hour-long run', () => {
+    // 4:00/km for an hour against a 4:30/km threshold: IF 1.125, impossible for an hour.
+    const ctx = makeContext({ runThresholdPaceSecPerKm: 270 });
+    const result = extractSessionFeatures(
+      input({
+        sportType: 'RUN',
+        durationSec: 3600,
+        paceData: { avgMinPerKm: 4, distanceM: 15000 },
+      }),
+      ctx,
+    );
+    expect(result.tssMethod).not.toBe('PACE_BASED');
+    expect(result.tssScore).toBeLessThanOrEqual(105);
+  });
+
+  it('keeps the pace tier for a short hard effort above threshold', () => {
+    const ctx = makeContext({ runThresholdPaceSecPerKm: 270 });
+    const result = extractSessionFeatures(
+      input({
+        sportType: 'RUN',
+        durationSec: 900,
+        paceData: { avgMinPerKm: 4, distanceM: 3750 },
+      }),
+      ctx,
+    );
+    expect(result.tssMethod).toBe('PACE_BASED');
+  });
+
+  it('drops the power tier when the FTP is below an hour-long ride', () => {
+    const ctx = makeContext({ ftpW: 200 });
+    const result = extractSessionFeatures(
+      input({
+        sportType: 'BIKE',
+        durationSec: 3600,
+        powerData: { avgWatts: 235, normalizedPower: 240, quality: 'MEASURED_DIRECT' },
+      }),
+      ctx,
+    );
+    expect(result.tssMethod).not.toBe('POWER_BASED');
+  });
+});

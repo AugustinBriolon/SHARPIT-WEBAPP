@@ -73,6 +73,28 @@ const PACE_TSS_SPORTS: SportType[] = ['RUN', 'TRAIL_RUN', 'OPEN_WATER'];
 const POWER_TSS_SPORTS: SportType[] = ['BIKE', 'MTB'];
 const PACE_IF_SPORTS: SportType[] = ['RUN', 'TRAIL_RUN'];
 
+/**
+ * Sports whose load heart rate does not describe: the work is mechanical and the
+ * pulse stays low, so TRIMP scored a recorded strength session at a third of an
+ * unrecorded one. They go to the athlete's own RPE, then to the sport constant.
+ */
+const HR_BLIND_SPORTS: SportType[] = ['STRENGTH', 'YOGA'];
+
+/**
+ * Highest intensity factor a session of this length can hold. One hour at threshold
+ * is 1.0 by definition, so a higher figure means the stored threshold is stale, not
+ * that the athlete outran it: the tier steps aside rather than double the load.
+ */
+function maxPlausibleIntensityFactor(durationSec: number): number {
+  if (durationSec >= 3600) {
+    return 1.05;
+  }
+  if (durationSec >= 1200) {
+    return 1.15;
+  }
+  return 1.3;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // TSS computation — 5-tier hierarchy
 // ─────────────────────────────────────────────────────────────────────────────
@@ -221,7 +243,8 @@ function tryPowerTss(input: SessionExtractorInput, ctx: ExtractionContext): TssR
     normalizedPower === undefined ||
     normalizedPower === null ||
     normalizedPower === undefined ||
-    normalizedPower <= 0
+    normalizedPower <= 0 ||
+    normalizedPower / ctx.ftpW! > maxPlausibleIntensityFactor(durationSec)
   ) {
     return null;
   }
@@ -233,7 +256,12 @@ function tryTrimpTss(input: SessionExtractorInput, ctx: ExtractionContext): TssR
   const { session } = input;
   const { durationSec } = session;
   const avgBpm = session.hrData?.avgBpm;
-  if (!canUseTrimpTss(ctx) || avgBpm === undefined || avgBpm === null || avgBpm === undefined) {
+  if (
+    HR_BLIND_SPORTS.includes(session.sportType) ||
+    !canUseTrimpTss(ctx) ||
+    avgBpm === undefined ||
+    avgBpm === null
+  ) {
     return null;
   }
 
@@ -272,6 +300,10 @@ function tryPaceTss(input: SessionExtractorInput, ctx: ExtractionContext): TssRe
   const { session } = input;
   const { durationSec } = session;
   if (!hasPaceTssInputs(session, ctx)) {
+    return null;
+  }
+  const intensityFactor = ctx.runThresholdPaceSecPerKm! / (session.paceData!.avgMinPerKm! * 60);
+  if (intensityFactor > maxPlausibleIntensityFactor(durationSec)) {
     return null;
   }
 
