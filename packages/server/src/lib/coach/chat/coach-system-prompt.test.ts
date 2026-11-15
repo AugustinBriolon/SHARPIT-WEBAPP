@@ -87,6 +87,17 @@ describe('coach system prompt · logFoods intent', () => {
     expect(system).toContain('ne suppose jamais qu');
     expect(system).toContain('pose UNE question ciblée');
   });
+
+  it('asks for the data-card tool first, since only the tool draws the card', async () => {
+    const { system } = await buildCoachSystemPrompt(
+      'athlete-1',
+      async () => null,
+      coachRequestScope('general'),
+    );
+
+    expect(system).toContain("appelle D'ABORD l'outil qui correspond");
+    expect(system).toContain('Forme / énergie / stress du jour → explainDayScores');
+  });
 });
 
 describe('coach system prompt · learning memory', () => {
