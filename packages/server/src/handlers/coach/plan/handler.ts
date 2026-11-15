@@ -72,6 +72,7 @@ import {
 } from '@sharpit/server/lib/coach/knowledge/knowledge-cues-from-context';
 import { detectCoachPlaybookSituation } from '@sharpit/server/lib/coach/playbooks/detect-playbook-situation';
 import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
+import { loadStrengthHistoryBlock } from '@sharpit/server/lib/strength/exercise-history';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import {
   deriveWeekQuality,
@@ -339,7 +340,8 @@ async function buildPreparedPlan(
   const goalBlock =
     (goal ? buildGoalBlock(goal, start) : '') +
     (await buildFeasibilityBlock(athleteId, goal)) +
-    buildStepRaceBlock(ctx.races ?? [], start, days);
+    buildStepRaceBlock(ctx.races ?? [], start, days) +
+    (await loadStrengthHistoryBlock(athleteId));
   const macroBlock = buildMacroBlock({
     effectiveTargetLoad: travelResolved.targetLoad,
     planPhase: planPhase ?? undefined,

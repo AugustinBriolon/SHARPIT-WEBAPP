@@ -60,6 +60,10 @@ vi.mock('@sharpit/server/lib/queries', () => ({
   getTrainingZoneNotes: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock('@sharpit/server/lib/strength/exercise-history', () => ({
+  loadStrengthHistoryBlock: vi.fn(async () => ''),
+}));
+
 vi.mock('@sharpit/server/lib/training/pmc/pmc-server', () => ({
   loadAthletePmcAnchor: vi.fn().mockResolvedValue(null),
   loadDailyTrainingStressEntries: vi.fn().mockResolvedValue([]),

@@ -108,3 +108,46 @@ export async function loadExerciseHistory(athleteId: string): Promise<StrengthEx
     sets.map(({ activity, ...set }) => ({ ...set, date: activity.date })),
   );
 }
+
+/** Exercises given to the plan generator: enough to cover a programme, short in the prompt. */
+const COACH_HISTORY_LIMIT = 25;
+
+function figures(sets: number | null, reps: number | null, weightKg: number | null): string {
+  const volume = sets !== null ? `${sets}×${reps}` : `${reps} rép.`;
+  return weightKg !== null && weightKg > 0 ? `${volume} à ${weightKg} kg` : volume;
+}
+
+function historyLine(entry: StrengthExerciseHistory): string {
+  const { last, best } = entry;
+  const lastText =
+    last.durationSec !== null && last.durationSec > 0
+      ? `${last.sets}×${last.durationSec} s`
+      : figures(last.sets, last.reps, last.weightKg);
+  const bestText =
+    best.weightKg !== null
+      ? `, meilleur ${figures(null, best.reps, best.weightKg)}`
+      : best.durationSec !== null
+        ? `, meilleur ${best.durationSec} s`
+        : '';
+  return `- ${entry.name} : dernière fois ${lastText} (${last.date})${bestText}, ${entry.sessions} séance(s)`;
+}
+
+/**
+ * What the athlete actually lifted, for the plan generator: without it every strength
+ * session was prescribed from nothing and no load could progress from the last one.
+ * Empty when nothing was logged.
+ */
+export function formatStrengthHistoryBlock(history: readonly StrengthExerciseHistory[]): string {
+  if (history.length === 0) {
+    return '';
+  }
+  return [
+    '\n\n## Historique de renfo (chiffres réellement faits)',
+    '- Pour un exercice listé, pars de la dernière séance : même charge si elle date de plus de 3 semaines, sinon +2,5 à 5 % ou +1 à 2 répétitions. Ne dépasse jamais le meilleur de plus de 5 %. Un exercice absent de la liste se prescrit sans charge chiffrée.',
+    ...history.slice(0, COACH_HISTORY_LIMIT).map(historyLine),
+  ].join('\n');
+}
+
+export async function loadStrengthHistoryBlock(athleteId: string): Promise<string> {
+  return formatStrengthHistoryBlock(await loadExerciseHistory(athleteId));
+}

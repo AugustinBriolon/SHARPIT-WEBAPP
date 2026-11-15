@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { exerciseKey, summarizeExerciseHistory, type StrengthSetRow } from './exercise-history';
+import {
+  exerciseKey,
+  formatStrengthHistoryBlock,
+  summarizeExerciseHistory,
+  type StrengthSetRow,
+} from './exercise-history';
 
 function row(overrides: Partial<StrengthSetRow>): StrengthSetRow {
   return {
@@ -66,5 +71,24 @@ describe('summarizeExerciseHistory', () => {
       row({ exercise: 'Tractions', date: new Date('2026-11-10T10:00:00Z') }),
     ]).map((exercise) => exercise.name);
     expect(names).toEqual(['Tractions', 'Squat']);
+  });
+});
+
+describe('formatStrengthHistoryBlock', () => {
+  it('says nothing when nothing was logged', () => {
+    expect(formatStrengthHistoryBlock([])).toBe('');
+  });
+
+  it('gives the generator the last and best figures of each exercise', () => {
+    const block = formatStrengthHistoryBlock(
+      summarizeExerciseHistory([
+        row({ weightKg: 70, reps: 5, date: new Date('2026-10-01T10:00:00Z') }),
+        row({}),
+        row({ exercise: 'Gainage', weightKg: null, reps: 1, durationSec: 45 }),
+      ]),
+    );
+    expect(block).toContain('Développé couché : dernière fois 3×8 à 60 kg (2026-11-01)');
+    expect(block).toContain('meilleur 5 rép. à 70 kg');
+    expect(block).toContain('Gainage : dernière fois 3×45 s');
   });
 });
