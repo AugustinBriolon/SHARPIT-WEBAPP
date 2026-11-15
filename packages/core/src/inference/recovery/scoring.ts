@@ -37,30 +37,41 @@ function clamp(value: number, min: number, max: number): number {
  * Thresholds (Plews et al. 2013, Buchheit 2014):
  *   ±5% = noise. Meaningful suppression begins at -10–15%.
  */
+const HRV_DELTA_KNOTS: ReadonlyArray<readonly [pct: number, raw: number]> = [
+  [-27.5, 10],
+  [-20, 25],
+  [-12.5, 40],
+  [-7.5, 55],
+  [-2.5, 70],
+  [2.5, 80],
+  [7.5, 90],
+  [10, 100],
+];
+
+/**
+ * Linear between the bands' centres: as steps, −4.9 % scored 70 and −5.1 % scored 55,
+ * so a fifth of a percent moved readiness by five points.
+ */
 function mapHrvDeltaToAutonomicRaw(pct: number): number {
-  if (pct > 10) {
-    return 100;
+  const [first] = HRV_DELTA_KNOTS;
+  const last = HRV_DELTA_KNOTS[HRV_DELTA_KNOTS.length - 1];
+  if (pct <= first[0]) {
+    return first[1];
   }
-  if (pct > 5) {
-    return 90;
+  if (pct >= last[0]) {
+    return last[1];
   }
-  if (pct > 0) {
-    return 80;
-  }
-  if (pct > -5) {
-    return 70;
-  }
-  if (pct > -10) {
-    return 55;
-  }
-  if (pct > -15) {
-    return 40;
-  }
-  if (pct > -25) {
-    return 25;
-  }
-  return 10;
+  const upper = HRV_DELTA_KNOTS.findIndex(([knot]) => pct < knot);
+  const [x0, y0] = HRV_DELTA_KNOTS[upper - 1];
+  const [x1, y1] = HRV_DELTA_KNOTS[upper];
+  return y0 + ((pct - x0) / (x1 - x0)) * (y1 - y0);
 }
+
+/**
+ * One standard deviation of the athlete's own window reads as this many percent on
+ * the bands above, which were drawn for a typical day-to-day variation.
+ */
+const HRV_PERCENT_PER_STANDARD_DEVIATION = 7.5;
 
 /**
  * Fallback when HRV delta is unavailable: use absolute RMSSD with
@@ -114,11 +125,13 @@ function rhrModifier(rhrDelta: number | null): number {
  * Returns null when no HRV data is available.
  */
 export function scoreAutonomic(features: RecoveryFeatureSet): DimensionScore {
-  const { hrvDeltaFromBaseline, hrvAbsolute, rhrDeltaFromBaseline } = features;
+  const { hrvDeltaFromBaseline, hrvZScore, hrvAbsolute, rhrDeltaFromBaseline } = features;
 
   if (isSet(hrvDeltaFromBaseline)) {
-    // Primary path: personalized delta from baseline
-    const raw = mapHrvDeltaToAutonomicRaw(hrvDeltaFromBaseline);
+    // Primary path: against the athlete's own baseline, in their own variability when known
+    const raw = mapHrvDeltaToAutonomicRaw(
+      isSet(hrvZScore) ? hrvZScore * HRV_PERCENT_PER_STANDARD_DEVIATION : hrvDeltaFromBaseline,
+    );
     const modifier = rhrModifier(rhrDeltaFromBaseline);
     const score = clamp(raw * modifier, 0, 100);
     return {
@@ -215,23 +228,49 @@ export function sleepStressModifier(avgStressDuringSleep: number | null): number
   return 1.0;
 }
 
-export function scoreSleep(features: RecoveryFeatureSet): DimensionScore {
-  const { sleepEfficiencyPercent } = features;
+/**
+ * Score last night's duration against the target: the target reached is 100, half of
+ * it 20, linear between. Duration is the best-supported sleep measure a wearable gives.
+ */
+export function mapSleepDurationRatioToRaw(ratio: number): number {
+  return clamp(20 + ((ratio - 0.5) / 0.5) * 80, 20, 100);
+}
 
-  if (sleepEfficiencyPercent === undefined || sleepEfficiencyPercent === null) {
+/**
+ * Stages and duration each count for half when both are known. A night without
+ * stages is scored on its duration alone, at a lower quality, rather than not at all.
+ */
+function sleepBaseScore(features: RecoveryFeatureSet): { base: number; quality: number } | null {
+  const stages = isSet(features.sleepEfficiencyPercent)
+    ? mapRestorativeSleepRatioToRaw(features.sleepEfficiencyPercent)
+    : null;
+  const duration = isSet(features.sleepDurationRatio)
+    ? mapSleepDurationRatioToRaw(features.sleepDurationRatio)
+    : null;
+
+  if (stages !== null && duration !== null) {
+    return { base: (stages + duration) / 2, quality: 0.65 };
+  }
+  if (stages !== null) {
+    return { base: stages, quality: 0.65 };
+  }
+  if (duration !== null) {
+    return { base: duration, quality: 0.5 };
+  }
+  return null;
+}
+
+export function scoreSleep(features: RecoveryFeatureSet): DimensionScore {
+  const night = sleepBaseScore(features);
+  if (!night) {
     return { score: null, available: false, qualityFactor: 0.0 };
   }
 
-  const baseScore = clamp(mapRestorativeSleepRatioToRaw(sleepEfficiencyPercent), 0, 100);
   const debtModifier = sleepDebtModifier(features.sleepDebtMin);
   const stressModifier = sleepStressModifier(features.avgStressDuringSleep);
-  const score = clamp(baseScore * debtModifier * stressModifier, 0, 100);
+  const score = clamp(night.base * debtModifier * stressModifier, 0, 100);
 
-  return {
-    score,
-    available: true,
-    qualityFactor: 0.65, // MEASURED_OPTICAL (Garmin sleep tracking)
-  };
+  return { score, available: true, qualityFactor: night.quality };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

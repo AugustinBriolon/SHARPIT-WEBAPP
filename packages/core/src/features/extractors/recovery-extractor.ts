@@ -81,11 +81,24 @@ function computeSleepEfficiency(sleep: SleepObservation | null): number | null {
   if (!sleep) {
     return null;
   }
-  const { deepMin, remMin, totalMinutes } = sleep;
+  const { deepMin, remMin, lightMin, totalMinutes } = sleep;
   if (!deepMin || !remMin || totalMinutes <= 0) {
     return null;
   }
-  return ((deepMin + remMin) / totalMinutes) * 100;
+  // totalMinutes counts naps, whose stages are not recorded: over it, a nap lowered
+  // the ratio. The night's own stages are the denominator whenever they are known.
+  const asleepMin = lightMin ? deepMin + remMin + lightMin : totalMinutes;
+  return ((deepMin + remMin) / asleepMin) * 100;
+}
+
+function computeSleepDurationRatio(
+  sleep: SleepObservation | null,
+  ctx: ExtractionContext,
+): number | null {
+  if (!sleep || sleep.totalMinutes <= 0) {
+    return null;
+  }
+  return sleep.totalMinutes / effectiveSleepTarget(ctx);
 }
 
 function computeSleepDebt(
@@ -156,6 +169,24 @@ function computeHrvDelta(
   }
 
   return garminHrvDelta(hrv);
+}
+
+/** Today's ln(rMSSD) in standard deviations of the athlete's prior 14-day window. */
+function computeHrvZScore(
+  hrv: HrvObservation | null,
+  hrv14d: RecoveryHistory['hrv14d'],
+): number | null {
+  if (!hrv || hrv.valueMsRmssd <= 0) {
+    return null;
+  }
+  const prior = hrv14d
+    .filter((h) => h.timestamp.getTime() !== hrv.timestamp.getTime() && h.valueMsRmssd > 0)
+    .map((h) => Math.log(h.valueMsRmssd));
+  if (prior.length < HRV_BASELINE_MIN_POINTS) {
+    return null;
+  }
+  const sd = stdDev(prior);
+  return sd > 0 ? (Math.log(hrv.valueMsRmssd) - mean(prior)) / sd : null;
 }
 
 function computeHrvCv(hrv14d: RecoveryHistory['hrv14d']): number | null {
@@ -331,12 +362,14 @@ export function extractRecoveryFeatures(input: RecoveryExtractorInput): Recovery
   const { hrv, rhr, sleep, subjective, history, ctx } = input;
 
   const sleepEfficiencyPercent = computeSleepEfficiency(sleep);
+  const sleepDurationRatio = computeSleepDurationRatio(sleep, ctx);
   const sleepDebtMin = computeSleepDebt(history.sleep14d, ctx);
   const sleepOnsetConsistencyMin = computeSleepOnsetConsistency(history.sleep14d);
   const sleepDurationTrend = computeSleepDurationTrend(history.sleep14d);
 
   const hrvAbsolute = hrv?.valueMsRmssd ?? null;
   const hrvDeltaFromBaseline = computeHrvDelta(hrv, history.hrv14d);
+  const hrvZScore = computeHrvZScore(hrv, history.hrv14d);
   const hrvCoefficientOfVariation = computeHrvCv(history.hrv14d);
 
   const rhrAbsolute = rhr?.valueBpm ?? null;
@@ -357,12 +390,14 @@ export function extractRecoveryFeatures(input: RecoveryExtractorInput): Recovery
     trainingDayId: ctx.trainingDayId,
 
     sleepEfficiencyPercent,
+    sleepDurationRatio,
     sleepDebtMin,
     sleepOnsetConsistencyMin,
     sleepDurationTrend,
 
     hrvAbsolute,
     hrvDeltaFromBaseline,
+    hrvZScore,
     hrvCoefficientOfVariation,
 
     rhrAbsolute,

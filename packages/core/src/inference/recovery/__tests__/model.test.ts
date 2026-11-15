@@ -114,29 +114,39 @@ describe('scoreAutonomic', () => {
   });
 
   it('returns correct score for HRV at +5% to +10%', () => {
-    const dim = scoreAutonomic(makeRecovery({ hrvDeltaFromBaseline: 7, rhrDeltaFromBaseline: 0 }));
+    const dim = scoreAutonomic(
+      makeRecovery({ hrvDeltaFromBaseline: 7.5, rhrDeltaFromBaseline: 0 }),
+    );
     expect(dim.score).toBe(90);
   });
 
   it('returns 80 for HRV in neutral zone (0% to +5%)', () => {
-    const dim = scoreAutonomic(makeRecovery({ hrvDeltaFromBaseline: 3, rhrDeltaFromBaseline: 0 }));
+    const dim = scoreAutonomic(
+      makeRecovery({ hrvDeltaFromBaseline: 2.5, rhrDeltaFromBaseline: 0 }),
+    );
     expect(dim.score).toBe(80);
   });
 
   it('returns 70 for HRV in noise zone (-5% to 0%)', () => {
-    const dim = scoreAutonomic(makeRecovery({ hrvDeltaFromBaseline: -3, rhrDeltaFromBaseline: 0 }));
+    const dim = scoreAutonomic(
+      makeRecovery({ hrvDeltaFromBaseline: -2.5, rhrDeltaFromBaseline: 0 }),
+    );
     expect(dim.score).toBe(70);
   });
 
   it('applies RHR penalty when RHR is elevated', () => {
     // HRV at +5%: raw = 90. RHR +6bpm: modifier = 0.75
-    const dim = scoreAutonomic(makeRecovery({ hrvDeltaFromBaseline: 7, rhrDeltaFromBaseline: 6 }));
+    const dim = scoreAutonomic(
+      makeRecovery({ hrvDeltaFromBaseline: 7.5, rhrDeltaFromBaseline: 6 }),
+    );
     expect(dim.score).toBeCloseTo(90 * 0.75, 0);
   });
 
   it('applies RHR boost when RHR is suppressed', () => {
     // HRV at 0%: raw = 80. RHR -6bpm: modifier = 1.10
-    const dim = scoreAutonomic(makeRecovery({ hrvDeltaFromBaseline: 3, rhrDeltaFromBaseline: -6 }));
+    const dim = scoreAutonomic(
+      makeRecovery({ hrvDeltaFromBaseline: 2.5, rhrDeltaFromBaseline: -6 }),
+    );
     expect(dim.score).toBeCloseTo(Math.min(80 * 1.1, 100), 0);
   });
 
@@ -167,6 +177,50 @@ describe('scoreAutonomic', () => {
       makeRecovery({ hrvDeltaFromBaseline: -30, rhrDeltaFromBaseline: 10 }),
     );
     expect(dim.score).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe('recovery scoring — audit F4/F5', () => {
+  it('is continuous in the HRV delta: a 1 % change never moves the score by more than 4', () => {
+    for (let pct = -30; pct < 15; pct += 1) {
+      const a = scoreAutonomic(
+        makeRecovery({ hrvDeltaFromBaseline: pct, rhrDeltaFromBaseline: 0 }),
+      );
+      const b = scoreAutonomic(
+        makeRecovery({ hrvDeltaFromBaseline: pct + 1, rhrDeltaFromBaseline: 0 }),
+      );
+      expect(Math.abs(b.score! - a.score!)).toBeLessThanOrEqual(4);
+      expect(b.score!).toBeGreaterThanOrEqual(a.score!);
+    }
+  });
+
+  it("reads the same drop in the athlete's own variability", () => {
+    const steady = scoreAutonomic(
+      makeRecovery({ hrvDeltaFromBaseline: -10, hrvZScore: -2.5, rhrDeltaFromBaseline: 0 }),
+    );
+    const variable = scoreAutonomic(
+      makeRecovery({ hrvDeltaFromBaseline: -10, hrvZScore: -0.6, rhrDeltaFromBaseline: 0 }),
+    );
+    expect(variable.score!).toBeGreaterThan(steady.score!);
+  });
+
+  it('scores a night without stages on its duration', () => {
+    const short = scoreSleep(
+      makeRecovery({ sleepEfficiencyPercent: null, sleepDurationRatio: 0.55, sleepDebtMin: 0 }),
+    );
+    const full = scoreSleep(
+      makeRecovery({ sleepEfficiencyPercent: null, sleepDurationRatio: 1, sleepDebtMin: 0 }),
+    );
+    expect(short.available).toBe(true);
+    expect(short.score!).toBeLessThan(40);
+    expect(full.score).toBe(100);
+  });
+
+  it('a short night with good stages no longer scores as a good night', () => {
+    const dim = scoreSleep(
+      makeRecovery({ sleepEfficiencyPercent: 58, sleepDurationRatio: 0.6, sleepDebtMin: 0 }),
+    );
+    expect(dim.score!).toBeLessThan(70);
   });
 });
 

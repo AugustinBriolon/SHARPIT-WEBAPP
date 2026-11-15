@@ -626,10 +626,10 @@ describe('Scenario 6 — Taper before race: supercompensation achieved', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('Scenario 7 — Functional overreaching: end of BUILD block week 3', () => {
-  // HRV delta -21% → autonomicRaw = 25 × rhrModifier(+4 = 0.85) ≈ 21.25
+  // HRV delta -20.5% → autonomicRaw ≈ 24 (the bands are linear between their centres) × rhrModifier(+4 = 0.85) ≈ 21.25
   // restorative 30% → sleepRaw = 35 × debtModifier(180min = 0.85) ≈ 30
   const recovery = makeRecovery({
-    hrvDeltaFromBaseline: -21,
+    hrvDeltaFromBaseline: -20.5,
     rhrDeltaFromBaseline: 4,
     sleepEfficiencyPercent: 30,
     sleepDebtMin: 180,

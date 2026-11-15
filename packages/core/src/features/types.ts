@@ -290,6 +290,12 @@ export type RecoveryFeatureSet = {
   readonly sleepEfficiencyPercent: number | null;
 
   /**
+   * Last night's sleep against the athlete's target (1.0 = the target reached).
+   * Optional: feature sets stored before it existed do not carry it.
+   */
+  readonly sleepDurationRatio?: number | null;
+
+  /**
    * Cumulative sleep debt over last 7 days in minutes.
    * = (sleepTargetMinutes × 7) − sum(actualSleepMin last 7 days)
    * Positive = sleep deficit. Negative = sleep surplus.
@@ -319,6 +325,13 @@ export type RecoveryFeatureSet = {
    * Null when baseline cannot be established (< 7 data points in 14-day window).
    */
   readonly hrvDeltaFromBaseline: number | null;
+
+  /**
+   * Today's ln(rMSSD) against the athlete's own 14-day mean, in standard deviations
+   * of that window: a −10 % morning is noise for one athlete and a signal for another.
+   * Optional: feature sets stored before it existed do not carry it.
+   */
+  readonly hrvZScore?: number | null;
 
   /**
    * HRV coefficient of variation over last 7 days: stdDev(hrv7d) / mean(hrv7d) × 100.

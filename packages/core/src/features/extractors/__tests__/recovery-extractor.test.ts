@@ -689,3 +689,45 @@ describe('extractRecoveryFeatures — source observation IDs', () => {
     expect(result.sourceObsIds[0]).toBe(hrv.id);
   });
 });
+
+describe('extractRecoveryFeatures — audit F4/F5', () => {
+  const night = (sleep: SleepObservation) =>
+    extractRecoveryFeatures({
+      hrv: null,
+      rhr: null,
+      sleep,
+      subjective: null,
+      history: EMPTY_HISTORY,
+      ctx: makeContext(),
+    });
+
+  it('a nap does not lower the restorative ratio', () => {
+    const stages = { deepMin: 90, remMin: 90, lightMin: 240 };
+    const withoutNap = night({ ...makeSleep(420), ...stages });
+    const withNap = night({ ...makeSleep(480), ...stages });
+    expect(withNap.sleepEfficiencyPercent).toBeCloseTo(withoutNap.sleepEfficiencyPercent!, 6);
+  });
+
+  it('reads the night against the target even without stages', () => {
+    const features = night(makeSleep(240));
+    expect(features.sleepEfficiencyPercent).toBeNull();
+    expect(features.sleepDurationRatio).toBeCloseTo(0.5, 6);
+  });
+
+  it("gives the HRV in the athlete's own standard deviations", () => {
+    const today = new Date('2026-07-02T06:00:00Z');
+    const prior = Array.from({ length: 10 }, (_, i) => ({
+      valueMsRmssd: i % 2 === 0 ? 60 : 70,
+      timestamp: new Date(today.getTime() - (i + 1) * 86_400_000),
+    }));
+    const features = extractRecoveryFeatures({
+      hrv: makeHrv(50, today),
+      rhr: null,
+      sleep: null,
+      subjective: null,
+      history: { ...EMPTY_HISTORY, hrv14d: prior },
+      ctx: makeContext(),
+    });
+    expect(features.hrvZScore!).toBeLessThan(-2);
+  });
+});
