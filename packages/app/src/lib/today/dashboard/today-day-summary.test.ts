@@ -101,6 +101,14 @@ describe('buildTodayDaySummary', () => {
     expect(summary.lines[0].plannedSession?.id).toBe('p1');
   });
 
+  it('names a session by its sport when its title is only white space', () => {
+    const done = buildTodayDaySummary(TODAY, [activity({ id: 'a1', title: '   ' })], []);
+    const toDo = buildTodayDaySummary(TODAY, [], [planned({ id: 'p1', title: '   ' })]);
+
+    expect(done.lines[0].primary).toBe('Course');
+    expect(toDo.lines[0].primary).toBe('Vélo');
+  });
+
   it('attaches the first brick leg for planning deep-links', () => {
     const summary = buildTodayDaySummary(
       TODAY,

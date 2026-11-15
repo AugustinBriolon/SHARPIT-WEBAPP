@@ -289,13 +289,12 @@ function activityLabel(activity: ClientActivity): string {
   if (plannedTitle) {
     return plannedTitle;
   }
-  const title = activity.title?.trim();
-  return title ?? activityTypeLabels[activity.type];
+  // `||`: a title of spaces trims to '' and must fall back as a missing one does.
+  return activity.title?.trim() || activityTypeLabels[activity.type];
 }
 
 function plannedLabel(session: ClientPlannedSession): string {
-  const title = session.title?.trim();
-  return title ?? activityTypeLabels[session.type];
+  return session.title?.trim() || activityTypeLabels[session.type];
 }
 
 /**
