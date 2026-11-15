@@ -71,6 +71,8 @@ export type NutritionAnalysisInput = {
   energyBudgetKcal: number | null;
   weightKg: number | null;
   targetWeightKg: number | null;
+  /** Optional: absent from inputs built before it existed. */
+  measuredMaintenanceKcal?: number | null;
   diet: { ids: readonly string[]; labels: readonly string[] };
   sessions: readonly NutritionAnalysisSessionInput[];
   nextDayPlanned: readonly NutritionAnalysisPlannedInput[];
@@ -119,6 +121,8 @@ export type NutritionAnalysisFacts = {
     direction: 'lose' | 'gain' | 'maintain' | null;
     energyBudgetKcal: number | null;
     energyBalanceKcal: number | null;
+    /** Energy that held the athlete's weight over the last four weeks, from diary and scale. */
+    measuredMaintenanceKcal: number | null;
   } | null;
   meals: NutritionAnalysisMealInput[];
 };
@@ -226,6 +230,7 @@ function buildWeightGoal(input: NutritionAnalysisInput): NutritionAnalysisFacts[
     direction: weightDirection(input.weightKg, input.targetWeightKg),
     energyBudgetKcal: budget,
     energyBalanceKcal: budget === null ? null : Math.round(input.totals.calories - budget),
+    measuredMaintenanceKcal: input.measuredMaintenanceKcal ?? null,
   };
 }
 

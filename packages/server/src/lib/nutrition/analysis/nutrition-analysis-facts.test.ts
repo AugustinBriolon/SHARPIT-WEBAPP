@@ -111,6 +111,7 @@ describe('buildNutritionAnalysisFacts', () => {
       direction: 'lose',
       energyBudgetKcal: 2600,
       energyBalanceKcal: -200,
+      measuredMaintenanceKcal: null,
     });
     expect(buildNutritionAnalysisFacts(input()).weightGoal).toBeNull();
     expect(buildNutritionAnalysisFacts(input({ targetWeightKg: 70.3 })).weightGoal?.direction).toBe(

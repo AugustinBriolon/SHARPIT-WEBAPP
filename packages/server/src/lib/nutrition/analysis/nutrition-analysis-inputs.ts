@@ -1,3 +1,4 @@
+import { loadMeasuredMaintenanceKcal } from '@sharpit/server/lib/nutrition/maintenance-estimate';
 import { addDays, endOfDay, format, parseISO, startOfDay } from 'date-fns';
 import {
   activeDietIds,
@@ -87,13 +88,15 @@ export async function loadNutritionAnalysisInput(
   if (!row || meals.every((meal) => meal.entries.length === 0)) {
     return null;
   }
-  const [profile, weightKg, sessions, nextDayPlanned, skipped] = await Promise.all([
-    getAthleteProfile(athleteId),
-    getLatestBodyWeightKg(athleteId, trainingDayId),
-    loadDaySessions(athleteId, trainingDayId),
-    loadNextDayPlanned(athleteId, trainingDayId),
-    skippedMealsOf(athleteId, trainingDayId),
-  ]);
+  const [profile, weightKg, sessions, nextDayPlanned, skipped, measuredMaintenanceKcal] =
+    await Promise.all([
+      getAthleteProfile(athleteId),
+      getLatestBodyWeightKg(athleteId, trainingDayId),
+      loadDaySessions(athleteId, trainingDayId),
+      loadNextDayPlanned(athleteId, trainingDayId),
+      skippedMealsOf(athleteId, trainingDayId),
+      loadMeasuredMaintenanceKcal(athleteId, trainingDayId),
+    ]);
   return {
     day: trainingDayId,
     complete: row.complete,
@@ -110,6 +113,7 @@ export async function loadNutritionAnalysisInput(
     energyBudgetKcal: energyBudget(row.goalCalories, row.exerciseCalories),
     weightKg,
     targetWeightKg: profile?.targetWeightKg ?? null,
+    measuredMaintenanceKcal,
     diet: declaredDiet(profile?.journalPrefs),
     sessions,
     nextDayPlanned,
