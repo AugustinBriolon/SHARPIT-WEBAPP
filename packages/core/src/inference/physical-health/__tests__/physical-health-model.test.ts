@@ -55,9 +55,76 @@ describe('inferConditionState', () => {
     });
 
     const result = inferConditionState(condition, ref, ref);
+    // The latest reading is the worst: a flare rules the day it is reported.
+    expect(result.severity).toBe(8);
+    expect(result.evidenceObservationIds.length).toBeGreaterThan(0);
+  });
+
+  it('relief has to last: an older flare still weighs on a calmer reading', () => {
+    const condition = makeCondition({
+      observations: [
+        {
+          id: 'o1',
+          observedAt: new Date('2026-07-09'),
+          symptomPresent: true,
+          severityReported: 3,
+          functionalImpact: 'MILD',
+          context: 'MANUAL',
+        },
+        {
+          id: 'o2',
+          observedAt: new Date('2026-07-05'),
+          symptomPresent: true,
+          severityReported: 8,
+          functionalImpact: 'MILD',
+          context: 'MANUAL',
+        },
+      ],
+    });
+    const result = inferConditionState(condition, ref, ref);
     expect(result.severity).toBeGreaterThan(3);
     expect(result.severity).toBeLessThan(8);
-    expect(result.evidenceObservationIds.length).toBeGreaterThan(0);
+  });
+
+  it('counts readings at 0: three calm days after a 6 no longer read 6', () => {
+    const condition = makeCondition({
+      observations: [
+        {
+          id: 'o1',
+          observedAt: new Date('2026-07-09'),
+          symptomPresent: false,
+          severityReported: 0,
+          functionalImpact: 'MILD',
+          context: 'MANUAL',
+        },
+        {
+          id: 'o2',
+          observedAt: new Date('2026-07-08'),
+          symptomPresent: false,
+          severityReported: 0,
+          functionalImpact: 'MILD',
+          context: 'MANUAL',
+        },
+        {
+          id: 'o3',
+          observedAt: new Date('2026-07-07'),
+          symptomPresent: false,
+          severityReported: 0,
+          functionalImpact: 'MILD',
+          context: 'MANUAL',
+        },
+        {
+          id: 'o4',
+          observedAt: new Date('2026-07-02'),
+          symptomPresent: true,
+          severityReported: 6,
+          functionalImpact: 'MILD',
+          context: 'MANUAL',
+        },
+      ],
+    });
+    const result = inferConditionState(condition, ref, ref);
+    expect(result.severity).toBeLessThan(2);
   });
 
   it('treats severity 0 as asymptomatic evidence, not resolution', () => {
@@ -144,7 +211,8 @@ describe('inferConditionState', () => {
 
     const result = inferConditionState(condition, ref, ref);
     expect(result.status).toBe('RECURRENT');
-    expect(result.update.recurrenceCount).toBe(1);
+    // The relapse is counted once, where it is declared, not on each inference.
+    expect(result.update.recurrenceCount).toBe(0);
   });
 });
 

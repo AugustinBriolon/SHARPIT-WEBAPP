@@ -39,61 +39,59 @@ function decayWeight(daysAgo: number): number {
   return Math.exp((-daysAgo * Math.LN2) / SEVERITY_DECAY_HALF_LIFE_DAYS);
 }
 
+/**
+ * What a reading says of the pain: its figure, or 0 when the athlete reported none.
+ * A reading at 0 is stored as asymptomatic; left out, three days at 0 after a 6 still
+ * averaged to 6 for four weeks.
+ */
+function readingSeverity(observation: ConditionObservationInput): number | null {
+  if (!observation.symptomPresent) {
+    return 0;
+  }
+  return isSet(observation.severityReported) ? (observation.severityReported as number) : null;
+}
+
 function inferSeverityFromObservations(
   observations: readonly ConditionObservationInput[],
   referenceAt: Date,
 ): { severity: number; evidenceIds: string[] } {
   const windowDays = 28;
-  const symptomatic = observations.filter(
-    (o) =>
-      o.symptomPresent &&
-      isSet(o.severityReported) &&
-      daysBetween(o.observedAt, referenceAt) <= windowDays &&
-      daysBetween(o.observedAt, referenceAt) >= 0,
-  );
+  const dated = observations
+    .filter((o) => readingSeverity(o) !== null && daysBetween(o.observedAt, referenceAt) >= 0)
+    .sort((x, y) => y.observedAt.getTime() - x.observedAt.getTime());
+  const recent = dated.filter((o) => daysBetween(o.observedAt, referenceAt) <= windowDays);
+  const [latest] = dated;
 
-  if (symptomatic.length === 0) {
-    // No symptomatic observations within the 28-day window.
-    // Check the most recent observation (symptomatic or not) to decide:
-    // - If the last observation reported severity 0 or was asymptomatic,
-    //   the condition is genuinely at 0.
-    // - Otherwise, carry the last known severity forward — the athlete
-    //   simply hasn't checked in recently, not improved.
-    const sorted = [...observations]
-      .filter((o) => isSet(o.severityReported) && daysBetween(o.observedAt, referenceAt) >= 0)
-      .sort((a, b) => b.observedAt.getTime() - a.observedAt.getTime());
-
-    if (sorted.length === 0) {
-      return { severity: 0, evidenceIds: [] };
-    }
-
-    const [latest] = sorted;
-    if (!latest.symptomPresent || (latest.severityReported as number) === 0) {
-      return { severity: 0, evidenceIds: [] };
-    }
-
+  if (!latest) {
+    return { severity: 0, evidenceIds: [] };
+  }
+  if (recent.length === 0) {
+    // Nothing in four weeks: the athlete has not checked in, not improved.
+    const carried = readingSeverity(latest) as number;
     return {
-      severity: Math.round((latest.severityReported as number) * 10) / 10,
-      evidenceIds: [latest.id],
+      severity: Math.round(carried * 10) / 10,
+      evidenceIds: carried > 0 ? [latest.id] : [],
     };
   }
 
   let weightedSum = 0;
   let weightTotal = 0;
-  const evidenceIds: string[] = [];
-
-  for (const obs of symptomatic) {
-    const daysAgo = Math.max(0, daysBetween(obs.observedAt, referenceAt));
-    const w = decayWeight(daysAgo);
-    weightedSum += (obs.severityReported as number) * w;
+  for (const obs of recent) {
+    const w = decayWeight(daysBetween(obs.observedAt, referenceAt));
+    weightedSum += (readingSeverity(obs) as number) * w;
     weightTotal += w;
-    evidenceIds.push(obs.id);
   }
+  const mean = weightTotal > 0 ? weightedSum / weightTotal : 0;
+  // Fast up, slow down: a flare rules the day it is reported, relief has to last.
+  const severity = Math.max(mean, readingSeverity(latest) as number);
 
-  const severity = weightTotal > 0 ? weightedSum / weightTotal : 0;
   return {
     severity: Math.round(severity * 10) / 10,
-    evidenceIds: evidenceIds.slice(-5),
+    evidenceIds: recent
+      .filter((o) => o.symptomPresent)
+      .map((o) => o.id)
+      .reverse()
+      .slice(-5),
   };
 }
 
@@ -108,8 +106,7 @@ export function inferTrend(
   const points = observations
     .filter(
       (o) =>
-        o.symptomPresent &&
-        isSet(o.severityReported) &&
+        readingSeverity(o) !== null &&
         daysBetween(o.observedAt, referenceAt) <= 14 &&
         daysBetween(o.observedAt, referenceAt) >= 0,
     )
@@ -122,7 +119,7 @@ export function inferTrend(
   const t0 = points[0].observedAt.getTime();
   const pairs = points.map((p) => ({
     x: (p.observedAt.getTime() - t0) / MS_PER_DAY,
-    y: p.severityReported as number,
+    y: readingSeverity(p) as number,
   }));
 
   const n = pairs.length;
@@ -204,7 +201,9 @@ function inferRecurrentStatus(
 ): { status: ConditionStatus; recurrenceCount: number } | null {
   const wasResolved = isSet(condition.resolvedAt) || condition.episodes.some((e) => e.resolvedAt);
   if (wasResolved && veryRecentSymptom) {
-    return { status: 'RECURRENT', recurrenceCount: condition.recurrenceCount + 1 };
+    // The relapse itself is counted once, where it is declared: counted here it grew
+    // by one on every daily inference.
+    return { status: 'RECURRENT', recurrenceCount: condition.recurrenceCount };
   }
   return null;
 }
