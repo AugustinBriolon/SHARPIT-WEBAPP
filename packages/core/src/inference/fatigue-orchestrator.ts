@@ -28,6 +28,7 @@ import type { DigitalTwinRepository } from '../digital-twin/repository';
 import type { DecisionRecordRepository } from './types';
 
 import { runFatigueModel } from './fatigue/model';
+import { fatigueIndexWithoutCumulative } from './fatigue/scoring';
 import { addTrainingDays } from '../training/training-day';
 import type { FatigueModelOutput, FatigueModelContext } from './fatigue/types';
 import type { DecisionRecord } from './types';
@@ -258,7 +259,7 @@ export class FatigueInferenceOrchestrator {
     const history = this.extractFatigueHistory(records);
     return {
       consecutiveAccumulationDays: this.countConsecutiveAccumulationDays(
-        history,
+        this.extractStreakHistory(records),
         ACCUMULATION_THRESHOLD,
       ),
       recentFatigueHistory: history,
@@ -312,6 +313,20 @@ export class FatigueInferenceOrchestrator {
       }
     }
     return history;
+  }
+
+  /** Each day's index without its cumulative part, so the streak cannot hold itself up. */
+  private extractStreakHistory(records: Array<{ stateUpdate: Record<string, unknown> }>): number[] {
+    return records.flatMap((record) => {
+      const state = record.stateUpdate as {
+        fatigueIndex?: number | null;
+        dimensions?: Parameters<typeof fatigueIndexWithoutCumulative>[0];
+      };
+      const value = state.dimensions
+        ? fatigueIndexWithoutCumulative(state.dimensions)
+        : (state.fatigueIndex ?? null);
+      return isSet(value) ? [value] : [];
+    });
   }
 
   private countConsecutiveAccumulationDays(

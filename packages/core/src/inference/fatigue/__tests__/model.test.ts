@@ -25,6 +25,7 @@ import {
   computeFatigueTrajectory,
   scoreCumulativeTrajectory,
   scoreLoadFatigue,
+  fatigueIndexWithoutCumulative,
   sessionsWithCarryOver,
   scoreMetabolicFatigue,
   scorePsychologicalFatigue,
@@ -539,5 +540,22 @@ describe('fatigue — audit pass 2 (G1, G2)', () => {
     );
     expect(rested.score).toBe(0);
     expect(after.score!).toBeGreaterThanOrEqual(50);
+  });
+});
+
+describe('fatigue — the accumulation streak does not hold itself up (G4)', () => {
+  it('reads a day below the threshold once its cumulative part is set aside', () => {
+    const dimensions = {
+      load: { score: 45 },
+      neuromuscular: { score: 50 },
+      metabolic: { score: 40 },
+      cumulative: { score: 100 },
+      psychological: { score: 40 },
+    };
+    expect(fatigueIndexWithoutCumulative(dimensions)!).toBeLessThan(55);
+  });
+
+  it('says nothing from a single dimension', () => {
+    expect(fatigueIndexWithoutCumulative({ load: { score: 90 } })).toBeNull();
   });
 });

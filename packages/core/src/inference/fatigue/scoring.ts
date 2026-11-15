@@ -634,3 +634,25 @@ export function sessionsWithCarryOver(
   });
   return [...today, ...carried];
 }
+
+/**
+ * The index a day would have had without its cumulative dimension, from the dimensions
+ * it stored. The accumulation streak is counted on it: counted on the full index, a day
+ * above the threshold raised the cumulative score, which kept the next day above it.
+ * Null when fewer than two of those dimensions were scored.
+ */
+export function fatigueIndexWithoutCumulative(
+  dimensions: Partial<Record<keyof typeof DIMENSION_WEIGHTS, { score: number | null } | null>>,
+): number | null {
+  const scored = (['load', 'neuromuscular', 'metabolic', 'psychological'] as const).flatMap(
+    (key) => {
+      const score = dimensions[key]?.score;
+      return isSet(score) ? [{ score, weight: DIMENSION_WEIGHTS[key] }] : [];
+    },
+  );
+  if (scored.length < 2) {
+    return null;
+  }
+  const totalWeight = scored.reduce((sum, d) => sum + d.weight, 0);
+  return scored.reduce((sum, d) => sum + (d.score * d.weight) / totalWeight, 0);
+}
