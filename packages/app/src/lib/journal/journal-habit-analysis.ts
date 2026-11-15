@@ -11,6 +11,8 @@
  * - Load: the outcome is adjusted for the TSS of the day before it was measured, by a linear
  *   fit over the athlete's own days, so a habit that follows hard sessions is not blamed for
  *   the sessions.
+ * - Weekday: a weekend morning is brought back to the athlete's weekday level, so a habit
+ *   of Saturday evenings is not credited with Sunday's longer night.
  * - Net vs lead: a Mann–Whitney rank test per contrast, then Benjamini–Hochberg across every
  *   contrast tested, so testing fifty habits does not manufacture associations.
  * - Habits always logged together are inseparable in the data: one row names them all, and
@@ -29,6 +31,7 @@ import {
   benjaminiHochberg,
   loadAdjuster,
   mannWhitneyPValue,
+  weekendAdjuster,
 } from '@sharpit/app/lib/journal/journal-habit-statistics';
 
 export type RecordedFactor = 'yes' | 'no';
@@ -299,6 +302,35 @@ function loadBeforeMorning(loadByDay: ReadonlyMap<string, number>, outcomeDayId:
   return previous ? (loadByDay.get(previous) ?? 0) : 0;
 }
 
+/** Saturday and Sunday mornings, from the day's own date. */
+function isWeekendMorning(trainingDayId: string): boolean {
+  const weekday = new Date(`${trainingDayId}T00:00:00Z`).getUTCDay();
+  return weekday === 0 || weekday === 6;
+}
+
+/** A reader adjusted for the load of the day before, when there are days enough to fit it. */
+function loadAdjustedReader(
+  days: readonly JournalAnalysisDay[],
+  raw: OutcomeReader,
+  loadByDay: ReadonlyMap<string, number> | undefined,
+): OutcomeReader {
+  if (!loadByDay) {
+    return raw;
+  }
+  const points = days.flatMap((day) => {
+    const value = raw(day.trainingDayId);
+    return value === null ? [] : [{ value, load: loadBeforeMorning(loadByDay, day.trainingDayId) }];
+  });
+  const adjust = loadAdjuster(points);
+  if (!adjust) {
+    return raw;
+  }
+  return (dayId) => {
+    const value = raw(dayId);
+    return value === null ? null : adjust(value, loadBeforeMorning(loadByDay, dayId));
+  };
+}
+
 function outcomeReader(
   days: readonly JournalAnalysisDay[],
   outcome: JournalOutcomeKey,
@@ -309,20 +341,18 @@ function outcomeReader(
     const day = byId.get(dayId);
     return day ? outcomeValue(day, outcome) : null;
   };
-  if (!loadByDay) {
-    return raw;
-  }
+  const forLoad = loadAdjustedReader(days, raw, loadByDay);
   const points = days.flatMap((day) => {
-    const value = outcomeValue(day, outcome);
-    return value === null ? [] : [{ value, load: loadBeforeMorning(loadByDay, day.trainingDayId) }];
+    const value = forLoad(day.trainingDayId);
+    return value === null ? [] : [{ value, weekend: isWeekendMorning(day.trainingDayId) }];
   });
-  const adjust = loadAdjuster(points);
+  const adjust = weekendAdjuster(points);
   if (!adjust) {
-    return raw;
+    return forLoad;
   }
   return (dayId) => {
-    const value = raw(dayId);
-    return value === null ? null : adjust(value, loadBeforeMorning(loadByDay, dayId));
+    const value = forLoad(dayId);
+    return value === null ? null : adjust(value, isWeekendMorning(dayId));
   };
 }
 

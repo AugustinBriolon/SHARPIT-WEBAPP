@@ -96,3 +96,25 @@ export function loadAdjuster(
   const slope = covariance / variance;
   return (value, load) => value - slope * (load - meanLoad);
 }
+
+/** Below this many mornings on either side a weekend gap is noise. */
+export const MIN_DAYS_FOR_WEEKEND_FIT = 4;
+
+/**
+ * Brings a weekend morning back to the athlete's weekday level, as a function. Nights are
+ * longer before a day off and weekend habits come with them: left in, a Saturday-evening
+ * habit takes the credit for Sunday's lie-in. Null when either side has too few mornings.
+ */
+export function weekendAdjuster(
+  points: ReadonlyArray<{ weekend: boolean; value: number }>,
+): ((value: number, weekend: boolean) => number) | null {
+  const weekend = points.filter((point) => point.weekend).map((point) => point.value);
+  const weekday = points.filter((point) => !point.weekend).map((point) => point.value);
+  if (weekend.length < MIN_DAYS_FOR_WEEKEND_FIT || weekday.length < MIN_DAYS_FOR_WEEKEND_FIT) {
+    return null;
+  }
+  const mean = (values: readonly number[]) =>
+    values.reduce((sum, value) => sum + value, 0) / values.length;
+  const gap = mean(weekend) - mean(weekday);
+  return (value, isWeekend) => (isWeekend ? value - gap : value);
+}

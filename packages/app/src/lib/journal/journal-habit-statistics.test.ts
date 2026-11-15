@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  weekendAdjuster,
   benjaminiHochberg,
   loadAdjuster,
   mannWhitneyPValue,
@@ -33,5 +34,25 @@ describe('journal-habit-statistics', () => {
     expect(adjust(58, 110)).toBeCloseTo(69);
     expect(loadAdjuster(points.slice(0, 5))).toBeNull();
     expect(loadAdjuster(points.map((p) => ({ ...p, load: 50 })))).toBeNull();
+  });
+});
+
+describe('weekendAdjuster', () => {
+  it('removes the gap between weekend and weekday mornings', () => {
+    const points = [
+      ...[480, 500, 490, 510].map((value) => ({ weekend: true, value })),
+      ...[420, 430, 410, 440].map((value) => ({ weekend: false, value })),
+    ];
+    const adjust = weekendAdjuster(points)!;
+    expect(adjust(495, true)).toBeCloseTo(425, 6);
+    expect(adjust(425, false)).toBe(425);
+  });
+
+  it('says nothing from too few weekend mornings', () => {
+    const points = [
+      { weekend: true, value: 480 },
+      ...[420, 430, 410, 440].map((value) => ({ weekend: false, value })),
+    ];
+    expect(weekendAdjuster(points)).toBeNull();
   });
 });
