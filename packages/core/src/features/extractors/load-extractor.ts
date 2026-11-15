@@ -101,11 +101,17 @@ function computeAcwrTrend(
   const anchorEpoch = dayIdToEpochDays(anchorDayId);
 
   const acwrByDay: Array<[number, number]> = [];
+  const earliestEpoch = Math.min(...daily42d.map((e) => dayIdToEpochDays(e.trainingDayId)));
 
   for (const entry of daily42d) {
     const entryEpoch = dayIdToEpochDays(entry.trainingDayId);
     const daysAgo = anchorEpoch - entryEpoch;
     if (daysAgo < 0 || daysAgo >= 14) {
+      continue;
+    }
+    // A day whose own 42 days are not all in the history would get a chronic load
+    // cut short, so a ratio biased high and a trend biased downward.
+    if (entryEpoch - earliestEpoch < 41) {
       continue;
     }
 

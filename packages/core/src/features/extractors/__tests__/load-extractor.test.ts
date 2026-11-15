@@ -291,3 +291,25 @@ describe('extractLoadFeatures — confidence', () => {
     expect(result.algorithmId).toBe('load-features-v1');
   });
 });
+
+describe('extractLoadFeatures — ACWR trend (audit F3)', () => {
+  const steady = (days: number) =>
+    makeHistory(
+      Array.from({ length: days }, (_, i) => {
+        const d = new Date(Date.UTC(2026, 6, 2));
+        d.setUTCDate(d.getUTCDate() - i);
+        return { dayId: d.toISOString().split('T')[0], tss: 50 };
+      }),
+    );
+
+  it('is flat for a constant load once every day has its own 42 days', () => {
+    const features = extractLoadFeatures(steady(56), '2026-07-02');
+    expect(features.acuteChronicLoadTrend).toBeCloseTo(0, 6);
+  });
+
+  it('is not computed from days whose history is cut short', () => {
+    // On 42 days only, the day 13 back saw 29 days: its ratio read 1.45, the trend fell.
+    const features = extractLoadFeatures(steady(42), '2026-07-02');
+    expect(features.acuteChronicLoadTrend).toBeNull();
+  });
+});

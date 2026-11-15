@@ -914,7 +914,8 @@ export class FeatureEngine {
   // ─────────────────────────────────────────────────────────────────────────
 
   private async buildLoadHistory(athleteId: string, trainingDayId: string): Promise<LoadHistory> {
-    const fromDayId = subtractDays(trainingDayId, 42);
+    // 42 days of chronic load for each of the 14 days the ACWR trend looks back on.
+    const fromDayId = subtractDays(trainingDayId, 55);
     const sessionRecords = await this.ensureSessionFeaturesInRange(
       athleteId,
       fromDayId,
