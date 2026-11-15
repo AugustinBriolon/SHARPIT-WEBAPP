@@ -287,3 +287,41 @@ independent ones.
    (acute minus chronic, and the last 48 hours of sessions).
 4. G4 after G1, since G1 is what holds the streak.
 5. Strength progression from stored figures; nutrition target against the weight trend.
+
+## Status after the pass 2 fixes (2026-11-15)
+
+Correction to F3: a fitness/fatigue model (CTL, ATL, TSB) does exist, in
+`packages/app/src/lib/training/pmc`, read through
+`packages/server/src/lib/training/pmc/pmc-server.ts` by the coach context, the plan gate
+and the load screens. The finding stands in another form: the Core's recovery and fatigue
+engines do not read it and run on rolling sums, so the athlete is described by two load
+models that can disagree.
+
+Done, each locked by a test:
+
+- G1 — load fatigue is linear between knots; training as usual (ACWR 1.0) scores 35.
+- G2 — the model carries half of yesterday's sessions and a quarter of the day before's
+  (`sessionsWithCarryOver`, loaded by the fatigue orchestrator).
+- G3 — mood and energy both at 5 score 0, both at 1 score 80. A dimension at 80 or more
+  floors the index at 25, so one system at its worst is never `FRESH`.
+- G5 — one table of confidence per load method; the dissonance comment says what the
+  code does.
+- Z1 — a reading at 0 counts as 0 in the severity and in the trend.
+- Z2 — the severity is the larger of the decayed mean and the latest reading.
+- Z3 — confirmed and fixed: the inference no longer adds one relapse per run.
+- Strength — the plan generator receives the athlete's last and best figures per
+  exercise with a progression rule (`formatStrengthHistoryBlock`).
+- Nutrition — the reading receives the energy that held the athlete's weight over four
+  weeks, from diary and scale (`estimateMaintenanceKcal`), to check the target against.
+
+Not done:
+
+- G4 — the accumulation counter still feeds itself; G1 removes what held it up in steady
+  training, the loop itself is unchanged.
+- G5 — `estimateTimeToFresh`; the inputs shared by recovery and fatigue.
+- The strength history reaches the plan generator only, not the daily adaptation nor the
+  chat coach. Nothing verifies that the generated loads follow the rule.
+- Carbohydrate band by intensity and next day's session; energy availability; journal
+  autocorrelation and weekday; projection elevation and heat; one load model for the
+  Core and the coach.
+- Zones already counted with an inflated relapse count are not repaired.
