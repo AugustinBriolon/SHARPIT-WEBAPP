@@ -374,3 +374,35 @@ describe('resolveAcceptedFields', () => {
     expect(resolveAcceptedFields(['ftpW'], ['ftpW', 'ftpW'])).toEqual(['ftpW']);
   });
 });
+
+describe('a downward revision moves by a bounded step', () => {
+  it('lowers an FTP by 5 % at most, however low the window reads', () => {
+    const records = {
+      powerCurve: [],
+      runBests: [],
+      runEfforts: [],
+      bikeEfforts: [{ seconds: 4200, watts: 150, date: daysAgoIso(20) }],
+    } as unknown as RecordsPayload;
+    const preview = previewThresholdApply(
+      records,
+      { ftpW: 207, runThresholdPaceSecPerKm: null, swimCssSecPer100m: null },
+      { now: NOW },
+    );
+    expect(preview.estimates.ftpW).toBe(196);
+  });
+
+  it('slows a threshold pace by 3 % at most', () => {
+    const records = {
+      powerCurve: [],
+      runBests: [],
+      runEfforts: [{ meters: 10000, seconds: 3600, date: daysAgoIso(30) }],
+      bikeEfforts: [],
+    } as unknown as RecordsPayload;
+    const preview = previewThresholdApply(
+      records,
+      { ftpW: null, runThresholdPaceSecPerKm: 296, swimCssSecPer100m: null },
+      { now: NOW },
+    );
+    expect(preview.estimates.runThresholdPaceSecPerKm).toBeLessThanOrEqual(305);
+  });
+});

@@ -267,17 +267,49 @@ function buildThresholdChanges(
 }
 
 /** Compare windowed estimates to the athlete's current thresholds. */
+/** The most one revision may lower a threshold: 5 % of power, 3 % of pace. */
+export const MAX_FTP_DROP_RATIO = 0.95;
+export const MAX_PACE_SLOWDOWN_RATIO = 1.03;
+
+/**
+ * An estimate drawn from the best efforts of a window is a floor, not a measure: weeks
+ * without an all-out effort lower it while the athlete loses nothing. Followed as it came,
+ * an FTP went from 207 to 170 W in three months and every session was rescored on it. A
+ * revision upward is taken whole; one downward moves by a bounded step.
+ */
+function boundDownwardRevisions(
+  estimates: ThresholdEstimates,
+  current: ThresholdApplyPreview['current'],
+): ThresholdEstimates {
+  const slowest = (now: number | null, estimated: number | null) =>
+    isSet(now) && isSet(estimated)
+      ? Math.min(estimated, Math.round(now * MAX_PACE_SLOWDOWN_RATIO))
+      : estimated;
+  return {
+    ...estimates,
+    ftpW:
+      isSet(current.ftpW) && isSet(estimates.ftpW)
+        ? Math.max(estimates.ftpW, Math.floor(current.ftpW * MAX_FTP_DROP_RATIO))
+        : estimates.ftpW,
+    runThresholdPaceSecPerKm: slowest(
+      current.runThresholdPaceSecPerKm,
+      estimates.runThresholdPaceSecPerKm,
+    ),
+    swimCssSecPer100m: slowest(current.swimCssSecPer100m, estimates.swimCssSecPer100m),
+  };
+}
+
 export function previewThresholdApply(
   records: RecordsPayload,
   profile: Pick<AthleteProfile, 'ftpW' | 'runThresholdPaceSecPerKm' | 'swimCssSecPer100m'> | null,
   options?: { windowDays?: number; now?: Date; swimSamples?: SwimCssSample[] },
 ): ThresholdApplyPreview {
-  const estimates = computeThresholdEstimates(records, options);
   const current = {
     ftpW: profile?.ftpW ?? null,
     runThresholdPaceSecPerKm: profile?.runThresholdPaceSecPerKm ?? null,
     swimCssSecPer100m: profile?.swimCssSecPer100m ?? null,
   };
+  const estimates = boundDownwardRevisions(computeThresholdEstimates(records, options), current);
   const changes = buildThresholdChanges(current, estimates);
   return { estimates, current, changes, hasChanges: changes.length > 0 };
 }
