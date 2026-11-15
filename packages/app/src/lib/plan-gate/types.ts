@@ -29,6 +29,11 @@ export type GateContext = {
   readonly trainingZones?: readonly ZoneCondition[];
   readonly fatigueTrainingCapacity: TrainingCapacity | null;
   /**
+   * The heaviest load the athlete has lifted on each exercise, by normalised name, in kg.
+   * What `STRENGTH_LOAD_ABOVE_BEST` reads. Absent: the rule says nothing.
+   */
+  readonly strengthBestKg?: Readonly<Record<string, number>>;
+  /**
    * One entry per training day, carrying the Core's Training Stress, for
    * computeTrainingLoad (ACWR, rolling weekly load).
    *

@@ -1,3 +1,4 @@
+import { loadStrengthBestKg } from '@sharpit/server/lib/strength/exercise-history';
 import { addDays, min as minDate, max as maxDate } from 'date-fns';
 import { isSet } from '@sharpit/shared/value';
 import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/snapshot-service';
@@ -191,6 +192,9 @@ export async function buildGateContext(params: {
   const availability = normalizeTrainingAvailability(athleteProfile?.trainingAvailability ?? null);
   const context: GateContext = {
     ...payload,
+    strengthBestKg: proposals.some((proposal) => proposal.type === 'STRENGTH')
+      ? await loadStrengthBestKg(athleteId)
+      : undefined,
     trainingZones,
     planWindow,
     medicalClearanceOwed: healthGroundsOweClearance(healthGrounds),

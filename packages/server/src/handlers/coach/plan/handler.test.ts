@@ -60,8 +60,10 @@ vi.mock('@sharpit/server/lib/queries', () => ({
   getTrainingZoneNotes: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('@sharpit/server/lib/strength/exercise-history', () => ({
+vi.mock('@sharpit/server/lib/strength/exercise-history', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   loadStrengthHistoryBlock: vi.fn(async () => ''),
+  loadStrengthBestKg: vi.fn(async () => ({})),
 }));
 
 vi.mock('@sharpit/server/lib/training/pmc/pmc-server', () => ({

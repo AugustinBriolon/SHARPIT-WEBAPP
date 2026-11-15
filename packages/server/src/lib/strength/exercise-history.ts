@@ -151,3 +151,18 @@ export function formatStrengthHistoryBlock(history: readonly StrengthExerciseHis
 export async function loadStrengthHistoryBlock(athleteId: string): Promise<string> {
   return formatStrengthHistoryBlock(await loadExerciseHistory(athleteId));
 }
+
+/** The heaviest load lifted on each exercise, by normalised name — what the plan gate checks. */
+export function strengthBestKg(
+  history: readonly StrengthExerciseHistory[],
+): Record<string, number> {
+  return Object.fromEntries(
+    history.flatMap((entry) =>
+      entry.best.weightKg !== null ? [[exerciseKey(entry.name), entry.best.weightKg]] : [],
+    ),
+  );
+}
+
+export async function loadStrengthBestKg(athleteId: string): Promise<Record<string, number>> {
+  return strengthBestKg(await loadExerciseHistory(athleteId));
+}

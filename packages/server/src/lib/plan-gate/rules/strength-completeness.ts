@@ -1,3 +1,4 @@
+import { exerciseKey } from '@sharpit/server/lib/strength/exercise-history';
 import { auditStrengthPrescription } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import type {
   GateContext,
@@ -50,6 +51,47 @@ export const strengthCompletenessRule: PlanGateRule = (
       severity: 'WARNING',
       rationale: audit.message,
       evidenceRefs: ['proposal.durationMin', 'proposal.strengthPrescription'],
+    },
+  ];
+};
+
+// The landing counts one guardrail per file here: a load within reach is part of a
+// complete strength session, so it is checked beside it.
+
+/** How far above the athlete's best a prescribed load may go, the generator's own rule. */
+export const MAX_LOAD_ABOVE_BEST = 1.05;
+
+/**
+ * A prescribed load stays within reach of what the athlete has lifted.
+ *
+ * The generator is told to progress from the last session and never past the best by more
+ * than 5 %; nothing checked that it did, and a language model writes round numbers.
+ */
+export const strengthLoadRule: PlanGateRule = (
+  context: GateContext,
+  proposal: GateProposal,
+): RuleFinding[] => {
+  const bests = context.strengthBestKg;
+  if (proposal.type !== 'STRENGTH' || !bests || !proposal.strengthPrescription) {
+    return [];
+  }
+
+  const above = proposal.strengthPrescription.sets.flatMap((set) => {
+    const best = bests[exerciseKey(set.exercise)];
+    return best && set.weightKg && set.weightKg > best * MAX_LOAD_ABOVE_BEST
+      ? [`${set.exercise} à ${set.weightKg} kg (meilleur ${best} kg)`]
+      : [];
+  });
+  if (above.length === 0) {
+    return [];
+  }
+
+  return [
+    {
+      ruleCode: 'STRENGTH_LOAD_ABOVE_BEST',
+      severity: 'WARNING',
+      rationale: `Charge prescrite au-delà du meilleur de l'athlète de plus de 5 % : ${above.join(', ')}.`,
+      evidenceRefs: ['proposal.strengthPrescription', 'context.strengthBestKg'],
     },
   ];
 };

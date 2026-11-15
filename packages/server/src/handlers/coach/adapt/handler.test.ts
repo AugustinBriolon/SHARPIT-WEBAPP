@@ -4,8 +4,10 @@ import { decisionState, physicalHealthData } from '@sharpit/server/lib/plan-gate
 import { consumeCoachProgressStream } from '@sharpit/app/lib/coach/chat/transcript/coach-progress-stream';
 import type { AdaptPayload } from './handler';
 
-vi.mock('@sharpit/server/lib/strength/exercise-history', () => ({
+vi.mock('@sharpit/server/lib/strength/exercise-history', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
   loadStrengthHistoryBlock: vi.fn(async () => ''),
+  loadStrengthBestKg: vi.fn(async () => ({})),
 }));
 
 vi.mock('@sharpit/server/lib/ai', () => ({

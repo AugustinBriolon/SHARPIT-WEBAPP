@@ -9,7 +9,7 @@ import { goalPhaseCoherenceRule } from './rules/goal-phase-coherence';
 import { dataSufficiencyRule } from './rules/data-sufficiency';
 import { calendarConflictRule } from './rules/calendar-conflict';
 import { sensitiveZoneRule } from './rules/sensitive-zone';
-import { strengthCompletenessRule } from './rules/strength-completeness';
+import { strengthCompletenessRule, strengthLoadRule } from './rules/strength-completeness';
 import { strengthFrequencyRule } from './rules/strength-frequency';
 import { practicedSportsRule } from './rules/practiced-sports';
 import { weeklyLoadRule } from './rules/weekly-load';
@@ -41,6 +41,7 @@ const RULES: readonly PlanGateRule[] = [
   dataSufficiencyRule,
   calendarConflictRule,
   strengthCompletenessRule,
+  strengthLoadRule,
   sensitiveZoneRule,
   zoneReturnIntensityRule,
 ];
