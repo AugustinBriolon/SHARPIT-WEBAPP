@@ -7,6 +7,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { extractSessionFeatures } from '../session-extractor';
+import { typicalLoadPerHour } from '../../context';
 import type { SessionExtractorInput } from '../../types';
 import type { ExtractionContext } from '../../context';
 import type { SessionObservation, SubjectiveObservation } from '../../../observation/types';
@@ -673,5 +674,35 @@ describe('extractSessionFeatures — load does not depend on the sensor (audit F
       ctx,
     );
     expect(result.tssMethod).not.toBe('POWER_BASED');
+  });
+});
+
+describe("unmeasured sessions weigh what the athlete's measured ones weigh (audit F1)", () => {
+  const measured = (tssScore: number, tssMethod = 'POWER_BASED') => ({
+    sportType: 'BIKE' as const,
+    durationSec: 3600,
+    tssScore,
+    tssMethod,
+  });
+
+  it('takes the mean of measured sessions, never the constant-scored ones', () => {
+    const typical = typicalLoadPerHour([
+      ...[38, 40, 42, 40, 40].map((tss) => measured(tss)),
+      measured(55, 'DURATION_FACTOR'),
+    ]);
+    expect(typical.BIKE).toBe(40);
+  });
+
+  it('keeps the constant below five measured sessions', () => {
+    expect(typicalLoadPerHour([measured(40), measured(40)]).BIKE).toBeUndefined();
+  });
+
+  it('scores an unmeasured ride on that mean', () => {
+    const result = extractSessionFeatures(
+      input({ sportType: 'BIKE', durationSec: 7200 }),
+      makeContext({ ftpW: undefined, maxHr: undefined, typicalLoadPerHour: { BIKE: 40 } }),
+    );
+    expect(result.tssMethod).toBe('DURATION_FACTOR');
+    expect(result.tssScore).toBe(80);
   });
 });

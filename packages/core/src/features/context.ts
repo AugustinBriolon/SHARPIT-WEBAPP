@@ -16,6 +16,8 @@
  *   - Context is ephemeral — it is assembled at extraction time, not persisted.
  */
 
+import type { SportType } from '../observation/types';
+
 export type ExtractionContext = {
   readonly athleteId: string;
   /** YYYY-MM-DD — the training day being extracted. */
@@ -52,6 +54,13 @@ export type ExtractionContext = {
    * Used to compute sleep debt. Default: 480 (8 hours) if absent.
    */
   readonly sleepTargetMinutes?: number;
+
+  /**
+   * The athlete's own mean load per hour by sport, from sessions scored on a measure.
+   * Replaces the sport constant when a session has nothing to be scored on, so an
+   * unmeasured ride weighs what this athlete's measured rides weigh.
+   */
+  readonly typicalLoadPerHour?: Partial<Record<SportType, number>>;
 };
 
 import { SLEEP_TARGET_MIN } from '../sleep/targets';
@@ -75,4 +84,39 @@ export function canUseTrimpTss(ctx: ExtractionContext): boolean {
 /** Whether context has enough data for pace-based TSS. */
 export function canUsePaceTss(ctx: ExtractionContext): boolean {
   return isSet(ctx.runThresholdPaceSecPerKm) && ctx.runThresholdPaceSecPerKm > 0;
+}
+
+/** Measured sessions a sport needs before its mean replaces the constant. */
+export const MIN_SESSIONS_FOR_TYPICAL_LOAD = 5;
+
+/**
+ * Mean load per hour by sport over sessions scored on power, heart rate, pace or RPE.
+ * Sessions scored on the constant are left out: they would feed it back to itself.
+ */
+export function typicalLoadPerHour(
+  sessions: ReadonlyArray<{
+    sportType: SportType;
+    durationSec: number;
+    tssScore: number;
+    tssMethod: string;
+  }>,
+): Partial<Record<SportType, number>> {
+  const bySport = new Map<SportType, { hours: number; load: number; count: number }>();
+  for (const session of sessions) {
+    if (session.tssMethod === 'DURATION_FACTOR' || session.durationSec <= 0) {
+      continue;
+    }
+    const entry = bySport.get(session.sportType) ?? { hours: 0, load: 0, count: 0 };
+    entry.hours += session.durationSec / 3600;
+    entry.load += session.tssScore;
+    entry.count += 1;
+    bySport.set(session.sportType, entry);
+  }
+  const typical: Partial<Record<SportType, number>> = {};
+  for (const [sport, { hours, load, count }] of bySport) {
+    if (count >= MIN_SESSIONS_FOR_TYPICAL_LOAD && hours > 0) {
+      typical[sport] = Math.round((load / hours) * 10) / 10;
+    }
+  }
+  return typical;
 }

@@ -11,7 +11,10 @@
 import type { PrismaClient } from '@prisma/client';
 
 import type { ExtractionContextProvider } from '@sharpit/core/features/engine';
-import type { ExtractionContext } from '@sharpit/core/features/context';
+import { typicalLoadPerHour, type ExtractionContext } from '@sharpit/core/features/context';
+
+/** How far back measured sessions set the athlete's usual load per hour. */
+const TYPICAL_LOAD_WINDOW_DAYS = 180;
 
 function optionalProfileField<T>(value: T | null | undefined): T | undefined {
   return value ?? undefined;
@@ -23,8 +26,9 @@ function buildExtractionContextFields(input: {
   timezone: string;
   profile: Awaited<ReturnType<AthleteContextProvider['fetchProfile']>>;
   restingHr: number | undefined;
+  typicalLoad: ExtractionContext['typicalLoadPerHour'];
 }): ExtractionContext {
-  const { athleteId, trainingDayId, timezone, profile, restingHr } = input;
+  const { athleteId, trainingDayId, timezone, profile, restingHr, typicalLoad } = input;
   return {
     athleteId,
     trainingDayId,
@@ -35,6 +39,7 @@ function buildExtractionContextFields(input: {
     lthr: optionalProfileField(profile?.lthr),
     runThresholdPaceSecPerKm: optionalProfileField(profile?.runThresholdPaceSecPerKm),
     sleepTargetMinutes: optionalProfileField(profile?.sleepTargetMinutes),
+    typicalLoadPerHour: typicalLoad,
   };
 }
 
@@ -42,10 +47,11 @@ export class AthleteContextProvider implements ExtractionContextProvider {
   constructor(private readonly prisma: PrismaClient) {}
 
   async getContext(athleteId: string, trainingDayId: string): Promise<ExtractionContext> {
-    const [profile, restingHr, timezone] = await Promise.all([
+    const [profile, restingHr, timezone, typicalLoad] = await Promise.all([
       this.fetchProfile(athleteId),
       this.fetchRestingHr(athleteId),
       this.fetchTimezone(athleteId),
+      this.fetchTypicalLoad(athleteId, trainingDayId),
     ]);
 
     return buildExtractionContextFields({
@@ -54,6 +60,7 @@ export class AthleteContextProvider implements ExtractionContextProvider {
       timezone,
       profile,
       restingHr,
+      typicalLoad,
     });
   }
 
@@ -68,6 +75,36 @@ export class AthleteContextProvider implements ExtractionContextProvider {
       select: { data: true },
     });
     return recentRhrObs?.data ? (recentRhrObs.data as { valueBpm?: number }).valueBpm : undefined;
+  }
+
+  /** The athlete's measured load per hour by sport over the six months before the day. */
+  private async fetchTypicalLoad(
+    athleteId: string,
+    trainingDayId: string,
+  ): Promise<ExtractionContext['typicalLoadPerHour']> {
+    const since = new Date(`${trainingDayId}T00:00:00Z`);
+    since.setUTCDate(since.getUTCDate() - TYPICAL_LOAD_WINDOW_DAYS);
+    const rows = await this.prisma.featureSet.findMany({
+      where: {
+        athleteId,
+        category: 'SESSION',
+        trainingDayId: { gte: since.toISOString().slice(0, 10), lt: trainingDayId },
+      },
+      orderBy: { version: 'desc' },
+      distinct: ['sessionObsId'],
+      select: { data: true },
+    });
+    return typicalLoadPerHour(
+      rows.flatMap((row) => {
+        const data = row.data as Partial<Parameters<typeof typicalLoadPerHour>[0][number]> | null;
+        return data?.sportType &&
+          typeof data.durationSec === 'number' &&
+          typeof data.tssScore === 'number' &&
+          data.tssMethod
+          ? [data as Parameters<typeof typicalLoadPerHour>[0][number]]
+          : [];
+      }),
+    );
   }
 
   private async fetchTimezone(athleteId: string): Promise<string> {

@@ -223,9 +223,14 @@ function computeRpeTss(durationSec: number, rpe: number): TssResult {
 /**
  * Tier 5 — Duration × sport constant (last resort).
  */
-function durationFactorFallback(durationSec: number, sportType: SportType): TssResult {
+function durationFactorFallback(
+  durationSec: number,
+  sportType: SportType,
+  ctx?: ExtractionContext,
+): TssResult {
   const durationHr = durationSec / 3600;
-  const tssScore = durationHr * SPORT_TSS_PER_HOUR[sportType];
+  const perHour = ctx?.typicalLoadPerHour?.[sportType] ?? SPORT_TSS_PER_HOUR[sportType];
+  const tssScore = durationHr * perHour;
   return {
     tssScore,
     method: 'DURATION_FACTOR',
@@ -346,7 +351,7 @@ function selectBestTss(input: SessionExtractorInput, ctx: ExtractionContext): Ts
     }
   }
 
-  return durationFactorFallback(input.session.durationSec, input.session.sportType);
+  return durationFactorFallback(input.session.durationSec, input.session.sportType, ctx);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
