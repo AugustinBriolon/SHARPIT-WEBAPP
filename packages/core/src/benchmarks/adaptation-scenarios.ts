@@ -669,8 +669,9 @@ const A05_ELITE_MAINTAINING: AdaptationBenchmarkScenario = {
     },
     adaptationIndexRange: {
       min: 53,
-      max: 62,
-      rationale: 'Analytically verified index=57. Range [53,62] stays within MAINTAINING zone.',
+      max: 69,
+      rationale:
+        'Index 69 once the dimension scores interpolate over their full ranges. [53,69] stays within the MAINTAINING zone.',
       weight: 2.0,
     },
     confidenceRange: {

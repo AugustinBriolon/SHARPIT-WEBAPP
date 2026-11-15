@@ -67,7 +67,7 @@ function scoreDetrainingLoad(chronicLoad: number): DimensionScore | null {
     return null;
   }
   return {
-    score: Math.round(lerp(0, 20, 0, chronicLoad / 20)),
+    score: Math.round(lerp(chronicLoad, [0, 20], [0, 20])),
     available: true,
     reason: 'detraining territory (chronicLoad < 20)',
   };
@@ -78,7 +78,7 @@ function scoreExcessiveAcwr(acwr: number | null): DimensionScore | null {
     return null;
   }
   return {
-    score: Math.round(30 - lerp(0, 30, 1.5, Math.min(acwr, 2.5))),
+    score: Math.round(lerp(acwr, [1.5, 2.5], [30, 0])),
     available: true,
     reason: 'excessive ACWR — no adaptive benefit',
   };
@@ -198,11 +198,11 @@ export function scoreNeuromuscularEfficiency(
 
   let base: number;
   if (meanDrift < 3) {
-    base = lerp(80, 100, 0, 3 - meanDrift);
+    base = lerp(meanDrift, [0, 3], [100, 80]);
   } else if (meanDrift <= 8) {
-    base = lerp(50, 80, 3, 8 - (meanDrift - 3));
+    base = lerp(meanDrift, [3, 8], [80, 50]);
   } else if (meanDrift <= 10) {
-    base = lerp(40, 50, 8, 10 - (meanDrift - 8));
+    base = lerp(meanDrift, [8, 10], [50, 40]);
   } else {
     base = Math.max(0, 40 - (meanDrift - 10) * 3);
   }
@@ -225,12 +225,14 @@ function scoreAutonomicFromBothSignals(
     return Math.min(80 + hrvBonus, 100);
   }
   if (hrvDeltaFromBaseline >= -5 && hrvDeltaFromBaseline <= 5) {
-    return lerp(50, 70, -5, hrvDeltaFromBaseline + 5);
+    return lerp(hrvDeltaFromBaseline, [-5, 5], [50, 70]);
   }
   if (hrvDeltaFromBaseline < -10) {
     return Math.max(0, 30 + (hrvDeltaFromBaseline + 10) * 2);
   }
-  return 40;
+  // Between the cases above the score fell to 40 on both sides: an HRV up 8 % with a
+  // flat resting pulse read worse than an HRV unchanged.
+  return hrvDeltaFromBaseline > 5 ? 70 : lerp(hrvDeltaFromBaseline, [-10, -5], [30, 50]);
 }
 
 function scoreAutonomicFromHrvOnly(hrvDeltaFromBaseline: number): number {
@@ -287,12 +289,12 @@ function scoreRecoveryFromReadiness(
   capacity: FatigueState['trainingCapacity'] | null,
 ): number {
   if (readiness >= 75 && capacity === 'FULL') {
-    return lerp(80, 100, 75, readiness - 75);
+    return lerp(readiness, [75, 100], [80, 100]);
   }
   if (readiness >= 50) {
-    return lerp(50, 75, 50, readiness - 50);
+    return lerp(readiness, [50, 75], [50, 75]);
   }
-  return lerp(20, 50, 0, readiness);
+  return lerp(readiness, [0, 50], [20, 50]);
 }
 
 function baseRecoveryQualityScore(
@@ -460,7 +462,16 @@ export function computeAdaptationTrend(recentHistory: readonly number[]): Adapta
 // Helper
 // ─────────────────────────────────────────────────────────────────────────────
 
-function lerp(min: number, max: number, rangeMin: number, value: number): number {
-  const clamped = Math.max(0, Math.min(max - min, value - rangeMin));
-  return min + clamped;
+/**
+ * `value` mapped linearly from one range onto another, clamped at both ends. The helper
+ * this replaces added the raw difference to the lower bound, so a 100-to-80 slope came
+ * out as 80 to 83 and nearly every adaptation score sat in a band a few points wide.
+ */
+function lerp(
+  value: number,
+  [fromMin, fromMax]: readonly [number, number],
+  [toMin, toMax]: readonly [number, number],
+): number {
+  const share = Math.max(0, Math.min(1, (value - fromMin) / (fromMax - fromMin)));
+  return toMin + share * (toMax - toMin);
 }

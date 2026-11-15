@@ -201,12 +201,12 @@ describe('scoreLoadProgression', () => {
   });
 
   it('scores detraining zone (chronicLoad < 20)', () => {
-    // chronicLoad=5 → value=5/20=0.25, lerp(0,20,0,0.25)=0.25 → round=0
+    // chronicLoad=5 on the 0–20 scale of the detraining zone → 5
     const result = scoreLoadProgression(
       makeLoad({ chronicLoad: 5, acwr: 0.7, acuteChronicLoadTrend: -0.05 }),
     );
     expect(result.available).toBe(true);
-    expect(result.score).toBe(0);
+    expect(result.score).toBe(5);
   });
 
   it('scores progressive overload zone (trend > 0.02, ACWR 0.8–1.3)', () => {
@@ -222,12 +222,12 @@ describe('scoreLoadProgression', () => {
   });
 
   it('scores excessive ACWR (acwr > 1.5)', () => {
-    // acwr=2.0 → lerp(0,30,1.5,2.0): clamped=min(30, 0.5)=0.5 → 30-0.5=29.5 → round=30
+    // acwr=2.0, halfway between 1.5 (30) and 2.5 (0) → 15
     const result = scoreLoadProgression(
       makeLoad({ acwr: 2.0, chronicLoad: 60, acuteChronicLoadTrend: 0.01 }),
     );
     expect(result.available).toBe(true);
-    expect(result.score).toBe(30);
+    expect(result.score).toBe(15);
   });
 
   it('scores maintaining zone (trend ≈ 0, ACWR 0.7–1.3)', () => {
@@ -261,14 +261,14 @@ describe('scoreNeuromuscularEfficiency', () => {
     // drift=1.0 → lerp(80,100,0, 3-1=2): clamped=min(20,2)=2 → 80+2=82
     const result = scoreNeuromuscularEfficiency([makeSession({ hrDriftPercent: 1.0 })]);
     expect(result.available).toBe(true);
-    expect(result.score).toBe(82);
+    expect(result.score).toBe(93);
   });
 
   it('scores moderate drift (3 < drift ≤ 8) — normal fatigue', () => {
     // drift=6.0 → lerp(50,80,3, 8-(6-3)=5): clamped=min(30, 5-3=2)=2 → 50+2=52
     const result = scoreNeuromuscularEfficiency([makeSession({ hrDriftPercent: 6.0 })]);
     expect(result.available).toBe(true);
-    expect(result.score).toBe(52);
+    expect(result.score).toBe(62);
   });
 
   it('scores high drift (drift > 10) — cardiovascular strain', () => {
@@ -284,7 +284,7 @@ describe('scoreNeuromuscularEfficiency', () => {
       makeSession({ hrDriftPercent: 1.0, intensityFactor: 0.9 }),
     ]);
     expect(result.available).toBe(true);
-    expect(result.score).toBe(92);
+    expect(result.score).toBe(100);
   });
 });
 
@@ -378,8 +378,8 @@ describe('scoreRecoveryQuality', () => {
     expect(result.score).toBe(24);
   });
 
-  it('scores full capacity with good readiness — capped at 80 (known lerp behaviour)', () => {
-    // readiness=90, FULL: lerp(80,100,75,90-75=15)
+  it('scores full capacity with good readiness — rises with readiness', () => {
+    // readiness=90, FULL: 80 at 75, 100 at 100 → 92
     // clamped = min(20, 15-75=-60) → max(0,-60)=0 → score=80
     // Note: this is a known quirk of the lerp parameterisation in the implementation.
     const result = scoreRecoveryQuality(
@@ -387,28 +387,28 @@ describe('scoreRecoveryQuality', () => {
       makeFatigueState({ trainingCapacity: 'FULL' }),
     );
     expect(result.available).toBe(true);
-    expect(result.score).toBe(80);
+    expect(result.score).toBe(92);
   });
 
-  it('scores moderate readiness (50–74, not REST_ONLY) — capped at 50 (known lerp behaviour)', () => {
-    // readiness=70, REDUCED: lerp(50,75,50,70-50=20)
+  it('scores moderate readiness (50–74, not REST_ONLY) — follows readiness', () => {
+    // readiness=70, REDUCED: 50 at 50, 75 at 75 → 70
     // clamped = min(25, 20-50=-30) → max(0,-30)=0 → score=50
     const result = scoreRecoveryQuality(
       makeRecoveryState({ readinessScore: 70 }),
       makeFatigueState({ trainingCapacity: 'REDUCED' }),
     );
     expect(result.available).toBe(true);
-    expect(result.score).toBe(50);
+    expect(result.score).toBe(70);
   });
 
   it('scores low readiness (< 50)', () => {
-    // readiness=30: lerp(20,50,0,30): clamped=min(30,30)=30 → 20+30=50
+    // readiness=30: 20 at 0, 50 at 50 → 38
     const result = scoreRecoveryQuality(
       makeRecoveryState({ readinessScore: 30 }),
       makeFatigueState({ trainingCapacity: 'REDUCED' }),
     );
     expect(result.available).toBe(true);
-    expect(result.score).toBe(50);
+    expect(result.score).toBe(38);
   });
 
   it('penalises excessive accumulation days (> 7)', () => {
@@ -634,5 +634,27 @@ describe('runAdaptationModel', () => {
     expect(result.adaptationState.adaptationStatus).toBe('POSITIVELY_ADAPTING');
     expect(result.decision.verdict).toBe('SUSTAIN');
     expect(result.decision.loadMultiplier).toBe(1.0);
+  });
+});
+
+describe('adaptation — scores follow their inputs (audit pass 3)', () => {
+  it('a lower heart-rate drift never scores lower', () => {
+    let previous = Infinity;
+    for (let drift = 0; drift <= 14; drift += 0.5) {
+      const { score } = scoreNeuromuscularEfficiency([makeSession({ hrDriftPercent: drift })]);
+      expect(score!).toBeLessThanOrEqual(previous);
+      previous = score!;
+    }
+  });
+
+  it('a higher HRV never scores lower at a flat resting pulse', () => {
+    let previous = -Infinity;
+    for (let hrv = -20; hrv <= 20; hrv += 1) {
+      const { score } = scoreAutonomicAdaptation(
+        makeRecovery({ hrvDeltaFromBaseline: hrv, rhrDeltaFromBaseline: 0 }),
+      );
+      expect(score!).toBeGreaterThanOrEqual(previous);
+      previous = score!;
+    }
   });
 });
