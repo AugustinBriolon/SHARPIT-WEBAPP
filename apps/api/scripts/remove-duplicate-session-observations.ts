@@ -72,16 +72,16 @@ async function repairAthlete(athleteId: string, backup: unknown[]): Promise<void
       });
     }),
     prisma.observation.deleteMany({ where: { id: { in: removeIds } } }),
-    // The sessions that gain a reported effort, and every load from the first changed day on,
-    // are computed again on the next read.
+    // Every load from the first changed day on is computed again on the next read. Session
+    // feature sets are left as they are: the load only recomputes the sessions of its last 55
+    // days, so an older session marked stale would drop out of the fitness curve for good. The
+    // moved efforts reach their session's features the next time it is computed.
     prisma.featureSet.updateMany({
       where: {
         athleteId,
+        category: 'LOAD',
         status: 'COMPUTED',
-        OR: [
-          { category: 'LOAD', trainingDayId: { gte: earliestDay } },
-          { category: 'SESSION', trainingDayId: { in: reports.map((row) => row.trainingDayId) } },
-        ],
+        trainingDayId: { gte: earliestDay },
       },
       data: { status: 'INVALIDATED' },
     }),
