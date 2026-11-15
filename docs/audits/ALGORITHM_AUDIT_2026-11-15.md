@@ -325,3 +325,65 @@ Not done:
   autocorrelation and weekday; projection elevation and heat; one load model for the
   Core and the coach.
 - Zones already counted with an inflated relapse count are not repaired.
+
+# Pass 3 — what the first two left (2026-11-15)
+
+## Adaptation (`packages/core/src/inference/adaptation/scoring.ts`), read in this pass
+
+### A1 — The interpolation helper did not interpolate (critical, fixed)
+
+`lerp(min, max, rangeMin, value)` returned `min + clamp(value − rangeMin, 0, max − min)`:
+it added the raw difference to the lower bound. A heart-rate drift meant to run from 100
+down to 80 came out between 80 and 83; a readiness of 90 scored 80, one of 70 scored 50;
+an ACWR of 2.5 scored 29 where 0 was meant; the detraining zone scored 0 or 1. Two tests
+pinned the result as "known lerp behaviour". Replaced by a real linear map; the tests now
+hold the intended values and two monotonicity properties.
+
+### A2 — The autonomic score was not monotonic (high, fixed)
+
+With HRV and resting pulse both known, an HRV up 8 % at a flat pulse scored 40, below an
+unchanged HRV (60); so did any HRV between −10 % and −5 %. Both gaps now follow their
+neighbours.
+
+### A3 — Adaptation is read from one day (high, open)
+
+The engine scores one morning's HRV and the day's own heart-rate drift. Adaptation is a
+trend over weeks: the efficiency factor at a like effort, pace at a fixed pulse, the
+weekly mean of HRV. `efficiencyFactor` is computed for every session and its trend is
+read by nothing. The mean confidence of 0.94 has nothing behind it.
+
+## Fixed in this pass, each locked by a test
+
+- G4 — the accumulation streak is counted on each day's index without its cumulative
+  dimension (`fatigueIndexWithoutCumulative`), so it cannot hold itself up.
+- F1 — a session with nothing to be scored on takes the athlete's own mean load per hour
+  for that sport, from at least five measured sessions of the last 180 days
+  (`typicalLoadPerHour`), instead of a constant.
+- Strength — the history block also reaches the daily adaptation. Not the chat coach:
+  ADR-087 has it read strength on request, through a tool.
+- Nutrition — the carbohydrate band rises with the day's training stress (80 → at least
+  moderate, 150 → at least high), never below what the minutes give. The next day's
+  session was already in the reading's inputs.
+- Journal — a weekend morning is brought back to the weekday level before habits are
+  compared (`weekendAdjuster`).
+- Zones — `apps/api/scripts/repair-recurrence-counts.ts` resets each count to its
+  episodes minus one; dry run unless `--apply`. Not run.
+
+## Found in passing, open
+
+- `AthleteContextProvider.fetchRestingHr` reads the latest resting pulse whatever the day
+  being extracted, so recomputing an old session scores it on today's pulse: history is
+  not reproducible.
+- `loadDaySessions` in the nutrition reading takes `Activity.load`, the column ADR-011
+  says mixes Garmin's stress with its EPOC load, not the Core's figure.
+
+## Still open
+
+- F2 per-sample TRIMP; strength load from set volume.
+- One load model for the Core and the coach; the ACWR thresholds; short histories.
+- F6 the unread signals; A3; `estimateTimeToFresh`; inputs shared by recovery and fatigue.
+- F7 energy availability, which needs a decision on the frozen Core.
+- F8 a benchmark that can fail: it needs outcomes from stored history.
+- Journal autocorrelation; projection elevation and heat; a check that generated
+  strength loads follow the progression rule.
+- Reasoning and environment engines: not read.
