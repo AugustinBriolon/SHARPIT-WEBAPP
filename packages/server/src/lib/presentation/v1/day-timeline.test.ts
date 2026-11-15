@@ -40,6 +40,20 @@ describe('buildV1DayTimeline', () => {
     expect(events.find((event) => event.kind === 'meal')?.detail).toContain('420 kcal');
   });
 
+  it('groups the thousands of a meal that runs long', () => {
+    const events = buildV1DayTimeline({
+      bedtimeMin: null,
+      wakeMin: null,
+      sessions: [],
+      meals: [{ meal: 'DINNER', count: 40, kcal: 124_356.4 }],
+      journal: { moodLabel: null, hydrationMl: null, caffeineMg: null },
+      stress: null,
+      energyBank: null,
+    });
+
+    expect(events[0]?.detail).toMatch(/^40 aliments · 124\s356 kcal$/u);
+  });
+
   it('falls back to a day stress marker when the energy series is flat', () => {
     const events = buildV1DayTimeline({
       bedtimeMin: null,

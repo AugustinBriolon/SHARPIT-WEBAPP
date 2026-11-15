@@ -133,7 +133,7 @@ export function buildV1DayTimeline(input: {
       kind: 'meal',
       minuteOfDay: MEAL_MINUTE[meal.meal],
       title: FOOD_MEAL_LABELS[meal.meal],
-      detail: `${meal.count} aliment${meal.count > 1 ? 's' : ''} · ${Math.round(meal.kcal)} kcal`,
+      detail: `${meal.count} aliment${meal.count > 1 ? 's' : ''} · ${Math.round(meal.kcal).toLocaleString('fr-FR')} kcal`,
     });
   }
 
