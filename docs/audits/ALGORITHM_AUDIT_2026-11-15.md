@@ -173,3 +173,117 @@ Not done:
 
 Stored history is unchanged until `scripts/recompute-session-features.ts` and the day
 features are recomputed.
+
+# Pass 2 — the remaining engines (2026-11-15)
+
+Read from the code only: no stored data was replayed in this pass. Not read: adaptation
+and reasoning scoring, environment, the plan generator's prompts.
+
+## Fatigue (`packages/core/src/inference/fatigue/scoring.ts`)
+
+### G1 — Steady training reads as accumulated fatigue (critical)
+
+`scoreLoadFatigue` is `ACWR / 1.5 × 100`. An athlete training exactly as usual
+(ACWR 1.0) scores 67 on the heaviest dimension (weight 0.30), inside the band named
+`ACCUMULATED` (61–75). The ratio also ignores the absolute load: 200 a week and 900 a
+week score the same at ACWR 1.0. Fatigue is the acute load above the chronic one, not
+their ratio alone.
+
+### G2 — Yesterday's session does not exist the next morning (critical)
+
+`features.sessions` holds the sessions of the training day being inferred. Metabolic
+fatigue and the mechanical half of neuromuscular fatigue are therefore 0 every morning
+before training and jump after the day's session. The day after a marathon the only
+trace is the ACWR. The specification itself notes a 48-hour window "simplified" away.
+
+### G3 — The best possible mood scores 50 points of psychological fatigue (high, bug)
+
+`scoreFromMoodAndEnergy`: with both answers, `100 − (mood × 10 + energy × 10) / 2`, on
+1–5 scales, so mood 5 and energy 5 give 50. With one answer the branch uses × 20 and
+gives 0. An athlete who answers both questions is always at least half fatigued; one who
+answers one is not.
+
+### G4 — The accumulation counter feeds itself (high)
+
+A day above 55 adds 7 points to the cumulative dimension the next day (capped at 70),
+which keeps the index above 55. With G1 holding the load dimension at 67 in steady
+training, the streak has no reason to break.
+
+### G5 — Smaller defects
+
+- `applyDissonanceBias` says it boosts load and neuromuscular; it only halves a
+  confidence factor and leaves the score untouched.
+- `estimateTimeToFresh` multiplies a score by a "half-life" linearly.
+- The confidence per load method is declared twice with different values
+  (`features/types.ts`: power 1.0, heart rate 0.75, pace 0.75, RPE 0.45; here 0.85,
+  0.65, 0.5, 0.4).
+- Sleep debt, the autonomic score and the ACWR each enter both recovery and fatigue, so
+  the two engines agree by construction and the arbitration counts one cause twice.
+
+## Sensitive zones (`packages/core/src/inference/physical-health/scoring.ts`)
+
+### Z1 — A zero reading is thrown away (critical)
+
+`saveCheckin` stores severity 0 as `symptomPresent = false`
+(`packages/server/src/lib/queries/index.ts:536`), and `inferSeverityFromObservations`
+averages symptomatic readings only. Pain 6 a week ago followed by three readings at 0
+still averages to 6, until the last symptomatic reading leaves the 28-day window. The
+same filter hides the improvement from `inferTrend`.
+
+### Z2 — A flare is averaged away (high)
+
+The severity is a decay-weighted mean. Readings 2, 2, 2 then 8 today give about 3.7:
+`LIMITED`, not `UNABLE`. For an injury the latest reading must rule when it is the worst
+— fast up, slow down.
+
+### Z3 — To verify: the recurrence count
+
+`inferRecurrentStatus` returns `recurrenceCount + 1` on every inference while a resolved
+zone has a recent symptom, and the repository writes the result back. If nothing guards
+it, one relapse counts once per daily run.
+
+## Journal habits (`packages/app/src/lib/journal/journal-habit-statistics.ts`)
+
+The soundest engine read: rank test, false-discovery correction, load adjustment. Two
+limits: consecutive days are treated as independent (they are not, so the p-values are
+too small), and the weekday is not controlled (weekend habits and weekend sleep move
+together).
+
+## Nutrition reading (`packages/server/src/lib/nutrition/analysis`)
+
+Bands restate consensus and are in one module. Gaps:
+
+- the carbohydrate band comes from the day's training minutes, not its intensity nor
+  tomorrow's key session;
+- the energy target is the profile's fixed figure plus the day's exercise energy; nothing
+  checks it against the weight trend, which is the only ground truth for it;
+- no energy-availability reading (see F7), no fat floor, no timing around the session.
+
+## Strength proposals (`strength-session-template.ts`)
+
+The template audits structure only: block shares, exercise count, estimated minutes.
+Loads and progression are the language model's. Nothing reads the athlete's last and
+best figures (`/api/v1/strength-exercises`), nothing enforces progressive overload, and
+no rule ties the exercises to the open sensitive zones.
+
+## Race projection (`packages/app/src/lib/goals/goal-race-projection.ts`)
+
+Riegel from dated references, brick and open-water factors, a backtest script. Gaps: no
+course elevation, no heat; the profile's threshold pace is a fallback input, and F1
+showed that figure is stale for the athlete audited; the backtest covers one
+half-distance race while the history holds five triathlons.
+
+## Decision arbitration (`packages/core/src/decision`)
+
+Safety order is explicit (zones, fatigue, recovery, environment, adaptation). Nutrition
+is not a domain. The correlated inputs noted in G5 mean a single cause can outvote two
+independent ones.
+
+## Order for pass 2
+
+1. G3 and Z1: plain bugs, small, each with one test.
+2. Z2, then Z3 once verified.
+3. G1 and G2 together: they need the per-day load history the F3 work already loads
+   (acute minus chronic, and the last 48 hours of sessions).
+4. G4 after G1, since G1 is what holds the streak.
+5. Strength progression from stored figures; nutrition target against the weight trend.
