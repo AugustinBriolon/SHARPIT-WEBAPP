@@ -48,3 +48,33 @@ describe('PrismaFeatureRepository.save', () => {
     expect(featureSet.deleteMany).not.toHaveBeenCalled();
   });
 });
+
+describe('PrismaFeatureRepository.findSessionFeaturesByRange', () => {
+  const row = (sessionObsId: string) => ({
+    id: `fs-${sessionObsId}`,
+    athleteId: 'a1',
+    category: 'SESSION',
+    trainingDayId: '2026-11-10',
+    sessionObsId,
+    version: 1,
+    status: 'COMPUTED',
+    confidence: 1,
+    algorithmId: 'session-features-v1',
+    sourceObsIds: [],
+    computedAt: new Date('2026-11-10T08:00:00Z'),
+    createdAt: new Date('2026-11-10T08:00:00Z'),
+    data: { tssScore: 50 },
+  });
+
+  it('leaves out the features of a session whose observation was removed', async () => {
+    const prisma = {
+      featureSet: { findMany: vi.fn(async () => [row('kept'), row('removed')]) },
+      observation: { findMany: vi.fn(async () => [{ id: 'kept' }]) },
+    };
+    const repo = new PrismaFeatureRepository(prisma as unknown as PrismaClient);
+
+    const records = await repo.findSessionFeaturesByRange('a1', '2026-11-01', '2026-11-10');
+
+    expect(records.map((record) => record.sessionObsId)).toEqual(['kept']);
+  });
+});

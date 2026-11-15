@@ -240,7 +240,18 @@ export class PrismaFeatureRepository implements FeatureRepository {
       }
     }
 
-    return Array.from(bySession.values()).map(toSessionRecord);
+    // Nothing ties a feature set to its observation in the schema: when a duplicate
+    // session is removed its features stay, and the load kept counting a session that no
+    // longer exists.
+    const living = await this.prisma.observation.findMany({
+      where: { athleteId, id: { in: [...bySession.keys()] } },
+      select: { id: true },
+    });
+    const livingIds = new Set(living.map((observation) => observation.id));
+
+    return Array.from(bySession.values())
+      .filter((row) => livingIds.has(row.sessionObsId as string))
+      .map(toSessionRecord);
   }
 
   async findLoadFeatures(
