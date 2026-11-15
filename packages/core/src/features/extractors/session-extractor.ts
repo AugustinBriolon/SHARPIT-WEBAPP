@@ -238,6 +238,37 @@ function durationFactorFallback(
   };
 }
 
+/** A gap longer than this between two samples is a pause, not time at that pulse. */
+const MAX_SAMPLE_GAP_SEC = 30;
+
+/**
+ * TRIMP summed sample by sample, on the same scale as `computeTrimpTss`. The weighting
+ * is convex, so applied to the session's mean pulse it under-scores intervals against a
+ * steady effort of the same mean. Null without a usable pulse range or threshold.
+ */
+export function sampledTrimpTss(
+  timeSec: readonly number[],
+  heartRate: readonly number[],
+  hr: { maxHr: number; restingHr: number; lthr?: number },
+): number | null {
+  const hrRange = hr.maxHr - hr.restingHr;
+  const reserve = (bpm: number) => Math.max(0, Math.min(1, (bpm - hr.restingHr) / hrRange));
+  const perMinute = (hrr: number) => hrr * 0.64 * Math.exp(1.92 * hrr);
+  const atThreshold = hrRange > 0 ? perMinute(reserve(hr.lthr ?? hr.maxHr * 0.85)) * 60 : 0;
+  if (atThreshold <= 0 || timeSec.length < 2 || heartRate.length < timeSec.length) {
+    return null;
+  }
+  let trimp = 0;
+  for (let i = 1; i < timeSec.length; i += 1) {
+    const gapSec = Math.min(timeSec[i]! - timeSec[i - 1]!, MAX_SAMPLE_GAP_SEC);
+    const bpm = heartRate[i]!;
+    if (gapSec > 0 && bpm > 0) {
+      trimp += (gapSec / 60) * perMinute(reserve(bpm));
+    }
+  }
+  return (trimp / atThreshold) * 100;
+}
+
 function tryPowerTss(input: SessionExtractorInput, ctx: ExtractionContext): TssResult | null {
   const { session } = input;
   const { durationSec } = session;
@@ -268,6 +299,15 @@ function tryTrimpTss(input: SessionExtractorInput, ctx: ExtractionContext): TssR
     avgBpm === null
   ) {
     return null;
+  }
+
+  const sampled = input.stream?.hrTrimpTss;
+  if (isSet(sampled)) {
+    return {
+      tssScore: sampled,
+      method: 'TRIMP_HR',
+      confidence: TSS_METHOD_CONFIDENCE.TRIMP_HR * QUALITY_CONFIDENCE[session.hrData!.quality],
+    };
   }
 
   return computeTrimpTss({

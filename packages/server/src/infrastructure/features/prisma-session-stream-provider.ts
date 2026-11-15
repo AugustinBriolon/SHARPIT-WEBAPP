@@ -3,6 +3,7 @@ import { isSet } from '@sharpit/shared/value';
 import type { ExtractionContext } from '@sharpit/core/features/context';
 import type { SessionStreamProvider } from '@sharpit/core/features/engine';
 import type { SessionObservation } from '@sharpit/core/observation/types';
+import { sampledTrimpTss } from '@sharpit/core/features/extractors/session-extractor';
 import {
   analyzeActivityStreams,
   resolveThresholds,
@@ -114,6 +115,7 @@ function computeLoadFactors(
 function buildStreamResult(
   analysis: NonNullable<ReturnType<typeof analyzeActivityStreams>>,
   session: SessionObservation,
+  hrTrimpTss: number | null,
 ) {
   const zones = analysis.hr.zones.length > 0 ? analysis.hr.zones : (analysis.power?.zones ?? []);
   const timeInZones = mapZonesToFiveBuckets(zones);
@@ -130,7 +132,19 @@ function buildStreamResult(
     paceVariabilityIndex: isSet(analysis.run?.paceVariabilityPct)
       ? Number((analysis.run.paceVariabilityPct / 100).toFixed(3))
       : null,
+    hrTrimpTss,
   };
+}
+
+function sampledHeartRateLoad(raw: RawStreams, ctx: ExtractionContext): number | null {
+  if (!isSet(ctx.maxHr) || !isSet(ctx.restingHr)) {
+    return null;
+  }
+  return sampledTrimpTss(raw.time ?? [], raw.heartrate ?? [], {
+    maxHr: ctx.maxHr,
+    restingHr: ctx.restingHr,
+    lthr: ctx.lthr,
+  });
 }
 
 function analyzeSessionStream(
@@ -187,6 +201,6 @@ export class PrismaSessionStreamProvider implements SessionStreamProvider {
       return null;
     }
 
-    return buildStreamResult(analysis, session);
+    return buildStreamResult(analysis, session, sampledHeartRateLoad(raw, ctx));
   }
 }

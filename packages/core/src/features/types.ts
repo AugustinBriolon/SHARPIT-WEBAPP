@@ -625,6 +625,8 @@ export type SessionExtractorInput = {
     readonly timeInZones: readonly [number, number, number, number, number] | null;
     readonly hrDriftPercent: number | null;
     readonly paceVariabilityIndex: number | null;
+    /** TRIMP summed over the heart-rate samples, on the TSS scale. Optional. */
+    readonly hrTrimpTss?: number | null;
   } | null;
 };
 

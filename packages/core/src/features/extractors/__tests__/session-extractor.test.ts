@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { extractSessionFeatures } from '../session-extractor';
+import { extractSessionFeatures, sampledTrimpTss } from '../session-extractor';
 import { typicalLoadPerHour } from '../../context';
 import type { SessionExtractorInput } from '../../types';
 import type { ExtractionContext } from '../../context';
@@ -704,5 +704,59 @@ describe("unmeasured sessions weigh what the athlete's measured ones weigh (audi
     );
     expect(result.tssMethod).toBe('DURATION_FACTOR');
     expect(result.tssScore).toBe(80);
+  });
+});
+
+describe('sampledTrimpTss — intervals are not scored as their mean pulse (audit F2)', () => {
+  const hr = { maxHr: 190, restingHr: 50, lthr: 170 };
+  const seconds = Array.from({ length: 3601 }, (_, i) => i);
+
+  it('an hour at threshold is 100', () => {
+    expect(
+      sampledTrimpTss(
+        seconds,
+        seconds.map(() => 170),
+        hr,
+      )!,
+    ).toBeCloseTo(100, 0);
+  });
+
+  it('intervals score above a steady effort of the same mean pulse', () => {
+    const steady = sampledTrimpTss(
+      seconds,
+      seconds.map(() => 150),
+      hr,
+    )!;
+    const intervals = sampledTrimpTss(
+      seconds,
+      seconds.map((s) => (Math.floor(s / 300) % 2 === 0 ? 180 : 120)),
+      hr,
+    )!;
+    expect(intervals).toBeGreaterThan(steady * 1.1);
+  });
+
+  it('a pause does not count as time at that pulse', () => {
+    const paused = sampledTrimpTss([0, 60, 3660, 3720], [150, 150, 150, 150], hr)!;
+    const running = sampledTrimpTss([0, 60, 90, 150], [150, 150, 150, 150], hr)!;
+    expect(paused).toBeCloseTo(running, 6);
+  });
+
+  it('is what the heart-rate tier returns when the stream carries it', () => {
+    const result = extractSessionFeatures(
+      {
+        ...input({ sportType: 'RUN', hrData: { avgBpm: 150, quality: 'MEASURED_OPTICAL' } }),
+        stream: {
+          aerobicLoadFactor: null,
+          anaerobicLoadFactor: null,
+          timeInZones: null,
+          hrDriftPercent: null,
+          paceVariabilityIndex: null,
+          hrTrimpTss: 88,
+        },
+      },
+      makeContext({ maxHr: 190, restingHr: 50 }),
+    );
+    expect(result.tssMethod).toBe('TRIMP_HR');
+    expect(result.tssScore).toBe(88);
   });
 });
