@@ -127,7 +127,11 @@ describe('estimateFtp', () => {
 
   it('applique le facteur 0.95 au meilleur 20 min', () => {
     const ftp = estimateFtp([power(1200, 300)]);
-    expect(ftp).toEqual({ watts: 285, source: 'meilleur 20 min' });
+    expect(ftp).toEqual({
+      watts: 285,
+      source: 'meilleur 20 min',
+      effort: { watts: 300, seconds: 1200, date: '2026-01-01', activityId: null },
+    });
   });
 
   it("préfère le meilleur 60 min s'il existe", () => {

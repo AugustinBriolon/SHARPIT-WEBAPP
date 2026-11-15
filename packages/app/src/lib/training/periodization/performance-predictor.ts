@@ -265,9 +265,18 @@ export function estimateRunThresholdPace(
   return bestPace;
 }
 
+/** The recorded effort an estimate was read from, before any duration factor. */
+export interface FtpEffort {
+  watts: number;
+  seconds: number;
+  date: string | null;
+  activityId: string | null;
+}
+
 export interface FtpEstimate {
   watts: number;
   source: string;
+  effort: FtpEffort;
 }
 
 /** Facteur appliqué au meilleur effort d'une durée pour estimer la FTP. */
@@ -280,11 +289,15 @@ const FTP_FACTORS: { seconds: number; factor: number; label: string }[] = [
 
 /** Estime la FTP depuis la courbe de puissance (streams, source précise). */
 function ftpFromPowerCurve(powerCurve: PowerCurvePoint[]): FtpEstimate | null {
-  const byDuration = new Map(powerCurve.map((p) => [p.seconds, p.watts]));
   for (const { seconds, factor, label } of FTP_FACTORS) {
-    const watts = byDuration.get(seconds);
-    if (watts && watts > 0) {
-      return { watts: Math.round(watts * factor), source: label };
+    const point = powerCurve.find((p) => p.seconds === seconds && p.watts > 0);
+    if (point) {
+      const { watts, date, activityId } = point;
+      return {
+        watts: Math.round(watts * factor),
+        source: label,
+        effort: { watts, seconds, date, activityId },
+      };
     }
   }
   return null;
@@ -318,7 +331,16 @@ function ftpFromBikeEfforts(bikeEfforts: BikeEffort[]): FtpEstimate | null {
     const watts = Math.round(e.watts * factor);
     if (!best || watts > best.watts) {
       const mins = Math.round(e.seconds / 60);
-      best = { watts, source: `meilleur effort ~${mins} min` };
+      best = {
+        watts,
+        source: `meilleur effort ~${mins} min`,
+        effort: {
+          watts: Math.round(e.watts),
+          seconds: e.seconds,
+          date: e.date ?? null,
+          activityId: e.activityId ?? null,
+        },
+      };
     }
   }
   return best;

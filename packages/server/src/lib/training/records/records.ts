@@ -127,7 +127,7 @@ function hasSignal(arr: number[]): boolean {
 }
 
 /** Ré-échantillonne une série (time, values) à 1 Hz par maintien de la valeur. */
-function resample1Hz(time: number[], values: number[]): number[] {
+export function resample1Hz(time: number[], values: number[]): number[] {
   if (!time.length) {
     return [];
   }

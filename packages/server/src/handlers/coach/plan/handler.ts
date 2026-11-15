@@ -74,6 +74,7 @@ import { detectCoachPlaybookSituation } from '@sharpit/server/lib/coach/playbook
 import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/knowledge/retrieve-coach-knowledge';
 import { loadStrengthHistoryBlock } from '@sharpit/server/lib/strength/exercise-history';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
+import { loadFtpConfidenceBlock } from '@sharpit/server/lib/threshold/ftp-confidence';
 import {
   deriveWeekQuality,
   weekQualityLabelFr,
@@ -233,6 +234,7 @@ function buildPlanPrompt(input: {
   start: Date;
   focus: string | undefined;
   contextText: string;
+  thresholdBlock: string;
   memoryBlock: string;
   knowledgeBlock: string;
   goalBlock: string;
@@ -244,6 +246,7 @@ function buildPlanPrompt(input: {
     start,
     focus,
     contextText,
+    thresholdBlock,
     memoryBlock,
     knowledgeBlock,
     goalBlock,
@@ -258,7 +261,7 @@ function buildPlanPrompt(input: {
 
 ${focus ? `Demande spécifique de l'athlète : ${athleteText(focus)}\n\n` : ''}Données de l'athlète :
 
-${contextText}${memoryBlock}${knowledgeBlock}${goalBlock}${macroBlock}${agendaBlock}`;
+${contextText}${thresholdBlock}${memoryBlock}${knowledgeBlock}${goalBlock}${macroBlock}${agendaBlock}`;
 }
 
 async function buildPlanGenerationContext(
@@ -368,7 +371,8 @@ async function buildPreparedPlan(
         hasActivePain: (ctx.physical?.length ?? 0) > 0,
       }),
   };
-  const [memoryBlock, knowledgeBlock] = await Promise.all([
+  const [thresholdBlock, memoryBlock, knowledgeBlock] = await Promise.all([
+    loadFtpConfidenceBlock(athleteId, start),
     loadLearningMemoryBlock(athleteId, start),
     Promise.resolve(
       formatKnowledgeRagBlock(
@@ -384,6 +388,7 @@ async function buildPreparedPlan(
     start,
     focus: focus ?? undefined,
     contextText: formatCoachContext(ctx, planContextSections(start, new Date())),
+    thresholdBlock,
     memoryBlock,
     knowledgeBlock,
     goalBlock,
