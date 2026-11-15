@@ -25,30 +25,60 @@ function buildExtractionContextFields(input: {
   trainingDayId: string;
   timezone: string;
   profile: Awaited<ReturnType<AthleteContextProvider['fetchProfile']>>;
+  thresholds: readonly ThresholdSnapshot[];
   restingHr: number | undefined;
   typicalLoad: ExtractionContext['typicalLoadPerHour'];
 }): ExtractionContext {
   const { athleteId, trainingDayId, timezone, profile, restingHr, typicalLoad } = input;
+  const asOf = (field: ThresholdField) =>
+    thresholdAsOf(input.thresholds, trainingDayId, field) ?? optionalProfileField(profile?.[field]);
   return {
     athleteId,
     trainingDayId,
     timezone,
-    ftpW: optionalProfileField(profile?.ftpW),
+    ftpW: asOf('ftpW'),
     maxHr: optionalProfileField(profile?.maxHr),
     restingHr,
-    lthr: optionalProfileField(profile?.lthr),
-    runThresholdPaceSecPerKm: optionalProfileField(profile?.runThresholdPaceSecPerKm),
+    lthr: asOf('lthr'),
+    runThresholdPaceSecPerKm: asOf('runThresholdPaceSecPerKm'),
     sleepTargetMinutes: optionalProfileField(profile?.sleepTargetMinutes),
     typicalLoadPerHour: typicalLoad,
   };
+}
+
+type ThresholdField = 'ftpW' | 'lthr' | 'runThresholdPaceSecPerKm';
+type ThresholdSnapshot = { createdAt: Date } & Partial<Record<ThresholdField, number | null>>;
+
+/**
+ * A threshold as it stood on the day extracted: the last value recorded by then, else the
+ * first one ever recorded. Read from the profile, a recomputation scored a ride of August
+ * on November's FTP and moved the whole history by the square of their ratio.
+ * Undefined when the history never held the value.
+ */
+export function thresholdAsOf(
+  snapshots: readonly ThresholdSnapshot[],
+  trainingDayId: string,
+  field: ThresholdField,
+): number | undefined {
+  const endOfDay = new Date(`${trainingDayId}T23:59:59.999Z`).getTime();
+  const known = snapshots
+    .filter((snapshot) => typeof snapshot[field] === 'number' && (snapshot[field] as number) > 0)
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const byThen = known.filter((snapshot) => snapshot.createdAt.getTime() <= endOfDay);
+  const chosen = byThen[byThen.length - 1] ?? known[0];
+  return chosen ? (chosen[field] as number) : undefined;
 }
 
 export class AthleteContextProvider implements ExtractionContextProvider {
   constructor(private readonly prisma: PrismaClient) {}
 
   async getContext(athleteId: string, trainingDayId: string): Promise<ExtractionContext> {
-    const [profile, restingHr, timezone, typicalLoad] = await Promise.all([
+    const [profile, thresholds, restingHr, timezone, typicalLoad] = await Promise.all([
       this.fetchProfile(athleteId),
+      this.prisma.athleteThresholdSnapshot.findMany({
+        where: { profileId: athleteId },
+        select: { createdAt: true, ftpW: true, lthr: true, runThresholdPaceSecPerKm: true },
+      }),
       this.fetchRestingHr(athleteId, trainingDayId),
       this.fetchTimezone(athleteId),
       this.fetchTypicalLoad(athleteId, trainingDayId),
@@ -59,6 +89,7 @@ export class AthleteContextProvider implements ExtractionContextProvider {
       trainingDayId,
       timezone,
       profile,
+      thresholds,
       restingHr,
       typicalLoad,
     });
