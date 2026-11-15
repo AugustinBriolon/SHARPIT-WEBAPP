@@ -19,6 +19,7 @@ import {
   scoreLoadProgression,
   scoreNeuromuscularEfficiency,
   scoreAutonomicAdaptation,
+  efficiencyTrendPercent,
   scoreRecoveryQuality,
   computeAdaptationTrend,
   classifyAdaptationStatus,
@@ -656,5 +657,40 @@ describe('adaptation — scores follow their inputs (audit pass 3)', () => {
       expect(score!).toBeGreaterThanOrEqual(previous);
       previous = score!;
     }
+  });
+});
+
+describe('adaptation reads efficiency over weeks (audit A3)', () => {
+  const run = (daysAgo: number, efficiencyFactor: number) => {
+    const day = new Date(Date.UTC(2026, 6, 30));
+    day.setUTCDate(day.getUTCDate() - daysAgo);
+    return makeSession({
+      trainingDayId: day.toISOString().slice(0, 10),
+      sportType: 'RUN',
+      efficiencyFactor,
+    });
+  };
+  const sessions = [
+    ...[2, 9, 16].map((d) => run(d, 0.0212)),
+    ...[30, 37, 44].map((d) => run(d, 0.02)),
+  ];
+
+  it('gives the change between the last four weeks and the four before', () => {
+    expect(efficiencyTrendPercent(sessions, '2026-07-30')!).toBeCloseTo(6, 1);
+  });
+
+  it('says nothing with fewer than three sessions on a side', () => {
+    expect(efficiencyTrendPercent(sessions.slice(1), '2026-07-30')).toBeNull();
+  });
+
+  it('a rising efficiency raises the score, a falling one lowers it', () => {
+    const drift = [makeSession({ hrDriftPercent: 5 })];
+    const flat = scoreNeuromuscularEfficiency(drift).score!;
+    expect(scoreNeuromuscularEfficiency(drift, 4).score!).toBeGreaterThan(flat);
+    expect(scoreNeuromuscularEfficiency(drift, -4).score!).toBeLessThan(flat);
+  });
+
+  it('scores on the trend alone when no session carries a drift', () => {
+    expect(scoreNeuromuscularEfficiency([], 5).score).toBe(75);
   });
 });

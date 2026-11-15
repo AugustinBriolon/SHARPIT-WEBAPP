@@ -112,6 +112,12 @@ export type AdaptationModelContext = {
    */
   readonly recentAdaptationHistory: readonly number[];
 
+  /**
+   * Change of the efficiency factor over the last four weeks against the four before,
+   * in percent. Null or absent when there are too few like sessions to compare.
+   */
+  readonly efficiencyTrendPercent?: number | null;
+
   /** Optional overlay from Environmental Context Engine. */
   readonly environmentalImpact?: EnvironmentalImpact | null;
 };

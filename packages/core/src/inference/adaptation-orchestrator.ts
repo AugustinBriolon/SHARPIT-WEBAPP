@@ -31,6 +31,10 @@ import { runAdaptationModel } from './adaptation/model';
 import type { AdaptationModelOutput, AdaptationModelContext } from './adaptation/types';
 import type { DecisionRecord } from './types';
 import { NEUROMUSCULAR_EFFICIENCY_LOOKBACK_DAYS } from './adaptation/constants';
+import { efficiencyTrendPercent } from './adaptation/scoring';
+
+/** Two four-week windows of sessions for the efficiency trend. */
+const EFFICIENCY_TREND_LOOKBACK_DAYS = 56;
 
 function subtractTrainingDays(trainingDayId: string, days: number): string {
   const [year, month, day] = trainingDayId.split('-').map(Number);
@@ -123,6 +127,13 @@ export class AdaptationInferenceOrchestrator {
     );
     const featuresForModel = { ...features, sessions: recentSessions };
 
+    // Efficiency is compared over two four-week windows, far beyond the drift's lookback.
+    const efficiencySessions = await this.deps.featureEngine.getSessionFeaturesInRange(
+      athleteId,
+      subtractTrainingDays(trainingDayId, EFFICIENCY_TREND_LOOKBACK_DAYS - 1),
+      trainingDayId,
+    );
+
     // ── Step 2: Get context from Digital Twin ──────────────────────────────
     const recoveryState = twin.state.recovery;
     const fatigueState = twin.state.fatigue;
@@ -137,6 +148,7 @@ export class AdaptationInferenceOrchestrator {
       fatigueState,
       recentAdaptationHistory,
       environmentalImpact,
+      efficiencyTrendPercent: efficiencyTrendPercent(efficiencySessions, trainingDayId),
     };
 
     // ── Step 4: Run the Adaptation Model (pure — no side effects) ─────────

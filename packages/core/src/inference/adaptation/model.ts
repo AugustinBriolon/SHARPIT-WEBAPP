@@ -73,7 +73,10 @@ export function runAdaptationModel(
   // ── Step 1: Score four dimensions ─────────────────────────────────────────
   const dims: ScoredAdaptationDimensions = {
     loadProgression: scoreLoadProgression(features.load),
-    neuromuscularEfficiency: scoreNeuromuscularEfficiency(features.sessions),
+    neuromuscularEfficiency: scoreNeuromuscularEfficiency(
+      features.sessions,
+      context.efficiencyTrendPercent ?? null,
+    ),
     autonomicAdaptation: scoreAutonomicAdaptation(features.recovery),
     recoveryQuality: scoreRecoveryQuality(context.recoveryState, context.fatigueState),
   };

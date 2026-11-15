@@ -178,12 +178,73 @@ export function scoreLoadProgression(load: LoadFeatureSet | 'PENDING'): Dimensio
   return { score: 40, available: true, reason: 'default — insufficient trend signal' };
 }
 
+/** Sessions a sport needs on each side of the comparison. */
+const MIN_SESSIONS_PER_EFFICIENCY_WINDOW = 3;
+const EFFICIENCY_WINDOW_DAYS = 28;
+/** Points of score per percent of efficiency gained or lost, and where the effect stops. */
+const EFFICIENCY_POINTS_PER_PERCENT = 3;
+const EFFICIENCY_TREND_CAP_PERCENT = 5;
+
+function meanEfficiency(sessions: readonly SessionFeatureSet[]): number {
+  return sessions.reduce((sum, s) => sum + (s.efficiencyFactor as number), 0) / sessions.length;
+}
+
+/**
+ * Change of the efficiency factor (output per heartbeat) between the last four weeks and
+ * the four before, in percent, on the sport with the most sessions to compare. This is
+ * what adaptation is: more speed or power for the same pulse, over weeks. Null when no
+ * sport has three sessions on each side.
+ */
+export function efficiencyTrendPercent(
+  sessions: readonly SessionFeatureSet[],
+  trainingDayId: string,
+): number | null {
+  const anchor = Date.parse(`${trainingDayId}T00:00:00Z`);
+  const daysAgo = (s: SessionFeatureSet) =>
+    (anchor - Date.parse(`${s.trainingDayId}T00:00:00Z`)) / 86_400_000;
+  const measured = sessions.filter((s) => isSet(s.efficiencyFactor) && s.efficiencyFactor > 0);
+  const candidates = [...new Set(measured.map((s) => s.sportType))].flatMap((sport) => {
+    const ofSport = measured.filter((s) => s.sportType === sport);
+    const recent = ofSport.filter((s) => daysAgo(s) >= 0 && daysAgo(s) < EFFICIENCY_WINDOW_DAYS);
+    const prior = ofSport.filter(
+      (s) => daysAgo(s) >= EFFICIENCY_WINDOW_DAYS && daysAgo(s) < 2 * EFFICIENCY_WINDOW_DAYS,
+    );
+    return recent.length >= MIN_SESSIONS_PER_EFFICIENCY_WINDOW &&
+      prior.length >= MIN_SESSIONS_PER_EFFICIENCY_WINDOW
+      ? [{ recent, prior, count: recent.length + prior.length }]
+      : [];
+  });
+  const [best] = candidates.sort((a, b) => b.count - a.count);
+  if (!best) {
+    return null;
+  }
+  const before = meanEfficiency(best.prior);
+  return ((meanEfficiency(best.recent) - before) / before) * 100;
+}
+
+function efficiencyTrendPoints(trendPercent: number): number {
+  const capped = Math.max(
+    -EFFICIENCY_TREND_CAP_PERCENT,
+    Math.min(EFFICIENCY_TREND_CAP_PERCENT, trendPercent),
+  );
+  return capped * EFFICIENCY_POINTS_PER_PERCENT;
+}
+
 export function scoreNeuromuscularEfficiency(
   sessions: readonly SessionFeatureSet[],
+  efficiencyTrend: number | null = null,
 ): DimensionScore {
   const eligible = sessions.filter((s) => isSet(s.hrDriftPercent));
   if (eligible.length === 0) {
-    return { score: null, available: false, reason: 'no sessions with hrDriftPercent' };
+    return isSet(efficiencyTrend)
+      ? {
+          score: Math.round(
+            Math.max(0, Math.min(100, 60 + efficiencyTrendPoints(efficiencyTrend))),
+          ),
+          available: true,
+          reason: `efficiencyTrend=${efficiencyTrend.toFixed(1)}%`,
+        }
+      : { score: null, available: false, reason: 'no sessions with hrDriftPercent' };
   }
 
   const meanDrift =
@@ -208,9 +269,10 @@ export function scoreNeuromuscularEfficiency(
   }
 
   const ifBonus = isSet(meanIF) && meanIF > 0.85 ? 10 : 0;
+  const trendPoints = isSet(efficiencyTrend) ? efficiencyTrendPoints(efficiencyTrend) : 0;
 
   return {
-    score: Math.round(Math.min(100, base + ifBonus)),
+    score: Math.round(Math.max(0, Math.min(100, base + ifBonus + trendPoints))),
     available: true,
     reason: `meanDrift=${meanDrift.toFixed(1)}%`,
   };
