@@ -19,7 +19,8 @@ export function clientActivityToHeaderActivity(
     rpe: activity.rpe,
     feeling: activity.feeling,
     weather: activity.weather,
-    plannedSession: activity.plannedSession,
+    // A list row does not carry the session's goal: the detail read fills it in.
+    plannedSession: activity.plannedSession ? { ...activity.plannedSession, goal: null } : null,
   };
 }
 

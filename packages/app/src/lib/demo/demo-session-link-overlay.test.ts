@@ -42,6 +42,7 @@ describe('demo-session-link-overlay', () => {
       analyzedAt: null,
       brickGroupId: null,
       brickOrder: null,
+      goal: null,
     };
 
     const summary = resolveDemoLinkedPlannedSessionForActivity('act-demo', server, [], LINKS);

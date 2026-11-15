@@ -68,6 +68,7 @@ export function plannedSessionSummaryFromClient(
     analyzedAt: session.analyzedAt ? toDate(session.analyzedAt) : null,
     brickGroupId: session.brickGroupId,
     brickOrder: session.brickOrder,
+    goal: null,
   };
 }
 
@@ -88,6 +89,7 @@ function plannedSessionSummaryFromSnapshot(
     // Demo snapshots never model a brick — nothing to overlay.
     brickGroupId: null,
     brickOrder: null,
+    goal: null,
   };
 }
 

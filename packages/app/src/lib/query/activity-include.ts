@@ -46,6 +46,11 @@ export const activityGoalSelect = {
 
 export const activityDetailInclude = {
   ...activityInclude,
+  // With the goal the session was written for: a session done from a goal's plan says so on
+  // its own page, without the athlete linking it by hand.
+  plannedSession: {
+    select: { ...plannedSessionSummarySelect, goal: { select: { id: true, title: true } } },
+  },
   stream: true,
   goal: { select: activityGoalSelect },
 };
