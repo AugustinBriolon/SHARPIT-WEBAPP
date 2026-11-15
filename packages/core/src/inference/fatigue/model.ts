@@ -43,6 +43,7 @@ import {
   computeFatigueTrajectory,
   estimateTimeToFresh,
   applyDissonanceBias,
+  sessionsWithCarryOver,
 } from './scoring';
 import type { I18nItem } from '../shared/types';
 
@@ -55,14 +56,11 @@ function scoreFatigueDimensions(
   context: FatigueModelContext,
 ): ScoredFatigueDimensions {
   const recovery = features.recovery !== 'PENDING' ? features.recovery : null;
+  const sessions = sessionsWithCarryOver(features.sessions, context.priorSessions);
   const initial: ScoredFatigueDimensions = {
     load: scoreLoadFatigue(features.load),
-    neuromuscular: scoreNeuromuscularFatigue(
-      features.recovery,
-      context.recoveryState,
-      features.sessions,
-    ),
-    metabolic: scoreMetabolicFatigue(features.sessions),
+    neuromuscular: scoreNeuromuscularFatigue(features.recovery, context.recoveryState, sessions),
+    metabolic: scoreMetabolicFatigue(sessions),
     cumulative: scoreCumulativeTrajectory(
       context.consecutiveAccumulationDays,
       recovery?.sleepDebtMin ?? null,

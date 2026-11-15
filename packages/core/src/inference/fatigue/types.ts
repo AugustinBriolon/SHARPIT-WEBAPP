@@ -8,6 +8,7 @@
  * See FATIGUE_MODEL.md §2.1 for the four-state matrix.
  */
 
+import type { SessionFeatureSet } from '../../features/types';
 import type {
   OverreachingRisk,
   DataCompleteness,
@@ -133,6 +134,12 @@ export type FatigueModelContext = {
 
   /** Optional overlay from Environmental Context Engine. */
   readonly environmentalImpact?: EnvironmentalImpact | null;
+
+  /** Sessions of the two days before this one, whose stress is still partly carried. */
+  readonly priorSessions?: ReadonlyArray<{
+    readonly daysAgo: number;
+    readonly session: SessionFeatureSet;
+  }>;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

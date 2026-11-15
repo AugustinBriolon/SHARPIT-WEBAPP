@@ -28,6 +28,7 @@ import type { DigitalTwinRepository } from '../digital-twin/repository';
 import type { DecisionRecordRepository } from './types';
 
 import { runFatigueModel } from './fatigue/model';
+import { addTrainingDays } from '../training/training-day';
 import type { FatigueModelOutput, FatigueModelContext } from './fatigue/types';
 import type { DecisionRecord } from './types';
 
@@ -121,6 +122,7 @@ export class FatigueInferenceOrchestrator {
       consecutiveAccumulationDays,
       recentFatigueHistory,
       environmentalImpact,
+      priorSessions: await this.loadPriorSessions(athleteId, trainingDayId),
     };
 
     // ── Step 4: Run the Fatigue Model (pure — no side effects) ────────────
@@ -216,6 +218,23 @@ export class FatigueInferenceOrchestrator {
   // ─────────────────────────────────────────────────────────────────────────
   // Private helpers
   // ─────────────────────────────────────────────────────────────────────────
+
+  /** Sessions of the two days before, whose stress the model still carries in part. */
+  private async loadPriorSessions(
+    athleteId: string,
+    trainingDayId: string,
+  ): Promise<NonNullable<FatigueModelContext['priorSessions']>> {
+    const days = await Promise.all(
+      [1, 2].map(async (daysAgo) => {
+        const features = await this.deps.featureEngine.getDayFeatures(
+          athleteId,
+          addTrainingDays(trainingDayId, -daysAgo),
+        );
+        return features.sessions.map((session) => ({ daysAgo, session }));
+      }),
+    );
+    return days.flat();
+  }
 
   /**
    * Reconstruct fatigue history context from Decision Records.

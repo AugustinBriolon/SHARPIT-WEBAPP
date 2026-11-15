@@ -26,6 +26,7 @@ import type {
   DataCompleteness,
 } from './types';
 import type { LoadFeatureSet, RecoveryFeatureSet, SessionFeatureSet } from '../../features/types';
+import { TSS_METHOD_CONFIDENCE } from '../../features/types';
 import { isSet } from '@sharpit/shared/value';
 import type { SubjectiveWellnessComponents } from '../../features/types';
 import type { RecoveryState } from '../../digital-twin/types';
@@ -42,6 +43,10 @@ const DIMENSION_WEIGHTS = {
   cumulative: 0.15,
   psychological: 0.1,
 } as const;
+
+/** A dimension at or above this floors the index out of the fresh band. */
+const SEVERE_DIMENSION_SCORE = 80;
+const SEVERE_DIMENSION_FLOOR = 25;
 
 /** Accumulation threshold: FatigueIndex > this → counts as accumulation day. */
 const ACCUMULATION_THRESHOLD = 55;
@@ -91,16 +96,35 @@ function getMechanicalStressFactor(sport: SportType): number {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Scores load fatigue from ACWR and load monotony.
- *
- * v1 approximation: uses LoadFeatureSet.acwr as the ATL/CTL ratio proxy
- * (rolling sums instead of EWMA — acceptable until Training Stress Model
- * is implemented and CTL/ATL are stored in the Digital Twin).
- *
- * Formula: LoadFatigue = clamp(ACWR / 1.5 × 100, 0, 100)
- *   ACWR = 0   → 0   (no recent training)
- *   ACWR = 1.0 → 67  (normal high-load training)
- *   ACWR = 1.5 → 100 (critical overload)
+ * Load fatigue by the acute load against the athlete's own chronic load, linear between
+ * these points. Training as usual (1.0) is functional fatigue, not accumulation: as
+ * `ACWR / 1.5` it scored 67 and sat in the accumulated band every ordinary week.
+ */
+const ACWR_FATIGUE_KNOTS: ReadonlyArray<readonly [acwr: number, score: number]> = [
+  [0, 0],
+  [0.8, 25],
+  [1.0, 35],
+  [1.3, 65],
+  [1.5, 90],
+  [2.0, 100],
+];
+
+function loadFatigueFromAcwr(acwr: number): number {
+  const last = ACWR_FATIGUE_KNOTS[ACWR_FATIGUE_KNOTS.length - 1];
+  if (acwr >= last[0]) {
+    return last[1];
+  }
+  const upper = ACWR_FATIGUE_KNOTS.findIndex(([knot]) => acwr < knot);
+  if (upper <= 0) {
+    return 0;
+  }
+  const [x0, y0] = ACWR_FATIGUE_KNOTS[upper - 1];
+  const [x1, y1] = ACWR_FATIGUE_KNOTS[upper];
+  return y0 + ((acwr - x0) / (x1 - x0)) * (y1 - y0);
+}
+
+/**
+ * Scores load fatigue from ACWR and load monotony (rolling sums, see the load extractor).
  */
 export function scoreLoadFatigue(load: LoadFeatureSet | 'PENDING'): DimensionScore {
   if (load === 'PENDING' || load.acwr === undefined || load.acwr === null) {
@@ -108,7 +132,7 @@ export function scoreLoadFatigue(load: LoadFeatureSet | 'PENDING'): DimensionSco
   }
 
   // Round base before applying multipliers so boundary values are stable
-  let score = Math.round(Math.max(Math.min((load.acwr / 1.5) * 100, 100), 0));
+  let score = Math.round(loadFatigueFromAcwr(load.acwr));
 
   // Monotony amplifier (Foster et al. 1998)
   if (isSet(load.loadMonotony)) {
@@ -221,14 +245,6 @@ export function scoreMetabolicFatigue(sessions: readonly SessionFeatureSet[]): D
   let maxHrDrift = 0;
   let sumMethodConfidence = 0;
 
-  const TSS_METHOD_CONFIDENCE: Record<string, number> = {
-    POWER_BASED: 0.85,
-    TRIMP_HR: 0.65,
-    PACE_BASED: 0.5,
-    RPE_BASED: 0.4,
-    DURATION_FACTOR: 0.25,
-  };
-
   for (const session of sessions) {
     const anaerobicFactor = session.anaerobicLoadFactor ?? 0.3;
     totalMetabolicStress += anaerobicFactor * session.tssScore;
@@ -291,13 +307,13 @@ export function scoreCumulativeTrajectory(
 /**
  * Scores psychological/motivational fatigue from subjective wellness.
  *
- * Formula: PsychFatigue = 100 − (mood × 10 + energyLevel × 10) / 2
- *   mood = 1 → PsychFatigue = 90 (severe)
- *   mood = 5 → PsychFatigue = 50 (none)
+ * Formula: PsychFatigue = 100 − (mood × 20 + energyLevel × 20) / 2, on 1–5 answers
+ *   both at 1 → 80 (severe)
+ *   both at 5 → 0 (none), as with a single answer
  */
 function scoreFromMoodAndEnergy(mood: number | null, energyLevel: number | null): number | null {
   if (isSet(mood) && isSet(energyLevel)) {
-    return 100 - (mood * 10 + energyLevel * 10) / 2;
+    return 100 - (mood * 20 + energyLevel * 20) / 2;
   }
   if (isSet(mood)) {
     return 100 - mood * 20;
@@ -373,7 +389,11 @@ export function synthesizeFatigueIndex(dims: ScoredFatigueDimensions): Synthesis
   const n = available.length;
   const dataCompleteness = classifyFatigueDataCompleteness(n);
 
-  return { score: Math.round(score), confidence, dataCompleteness };
+  // One system at its worst is not a fresh athlete, however light the others weigh.
+  const severe = available.some(([, d]) => d.score! >= SEVERE_DIMENSION_SCORE);
+  const index = severe ? Math.max(score, SEVERE_DIMENSION_FLOOR) : score;
+
+  return { score: Math.round(index), confidence, dataCompleteness };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -576,8 +596,8 @@ export function computeConsecutiveAccumulationDays(history: readonly number[]): 
 
 /**
  * Apply the motivated-athlete conservative bias guard (FATIGUE_MODEL.md §9.4).
- * When dissonance has been detected for ≥ 3 days, downweight psychological
- * and boost load + neuromuscular to prevent motivated-athlete underreporting.
+ * When dissonance has been detected for ≥ 3 days, the psychological dimension counts
+ * for half in the confidence. It does not move the index.
  */
 export function applyDissonanceBias(
   dims: ScoredFatigueDimensions,
@@ -588,7 +608,6 @@ export function applyDissonanceBias(
     return dims;
   }
 
-  // Reduce psychological weight signal (note: we dampen the qualityFactor as a proxy)
   return {
     ...dims,
     psychological: {
@@ -596,4 +615,22 @@ export function applyDissonanceBias(
       qualityFactor: dims.psychological.qualityFactor * 0.5,
     },
   };
+}
+
+/** Share of a session's stress still carried one and two days later. */
+const CARRY_OVER_BY_DAYS_AGO: Record<number, number> = { 1: 0.5, 2: 0.25 };
+
+/**
+ * Today's sessions plus what the last two days still weigh. Read from the day's own
+ * sessions only, the morning after a marathon showed no metabolic or mechanical fatigue.
+ */
+export function sessionsWithCarryOver(
+  today: readonly SessionFeatureSet[],
+  prior: ReadonlyArray<{ daysAgo: number; session: SessionFeatureSet }> = [],
+): SessionFeatureSet[] {
+  const carried = prior.flatMap(({ daysAgo, session }) => {
+    const share = CARRY_OVER_BY_DAYS_AGO[daysAgo];
+    return share ? [{ ...session, tssScore: session.tssScore * share }] : [];
+  });
+  return [...today, ...carried];
 }

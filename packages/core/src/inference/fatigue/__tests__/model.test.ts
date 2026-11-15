@@ -25,6 +25,7 @@ import {
   computeFatigueTrajectory,
   scoreCumulativeTrajectory,
   scoreLoadFatigue,
+  sessionsWithCarryOver,
   scoreMetabolicFatigue,
   scorePsychologicalFatigue,
 } from '../scoring';
@@ -186,14 +187,14 @@ describe('scoreLoadFatigue', () => {
     expect(result.score).toBe(0);
   });
 
-  it('ACWR = 1.0 → LoadFatigue ≈ 67 (normal high load)', () => {
+  it('ACWR = 1.0 → LoadFatigue = 35 (training as usual is functional)', () => {
     const result = scoreLoadFatigue(makeLoad({ acwr: 1.0, loadMonotony: null }));
-    expect(result.score).toBe(67);
+    expect(result.score).toBe(35);
   });
 
-  it('ACWR = 1.5 → LoadFatigue = 100 (critical overload)', () => {
+  it('ACWR = 1.5 → LoadFatigue = 90 (critical overload)', () => {
     const result = scoreLoadFatigue(makeLoad({ acwr: 1.5, loadMonotony: null }));
-    expect(result.score).toBe(100);
+    expect(result.score).toBe(90);
   });
 
   it('ACWR > 1.5 is clamped at 100', () => {
@@ -205,7 +206,7 @@ describe('scoreLoadFatigue', () => {
     const base = scoreLoadFatigue(makeLoad({ acwr: 1.0, loadMonotony: null }));
     const high = scoreLoadFatigue(makeLoad({ acwr: 1.0, loadMonotony: 2.5 }));
     expect(high.score!).toBeGreaterThan(base.score!);
-    expect(high.score!).toBeCloseTo(Math.round(67 * 1.1), 0);
+    expect(high.score!).toBeCloseTo(Math.round(35 * 1.1), 0);
   });
 
   it('low monotony (<1.3) reduces load fatigue by 5%', () => {
@@ -288,7 +289,7 @@ describe('scorePsychologicalFatigue', () => {
     expect(result.score).toBeNull();
   });
 
-  it('mood=5, energy=5 → PsychFatigue = 50', () => {
+  it('mood=5, energy=5 → PsychFatigue = 0', () => {
     const result = scorePsychologicalFatigue(
       makeRecovery({
         subjectiveWellnessComponents: {
@@ -299,10 +300,10 @@ describe('scorePsychologicalFatigue', () => {
         },
       }),
     );
-    expect(result.score).toBe(50);
+    expect(result.score).toBe(0);
   });
 
-  it('mood=1, energy=1 → PsychFatigue = 90', () => {
+  it('mood=1, energy=1 → PsychFatigue = 80', () => {
     const result = scorePsychologicalFatigue(
       makeRecovery({
         subjectiveWellnessComponents: {
@@ -313,7 +314,7 @@ describe('scorePsychologicalFatigue', () => {
         },
       }),
     );
-    expect(result.score).toBe(90);
+    expect(result.score).toBe(80);
   });
 
   it('mood only: mood=3 → PsychFatigue = 40', () => {
@@ -425,6 +426,8 @@ describe('runFatigueModel — full model', () => {
     const context = makeContext({
       consecutiveAccumulationDays: 7,
       recentFatigueHistory: [72, 70, 68, 65, 60, 58, 55],
+      // A week at 1.5 times the usual load has a session behind it.
+      priorSessions: [{ daysAgo: 1, session: makeSession({ tssScore: 150, sportType: 'RUN' }) }],
     });
     const output = runFatigueModel(features, context);
     const level = output.fatigueState.fatigueLevel;
@@ -502,5 +505,39 @@ describe('runFatigueModel — full model', () => {
     const output = runFatigueModel(features, context);
     expect(output.fatigueState.fatigueLevel).toBe('FRESH');
     expect(output.fatigueState.fatigueIndex).toBe(0);
+  });
+});
+
+describe('fatigue — audit pass 2 (G1, G2)', () => {
+  it('load fatigue never jumps more than 3 points for 0.01 of ACWR', () => {
+    for (let acwr = 0; acwr < 2.2; acwr += 0.01) {
+      const a = scoreLoadFatigue(makeLoad({ acwr, loadMonotony: null })).score!;
+      const b = scoreLoadFatigue(makeLoad({ acwr: acwr + 0.01, loadMonotony: null })).score!;
+      expect(b - a).toBeGreaterThanOrEqual(0);
+      expect(b - a).toBeLessThanOrEqual(3);
+    }
+  });
+
+  it("carries half of yesterday's session and a quarter of the day before's", () => {
+    const session = { tssScore: 200 } as never;
+    const carried = sessionsWithCarryOver(
+      [],
+      [
+        { daysAgo: 1, session },
+        { daysAgo: 2, session },
+        { daysAgo: 3, session },
+      ],
+    );
+    expect(carried.map((s) => s.tssScore)).toEqual([100, 50]);
+  });
+
+  it('the morning after a big session is not metabolically fresh', () => {
+    const yesterday = { tssScore: 250, anaerobicLoadFactor: 0.4, tssMethod: 'POWER_BASED' };
+    const rested = scoreMetabolicFatigue(sessionsWithCarryOver([], []));
+    const after = scoreMetabolicFatigue(
+      sessionsWithCarryOver([], [{ daysAgo: 1, session: yesterday as never }]),
+    );
+    expect(rested.score).toBe(0);
+    expect(after.score!).toBeGreaterThanOrEqual(50);
   });
 });
