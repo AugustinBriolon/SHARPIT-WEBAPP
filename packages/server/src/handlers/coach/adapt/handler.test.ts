@@ -285,7 +285,7 @@ describe('POST /api/coach/adapt', () => {
     expect(getOrBuildAthleteSnapshot).not.toHaveBeenCalled();
   });
 
-  it('gates an ADD change and rejects it when fatigue capacity is REST_ONLY', async () => {
+  it('gates an ADD change and rejects it when a pain limits training capacity', async () => {
     const { runStructuredCoachStream } =
       await import('@sharpit/server/lib/coach/stream-structured-generation');
     const { getOrBuildAthleteSnapshot } =
@@ -317,8 +317,9 @@ describe('POST /api/coach/adapt', () => {
       snapshotId: 'snap-adapt-1',
       confidence: 0.8,
       decision: decisionState(),
-      physicalHealth: physicalHealthData(),
-      fatigue: { trainingCapacity: 'REST_ONLY' },
+      // The change is for a later day: only what holds for the whole week can reject it.
+      physicalHealth: physicalHealthData({ aggregateTrainingCapacity: 'LIMITED' }),
+      fatigue: { trainingCapacity: 'FULL' },
       todaysDecision: 'TRAIN_SMART',
     } as never);
 
@@ -333,7 +334,7 @@ describe('POST /api/coach/adapt', () => {
     expect(body.gate.sessions[0].status).toBe('REJECTED');
     expect(
       body.gate.sessions[0].findings.some(
-        (f: { ruleCode: string }) => f.ruleCode === 'FATIGUE_REST_ONLY',
+        (f: { ruleCode: string }) => f.ruleCode === 'PHYSICAL_HEALTH_LIMITED',
       ),
     ).toBe(true);
     // The rejected change is taken out before the athlete sees it — its decision still recorded.

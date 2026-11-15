@@ -9,6 +9,54 @@ import { PLAN_GATE_HIGH_INTENSITY } from '@sharpit/server/lib/plan-gate/high-int
 
 const HIGH_INTENSITY = PLAN_GATE_HIGH_INTENSITY;
 
+/**
+ * Posture and mobility are traits to work on, not injuries: the plan prompt already tells the
+ * coach not to lighten intensity for them, so the Gate must not withhold it either.
+ */
+const NON_LIMITING_CONDITION_TYPES: ReadonlySet<string> = new Set([
+  'POSTURE_ISSUE',
+  'MOBILITY_LIMITATION',
+]);
+
+type PhysicalHealth = NonNullable<GateContext['physicalHealth']>;
+type Capacity = PhysicalHealth['aggregateTrainingCapacity'];
+
+const CAPACITY_ORDER: readonly Capacity[] = ['FULL', 'REDUCED', 'LIMITED', 'UNABLE'];
+/** Same threshold as the snapshot's own block (core `buildPhysicalHealthSignals`). */
+const BLOCKING_SEVERITY = 5;
+
+/**
+ * Capacity and block as the Gate reads them: the snapshot's aggregation (worst capacity of the
+ * active conditions), run again without the non-limiting ones. The frozen Core aggregates every
+ * condition alike and takes its own un-serialized type, hence the copy here. A snapshot that
+ * lists no condition keeps its aggregate.
+ */
+function limitingSignals(
+  physicalHealth: PhysicalHealth,
+): Pick<PhysicalHealth, 'aggregateTrainingCapacity' | 'trainingBlockedByCondition'> {
+  if (physicalHealth.conditions.length === 0) {
+    return physicalHealth;
+  }
+  const limiting = physicalHealth.conditions.filter(
+    (condition) =>
+      condition.status !== 'RESOLVED' && !NON_LIMITING_CONDITION_TYPES.has(condition.type),
+  );
+  const capacities = limiting.map((condition) => condition.functionalCapacity ?? 'FULL');
+  return {
+    aggregateTrainingCapacity: capacities.reduce<Capacity>(
+      (worst, capacity) =>
+        CAPACITY_ORDER.indexOf(capacity) > CAPACITY_ORDER.indexOf(worst) ? capacity : worst,
+      'FULL',
+    ),
+    trainingBlockedByCondition: limiting.some(
+      (condition) =>
+        condition.affectsTraining &&
+        condition.severity >= BLOCKING_SEVERITY &&
+        condition.functionalCapacity !== 'FULL',
+    ),
+  };
+}
+
 function blockedTrainingFinding(): RuleFinding {
   return {
     ruleCode: 'PHYSICAL_HEALTH_BLOCKED',
@@ -91,10 +139,11 @@ export const physicalHealthRule: PlanGateRule = (
     return [];
   }
 
-  if (physicalHealth.trainingBlockedByCondition) {
+  const signals = limitingSignals(physicalHealth);
+  if (signals.trainingBlockedByCondition) {
     return [blockedTrainingFinding()];
   }
 
   const isHighIntensity = isSet(proposal.intensity) && HIGH_INTENSITY.has(proposal.intensity);
-  return capacityFindings(proposal, physicalHealth.aggregateTrainingCapacity, isHighIntensity);
+  return capacityFindings(proposal, signals.aggregateTrainingCapacity, isHighIntensity);
 };

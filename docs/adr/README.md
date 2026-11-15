@@ -125,6 +125,7 @@
 | [ADR-127](./ADR-127-account-deletion-keeps-the-rows-until-outside-copies-are-gone.md)      | Account deletion keeps the rows until the outside copies are gone                                                                                                                                               | Accepted                          |
 | [ADR-128](./ADR-128-blood-tests-are-kept-as-sealed-results.md)                             | Blood tests are kept as sealed results, never as a document                                                                                                                                                     | Accepted                          |
 | [ADR-129](./ADR-129-blood-tests-get-a-sourced-training-reading.md)                         | Blood tests get a sourced training reading, computed without a model                                                                                                                                            | Accepted                          |
+| [ADR-132](./ADR-132-the-plan-gate-withholds-intensity-only-where-it-protects.md)           | The plan Gate withholds intensity only where it protects: posture exempt, rejected sessions offered lighter, day state bound to its day                                                                         | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

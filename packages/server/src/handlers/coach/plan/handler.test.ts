@@ -122,7 +122,7 @@ describe('POST /api/coach/plan', () => {
     await importRoute();
   });
 
-  it('takes out a session the Gate rejects before the athlete sees it, keeping its decision', async () => {
+  it('offers a session the Gate rejects as its lighter version, keeping both decisions', async () => {
     const { runStructuredCoachStream } =
       await import('@sharpit/server/lib/coach/stream-structured-generation');
     const { getOrBuildAthleteSnapshot } =
@@ -164,7 +164,8 @@ describe('POST /api/coach/plan', () => {
     vi.mocked(getOrBuildAthleteSnapshot).mockResolvedValue({
       snapshotId: 'snap-1',
       confidence: 0.8,
-      decision: decisionState({ overallVerdict: 'RECOVER' }),
+      // Not the day's verdict: it no longer speaks for a session planned for tomorrow.
+      decision: decisionState({ confidenceTier: 'LOW' }),
       physicalHealth: physicalHealthData(),
       fatigue: { trainingCapacity: 'FULL' },
       todaysDecision: 'RECOVER',
@@ -180,14 +181,25 @@ describe('POST /api/coach/plan', () => {
     const body = await consumeCoachProgressStream<PlanPayload, unknown>(response);
 
     expect(response.status).toBe(200);
-    expect(body.sessions.map((session) => session.title)).toEqual(['Footing très facile']);
+    expect(body.sessions.map((session) => session.title)).toEqual([
+      'Course · Endurance',
+      'Footing très facile',
+    ]);
+    // The threshold session comes back in endurance, with the Gate's reason in place of the coach's.
+    expect(body.sessions[0]).toMatchObject({ intensity: 'ENDURANCE', load: 42 });
+    expect(body.sessions[0].rationale).toContain('Une version en endurance est proposée');
     // A proposal opens on the steps it would store, derived here from duration + intensity.
     expect(body.sessions[0].breakdown.derived).toBe(true);
     expect(body.sessions[0].breakdown.steps.length).toBeGreaterThan(0);
-    expect(body.gate.sessions).toHaveLength(1);
-    expect(body.gate.sessions[0].status).not.toBe('REJECTED');
-    // Both proposals are remembered, the rejected one included.
-    expect(vi.mocked(createCoachingDecision)).toHaveBeenCalledTimes(2);
+    expect(body.gate.sessions).toHaveLength(2);
+    expect(body.gate.sessions.every((session) => session.status !== 'REJECTED')).toBe(true);
+    // The rejected proposal is remembered, and its lighter version is a decision of its own:
+    // « Ajouter » refuses a session whose decision was rejected.
+    expect(vi.mocked(createCoachingDecision)).toHaveBeenCalledTimes(3);
+    const recorded = vi
+      .mocked(createCoachingDecision)
+      .mock.calls.map(([, decision]) => decision.gateResult.status);
+    expect(recorded.filter((status) => status === 'REJECTED')).toHaveLength(1);
   });
 
   it('accepts a session when nothing in the context conflicts with it', async () => {
@@ -236,6 +248,58 @@ describe('POST /api/coach/plan', () => {
 
     expect(response.status).toBe(200);
     expect(body.gate.sessions[0].status).toBe('ACCEPTED');
+  });
+
+  it('reads the athlete as they are today when the week starts on a later day', async () => {
+    const { runStructuredCoachStream } =
+      await import('@sharpit/server/lib/coach/stream-structured-generation');
+    const { getOrBuildAthleteSnapshot } =
+      await import('@sharpit/server/lib/athlete-state/snapshot-service');
+
+    vi.mocked(runStructuredCoachStream).mockResolvedValue({
+      output: {
+        summary: 'Semaine prochaine',
+        sessions: [
+          {
+            dayOffset: 0,
+            startTime: null,
+            type: 'RUN',
+            intensity: 'ENDURANCE',
+            title: 'Endurance facile',
+            description: 'Footing',
+            durationMin: 40,
+            load: 35,
+            rationale: 'Reprise progressive',
+          },
+        ],
+      },
+      usage: { inputTokens: 10, outputTokens: 10, totalTokens: 20 },
+    } as never);
+    vi.mocked(getOrBuildAthleteSnapshot).mockClear();
+    vi.mocked(getOrBuildAthleteSnapshot).mockResolvedValue({
+      snapshotId: 'snap-future',
+      confidence: 0.8,
+      decision: decisionState(),
+      physicalHealth: physicalHealthData(),
+      fatigue: { trainingCapacity: 'FULL' },
+      todaysDecision: 'TRAIN_SMART',
+    } as never);
+
+    // A day still to come has no night behind it: its reading would pass for low confidence.
+    const nextWeek = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+    const { POST } = await importRoute();
+    const response = await POST(
+      new Request('http://localhost/api/coach/plan', {
+        method: 'POST',
+        body: JSON.stringify({ days: 7, startDate: nextWeek }),
+      }),
+    );
+    await consumeCoachProgressStream<PlanPayload, unknown>(response);
+
+    expect(response.status).toBe(200);
+    const readDays = vi.mocked(getOrBuildAthleteSnapshot).mock.calls.map(([, day]) => day);
+    expect(readDays.length).toBeGreaterThan(0);
+    expect(readDays).not.toContain(nextWeek);
   });
 
   it('carries the near-limit warning header when the budget check flags one', async () => {

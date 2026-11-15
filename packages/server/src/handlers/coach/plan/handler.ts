@@ -56,6 +56,7 @@ import type { z } from 'zod';
 import { chooseKeySessions } from '@sharpit/app/lib/planned-session/key-sessions';
 import { buildGateContext } from '@sharpit/server/lib/plan-gate/build-context';
 import { evaluatePlan } from '@sharpit/server/lib/plan-gate/evaluate-plan';
+import { offerSessions } from '@sharpit/server/lib/plan-gate/lighter-version';
 import type { GateProposal } from '@sharpit/app/lib/plan-gate/types';
 import { computeTrainingDayId } from '@sharpit/core/training/training-day';
 import { buildDecisionSnapshotContext } from '@sharpit/server/lib/decision-memory/build-snapshot-context';
@@ -594,9 +595,12 @@ async function finalizePlan(
       goalId: goalId ?? null,
     }));
 
+    // The Gate reads the athlete as they are now. A day still to come has no night behind it:
+    // its empty reading passes for low confidence and withholds every hard session of the week.
+    const now = new Date();
     const { context: gateContext, snapshot } = await buildGateContext({
       athleteId,
-      trainingDayId: computeTrainingDayId(start),
+      trainingDayId: computeTrainingDayId(start > now ? now : start),
       proposals,
       goalId,
       planWindow: { start, days },
@@ -604,28 +608,40 @@ async function finalizePlan(
     const gate = evaluatePlan(gateContext, proposals);
 
     const snapshotContext = buildDecisionSnapshotContext(snapshot);
-    const decisionIds = await Promise.all(
-      gate.sessions.map((sessionResult) =>
-        createCoachingDecision(athleteId, {
-          trainingDayId: computeTrainingDayId(new Date(`${sessionResult.proposal.date}T00:00:00`)),
-          source: 'PLAN_GENERATOR',
-          proposal: sessionResult.proposal,
-          gateResult: sessionResult,
-          snapshotContext,
-          snapshotIdAtRecommendation: snapshot.snapshotId,
-        }),
-      ),
-    ).then((decisions) => decisions.map((d) => d.id));
+    const recordDecision = (sessionResult: (typeof gate.sessions)[number]) =>
+      createCoachingDecision(athleteId, {
+        trainingDayId: computeTrainingDayId(new Date(`${sessionResult.proposal.date}T00:00:00`)),
+        source: 'PLAN_GENERATOR',
+        proposal: sessionResult.proposal,
+        gateResult: sessionResult,
+        snapshotContext,
+        snapshotIdAtRecommendation: snapshot.snapshotId,
+      }).then((decision) => decision.id);
+    const decisionIds = await Promise.all(gate.sessions.map(recordDecision));
 
-    // The Gate is the last word before the athlete sees anything: a session it rejects is
-    // taken out here — its decision still recorded — rather than shown and refused on « Ajouter ».
-    const kept = gate.sessions
-      .map((result, index) => ({ result, index }))
-      .filter(({ result }) => result.status !== 'REJECTED')
-      .map(({ index }) => index);
-    const keptProposals = kept.map((index) => proposals[index]);
-    const keptGate =
-      kept.length === proposals.length ? gate : evaluatePlan(gateContext, keptProposals);
+    // The Gate is the last word before the athlete sees anything. A session it rejects is not
+    // shown as written — it would be refused on « Ajouter » — but it does not vanish either: it
+    // comes back as its lighter version with the rule's reason, or is taken out when the Gate
+    // has none to offer. Every rejection stays recorded.
+    const { offered, gate: keptGate } = offerSessions(gateContext, gate);
+    // A lighter version is a proposal of its own: « Ajouter » refuses a rejected decision.
+    const offeredDecisionIds = await Promise.all(
+      offered.map(({ index, lightened }, position) =>
+        lightened ? recordDecision(keptGate.sessions[position]) : decisionIds[index],
+      ),
+    );
+    const offeredSessions = offered.map(({ index, proposal, lightened }) =>
+      lightened
+        ? {
+            ...sessions[index],
+            intensity: proposal.intensity ?? sessions[index].intensity,
+            load: proposal.load ?? sessions[index].load,
+            title: proposal.title ?? sessions[index].title,
+            rationale: proposal.rationale ?? sessions[index].rationale,
+            endurancePrescription: null,
+          }
+        : sessions[index],
+    );
 
     // Resolved like a planned session's, so a proposal opens on the steps it would store.
     const [profile, zones] = await Promise.all([
@@ -633,9 +649,8 @@ async function finalizePlan(
       getTrainingZoneNotes(athleteId),
     ]);
     const thresholds = athleteThresholds(profile);
-    const keySessions = chooseKeySessions(kept.map((index) => sessions[index]));
-    const sessionsWithDecisionId = kept.map((index, position) => {
-      const s = sessions[index];
+    const keySessions = chooseKeySessions(offeredSessions);
+    const sessionsWithDecisionId = offeredSessions.map((s, position) => {
       return {
         ...s,
         key: keySessions.has(position),
@@ -647,7 +662,7 @@ async function finalizePlan(
         // Written from the steps, not by the coach: the model spends no time on prose.
         description: generatedSessionPayload({ ...s, decisionId: null }, goalId).description,
         rationale: sanitizeCoachCopy(s.rationale),
-        decisionId: decisionIds[index],
+        decisionId: offeredDecisionIds[position],
       };
     });
     if (sessionsWithDecisionId.length === 0) {

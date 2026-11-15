@@ -49,7 +49,9 @@ describe('evaluatePlan', () => {
       decision: decisionState({ overallVerdict: 'CAUTION' }),
       athleteProfile: { hasThresholds: false },
     });
-    const result = evaluatePlan(context, [baseProposal({ intensity: 'THRESHOLD' })]);
+    const result = evaluatePlan(context, [
+      baseProposal({ date: context.trainingDayId, intensity: 'THRESHOLD' }),
+    ]);
 
     expect(result.sessions[0]?.status).toBe('REJECTED');
     const codes = result.sessions[0]?.findings.map((f) => f.ruleCode) ?? [];
@@ -59,7 +61,11 @@ describe('evaluatePlan', () => {
 
   it('preserves the original proposal object on every result, never mutating it', () => {
     const context = baseContext({ decision: decisionState({ overallVerdict: 'RECOVER' }) });
-    const proposal = baseProposal({ intensity: 'RACE', title: 'Original title' });
+    const proposal = baseProposal({
+      date: context.trainingDayId,
+      intensity: 'RACE',
+      title: 'Original title',
+    });
 
     const result = evaluatePlan(context, [proposal]);
 

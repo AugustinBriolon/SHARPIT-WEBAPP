@@ -122,6 +122,13 @@ export const decisionCompatibilityRule: PlanGateRule = (
     return [unreliableDecisionFinding(proposal, isHighIntensity, 'DECISION_LOW_CONFIDENCE')];
   }
 
+  // The verdict and the fatigue capacity read one day. A session planned for a later day is
+  // judged on its own morning (morning recalibration), not on how the athlete woke up today:
+  // a tired Friday used to take the next Friday's tempo out of the week.
+  if (proposal.date !== context.trainingDayId) {
+    return [];
+  }
+
   const findings: RuleFinding[] = [];
   if (
     isHighIntensity &&
