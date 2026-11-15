@@ -76,6 +76,7 @@ import { retrieveCoachKnowledgeWithCorrection } from '@sharpit/server/lib/coach/
 import { loadStrengthHistoryBlock } from '@sharpit/server/lib/strength/exercise-history';
 import { loadLearningMemoryBlock } from '@sharpit/server/lib/coach/memory/load-learning-memory-block';
 import { loadFtpConfidenceBlock } from '@sharpit/server/lib/threshold/ftp-confidence';
+import { loadExecutionDigestBlock } from '@sharpit/server/lib/training/execution-digest-block';
 import {
   deriveWeekQuality,
   weekQualityLabelFr,
@@ -372,8 +373,10 @@ async function buildPreparedPlan(
         hasActivePain: (ctx.physical?.length ?? 0) > 0,
       }),
   };
-  const [thresholdBlock, memoryBlock, knowledgeBlock] = await Promise.all([
+  const [thresholdBlock, executionBlock, memoryBlock, knowledgeBlock] = await Promise.all([
     loadFtpConfidenceBlock(athleteId, start),
+    // Read as of today: a week that starts later has recorded nothing yet.
+    loadExecutionDigestBlock(athleteId, new Date()),
     loadLearningMemoryBlock(athleteId, start),
     Promise.resolve(
       formatKnowledgeRagBlock(
@@ -389,7 +392,7 @@ async function buildPreparedPlan(
     start,
     focus: focus ?? undefined,
     contextText: formatCoachContext(ctx, planContextSections(start, new Date())),
-    thresholdBlock,
+    thresholdBlock: thresholdBlock + executionBlock,
     memoryBlock,
     knowledgeBlock,
     goalBlock,
