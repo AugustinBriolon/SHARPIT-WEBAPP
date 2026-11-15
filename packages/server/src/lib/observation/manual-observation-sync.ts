@@ -4,6 +4,7 @@ import type {
 } from '@prisma/client';
 import type { getActivityById, getPhysicalNoteById } from '@sharpit/server/lib/queries';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
+import { sessionIdentityOf } from '@sharpit/server/lib/observation/activity-to-session';
 import { prisma } from '@sharpit/db/client';
 import type {
   RawPhysicalConditionObservation,
@@ -193,6 +194,7 @@ function buildManualSessionObservation(
 
 function buildManualSubjectiveObservation(
   activity: NonNullable<Awaited<ReturnType<typeof getActivityById>>>,
+  sessionExternalId: string,
 ): RawSubjectiveObservation | null {
   const mood = mapFeelingToMood(activity.feeling);
   if (
@@ -209,7 +211,7 @@ function buildManualSubjectiveObservation(
     receivedAt: new Date(),
     rpe: activity.rpe ?? undefined,
     mood,
-    sessionExternalId: manualActivityExternalId(activity.id),
+    sessionExternalId,
     notes: activity.notes ?? undefined,
   };
 }
@@ -256,20 +258,33 @@ export async function removeManualActivityObservations(
   await deleteManualSubjectiveObservations(athleteId, externalId);
 }
 
+/**
+ * Writes what the athlete said of an activity into the observation store.
+ *
+ * An activity that came from a provider already has its session observation, written at sync
+ * under the provider's identity. Writing a second one here, under a manual identity, counted
+ * the outing twice in the load each time the athlete edited it, and tied the effort they
+ * reported to the duplicate instead of the recorded session. Only an activity with no provider
+ * gets its session from here; the reported effort always goes to the session that exists.
+ */
 export async function syncManualActivityObservations(
   activity: NonNullable<Awaited<ReturnType<typeof getActivityById>>>,
 ): Promise<void> {
   const { athleteId } = activity;
+  const identity = sessionIdentityOf(activity);
   await removeManualActivityObservations(athleteId, activity.id);
 
-  const rawSession = buildManualSessionObservation(activity);
-  if (!rawSession) {
-    return;
+  if (identity.source === 'MANUAL') {
+    const rawSession = buildManualSessionObservation(activity);
+    if (!rawSession) {
+      return;
+    }
+    await observationEngine.ingest(athleteId, rawSession);
+  } else {
+    await deleteManualSubjectiveObservations(athleteId, identity.externalId);
   }
 
-  await observationEngine.ingest(athleteId, rawSession);
-
-  const rawSubjective = buildManualSubjectiveObservation(activity);
+  const rawSubjective = buildManualSubjectiveObservation(activity, identity.externalId);
   if (rawSubjective) {
     await observationEngine.ingest(athleteId, rawSubjective);
   }

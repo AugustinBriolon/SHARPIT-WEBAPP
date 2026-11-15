@@ -86,7 +86,9 @@ function positive(value: number | null | undefined): number | undefined {
  * against the observation the manual sync already wrote for the same activity,
  * producing two sessions for one activity and double-counting the day's load.
  */
-function resolveIdentity(activity: StoredActivityForSession): {
+export function sessionIdentityOf(
+  activity: Pick<StoredActivityForSession, 'id' | 'garminId' | 'stravaId'>,
+): {
   source: RawSessionObservation['source'];
   externalId: string;
 } {
@@ -177,7 +179,7 @@ export function storedActivityToSession(
   }
 
   const sportType = SPORT_TYPE_BY_ACTIVITY_TYPE[activity.type];
-  const { source, externalId } = resolveIdentity(activity);
+  const { source, externalId } = sessionIdentityOf(activity);
 
   return {
     type: 'SESSION',
