@@ -443,3 +443,39 @@ Limits: the check reads time under stretch, the only signal a prescription carri
 cannot tell an end-range hold from a comfortable one. Sessions already generated keep
 their exercises. The intent `MOBILITY` still covers stretching, self-massage and range
 work alike.
+
+# Pass 5 — reasoning and environment (2026-11-15)
+
+## Reasoning (`packages/core/src/inference/reasoning/scoring.ts`)
+
+### RS1 — Detraining was read as a reason to rest (high, fixed)
+
+`mapAdaptationDirection` sent `DETRAINING` to `REST`, beside `MALADAPTING`. Detraining
+is too little load. An athlete back from a break — rested, fresh, detrained — therefore
+met the conflict rule "fatigue says train, adaptation says rest" and was answered
+`CAUTION`. It now reads `TRAIN`; one test holds the direction, one the verdict.
+
+### RS2 — Open
+
+- `TRAIN_HARD` needs a fatigue level of `FRESH` or `FUNCTIONAL_LOW` (index ≤ 40). With
+  the load dimension at 67 in ordinary training (G1), that verdict was close to
+  unreachable for a steadily training athlete. G1 is fixed; how often the verdict is now
+  reached can only be read from stored history.
+- `PLATEAUING` reads `EASY`. A plateau calls for a different stimulus, not for less.
+- `RACE_READY` is answered whenever the adaptation peak is within five days, whether or
+  not a race is near.
+- The verdict is a cascade over categories: one point across a band edge changes the day.
+
+## Environment (`packages/core/src/environment`)
+
+Skimmed, not audited line by line: applicability and availability are explicit, the
+thermal reading uses heat index and wet-bulb globe temperature, acclimatisation has its
+own calibration. Nothing found at that depth.
+
+## Not attempted, and why
+
+- One load model: the fitness/fatigue model lives in `packages/app`, which the Core
+  cannot import, and needs the whole history where the extractors read 56 days. Moving it
+  is a design decision, not a fix.
+- A benchmark that can fail, the before/after replay, the recomputation of history and
+  the repair of relapse counts all need the production database.
