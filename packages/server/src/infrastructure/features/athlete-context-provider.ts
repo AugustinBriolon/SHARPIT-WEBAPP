@@ -49,7 +49,7 @@ export class AthleteContextProvider implements ExtractionContextProvider {
   async getContext(athleteId: string, trainingDayId: string): Promise<ExtractionContext> {
     const [profile, restingHr, timezone, typicalLoad] = await Promise.all([
       this.fetchProfile(athleteId),
-      this.fetchRestingHr(athleteId),
+      this.fetchRestingHr(athleteId, trainingDayId),
       this.fetchTimezone(athleteId),
       this.fetchTypicalLoad(athleteId, trainingDayId),
     ]);
@@ -68,10 +68,28 @@ export class AthleteContextProvider implements ExtractionContextProvider {
     return this.prisma.athleteProfile.findUnique({ where: { id: athleteId } });
   }
 
-  private async fetchRestingHr(athleteId: string): Promise<number | undefined> {
+  /**
+   * The resting pulse as of the day extracted, else the earliest one known. Read as the
+   * latest whatever the day, an old session recomputed today was scored on today's pulse.
+   */
+  private async fetchRestingHr(
+    athleteId: string,
+    trainingDayId: string,
+  ): Promise<number | undefined> {
+    const asOf = await this.restingHrObservation(athleteId, {
+      where: { trainingDayId: { lte: trainingDayId } },
+      order: 'desc',
+    });
+    return asOf ?? this.restingHrObservation(athleteId, { where: {}, order: 'asc' });
+  }
+
+  private async restingHrObservation(
+    athleteId: string,
+    query: { where: { trainingDayId?: { lte: string } }; order: 'asc' | 'desc' },
+  ): Promise<number | undefined> {
     const recentRhrObs = await this.prisma.observation.findFirst({
-      where: { athleteId, type: 'RESTING_HR' },
-      orderBy: { timestamp: 'desc' },
+      where: { athleteId, type: 'RESTING_HR', ...query.where },
+      orderBy: { timestamp: query.order },
       select: { data: true },
     });
     return recentRhrObs?.data ? (recentRhrObs.data as { valueBpm?: number }).valueBpm : undefined;
