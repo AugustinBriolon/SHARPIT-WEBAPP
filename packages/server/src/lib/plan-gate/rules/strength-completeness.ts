@@ -1,5 +1,8 @@
 import { exerciseKey } from '@sharpit/server/lib/strength/exercise-history';
-import { auditStrengthPrescription } from '@sharpit/server/lib/planned-session/strength/strength-session-template';
+import {
+  auditMobilitySession,
+  auditStrengthPrescription,
+} from '@sharpit/server/lib/planned-session/strength/strength-session-template';
 import type {
   GateContext,
   GateProposal,
@@ -29,6 +32,18 @@ export const strengthCompletenessRule: PlanGateRule = (
         severity: 'WARNING',
         rationale:
           "Séance de renfo sans exercices prescrits — elle ne pourra pas être envoyée à la montre et n'est pas évaluable.",
+        evidenceRefs: ['proposal.strengthPrescription'],
+      },
+    ];
+  }
+
+  const mobility = auditMobilitySession(proposal.strengthPrescription.sets);
+  if (mobility?.isWarmupOnly) {
+    return [
+      {
+        ruleCode: 'MOBILITY_SESSION_IS_WARMUP',
+        severity: 'WARNING',
+        rationale: `Séance de mobilité faite surtout de réveil articulaire : ${mobility.rangeWork} exercice(s) sur ${mobility.exercises} tiennent au moins 60 s en fin d'amplitude. Garde 1 à 2 mouvements de préparation et remplace les autres par du travail d'amplitude tenu.`,
         evidenceRefs: ['proposal.strengthPrescription'],
       },
     ];

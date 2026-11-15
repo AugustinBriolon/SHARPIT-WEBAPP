@@ -59,3 +59,49 @@ describe('strengthCompletenessRule', () => {
     expect(findings.every((f) => f.severity === 'WARNING')).toBe(true);
   });
 });
+
+describe('a mobility session trains range, it is not a joint warm-up', () => {
+  const mobility = (sets: Array<{ sets: number; reps: number; durationSec?: number }>) =>
+    baseProposal({
+      type: 'STRENGTH',
+      durationMin: 25,
+      strengthPrescription: {
+        sets: sets.map((set, index) => ({
+          exercise: `Mobilité ${index + 1}`,
+          intent: 'MOBILITY' as const,
+          pattern: null,
+          ...set,
+        })),
+      },
+    });
+  const circles = { sets: 1, reps: 10 };
+  const heldAtEndRange = { sets: 2, reps: 0, durationSec: 60 };
+
+  it('flags a session of circles and swings', () => {
+    const findings = strengthCompletenessRule(
+      context,
+      mobility([
+        circles,
+        circles,
+        circles,
+        circles,
+        circles,
+        { sets: 1, reps: 0, durationSec: 30 },
+      ]),
+    );
+    expect(findings[0]?.ruleCode).toBe('MOBILITY_SESSION_IS_WARMUP');
+  });
+
+  it('accepts two preparation moves followed by held range work', () => {
+    const findings = strengthCompletenessRule(
+      context,
+      mobility([circles, circles, heldAtEndRange, heldAtEndRange, heldAtEndRange, heldAtEndRange]),
+    );
+    expect(findings.map((finding) => finding.ruleCode)).not.toContain('MOBILITY_SESSION_IS_WARMUP');
+  });
+
+  it('says nothing of a strength session that opens with a warm-up', () => {
+    const findings = strengthCompletenessRule(context, strengthProposal(10));
+    expect(findings).toEqual([]);
+  });
+});

@@ -28,10 +28,11 @@ export type StrengthBlock = {
 export const STRENGTH_BLOCKS: readonly StrengthBlock[] = [
   {
     role: 'ACTIVATION',
-    label: 'Mobilité / activation',
+    label: 'Réveil articulaire / activation',
     share: 0.2,
     minExercises: 2,
-    guidance: 'Mobilité articulaire et activation des muscles ciblés, avant toute charge.',
+    guidance:
+      'Préparation, pas travail de mobilité : amplitudes confortables (cercles, balancés, 8 à 10 répétitions) puis activation des muscles ciblés, avant toute charge.',
   },
   {
     role: 'PREHAB',
@@ -216,6 +217,46 @@ export function auditStrengthPrescription(input: {
   };
 }
 
+/** Time under stretch, per exercise, from which a hold trains range rather than prepares it. */
+export const MOBILITY_WORK_MIN_SEC = 60;
+/** Share of a mobility session's exercises that must be range work. */
+export const MOBILITY_WORK_MIN_SHARE = 0.5;
+
+/**
+ * What a mobility session is, for the generator. Left unsaid, it filled the session with
+ * circles and swings: a joint warm-up, which prepares a range and does not extend it.
+ */
+const MOBILITY_SESSION_RULES: readonly string[] = [
+  '## Séances de MOBILITÉ (ce n’est pas un réveil articulaire)',
+  '- Trois choses distinctes. Réveil articulaire = préparation : amplitudes confortables, cercles, balancés, 8 à 10 répétitions ; il ouvre une séance et n’améliore pas l’amplitude. Mobilité = entraînement de l’amplitude : travail en fin d’amplitude, tenu ou contrôlé sous tension. Étirement de retour au calme = 30 à 60 s passifs sur ce que la séance vient de charger.',
+  '- Une séance de mobilité (toutes les lignes intent=MOBILITY) : 1 à 2 exercices de réveil articulaire au plus, en ouverture, puis uniquement du travail d’amplitude. Elle cible 2 à 3 articulations — celles que le sport ou une zone déclarée limite (course : chevilles et hanches ; vélo : hanches et colonne thoracique ; natation : épaules et colonne thoracique) — jamais un tour du corps.',
+  `- Chaque exercice de mobilité : 2 à 3 séries, ${MOBILITY_WORK_MIN_SEC} à 120 s sous tension par côté au total, écrit en durée (reps=0, durationSec renseigné). Formes : étirement long en fin d’amplitude ; contraction isométrique en fin d’amplitude (20 à 30 s d’étirement, 10 s de contraction contre la position, relâcher plus loin) ; décollements actifs en fin d’amplitude ; étirement chargé lent (squat profond tenu, fente basse lestée) ; rotations articulaires lentes sous tension, comptées en durée.`,
+  '- La note de chaque exercice donne l’amplitude visée et un repère mesurable (« genou au mur à 10 cm », « talons au sol en squat »), pour que le progrès se voie d’une séance à l’autre.',
+];
+
+/** A set as the mobility audit reads it. */
+type MobilitySet = { intent?: string | null; sets: number; durationSec?: number | null };
+
+/**
+ * Whether a session made only of mobility lines trains range or merely warms the joints
+ * up. Null when the session is not a mobility session.
+ */
+export function auditMobilitySession(
+  sets: readonly MobilitySet[],
+): { rangeWork: number; exercises: number; isWarmupOnly: boolean } | null {
+  if (sets.length === 0 || sets.some((set) => set.intent !== 'MOBILITY')) {
+    return null;
+  }
+  const rangeWork = sets.filter(
+    (set) => set.sets * (set.durationSec ?? 0) >= MOBILITY_WORK_MIN_SEC,
+  ).length;
+  return {
+    rangeWork,
+    exercises: sets.length,
+    isWarmupOnly: rangeWork < sets.length * MOBILITY_WORK_MIN_SHARE,
+  };
+}
+
 /** Weekly strength dose rule, shared by the plan generator and the chat coach. */
 export function formatStrengthFrequencyRule(): string {
   return `- Renfo préventif (impératif dès qu'un sport d'endurance est pratiqué, que le renfo soit coché ou non) : ${WEEKLY_STRENGTH_TARGET} séances STRENGTH structurées (≥ ${MIN_STRUCTURED_MINUTES} min) par semaine, ${LIGHT_WEEK_STRENGTH_TARGET} seule en semaine de récupération, d'affûtage ou de course, aucune sous contrainte voyage MOBILITY_ONLY/NONE ou capacité REST_ONLY. Une mobilité courte ne compte pas comme renfo. Chaque séance charge les tendons du sport, avec une progression d'une semaine à l'autre : mollets/Achille, rotulien et ischios pour la course ; quadriceps, fessiers et lombaires pour le vélo ; coiffe des rotateurs et omoplates pour la natation. Place-la après une séance facile, ou le soir d'une séance dure (≥ 6 h après), jamais la veille d'une séance clé ; 48 h entre deux séances sur les mêmes muscles.`;
@@ -232,5 +273,6 @@ export function formatStrengthSessionRules(): string {
     "- Prévention articulaire, seulement pour une zone sensible déclarée dans le contexte : couvre toute la chaîne autour (agonistes, antagonistes, stabilisateurs), avec du travail unilatéral et au moins un exercice excentrique. Sans zone sensible, n'invente pas de pathologie : le travail tendineux du sport reste la base.",
     '- Libellés FR proches du catalogue Garmin Connect — vérifie avec searchWatchExercises quand tu hésites, sinon la montre affichera un nom générique.',
     "- Pour CHAQUE exercice, déclare intent et pattern : c'est ce qui permet de vérifier qu'un étirement n'est pas compté comme une mise en charge, et qu'aucune zone sensible n'est chargée. Un étirement ou un auto-massage est intent=MOBILITY, pattern=null.",
+    ...MOBILITY_SESSION_RULES,
   ].join('\n');
 }
