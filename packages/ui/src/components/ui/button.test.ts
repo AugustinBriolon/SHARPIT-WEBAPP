@@ -45,11 +45,11 @@ describe('buttonVariants (Ink & Lime, ADR-085)', () => {
     expect(classes).not.toContain('bg-destructive/10');
   });
 
-  it('uses the 16px control corner for all button sizes', () => {
-    expect(buttonVariants({ size: 'default' })).toContain('rounded-lg');
-    expect(buttonVariants({ size: 'sm' })).toContain('rounded-lg');
-    expect(buttonVariants({ variant: 'highlight' })).toContain('rounded-lg');
-    expect(buttonVariants({ size: 'default' })).not.toContain('rounded-full');
+  it('draws every button as a capsule (ADR-131)', () => {
+    expect(buttonVariants({ size: 'default' })).toContain('rounded-full');
+    expect(buttonVariants({ size: 'sm' })).toContain('rounded-full');
+    expect(buttonVariants({ variant: 'highlight' })).toContain('rounded-full');
+    expect(buttonVariants({ size: 'default' })).not.toContain('rounded-lg');
   });
 
   it('keeps instrument visual height at every viewport', () => {
