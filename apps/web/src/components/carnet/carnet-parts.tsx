@@ -48,9 +48,12 @@ export function CarnetPage({
         {aside ? <div className="shrink-0">{aside}</div> : null}
       </header>
       {side ? (
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]">
+        // A side with nothing to show (every section of it absent) gives the width back.
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:has-[>aside:empty]:block">
           <div className="min-w-0 lg:pr-10">{children}</div>
-          <aside className="lg:border-border min-w-0 lg:border-l lg:pl-10">{side}</aside>
+          <aside className="lg:border-border min-w-0 empty:hidden lg:border-l lg:pl-10">
+            {side}
+          </aside>
         </div>
       ) : (
         children

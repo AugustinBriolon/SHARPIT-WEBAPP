@@ -27,12 +27,13 @@ import {
   InApp,
   Quiet,
   Reasons,
+  StatusPill,
+  type StatusTone,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
 import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import { RaceReading } from '@/components/carnet/carnet-race-analysis';
-import { HR_ZONES } from '@/components/carnet/carnet-race-reading';
 import { streamProfile } from '@/components/carnet/carnet-stream';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -49,6 +50,16 @@ const VERDICT_LABEL: Record<SessionAnalysis['verdict'], string> = {
   SHORTER: 'Plus courte que prévu',
   LONGER: 'Plus longue que prévu',
   DIFFERENT: 'Différente du plan',
+};
+
+/** As planned reads good; a drift from the plan is to watch; a different session is not judged. */
+const VERDICT_TONE: Record<SessionAnalysis['verdict'], StatusTone> = {
+  AS_PLANNED: 'good',
+  HARDER: 'watch',
+  EASIER: 'watch',
+  SHORTER: 'watch',
+  LONGER: 'watch',
+  DIFFERENT: 'unknown',
 };
 
 function isNarrative(value: unknown): value is ActivityNarrative {
@@ -107,46 +118,31 @@ function KeyFigures({
   );
 }
 
-function SessionHrZones({
-  zones,
-}: {
-  zones: { shortLabel: string; percent: number; color: string }[];
-}) {
+/** Time in each heart-rate zone, one line a zone, on the five-step intensity scale (ADR-130). */
+function SessionHrZones({ zones }: { zones: { shortLabel: string; percent: number }[] }) {
   if (zones.length === 0 || zones.every((z) => z.percent === 0)) {
     return null;
   }
-  const spoken = zones.map((z) => `${z.shortLabel} ${z.percent} %`).join(', ');
   return (
-    <div className="space-y-3">
-      <div
-        aria-label={`Zones cardiaques : ${spoken}`}
-        className="flex h-2 w-full overflow-hidden rounded-full"
-        role="img"
-      >
-        {zones.map((zone) => (
-          <span
-            key={zone.shortLabel}
-            className="h-full"
-            style={{ flexGrow: Math.max(zone.percent, 0), backgroundColor: zone.color }}
-          />
-        ))}
-      </div>
-      <ul aria-label="Zones" className="text-data flex flex-wrap gap-x-4 gap-y-1 text-xs">
-        {HR_ZONES.map((zone, i) => (
-          <li key={zone.label} className="flex items-center gap-1.5">
+    <ul className="divide-border divide-y">
+      {zones.map((zone, i) => (
+        <li key={zone.shortLabel} className="flex items-center gap-3 py-2.5">
+          <span className="w-8 text-sm font-semibold">{zone.shortLabel}</span>
+          <span className="bg-border flex h-2 flex-1 overflow-hidden rounded-full" aria-hidden>
             <span
-              className="size-1.5 rounded-full"
-              style={{ backgroundColor: zone.color }}
-              aria-hidden
+              className="h-full rounded-full"
+              style={{
+                width: `${Math.max(zone.percent, 0)}%`,
+                backgroundColor: `var(--zone-${Math.min(i + 1, 5)})`,
+              }}
             />
-            <span className="text-muted-foreground">
-              {zone.label}
-              {zones[i] ? ` · ${zones[i]!.percent} %` : ''}
-            </span>
-          </li>
-        ))}
-      </ul>
-    </div>
+          </span>
+          <span className="text-data text-muted-foreground w-12 text-right text-xs">
+            {zone.percent} %
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -326,6 +322,31 @@ function SessionLoaded({
         kicker={`${sport} · ${format(activity.date, 'EEEE d MMMM yyyy', { locale: fr })}`}
         lead={narrative?.headline}
         title={activity.title ?? sport}
+        side={
+          <>
+            {streams?.path && streams.path.length > 1 ? (
+              <CarnetSection label="Le parcours">
+                <RouteMap
+                  className="h-64 overflow-hidden rounded-(--shape-card)"
+                  lineColor={SPORT_IDENTITY_HEX[activity.type]}
+                  path={streams.path}
+                />
+              </CarnetSection>
+            ) : null}
+
+            {hrZones.length > 0 ? (
+              <CarnetSection label="Zones cardiaques">
+                <SessionHrZones zones={hrZones} />
+              </CarnetSection>
+            ) : null}
+
+            {narrative ? (
+              <CarnetSection label="La lecture" title="Ce que le coach en retient">
+                <p className="max-w-prose leading-relaxed">{narrative.narrative}</p>
+              </CarnetSection>
+            ) : null}
+          </>
+        }
       >
         <RaceReading
           analysis={raceAnalysis}
@@ -347,28 +368,6 @@ function SessionLoaded({
           ) : null}
           {activity.notes ? <Quiet>{activity.notes}</Quiet> : null}
         </CarnetSection>
-
-        {hrZones.length > 0 ? (
-          <CarnetSection label="Zones cardiaques">
-            <SessionHrZones zones={hrZones} />
-          </CarnetSection>
-        ) : null}
-
-        {narrative ? (
-          <CarnetSection label="La lecture" title="Ce que le coach en retient">
-            <p className="max-w-prose leading-relaxed">{narrative.narrative}</p>
-          </CarnetSection>
-        ) : null}
-
-        {streams?.path && streams.path.length > 1 ? (
-          <CarnetSection label="Le parcours">
-            <RouteMap
-              className="h-[22rem] sm:h-[28rem]"
-              lineColor={SPORT_IDENTITY_HEX[activity.type]}
-              path={streams.path}
-            />
-          </CarnetSection>
-        ) : null}
 
         {hasProfile ? (
           <CarnetSection label="Le profil">
@@ -401,7 +400,15 @@ function SessionLoaded({
         {planned ? (
           <CarnetSection
             label="Face au plan"
-            title={analysis ? VERDICT_LABEL[analysis.verdict] : (planned.title ?? 'Séance prévue')}
+            title={
+              analysis ? (
+                <StatusPill tone={VERDICT_TONE[analysis.verdict]}>
+                  {VERDICT_LABEL[analysis.verdict]}
+                </StatusPill>
+              ) : (
+                (planned.title ?? 'Séance prévue')
+              )
+            }
           >
             {analysis ? (
               <PlanDebrief

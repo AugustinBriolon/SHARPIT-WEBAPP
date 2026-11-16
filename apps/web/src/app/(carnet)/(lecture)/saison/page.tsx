@@ -1,6 +1,6 @@
 import { cacheLife } from 'next/cache';
 import { Suspense } from 'react';
-import { addDays } from 'date-fns';
+import { addDays, differenceInCalendarDays } from 'date-fns';
 import type { AdaptationViewModel } from '@sharpit/app/presentation/adaptation-view-model';
 import type { EffortViewModel } from '@sharpit/app/presentation/effort-view-model';
 import type { WeeklyCoachingBriefViewModel } from '@sharpit/app/presentation/weekly-coaching-brief-view-model';
@@ -153,10 +153,14 @@ function Brief({ brief }: { brief: WeeklyCoachingBriefViewModel }) {
   );
 }
 
-function nextRaceLead(goals: ClientGoal[] | null, today: Date): string {
-  const nextRace = goals
+function nextRaceOf(goals: ClientGoal[] | null, today: Date): ClientGoal | undefined {
+  return goals
     ?.filter((g) => g.kind === 'RACE' && !g.achieved && g.targetDate && g.targetDate >= today)
     .sort((a, b) => (a.targetDate?.getTime() ?? 0) - (b.targetDate?.getTime() ?? 0))[0];
+}
+
+function nextRaceLead(goals: ClientGoal[] | null, today: Date): string {
+  const nextRace = nextRaceOf(goals, today);
   return nextRace?.targetDate
     ? `${nextRace.title}, ${countdownLabel(nextRace.targetDate, today)}.`
     : 'Les semaines passées, celle en cours et la suivante.';
@@ -203,7 +207,7 @@ function seasonWeeksOf({ today, sessions }: Season) {
 function Adherence() {
   return (
     <>
-      <Figures>
+      <Figures className="grid-cols-1 sm:grid-cols-1">
         <Figure
           hint={`sur les ${WEEKS_BACK} dernières semaines`}
           label="Séances faites"
@@ -363,6 +367,27 @@ async function NextRaceLead() {
   return nextRaceLead(goals, dayOf(todayId));
 }
 
+/** The days left to the next race, set large beside the title; nothing without a race. */
+async function RaceCountdown() {
+  const [goals, todayId] = await Promise.all([readGoals(), readSeasonToday()]);
+  const today = dayOf(todayId);
+  const target = nextRaceOf(goals, today)?.targetDate;
+  if (!target) {
+    return null;
+  }
+  const days = differenceInCalendarDays(target, today);
+  return (
+    <p className="flex items-baseline gap-2.5">
+      <span className="text-data text-5xl leading-none">
+        <CarnetCount text={String(days)} />
+      </span>
+      <span className="text-muted-foreground text-sm">
+        {days > 1 ? 'jours avant la course' : 'jour avant la course'}
+      </span>
+    </p>
+  );
+}
+
 async function GoalsReading() {
   const [goals, todayId] = await Promise.all([readGoals(), readSeasonToday()]);
   return goals ? (
@@ -377,10 +402,43 @@ export default function CarnetSeasonPage() {
     <CarnetPage
       kicker="La saison"
       title="Où tu en es"
+      aside={
+        <Suspense fallback={null}>
+          <RaceCountdown />
+        </Suspense>
+      }
       lead={
         <Suspense fallback={<Skel className="h-4 w-72 max-w-full" />}>
           <NextRaceLead />
         </Suspense>
+      }
+      side={
+        <>
+          <CarnetSection label="La régularité" title="Séances prévues, séances faites">
+            <Adherence />
+          </CarnetSection>
+
+          <CarnetSection label="Prochaines séances" title="À venir, dans le plan">
+            <Reading fallback={<Skel className={BLOCK} />} read={readSeason}>
+              {({ today, sessions }) =>
+                sessions ? (
+                  <UpcomingSessions
+                    sessions={upcomingSeasonSessions(sessions, today)}
+                    today={today}
+                  />
+                ) : (
+                  <Unreadable what="Les prochaines séances" />
+                )
+              }
+            </Reading>
+          </CarnetSection>
+
+          <CarnetSection label="Les objectifs" title="Vers quoi tu vas">
+            <Suspense fallback={<Skel className={BLOCK} />}>
+              <GoalsReading />
+            </Suspense>
+          </CarnetSection>
+        </>
       }
     >
       <CarnetSection
@@ -396,22 +454,6 @@ export default function CarnetSeasonPage() {
         </Reading>
       </CarnetSection>
 
-      <CarnetSection label="Prochaines séances" title="À venir, dans le plan">
-        <Reading fallback={<Skel className={BLOCK} />} read={readSeason}>
-          {({ today, sessions }) =>
-            sessions ? (
-              <UpcomingSessions sessions={upcomingSeasonSessions(sessions, today)} today={today} />
-            ) : (
-              <Unreadable what="Les prochaines séances" />
-            )
-          }
-        </Reading>
-      </CarnetSection>
-
-      <CarnetSection label="La régularité" title="Séances prévues, séances faites">
-        <Adherence />
-      </CarnetSection>
-
       <CarnetSection label="La charge" title="Ce que l'entraînement coûte">
         <Load />
       </CarnetSection>
@@ -425,12 +467,6 @@ export default function CarnetSeasonPage() {
         }
       >
         <Adaptation />
-      </CarnetSection>
-
-      <CarnetSection label="Les objectifs" title="Vers quoi tu vas">
-        <Suspense fallback={<Skel className={BLOCK} />}>
-          <GoalsReading />
-        </Suspense>
       </CarnetSection>
     </CarnetPage>
   );

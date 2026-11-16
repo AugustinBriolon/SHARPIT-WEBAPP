@@ -5,7 +5,6 @@ import type { SleepViewModel } from '@sharpit/app/presentation/sleep-view-model'
 import { CORPS_TONE_TEXT } from '@sharpit/app/lib/ui/metric-tone';
 import {
   CHART_BASE_STROKE,
-  CHART_PRIMARY_STROKE,
   CHART_RECOVERY_STROKE,
   CHART_VO2_STROKE,
 } from '@sharpit/app/lib/theme/chart-theme';
@@ -27,6 +26,7 @@ import {
   ReadingList,
   ReadingRow,
   Reasons,
+  StatusPill,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { readCachedViewModel, readDayViewModel } from '@/components/carnet/carnet-read';
@@ -73,7 +73,7 @@ function Sleep() {
           {(vm) => (
             <ScoreRing
               caption="Score"
-              stroke={CHART_PRIMARY_STROKE}
+              stroke="var(--pillar-sleep)"
               value={vm?.sleepScore ?? null}
             />
           )}
@@ -144,7 +144,7 @@ function Recovery() {
           {(vm) => (
             <ScoreRing
               caption="Dispo"
-              stroke={CHART_PRIMARY_STROKE}
+              stroke="var(--pillar-recovery)"
               value={typeof vm?.readinessScore === 'number' ? vm.readinessScore : null}
             />
           )}
@@ -324,12 +324,13 @@ function Zones() {
                   <ReadingRow key={zone.conditionId} href={null}>
                     <div className="min-w-0">
                       <p className="text-label text-muted-foreground">
-                        {zone.typeLabel} · {zone.statusLabel}
+                        {zone.typeLabel}
                         {zone.trendLabel ? ` · ${zone.trendLabel}` : ''}
                       </p>
-                      <p className="mt-1 font-medium">
+                      <p className="mt-1 flex flex-wrap items-center gap-2 font-medium">
                         {zone.label}
                         {zone.sideLabel ? ` (${zone.sideLabel})` : ''}
+                        <StatusPill tone="protect">{zone.statusLabel}</StatusPill>
                       </p>
                       {zone.functionalCapacityLabel ? (
                         <p className="text-muted-foreground mt-0.5 text-sm">
@@ -360,7 +361,7 @@ function Zones() {
 export default function CarnetBodyPage() {
   return (
     <CarnetPage kicker="Le corps" title="Comment tu vas">
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid lg:grid-cols-2 lg:gap-x-10">
         <CarnetSection
           label="La nuit"
           title={
