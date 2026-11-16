@@ -5,6 +5,7 @@ import { CarnetMarkdown } from '@/components/carnet/carnet-markdown';
 import {
   CarnetPage,
   CarnetSection,
+  CarnetStepLink,
   Figure,
   Figures,
   InApp,
@@ -127,6 +128,9 @@ function ReviewList({ reviews }: { reviews: Review[] | 'free' }) {
     >
       {review.stats ? <ReviewFigures stats={review.stats} /> : null}
       <CarnetMarkdown content={review.content} />
+      <CarnetStepLink direction="next" href={`/bilans/${review.weekStart.slice(0, 10)}`}>
+        Version à imprimer
+      </CarnetStepLink>
       <Quiet>
         Dans l&apos;app : régénère la semaine à partir de ce bilan, ou ouvre le coach avec « Discute
         de mon bilan de la semaine du {weekLabel(dayOf(review.weekStart.slice(0, 10)))} ».
