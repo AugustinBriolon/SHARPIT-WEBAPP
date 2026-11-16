@@ -31,6 +31,7 @@ We will draw every web surface in Clinique, on one white sheet, with no wash.
 7. **Rings are thin and take a pillar hue** (3-unit stroke on the divider track), as on iOS.
 8. **A page prints as its sheet.** The rail and the header are left out of print and sections hidden for their entrance are shown, so a bilan goes to paper or PDF from the browser's own print, with no control added.
 9. **Buttons are capsules on the web too** (`buttonVariants`), as ADR-131 set for iOS; no button is lime.
+10. **Each page is built from its mock-up, not restyled** (2026-11-16, after a first pass that only restyled was refused). Aujourd'hui opens on the verdict with its posture pill, the four readings, numbered reasons, measures on lines, the morning's proposal and the week as dots. Saison draws the macro-plan's weeks and phases (`/api/v1/training-plans`). A session draws power by zone over heart rate, its splits and its time by zone. Le corps is a lab table: blood markers on their lab range (`/api/v1/blood-tests`), thresholds, composition. A week's bilan has a sheet laid out for paper (`/bilans/[semaine]`). Where a mock-up showed what the web does not carry, the nearest true datum stands in and no figure is invented.
 
 ## Options considered
 
@@ -60,7 +61,7 @@ We will draw every web surface in Clinique, on one white sheet, with no wash.
 
 - `<html>` still paints the `:root` canvas (`#f7f8fa`) behind `body` (`#f3f4f7`); the difference shows only on overscroll.
 - The app keeps one wash per screen and the web has none: the two differ on purpose.
-- The landing keeps its own layout and motion (ink sections, the scroll-driven method): it inherits the tokens, its phone shows a capture of the Clinique Résumé, and its closing button is no longer lime. It does not follow the static mock-up drawn for it.
+- The landing keeps its sections and their motion; the problem and its four contrasts are one two-column table, the confidence tiers are status pills, the method's chain carries a hue a step, and its phone shows a capture of the Clinique Résumé.
 
 ### Neutral
 
