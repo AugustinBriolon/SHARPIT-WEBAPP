@@ -82,12 +82,14 @@ describe('deleteActivity', () => {
 
     expect(prisma.activity.findMany).toHaveBeenCalledWith({
       where: { athleteId: ATHLETE_ID, mergedIntoId: 'tri' },
-      select: { id: true },
+      // Their provider identities too: each leg's session observation is removed with it.
+      select: { id: true, garminId: true, stravaId: true, date: true },
     });
     expect(linkPlannedSessionActivity).toHaveBeenCalledWith(ATHLETE_ID, 'ps-swim', null);
     expect(prisma.activity.deleteMany).toHaveBeenCalledWith({
       where: { athleteId: ATHLETE_ID, id: { in: ['swim', 'run'] } },
     });
     expect(deleted?.mergedLegIds).toEqual(['swim', 'run']);
+    expect(deleted?.mergedLegs).toEqual([{ id: 'swim' }, { id: 'run' }]);
   });
 });

@@ -6,6 +6,7 @@ import type { getActivityById, getPhysicalNoteById } from '@sharpit/server/lib/q
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import { sessionIdentityOf } from '@sharpit/server/lib/observation/activity-to-session';
 import { prisma } from '@sharpit/db/client';
+import { computeTrainingDayId } from '@sharpit/core/training/training-day';
 import type {
   RawPhysicalConditionObservation,
   RawSessionObservation,
@@ -256,6 +257,40 @@ export async function removeManualActivityObservations(
   });
 
   await deleteManualSubjectiveObservations(athleteId, externalId);
+}
+
+/**
+ * Removes every session observation of an activity that is being deleted, under each identity
+ * it may carry: the manual one, Garmin's and Strava's. Removing only the manual one left the
+ * provider's session behind, and the load kept counting an outing that no longer existed. The
+ * loads from that day on are computed again on the next read.
+ */
+export async function removeActivityObservations(
+  athleteId: string,
+  activity: { id: string; garminId: string | null; stravaId: string | null; date: Date },
+): Promise<void> {
+  await removeManualActivityObservations(athleteId, activity.id);
+  const providerSessions = [
+    { source: 'GARMIN', externalId: activity.garminId },
+    { source: 'STRAVA', externalId: activity.stravaId },
+  ];
+  for (const { source, externalId } of providerSessions) {
+    if (externalId) {
+      await prisma.observation.deleteMany({
+        where: { athleteId, type: 'SESSION', source, externalId },
+      });
+      await deleteManualSubjectiveObservations(athleteId, externalId);
+    }
+  }
+  await prisma.featureSet.updateMany({
+    where: {
+      athleteId,
+      category: 'LOAD',
+      status: 'COMPUTED',
+      trainingDayId: { gte: computeTrainingDayId(activity.date) },
+    },
+    data: { status: 'INVALIDATED' },
+  });
 }
 
 /**

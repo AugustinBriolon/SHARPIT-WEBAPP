@@ -1,19 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { ingest, findMany, deleteMany } = vi.hoisted(() => ({
+const { ingest, findMany, deleteMany, updateMany } = vi.hoisted(() => ({
   ingest: vi.fn(),
   findMany: vi.fn(),
   deleteMany: vi.fn(),
+  updateMany: vi.fn(),
 }));
 
 vi.mock('@sharpit/server/lib/engines/observation-engine', () => ({
   observationEngine: { ingest },
 }));
 vi.mock('@sharpit/db/client', () => ({
-  prisma: { observation: { findMany, deleteMany } },
+  prisma: { observation: { findMany, deleteMany }, featureSet: { updateMany } },
 }));
 
-import { syncManualActivityObservations } from './manual-observation-sync';
+import {
+  removeActivityObservations,
+  syncManualActivityObservations,
+} from './manual-observation-sync';
 
 type Activity = Parameters<typeof syncManualActivityObservations>[0];
 
@@ -88,5 +92,53 @@ describe('syncManualActivityObservations', () => {
     await syncManualActivityObservations(activity({ garminId: '25045599677' }));
 
     expect(deleteMany).toHaveBeenCalledWith({ where: { id: { in: ['obs_old'] } } });
+  });
+});
+
+describe('removeActivityObservations', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    findMany.mockResolvedValue([]);
+    deleteMany.mockResolvedValue({ count: 0 });
+    updateMany.mockResolvedValue({ count: 0 });
+  });
+
+  const deleted = {
+    id: 'act_1',
+    garminId: 'g1',
+    stravaId: 's1',
+    date: new Date('2026-10-25T10:00:00.000Z'),
+  };
+  const removedSessions = () =>
+    deleteMany.mock.calls
+      .map(([args]) => args.where)
+      .filter((where) => where.type === 'SESSION')
+      .map((where) => where.externalId);
+
+  // The prod case: a deleted Garmin swim kept its session, and the load kept counting it.
+  it('removes the session under every identity the activity carried', async () => {
+    await removeActivityObservations('athlete_1', deleted);
+
+    expect(removedSessions()).toEqual(['manual:activity:act_1', 'g1', 's1']);
+  });
+
+  it('only looks for the manual session of an activity no provider recorded', async () => {
+    await removeActivityObservations('athlete_1', { ...deleted, garminId: null, stravaId: null });
+
+    expect(removedSessions()).toEqual(['manual:activity:act_1']);
+  });
+
+  it('marks the loads from the activity’s day on to be computed again', async () => {
+    await removeActivityObservations('athlete_1', deleted);
+
+    expect(updateMany).toHaveBeenCalledWith({
+      where: {
+        athleteId: 'athlete_1',
+        category: 'LOAD',
+        status: 'COMPUTED',
+        trainingDayId: { gte: '2026-10-25' },
+      },
+      data: { status: 'INVALIDATED' },
+    });
   });
 });

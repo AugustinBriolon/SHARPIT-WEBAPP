@@ -3,7 +3,7 @@ import { buildActivityUpdateData } from '@sharpit/server/lib/activity/activity-s
 import { onWellnessSubmitted } from '@sharpit/server/lib/athlete-state/orchestrator';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import {
-  removeManualActivityObservations,
+  removeActivityObservations,
   syncManualActivityObservations,
 } from '@sharpit/server/lib/observation/manual-observation-sync';
 import {
@@ -130,8 +130,8 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     const athleteId = await getCurrentAthleteId();
     const existing = await getActivityById(athleteId, id);
     const deleted = await deleteActivity(athleteId, id);
-    for (const deletedId of [id, ...(deleted?.mergedLegIds ?? [])]) {
-      await removeManualActivityObservations(athleteId, deletedId);
+    for (const gone of deleted ? [deleted, ...deleted.mergedLegs] : []) {
+      await removeActivityObservations(athleteId, gone);
     }
     if (existing) {
       await updateRecordsForTypesSafe(athleteId, [existing.type]);

@@ -244,7 +244,7 @@ export async function deleteActivity(athleteId: string, id: string) {
   }
   const legs = await prisma.activity.findMany({
     where: { athleteId, mergedIntoId: id },
-    select: { id: true },
+    select: { id: true, garminId: true, stravaId: true, date: true },
   });
   const mergedLegIds = legs.map((leg) => leg.id);
 
@@ -261,7 +261,7 @@ export async function deleteActivity(athleteId: string, id: string) {
     await prisma.activity.deleteMany({ where: { athleteId, id: { in: mergedLegIds } } });
   }
   const deleted = await prisma.activity.delete({ where: { id } });
-  return { ...deleted, mergedLegIds };
+  return { ...deleted, mergedLegIds, mergedLegs: legs };
 }
 
 export async function getDashboardData(athleteId: string) {
