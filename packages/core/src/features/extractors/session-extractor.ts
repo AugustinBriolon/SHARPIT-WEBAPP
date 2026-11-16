@@ -427,6 +427,11 @@ function computePowerIntensityFactor(
   session: SessionExtractorInput['session'],
   ctx: ExtractionContext,
 ): number | null {
+  // The FTP is a cycling threshold. A run recorded with running power (some 300 W) divided by
+  // it read as 1.3 to 1.75 times threshold; such a session is read by its pace instead.
+  if (!POWER_TSS_SPORTS.includes(session.sportType)) {
+    return null;
+  }
   const normalizedPower = session.powerData?.normalizedPower;
   if (ctx.ftpW && ctx.ftpW > 0 && normalizedPower) {
     return normalizedPower / ctx.ftpW;
@@ -470,8 +475,10 @@ function computeEfficiencyFactor(input: SessionExtractorInput): number | null {
     return null;
   }
 
-  // Power EF (NP ÷ avgHR)
-  if (session.powerData?.normalizedPower) {
+  // Power EF (NP ÷ avgHR), for the sports whose power is cycling power: a run with a power
+  // meter would otherwise sit on another scale (2.3 W/bpm) than a run without (0.02 m/s/bpm),
+  // and no trend could be read across the two.
+  if (POWER_TSS_SPORTS.includes(session.sportType) && session.powerData?.normalizedPower) {
     return session.powerData.normalizedPower / avgHr;
   }
 

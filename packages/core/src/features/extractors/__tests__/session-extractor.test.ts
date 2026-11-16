@@ -760,3 +760,42 @@ describe('sampledTrimpTss — intervals are not scored as their mean pulse (audi
     expect(result.tssScore).toBe(88);
   });
 });
+
+// The prod case: runs recorded with running power (some 300 W) were divided by the cycling FTP
+// (170 W), reading 1.3 to 1.75 times threshold, and their efficiency sat on a watts scale that
+// no run without a power meter shares.
+describe('extractSessionFeatures — a run recorded with running power', () => {
+  const runWithPower = input({
+    sportType: 'RUN',
+    powerData: { avgWatts: 290, normalizedPower: 300, quality: 'MEASURED_DIRECT' },
+    paceData: { avgMinPerKm: 5.0, distanceM: 10000 },
+    hrData: { avgBpm: 150, quality: 'MEASURED_OPTICAL' },
+  });
+  const ctx = makeContext({ ftpW: 170, runThresholdPaceSecPerKm: 270 });
+
+  it('reads its intensity from pace, never from the cycling FTP', () => {
+    // threshold 270 s/km over an average of 300 s/km
+    expect(extractSessionFeatures(runWithPower, ctx).intensityFactor).toBeCloseTo(0.9, 5);
+  });
+
+  it('has no intensity factor without a threshold pace, rather than a wrong one', () => {
+    const result = extractSessionFeatures(runWithPower, makeContext({ ftpW: 170 }));
+    expect(result.intensityFactor).toBeNull();
+  });
+
+  it('reads its efficiency in speed per heartbeat, like any other run', () => {
+    const result = extractSessionFeatures(runWithPower, ctx);
+    expect(result.efficiencyFactor).toBeCloseTo(1000 / (5 * 60) / 150, 4);
+  });
+
+  it('leaves a ride on its power', () => {
+    const ride = input({
+      sportType: 'BIKE',
+      powerData: { avgWatts: 150, normalizedPower: 153, quality: 'MEASURED_DIRECT' },
+      hrData: { avgBpm: 130, quality: 'MEASURED_OPTICAL' },
+    });
+    const result = extractSessionFeatures(ride, ctx);
+    expect(result.intensityFactor).toBeCloseTo(0.9, 5);
+    expect(result.efficiencyFactor).toBeCloseTo(153 / 130, 5);
+  });
+});
