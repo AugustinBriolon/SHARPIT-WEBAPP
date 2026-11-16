@@ -29,6 +29,8 @@ We will draw every web surface in Clinique, on one white sheet, with no wash.
 5. **No wash on the web.** The top of a page is plain white. A status is carried by its pill and its word.
 6. **A page may take a second column** (`CarnetPage` `side`), beside the sections from `lg` up and under them below.
 7. **Rings are thin and take a pillar hue** (3-unit stroke on the divider track), as on iOS.
+8. **A page prints as its sheet.** The rail and the header are left out of print and sections hidden for their entrance are shown, so a bilan goes to paper or PDF from the browser's own print, with no control added.
+9. **Buttons are capsules on the web too** (`buttonVariants`), as ADR-131 set for iOS; no button is lime.
 
 ## Options considered
 
@@ -58,7 +60,7 @@ We will draw every web surface in Clinique, on one white sheet, with no wash.
 
 - `<html>` still paints the `:root` canvas (`#f7f8fa`) behind `body` (`#f3f4f7`); the difference shows only on overscroll.
 - The app keeps one wash per screen and the web has none: the two differ on purpose.
-- The landing's own layout (ink sections, drawn phone) is not yet redrawn; it only inherits the tokens.
+- The landing keeps its own layout and motion (ink sections, the scroll-driven method): it inherits the tokens, its phone shows a capture of the Clinique Résumé, and its closing button is no longer lime. It does not follow the static mock-up drawn for it.
 
 ### Neutral
 

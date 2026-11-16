@@ -744,6 +744,14 @@ body {
   --background: #0b0b0c;
 }
 
+/* On paper nothing waits for a scroll: a section still hidden for its entrance is printed. */
+@media print {
+  [data-reveal] {
+    transform: none !important;
+    opacity: 1 !important;
+  }
+}
+
 /* ── Ink & Lime primitives (ADR-085) ─────────────────────────────────────── */
 
 /* White card on the canvas: 28px corner, soft wide shadow, 24px padding. */
