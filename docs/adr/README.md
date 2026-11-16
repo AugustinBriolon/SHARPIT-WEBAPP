@@ -128,6 +128,7 @@
 | [ADR-132](./ADR-132-the-plan-gate-withholds-intensity-only-where-it-protects.md)           | The plan Gate withholds intensity only where it protects: posture exempt, rejected sessions offered lighter, day state bound to its day                                                                         | Accepted                          |
 | [ADR-133](./ADR-133-the-macro-plan-climbs-toward-what-the-race-asks.md)                    | The macro-plan climbs toward what the race asks: volume from today's to the race's peak, one short quality session a week in base                                                                               | Accepted                          |
 | [ADR-134](./ADR-134-a-meal-logged-whole-is-a-group-naming-its-foods.md)                    | A meal logged whole is a group naming its foods: `FoodLogGroup` over unchanged entries, batch with a label, delete and copy keep the meal                                                                       |
+| [ADR-135](./ADR-135-the-web-is-swept-to-clinique-on-one-white-sheet.md)                    | The web is swept to Clinique on one white sheet: tokens remapped under `body`, a rail and a sheet, hairline sections, no wash                                                                                   | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
