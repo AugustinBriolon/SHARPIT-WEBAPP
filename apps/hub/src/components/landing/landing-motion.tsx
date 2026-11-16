@@ -8,7 +8,19 @@ import { useGSAP } from '@gsap/react';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, DrawSVGPlugin);
 
-const EASE = 'expo.out';
+/*
+ * One motion language for the page. Two curves: `OUT` for what arrives (fast start, soft
+ * landing), `IN_OUT` for what travels on screen. Three durations, one entrance distance, one
+ * direction (up). No overshoot, no parallax, no scroll-scrubbed text: motion says an element
+ * arrived or a quantity filled, and nothing else.
+ */
+const OUT = 'power3.out';
+const IN_OUT = 'power2.inOut';
+const FAST = 0.4;
+const BASE = 0.6;
+const SLOW = 0.9;
+/** How far an entering element rises, in pixels. */
+const RISE = 16;
 const PIN_BREAKPOINT = '(min-width: 768px)';
 /** Where a section starts playing: its top a little above the bottom of the screen. */
 const ON_ENTER = 'top 80%';
@@ -26,36 +38,18 @@ function animateScrollProgress() {
 }
 
 function animateHero() {
-  const intro = gsap.timeline({ defaults: { ease: EASE } });
-  intro
-    .from('[data-hero-line]', { yPercent: 110, duration: 1.2, stagger: 0.12 })
-    .from('[data-hero-fade]', { autoAlpha: 0, y: 24, duration: 1, stagger: 0.08 }, 0.35)
-    .from('[data-tick]', { scaleY: 0, duration: 0.6, stagger: 0.012, ease: 'power3.out' }, 0.6)
+  gsap
+    .timeline({ defaults: { ease: OUT } })
+    .from('[data-hero-line]', { yPercent: 110, duration: SLOW, stagger: 0.08 })
+    .from('[data-hero-fade]', { autoAlpha: 0, y: RISE, duration: BASE, stagger: 0.06 }, 0.25)
+    .from('[data-phone]', { autoAlpha: 0, y: RISE, duration: SLOW }, 0.25)
+    .from('[data-tick]', { scaleY: 0, duration: FAST, stagger: 0.006 }, 0.45)
     // From the ruler's start to its place: a transform, never `left`.
     .from(
       '[data-marker]',
-      {
-        x: (_, marker: HTMLElement) => -marker.offsetLeft,
-        duration: 1.6,
-        ease: 'power4.inOut',
-      },
-      0.9,
+      { x: (_, marker: HTMLElement) => -marker.offsetLeft, duration: SLOW, ease: IN_OUT },
+      0.6,
     );
-
-  intro.from('[data-phone]', { autoAlpha: 0, y: 80, rotate: 2, duration: 1.4 }, 0.2);
-
-  gsap.to('[data-phone]', {
-    yPercent: -10,
-    ease: 'none',
-    scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true },
-  });
-
-  gsap.to('[data-hero-body]', {
-    // The text drifts with the scroll but keeps its full strength: no fade tied to it.
-    yPercent: -12,
-    ease: 'none',
-    scrollTrigger: { trigger: '[data-hero]', start: 'top top', end: 'bottom top', scrub: true },
-  });
 }
 
 /**
@@ -78,85 +72,52 @@ function enterInBatches(
         autoAlpha: 1,
         x: 0,
         y: 0,
-        ease: EASE,
+        ease: OUT,
         duration: timing.duration,
-        stagger: Math.min(timing.stagger, 0.5 / batch.length),
+        stagger: Math.min(timing.stagger, 0.3 / batch.length),
       }),
-  });
-}
-
-/** The manifesto lights up word by word under the reader's scroll. */
-function animateManifesto() {
-  gsap.fromTo(
-    '[data-manifesto] [data-word]',
-    { opacity: 0.15 },
-    {
-      opacity: 1,
-      ease: 'none',
-      stagger: 0.1,
-      scrollTrigger: {
-        trigger: '[data-manifesto]',
-        start: 'top 75%',
-        end: 'bottom 45%',
-        scrub: 0.5,
-      },
-    },
-  );
-}
-
-/** Each other tool is crossed out, then SharpIt's answer arrives. */
-function animateContrasts() {
-  gsap.utils.toArray<HTMLElement>('[data-contrast]').forEach((row) => {
-    gsap
-      .timeline({ scrollTrigger: { trigger: row, start: ON_ENTER } })
-      .from(row.querySelector('[data-strike]'), { scaleX: 0, duration: 0.6, ease: 'power3.inOut' })
-      .from(
-        row.querySelector('[data-contrast-answer]'),
-        { autoAlpha: 0, x: -16, duration: 0.9, ease: EASE },
-        0.35,
-      );
   });
 }
 
 /** Plays one method schematic: ticks and bars rise, lines draw, the outcome lands last. */
 function diagramTimeline(step: Element, scrollTrigger: ScrollTrigger.Vars) {
   const parts = (selector: string) => Array.from(step.querySelectorAll(selector));
-  const timeline = gsap.timeline({ defaults: { ease: EASE }, scrollTrigger });
+  const timeline = gsap.timeline({ defaults: { ease: OUT }, scrollTrigger });
   const fade = parts('[data-d-fade]');
   const ticks = parts('[data-d-tick]');
   const bars = parts('[data-d-bar]');
   const lines = parts('[data-d-draw]');
   const pops = parts('[data-d-pop]');
   if (fade.length) {
-    timeline.from(fade, { autoAlpha: 0, duration: 0.6 }, 0);
+    timeline.from(fade, { autoAlpha: 0, duration: FAST }, 0);
   }
   if (ticks.length) {
-    timeline.from(ticks, { scaleY: 0, duration: 0.4, stagger: 0.008 }, 0);
+    timeline.from(ticks, { scaleY: 0, duration: FAST, stagger: 0.006 }, 0);
   }
   if (bars.length) {
-    timeline.from(bars, { scaleY: 0, duration: 0.7, stagger: 0.08 }, 0.1);
+    timeline.from(bars, { scaleY: 0, duration: BASE, stagger: 0.05 }, 0.1);
   }
   if (lines.length) {
     // DrawSVG measures each stroke; a hand-rolled dash offset is rounded to whole pixels.
     timeline.fromTo(
       lines,
       { drawSVG: '0% 0%' },
-      { drawSVG: '0% 100%', duration: 1.1, stagger: 0.08, ease: 'power2.inOut' },
-      0.25,
+      { drawSVG: '0% 100%', duration: SLOW, stagger: 0.06, ease: IN_OUT },
+      0.2,
     );
   }
   if (pops.length) {
     timeline.from(
       pops,
       {
+        // The outcome settles in place: no overshoot.
         autoAlpha: 0,
-        scale: 0.85,
+        scale: 0.96,
         transformOrigin: '50% 50%',
-        duration: 0.6,
-        stagger: 0.12,
-        ease: 'back.out(2)',
+        duration: FAST,
+        stagger: 0.06,
       },
-      0.9,
+      0.7,
     );
   }
   return timeline;
@@ -180,7 +141,7 @@ function animateMethodTrack() {
       start: 'top top',
       end: () => `+=${distance()}`,
       pin: true,
-      scrub: 0.6,
+      scrub: 0.4,
       invalidateOnRefresh: true,
       onUpdate: (self) => {
         const current = Math.round(self.progress * (steps.length - 1));
@@ -214,9 +175,9 @@ function animateStackedMethod() {
   gsap.utils.toArray<HTMLElement>('[data-chain-step]').forEach((step) => {
     gsap.from(step, {
       autoAlpha: 0,
-      y: 40,
-      duration: 1,
-      ease: EASE,
+      y: RISE,
+      duration: BASE,
+      ease: OUT,
       scrollTrigger: { trigger: step, start: 'top 85%' },
     });
     diagramTimeline(step, { trigger: step, start: 'top 70%' });
@@ -227,17 +188,17 @@ function animateStackedMethod() {
 function animateMorning() {
   gsap
     .timeline({
-      defaults: { ease: EASE },
+      defaults: { ease: OUT },
       scrollTrigger: { trigger: '[data-morning-panel]', start: 'top 70%' },
     })
-    .from('[data-morning-panel]', { autoAlpha: 0, y: 40, duration: 1 })
-    .from('[data-morning-verdict]', { autoAlpha: 0, y: 16, duration: 0.9 }, 0.3)
-    .from('[data-morning-line]', { autoAlpha: 0, x: -12, duration: 0.7, stagger: 0.12 }, 0.6)
-    .from('[data-morning-strike]', { scaleX: 0, duration: 0.5, ease: 'power3.inOut' }, 1.4)
-    .from('[data-morning-swap]', { autoAlpha: 0, x: -8, duration: 0.6 }, 1.7)
-    .from('[data-morning-confidence]', { scaleX: 0, duration: 1.2, ease: 'power3.out' }, 1.6)
+    .from('[data-morning-panel]', { autoAlpha: 0, y: RISE, duration: BASE })
+    .from('[data-morning-verdict]', { autoAlpha: 0, y: 8, duration: FAST }, 0.15)
+    .from('[data-morning-line]', { autoAlpha: 0, y: 8, duration: FAST, stagger: 0.06 }, 0.3)
+    .from('[data-morning-strike]', { scaleX: 0, duration: FAST, ease: IN_OUT }, 0.7)
+    .from('[data-morning-swap]', { autoAlpha: 0, y: 8, duration: FAST }, 0.9)
+    .from('[data-morning-confidence]', { scaleX: 0, duration: BASE }, 0.8)
     // The marker climbs down the ladder from the first domain to the one that limits.
-    .from('[data-priority-marker]', { yPercent: -100, duration: 1, ease: 'power3.inOut' }, 1.2);
+    .from('[data-priority-marker]', { yPercent: -100, duration: BASE, ease: IN_OUT }, 0.7);
 }
 
 /** The Gate's count runs up to its number of rules, then the rules list in. */
@@ -249,55 +210,46 @@ function animateGuardrails() {
     count.textContent = '0';
     gsap.to(value, {
       n: target,
-      duration: 1.6,
-      ease: 'power2.out',
+      duration: SLOW,
+      ease: OUT,
       onUpdate: () => {
         count.textContent = String(Math.round(value.n));
       },
       scrollTrigger: { trigger: count, start: ON_ENTER },
     });
   }
-  enterInBatches('[data-rule]', { y: 12 }, { duration: 0.6, stagger: 0.05 });
+  enterInBatches('[data-rule]', { y: 8 }, { duration: FAST, stagger: 0.03 });
 }
 
-/** The confidence scale fills tier by tier; the learning line draws with the scroll. */
+/** The confidence tiers list in; the learning line draws once, its stages after it. */
 function animateHonesty() {
-  gsap.from('[data-tier-bar]', {
-    scaleX: 0,
-    duration: 0.8,
-    stagger: 0.15,
-    ease: 'power3.out',
-    scrollTrigger: { trigger: '[data-tier]', start: ON_ENTER },
-  });
-  gsap.from('[data-ramp-line]', {
-    scaleX: 0,
-    ease: 'none',
-    scrollTrigger: { trigger: '[data-ramp]', start: 'top 85%', end: 'bottom 55%', scrub: 0.5 },
-  });
-  gsap.from('[data-ramp-stage]', {
-    autoAlpha: 0,
-    y: 16,
-    duration: 0.8,
-    stagger: 0.18,
-    ease: EASE,
-    scrollTrigger: { trigger: '[data-ramp]', start: ON_ENTER },
-  });
+  enterInBatches('[data-tier]', { y: 8 }, { duration: FAST, stagger: 0.05 });
+  gsap
+    .timeline({
+      defaults: { ease: OUT },
+      scrollTrigger: { trigger: '[data-ramp]', start: ON_ENTER },
+    })
+    .from('[data-ramp-line]', { scaleX: 0, duration: SLOW, ease: IN_OUT })
+    .from('[data-ramp-stage]', { autoAlpha: 0, y: 8, duration: FAST, stagger: 0.08 }, 0.15);
 }
 
 /** Advised, chosen, what followed: one after the other, joined by the line. */
 function animateMemory() {
   gsap
-    .timeline({ scrollTrigger: { trigger: '[data-trail]', start: ON_ENTER } })
-    .from('[data-trail]', { autoAlpha: 0, y: 16, duration: 0.7, stagger: 0.35, ease: EASE })
-    .from('[data-trail-line]', { scaleY: 0, duration: 0.5, stagger: 0.35, ease: 'none' }, 0.3);
+    .timeline({
+      defaults: { ease: OUT },
+      scrollTrigger: { trigger: '[data-trail]', start: ON_ENTER },
+    })
+    .from('[data-trail]', { autoAlpha: 0, y: 8, duration: FAST, stagger: 0.12 })
+    .from('[data-trail-line]', { scaleY: 0, duration: FAST, stagger: 0.12, ease: 'none' }, 0.15);
 }
 
 function animateRefusals() {
-  enterInBatches('[data-refusal]', { x: -16 }, { duration: 0.7, stagger: 0.08 });
+  enterInBatches('[data-refusal]', { y: 8 }, { duration: FAST, stagger: 0.05 });
 }
 
 function animateReveals() {
-  enterInBatches('[data-reveal]', { y: 32 }, { duration: 1, stagger: 0.1 }, 'top 88%');
+  enterInBatches('[data-reveal]', { y: RISE }, { duration: BASE, stagger: 0.06 }, 'top 88%');
 }
 
 /**
@@ -323,8 +275,6 @@ export function LandingMotion({ children }: { children: ReactNode }) {
           // The pin comes before every trigger below it, so each one is measured past its spacer.
           animateScrollProgress();
           animateHero();
-          animateManifesto();
-          animateContrasts();
           if (wide) {
             animateMethodTrack();
           } else {

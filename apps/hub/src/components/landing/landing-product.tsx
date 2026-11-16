@@ -32,7 +32,7 @@ function AppSurfaces() {
             <span
               className={cn(
                 HEADING,
-                'text-2xl transition-transform duration-500 ease-out group-hover:translate-x-1 sm:text-3xl',
+                'text-2xl transition-transform duration-200 ease-out group-hover:translate-x-1 sm:text-3xl',
               )}
             >
               {surface.name}
@@ -149,14 +149,14 @@ function Faq() {
               <span
                 className={cn(
                   HEADING,
-                  'text-xl transition-transform duration-300 ease-out group-hover:translate-x-1 sm:text-2xl',
+                  'text-xl transition-transform duration-200 ease-out group-hover:translate-x-1 sm:text-2xl',
                 )}
               >
                 {item.question}
               </span>
               <span className="border-foreground/20 group-open:bg-foreground group-open:text-background grid size-9 shrink-0 place-items-center rounded-full border transition-colors duration-300">
                 <Plus
-                  className="size-4 transition-transform duration-300 ease-out group-open:rotate-45"
+                  className="size-4 transition-transform duration-200 ease-out group-open:rotate-45"
                   aria-hidden
                 />
               </span>

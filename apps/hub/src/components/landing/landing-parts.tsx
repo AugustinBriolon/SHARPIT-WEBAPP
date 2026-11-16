@@ -82,15 +82,6 @@ export function SectionHead({
   );
 }
 
-/** Words as separate spans, so the manifesto can be read in as the visitor scrolls. */
-export function Words({ text }: { text: string }) {
-  return text.split(' ').map((word, i) => (
-    <span key={i} data-word>
-      {word}{' '}
-    </span>
-  ));
-}
-
 export function pad(n: number): string {
   return String(n).padStart(2, '0');
 }

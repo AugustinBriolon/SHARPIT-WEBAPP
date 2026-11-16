@@ -87,7 +87,7 @@ export function Hero() {
               >
                 {LANDING_HERO.secondaryCta.label}
                 <ArrowDown
-                  className="transition-transform duration-300 ease-out group-hover/cta:translate-y-0.5"
+                  className="transition-transform duration-200 ease-out group-hover/cta:translate-y-0.5"
                   data-icon="inline-end"
                 />
               </a>

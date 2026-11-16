@@ -55,7 +55,7 @@ export function Method() {
                   data-active={i === 0 ? '' : undefined}
                   className={cn(
                     DATA,
-                    'text-muted-foreground/60 data-[active]:text-foreground text-xs transition-colors duration-300',
+                    'text-muted-foreground/60 data-[active]:text-foreground text-xs transition-colors duration-200',
                   )}
                   data-chain-label
                 >

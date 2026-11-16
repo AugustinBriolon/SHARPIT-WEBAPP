@@ -69,7 +69,11 @@ function Honesty() {
       />
       <ol className="mt-12 max-w-3xl border-t border-(--outline)">
         {LANDING_HONESTY.tiers.map((tier, i) => (
-          <li key={tier.label} className="relative flex items-center gap-4 py-4" data-tier>
+          <li
+            key={tier.label}
+            className="border-border flex items-center gap-4 border-b py-4"
+            data-tier
+          >
             <span
               className={cn(
                 'inline-block h-6 w-28 shrink-0 truncate rounded-(--shape-pill) border px-2.5 text-center text-xs leading-[1.375rem] font-semibold',
@@ -82,11 +86,6 @@ function Honesty() {
               {tier.threshold}
             </span>
             <span className="text-[0.9375rem]">{tier.effect}</span>
-            <span
-              className="bg-border absolute inset-x-0 bottom-0 h-px origin-left"
-              aria-hidden
-              data-tier-bar
-            />
           </li>
         ))}
       </ol>
