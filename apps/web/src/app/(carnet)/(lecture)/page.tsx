@@ -2,22 +2,34 @@ import { Suspense, type ReactNode } from 'react';
 import { cacheLife } from 'next/cache';
 import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
-import { limiterSignalChipForMode } from '@sharpit/app/lib/today/dashboard/limiter-signal';
 import { addTrainingDays, trainingDayIdForNow } from '@sharpit/core/training/training-day';
-import { CARNET_FRESHNESS, readViewModel } from '@/components/carnet/carnet-read';
+import { addDays, startOfWeek } from 'date-fns';
+import { CARNET_FRESHNESS, readSection, readViewModel } from '@/components/carnet/carnet-read';
+import {
+  type SeasonSession,
+  WEEK_DAY_NAMES,
+  type WeekDayKind,
+  weekDayKinds,
+} from '@/components/carnet/carnet-season';
 import { Reading, Skel } from '@/components/carnet/carnet-reading';
-import { carnetHref, longDayLabel, resolveDayParam } from '@/components/carnet/carnet-time';
+import {
+  carnetHref,
+  dayIdOf,
+  dayOf,
+  longDayLabel,
+  resolveDayParam,
+} from '@/components/carnet/carnet-time';
 import {
   CarnetPage,
   CarnetStepLink,
   CarnetSection,
-  Figure,
-  Figures,
-  InApp,
+  MeasureRow,
+  NumberedReasons,
   Quiet,
   ReadingList,
   ReadingRow,
-  Reasons,
+  StatusPill,
+  type StatusTone,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CarnetEmptyDay } from '@/components/carnet/carnet-empty-day';
@@ -74,6 +86,21 @@ function DayPager({ day, today }: { day: string; today: string }) {
   );
 }
 
+/** The day's posture as the server decided it; an uncertain day is not judged. */
+const POSTURE_TONE: Record<TodayViewModel['hero']['posture'], StatusTone> = {
+  push: 'good',
+  steady: 'good',
+  protect: 'watch',
+  uncertain: 'unknown',
+};
+
+type SignalPreview = TodayViewModel['hero']['signalPreviews'][number];
+
+function gaugeOf(preview: SignalPreview | undefined) {
+  return preview?.visual.kind === 'gauge' ? preview.visual : null;
+}
+
+/** The four readings side by side: a thin ring in the reading's hue, its name, its word. */
 function Signals({ hero }: { hero: TodayViewModel['hero'] | undefined }) {
   const previews = new Map((hero?.signalPreviews ?? []).map((p) => [p.key, p]));
   return (
@@ -81,11 +108,12 @@ function Signals({ hero }: { hero: TodayViewModel['hero'] | undefined }) {
       {SIGNALS.map((signal) => {
         const rawScore = hero?.metricsRow[signal.score];
         const score = typeof rawScore === 'number' ? rawScore : null;
-        const subtitle = previews.get(signal.key)?.subtitle;
+        const preview = previews.get(signal.key);
+        const word = gaugeOf(preview)?.statusLabel ?? preview?.subtitle;
         return (
           <li
             key={signal.key}
-            className="border-border flex flex-col items-center gap-2 rounded-(--shape-card) border px-2 py-5 text-center"
+            className="border-border flex flex-col items-center gap-2.5 rounded-(--shape-card) border px-2 py-5 text-center"
           >
             {hero ? (
               <ScoreRing
@@ -101,18 +129,122 @@ function Signals({ hero }: { hero: TodayViewModel['hero'] | undefined }) {
             ) : (
               <ScoreRingSkel caption="/100" />
             )}
-            <p className="text-sm font-medium">{signal.label}</p>
+            <p className="text-[0.8125rem] font-medium">{signal.label}</p>
             {hero ? (
-              subtitle ? (
-                <p className="text-muted-foreground text-xs leading-snug">{subtitle}</p>
-              ) : null
+              <StatusPill tone="unknown">{word ?? 'Pas encore'}</StatusPill>
             ) : (
-              <Skel className="h-3 w-20" />
+              <Skel className="h-6 w-16" />
             )}
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/** Each reading on a line: its value, what it is read against, its word. */
+function BodyRows({ vm }: { vm: TodayViewModel }) {
+  const previews = new Map(vm.hero.signalPreviews.map((p) => [p.key, p]));
+  return (
+    <ul className="divide-border divide-y">
+      {SIGNALS.map((signal) => {
+        const preview = previews.get(signal.key);
+        const gauge = gaugeOf(preview);
+        return (
+          <MeasureRow
+            key={signal.key}
+            against={gauge?.baselineDetail ?? gauge?.baselineTitle ?? preview?.subtitle}
+            label={signal.label}
+            unit={preview?.unit}
+            value={preview?.scoreDisplay ?? '—'}
+            status={
+              gauge?.statusLabel ? (
+                <StatusPill tone="unknown">{gauge.statusLabel}</StatusPill>
+              ) : null
+            }
+          />
+        );
+      })}
+      {vm.actionRow.limitingFacts.map((fact) => (
+        <MeasureRow key={fact.label} against={fact.hint} label={fact.label} value={fact.value} />
+      ))}
+    </ul>
+  );
+}
+
+type MorningProposal = NonNullable<TodayViewModel['actionRow']['morningRecalibration']>;
+
+function prescription(intensity: string | null, durationMin: number | null): string {
+  return [intensity, durationMin ? `${durationMin} min` : null].filter(Boolean).join(' · ');
+}
+
+/** The morning's proposal: what was planned, struck; what is proposed; decided in the app. */
+function Proposal({ proposal }: { proposal: MorningProposal }) {
+  const from = prescription(proposal.fromIntensity, proposal.fromDurationMin);
+  const to = prescription(proposal.toIntensity, proposal.toDurationMin);
+  return (
+    <div className="border-border flex flex-col gap-3 rounded-(--shape-card) border p-5">
+      {from ? <p className="text-muted-foreground text-[0.8125rem] line-through">{from}</p> : null}
+      <p className="text-lg leading-snug font-semibold">{to || proposal.changeSummary}</p>
+      <p className="text-muted-foreground text-[0.8125rem] leading-relaxed">{proposal.why}</p>
+      <p className="text-muted-foreground text-[0.8125rem]">À valider dans l&apos;app</p>
+    </div>
+  );
+}
+
+const WEEK_DOT: Record<WeekDayKind, string> = {
+  done: 'bg-foreground',
+  key: 'border-foreground border-[3px]',
+  planned: 'border border-(--outline)',
+  none: 'bg-(--tile)',
+};
+
+const WEEK_WORD: Record<WeekDayKind, string> = {
+  done: 'faite',
+  key: 'séance clé prévue',
+  planned: 'séance prévue',
+  none: 'rien de prévu',
+};
+
+async function readWeek(jour: string | undefined): Promise<WeekDayKind[] | null> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  const { day } = await readTodayDay(jour);
+  const monday = startOfWeek(dayOf(day), { weekStartsOn: 1 });
+  const sessions = await readSection<SeasonSession[]>(
+    `/api/v1/planned-sessions?from=${dayIdOf(monday)}&to=${dayIdOf(addDays(monday, 6))}`,
+  );
+  return sessions ? weekDayKinds(sessions, monday) : null;
+}
+
+/** The seven days of the week as dots: full when done, a thick ring for a key session ahead. */
+function Week({ jour }: { jour: string | undefined }) {
+  return (
+    <Reading fallback={<Skel className="block h-14 w-full" />} read={() => readWeek(jour)}>
+      {(days) =>
+        days ? (
+          <>
+            <ol className="grid grid-cols-7 gap-1.5">
+              {days.map((kind, i) => (
+                <li key={WEEK_DAY_NAMES[i]} className="flex flex-col items-center gap-1.5">
+                  <span className="text-muted-foreground text-[0.6875rem]" aria-hidden>
+                    {WEEK_DAY_NAMES[i]?.charAt(0).toUpperCase()}
+                  </span>
+                  <span
+                    aria-label={`${WEEK_DAY_NAMES[i]} : ${WEEK_WORD[kind]}`}
+                    className={`size-7 rounded-full ${WEEK_DOT[kind]}`}
+                    role="img"
+                  />
+                </li>
+              ))}
+            </ol>
+            <Quiet>Plein : faite · contour épais : clé · contour fin : prévue</Quiet>
+          </>
+        ) : (
+          <Unreadable what="La semaine" />
+        )
+      }
+    </Reading>
   );
 }
 
@@ -257,60 +389,54 @@ function TodayFrame({
       ].filter((line): line is string => Boolean(line))
     : [];
 
-  let title: ReactNode = <Skel className="h-8 w-56" />;
-  if (hero && trust) {
-    title = trust.showHeadline === false ? 'Ta journée' : hero.headline;
-  }
+  // The verdict is the page's title (the instruction when the server wrote one), its posture the
+  // pill beside it; what limits the day and how sure the reading is close the lead.
+  const title: ReactNode =
+    hero && trust ? (trust.instruction ?? hero.headline) : <Skel className="h-8 w-56" />;
+  const explained = [trust?.explanation?.essential, ...reasons].filter((line): line is string =>
+    Boolean(line),
+  );
+  const proposal =
+    actionRow?.morningRecalibration?.status === 'PRESENTED' ? actionRow.morningRecalibration : null;
 
   return (
     <CarnetPage
       aside={aside}
       kicker={kicker}
-      lead={hero ? hero.subline : <Skel className="h-4 w-80 max-w-full" />}
+      lead={hero && trust ? <VerdictLead hero={hero} /> : <Skel className="h-4 w-80 max-w-full" />}
       title={title}
       side={
-        <CarnetSection
-          label="La journée"
-          title={actionRow ? actionRow.actionLabel : <Skel className="h-5 w-40" />}
-        >
-          {vm ? <TheDay vm={vm} /> : <Skel className="block h-16 w-full" />}
-        </CarnetSection>
+        <>
+          {proposal ? (
+            <CarnetSection label="Proposé">
+              <Proposal proposal={proposal} />
+            </CarnetSection>
+          ) : null}
+          <CarnetSection label="Le déroulé du jour">
+            {vm ? <TheDay vm={vm} /> : <Skel className="block h-16 w-full" />}
+          </CarnetSection>
+          <CarnetSection label="Cette semaine">
+            <Week jour={jour} />
+          </CarnetSection>
+        </>
+      }
+      status={
+        hero?.postureLabel ? (
+          <StatusPill tone={POSTURE_TONE[hero.posture]}>{hero.postureLabel}</StatusPill>
+        ) : null
       }
     >
       {vm ? <RaceBand race={vm.race} /> : null}
 
-      <CarnetSection
-        label="Le verdict"
-        title={hero ? <Verdict hero={hero} /> : <Skel className="h-5 w-44" />}
-      >
-        {vm && hero && trust ? (
+      <CarnetSection label="Les quatre lectures">
+        <Signals hero={hero} />
+      </CarnetSection>
+
+      <CarnetSection label="Pourquoi">
+        {vm ? (
           <>
             {vm.statusMessage ? <Quiet>{vm.statusMessage}</Quiet> : null}
-            {trust.explanation?.essential ? (
-              <p className="text-sm leading-relaxed">{trust.explanation.essential}</p>
-            ) : null}
-            {trust.instruction ? (
-              <p className="text-sm leading-relaxed font-medium">{trust.instruction}</p>
-            ) : null}
-            {trust.limiterCountLabel ? (
-              <p className="text-label text-muted-foreground">Frein · {trust.limiterCountLabel}</p>
-            ) : null}
-            {!trust.limiterCountLabel && trust.limiterSignals[0] ? (
-              <p className="text-label text-muted-foreground">
-                {limiterSignalChipForMode(trust.limiterSignals[0], 'essential')}
-              </p>
-            ) : null}
-            <Reasons items={reasons} />
-            {actionRow?.morningRecalibration?.status === 'PRESENTED' ? (
-              <>
-                <p className="text-sm leading-relaxed">
-                  <span className="font-medium">Proposition du matin.</span>{' '}
-                  {actionRow.morningRecalibration.changeSummary}{' '}
-                  {actionRow.morningRecalibration.why}
-                </p>
-                <InApp>Accepter ou garder le plan</InApp>
-              </>
-            ) : null}
+            <NumberedReasons items={explained} />
           </>
         ) : (
           <div className="space-y-2">
@@ -320,26 +446,12 @@ function TodayFrame({
         )}
       </CarnetSection>
 
-      <CarnetSection label="Les signaux" title="Ce que le corps dit">
-        <Signals hero={hero} />
-        {vm && trust && (trust.limitingCauseText || trust.confidenceLabel) ? (
-          <Quiet>
-            {trust.limitingCauseText}
-            {trust.limitingCauseText && trust.confidenceLabel ? ' ' : ''}
-            {trust.confidenceLabel ? `Confiance : ${trust.confidenceLabel.toLowerCase()}.` : ''}
-          </Quiet>
-        ) : null}
-        {actionRow && actionRow.limitingFacts.length > 0 ? (
-          <Figures>
-            {actionRow.limitingFacts.map((fact) => (
-              <Figure key={fact.label} hint={fact.hint} label={fact.label} value={fact.value} />
-            ))}
-          </Figures>
-        ) : null}
+      <CarnetSection label="Ce que le corps dit">
+        {vm ? <BodyRows vm={vm} /> : <Skel className="block h-24 w-full" />}
       </CarnetSection>
 
       {vm && vm.insights.length > 0 ? (
-        <CarnetSection label="À retenir" title="Ce que le coach remarque">
+        <CarnetSection label="Ce que le coach remarque">
           <div className="space-y-5">
             {vm.insights.map((insight) => (
               <div key={insight.id}>
@@ -356,17 +468,17 @@ function TodayFrame({
   );
 }
 
-function Verdict({ hero }: { hero: TodayViewModel['hero'] }) {
+/** Under the verdict: its subline, then what limits the day and how sure the reading is. */
+function VerdictLead({ hero }: { hero: TodayViewModel['hero'] }) {
   const trust = hero.twinTrustStrip;
-  if (!hero.postureLabel && !trust.vsYesterdayLabel) {
-    return null;
-  }
+  const limits = [
+    trust.limitingCauseText,
+    trust.confidenceLabel ? `Confiance ${trust.confidenceLabel.toLowerCase()}` : null,
+  ].filter(Boolean);
   return (
-    <span className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-      {hero.postureLabel ? <span>{hero.postureLabel}</span> : null}
-      {trust.vsYesterdayLabel ? (
-        <span className="text-muted-foreground text-sm font-normal">{trust.vsYesterdayLabel}</span>
-      ) : null}
-    </span>
+    <>
+      <p>{hero.subline}</p>
+      {limits.length > 0 ? <p className="mt-1 text-sm">{limits.join(' · ')}</p> : null}
+    </>
   );
 }

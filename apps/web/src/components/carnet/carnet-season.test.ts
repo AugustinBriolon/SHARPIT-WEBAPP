@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { closedAdherence, seasonWeeks, upcomingSeasonSessions } from './carnet-season';
+import {
+  closedAdherence,
+  type SeasonSession,
+  seasonWeeks,
+  upcomingSeasonSessions,
+  weekDayKinds,
+} from './carnet-season';
 import { dayOf } from './carnet-time';
 
 const MONDAYS = [dayOf('2026-09-28'), dayOf('2026-10-05')];
@@ -103,5 +109,38 @@ describe('closedAdherence', () => {
   it('is null with no planned sessions — empty state for Séances faites (no — %)', () => {
     const weeks = seasonWeeks([], MONDAYS, '2026-10-05');
     expect(closedAdherence(weeks)).toBeNull();
+  });
+});
+
+describe('weekDayKinds', () => {
+  const monday = dayOf('2026-11-16');
+  const session = (date: string, extra: Partial<SeasonSession> = {}): SeasonSession => ({
+    date,
+    completed: false,
+    ...extra,
+  });
+
+  it('reads a day with no session as none', () => {
+    expect(weekDayKinds([], monday)).toEqual(Array(7).fill('none'));
+  });
+
+  it('tells a done day, a key session ahead and a plain planned one', () => {
+    const kinds = weekDayKinds(
+      [
+        session('2026-11-16', { completed: true }),
+        session('2026-11-17'),
+        session('2026-11-19', { isKey: true }),
+      ],
+      monday,
+    );
+    expect(kinds).toEqual(['done', 'planned', 'none', 'key', 'none', 'none', 'none']);
+  });
+
+  it('keeps a day open while one of its sessions is not done', () => {
+    const kinds = weekDayKinds(
+      [session('2026-11-18', { completed: true }), session('2026-11-18')],
+      monday,
+    );
+    expect(kinds[2]).toBe('planned');
   });
 });

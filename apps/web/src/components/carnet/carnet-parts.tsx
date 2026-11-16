@@ -15,6 +15,7 @@ export function CarnetPage({
   back,
   kicker,
   title,
+  status,
   lead,
   aside,
   side,
@@ -24,6 +25,8 @@ export function CarnetPage({
   back?: { href: string; label: string };
   kicker: ReactNode;
   title: ReactNode;
+  /** The page's status, as a pill beside its title (ADR-130: a word, never a tint alone). */
+  status?: ReactNode;
   lead?: ReactNode;
   aside?: ReactNode;
   /** A second column beside the sections on a wide screen; under them on a narrow one. */
@@ -40,7 +43,10 @@ export function CarnetPage({
             </CarnetStepLink>
           ) : null}
           <p className="text-label text-muted-foreground">{kicker}</p>
-          <h1 className="text-page-title mt-2 first-letter:uppercase">{title}</h1>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <h1 className="text-page-title first-letter:uppercase">{title}</h1>
+            {status}
+          </div>
           {lead ? (
             <div className="text-muted-foreground mt-3 text-base leading-relaxed">{lead}</div>
           ) : null}
@@ -247,11 +253,62 @@ export function StatusPill({ tone, children }: { tone: StatusTone; children: Rea
   return (
     <span
       className={cn(
-        'inline-flex h-6 items-center rounded-(--shape-pill) border px-2.5 text-xs font-semibold whitespace-nowrap',
+        // One line, cut with an ellipsis when its place is narrower than its word.
+        'inline-block h-6 max-w-full truncate rounded-(--shape-pill) border px-2.5 text-xs leading-[1.375rem] font-semibold',
         STATUS_PILL[tone],
       )}
     >
       {children}
     </span>
+  );
+}
+
+/** Lines of reasoning counted 01, 02…, each on its own hairline: the order is the argument. */
+export function NumberedReasons({ items }: { items: readonly string[] }) {
+  if (items.length === 0) {
+    return null;
+  }
+  return (
+    <ol className="divide-border divide-y">
+      {items.map((item, index) => (
+        <li key={`${index}-${item}`} className="flex items-baseline gap-4 py-3.5">
+          <span className="text-data text-muted-foreground text-xs">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+          <span className="text-[0.9375rem] leading-relaxed">{item}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+/** One measure on a line: its name, its value, what it is read against, its status. */
+export function MeasureRow({
+  label,
+  value,
+  unit,
+  against,
+  status,
+}: {
+  label: string;
+  value: ReactNode;
+  unit?: string | null;
+  against?: ReactNode;
+  status?: ReactNode;
+}) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-4 gap-y-1 py-3">
+      <span className="min-w-32 flex-1 text-[0.9375rem]">{label}</span>
+      <span className="text-instrument text-[0.9375rem]">
+        {value}
+        {unit ? (
+          <span className="text-muted-foreground ml-1 text-xs font-normal">{unit}</span>
+        ) : null}
+      </span>
+      <span className="text-muted-foreground w-full text-xs sm:w-40 sm:text-[0.8125rem]">
+        {against}
+      </span>
+      <span className="flex sm:w-28 sm:justify-end">{status}</span>
+    </li>
   );
 }

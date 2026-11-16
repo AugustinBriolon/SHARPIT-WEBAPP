@@ -94,3 +94,33 @@ export function closedAdherence(weeks: readonly SeasonWeek[]): number | null {
   }
   return closed.reduce((sum, w) => sum + w.done, 0) / planned;
 }
+
+export const WEEK_DAY_NAMES = [
+  'lundi',
+  'mardi',
+  'mercredi',
+  'jeudi',
+  'vendredi',
+  'samedi',
+  'dimanche',
+] as const;
+
+export type WeekDayKind = 'done' | 'key' | 'planned' | 'none';
+
+/**
+ * What each day of a week holds, Monday first: `done` once every session of the day is done,
+ * else `key` when one of them is a key session, else `planned`; `none` for a day with no session.
+ */
+export function weekDayKinds(sessions: readonly SeasonSession[], monday: Date): WeekDayKind[] {
+  return WEEK_DAY_NAMES.map((_, i) => {
+    const day = dayIdOf(addDays(monday, i));
+    const ofDay = sessions.filter((s) => s.date.slice(0, 10) === day);
+    if (ofDay.length === 0) {
+      return 'none';
+    }
+    if (ofDay.every(isDone)) {
+      return 'done';
+    }
+    return ofDay.some((s) => s.isKey) ? 'key' : 'planned';
+  });
+}
