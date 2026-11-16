@@ -154,6 +154,24 @@ describe('generateMacroPlan toward a race’s demands', () => {
     }
   });
 
+  // Seen on the first regenerated prod plan: from a low start, the step across a deload week
+  // reached +10 % because the deload took a slot of the line.
+  it('holds the cap from one steady week to the next across a deload, from a low start', () => {
+    const low = generateMacroPlan({
+      raceDate: addWeeks(START, 46),
+      startDate: START,
+      baselineCtl: 34,
+      demands: XXL,
+    });
+    const steadyLow = low.weeks.filter(
+      (w) => ['BASE', 'BUILD', 'PEAK'].includes(w.phase) && !w.isDeload,
+    );
+    for (let i = 1; i < steadyLow.length; i++) {
+      expect(steadyLow[i]!.targetLoad).toBeLessThanOrEqual(steadyLow[i - 1]!.targetLoad * 1.08 + 1);
+    }
+    expect(steadyLow[steadyLow.length - 1]!.targetHours).toBeCloseTo(13, 1);
+  });
+
   it('keeps deload weeks lighter than the week before', () => {
     const deloads = growth.filter((w) => w.isDeload);
     expect(deloads.length).toBeGreaterThan(5);

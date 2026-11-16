@@ -281,9 +281,10 @@ function formatHours(hours: number): string {
 }
 
 /**
- * Weekly hours from today's volume to the race's peak, reached on the last growth week: a
- * straight line, held under the weekly ramp cap. When the race is too close for the peak, the
- * line stops where the cap leaves it.
+ * Hours of the steady (non-deload) weeks, from today's volume to the race's peak on the last one:
+ * a straight line, each step held under the ramp cap. Deload weeks are left out of the line, so
+ * the cap holds from one steady week to the next across them. When the race is too close for
+ * the peak, the line stops where the cap leaves it.
  */
 function growthHours(startHours: number, peakHours: number, weeks: number): number[] {
   const peak = Math.max(startHours, peakHours);
@@ -306,26 +307,29 @@ function climbTowardRace(
   baseWeeklyLoad: number,
   demands: RaceDemands,
 ): { weeks: MacroWeekDraft[]; reachedPeakHours: number } {
-  const growthCount = weeks.filter((week) => GROWTH_PHASES.includes(week.phase)).length;
-  const hours = growthHours(baseWeeklyLoad / LOAD_PER_HOUR, demands.peakWeeklyHours, growthCount);
+  const startHours = baseWeeklyLoad / LOAD_PER_HOUR;
+  const steadyCount = weeks.filter(
+    (week) => GROWTH_PHASES.includes(week.phase) && !week.isDeload,
+  ).length;
+  const hours = growthHours(startHours, demands.peakWeeklyHours, steadyCount);
   const reachedPeakHours = hours[hours.length - 1] ?? demands.peakWeeklyHours;
   const taperTotal = weeks.filter((week) => week.phase === 'TAPER').length;
-  let growthIndex = 0;
+  let steadyIndex = 0;
+  let lastSteadyHours = startHours;
   let taperIndex = 0;
 
   const climbed = weeks.map((week) => {
+    if (GROWTH_PHASES.includes(week.phase) && week.isDeload) {
+      return withHours(week, lastSteadyHours * DELOAD_FACTOR, week.focus);
+    }
     if (GROWTH_PHASES.includes(week.phase)) {
-      const progress = growthCount > 1 ? growthIndex / (growthCount - 1) : 1;
-      const weekHours = hours[growthIndex]! * (week.isDeload ? DELOAD_FACTOR : 1);
-      growthIndex += 1;
+      const progress = steadyCount > 1 ? steadyIndex / (steadyCount - 1) : 1;
+      lastSteadyHours = hours[steadyIndex]!;
+      steadyIndex += 1;
       // Long sessions start at half their race-prep length and grow with the plan.
       const long = (peak: number) => formatHours((peak / 2) * (1 + progress));
       const milestones = `Sortie longue vélo jusqu'à ${long(demands.longRideHours)}, course longue jusqu'à ${long(demands.longRunHours)}`;
-      return withHours(
-        week,
-        weekHours,
-        week.isDeload ? week.focus : `${week.focus} · ${milestones}`,
-      );
+      return withHours(week, lastSteadyHours, `${week.focus} · ${milestones}`);
     }
     if (week.phase === 'TAPER') {
       taperIndex += 1;
