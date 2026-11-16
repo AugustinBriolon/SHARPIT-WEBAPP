@@ -285,7 +285,7 @@ describe('POST /api/coach/adapt', () => {
     expect(getOrBuildAthleteSnapshot).not.toHaveBeenCalled();
   });
 
-  it('gates an ADD change and rejects it when a pain limits training capacity', async () => {
+  it('offers an ADD change the Gate rejects as its lighter version when a pain limits capacity', async () => {
     const { runStructuredCoachStream } =
       await import('@sharpit/server/lib/coach/stream-structured-generation');
     const { getOrBuildAthleteSnapshot } =
@@ -299,7 +299,8 @@ describe('POST /api/coach/adapt', () => {
           {
             action: 'ADD',
             sessionId: null,
-            date: '2026-07-20',
+            // A day still to come: a past date is rejected whatever the intensity.
+            date: new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10),
             type: 'BIKE',
             intensity: 'THRESHOLD',
             title: 'Seuil vélo',
@@ -330,18 +331,26 @@ describe('POST /api/coach/adapt', () => {
     const body = await consumeCoachProgressStream<AdaptPayload, unknown>(response);
 
     expect(response.status).toBe(200);
+    // The threshold ride comes back in endurance, with the Gate's reason instead of the coach's.
+    expect(body.changes).toHaveLength(1);
+    expect(body.changes[0]).toMatchObject({
+      action: 'ADD',
+      type: 'BIKE',
+      intensity: 'ENDURANCE',
+      load: 45,
+      title: 'Vélo · Endurance',
+    });
+    expect(body.changes[0].reason).toContain('Capacité limitée par une condition physique active');
     expect(body.gate.sessions).toHaveLength(1);
-    expect(body.gate.sessions[0].status).toBe('REJECTED');
-    expect(
-      body.gate.sessions[0].findings.some(
-        (f: { ruleCode: string }) => f.ruleCode === 'PHYSICAL_HEALTH_LIMITED',
-      ),
-    ).toBe(true);
-    // The rejected change is taken out before the athlete sees it — its decision still recorded.
-    expect(body.changes).toHaveLength(0);
+    expect(body.gate.sessions[0].status).not.toBe('REJECTED');
+    // The rejected change is remembered, and its lighter version is a decision of its own.
     const { createCoachingDecision } =
       await import('@sharpit/server/lib/decision-memory/repository');
-    expect(vi.mocked(createCoachingDecision)).toHaveBeenCalledTimes(1);
+    const recorded = vi
+      .mocked(createCoachingDecision)
+      .mock.calls.map(([, decision]) => decision.gateResult.status);
+    expect(recorded).toHaveLength(2);
+    expect(recorded.filter((status) => status === 'REJECTED')).toHaveLength(1);
   });
 
   it('resolves a MODIFY proposal by merging the change onto the existing session for date-dependent rules', async () => {

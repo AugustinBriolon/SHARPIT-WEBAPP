@@ -65,6 +65,7 @@ import {
 } from '@sharpit/app/lib/coach/sanitize-coach-copy';
 import { buildGateContext } from '@sharpit/server/lib/plan-gate/build-context';
 import { evaluatePlan } from '@sharpit/server/lib/plan-gate/evaluate-plan';
+import { offerSessions } from '@sharpit/server/lib/plan-gate/lighter-version';
 import type { GateProposal, GateResult } from '@sharpit/app/lib/plan-gate/types';
 import { computeTrainingDayId } from '@sharpit/core/training/training-day';
 import { buildDecisionSnapshotContext } from '@sharpit/server/lib/decision-memory/build-snapshot-context';
@@ -551,6 +552,7 @@ async function finalizeAdapt(input: FinalizeAdaptInput): Promise<AdaptPayload> {
 
     let gate: GateResult = { sessions: [], planLevelFindings: [] };
     const decisionIdByChange = new Map<AdaptChange, string>();
+    const lighterByChange = new Map<AdaptChange, GateProposal>();
     const rejected = new Set<AdaptChange>();
     if (proposals.length > 0) {
       const { context: gateContext, snapshot } = await buildGateContext({
@@ -559,42 +561,66 @@ async function finalizeAdapt(input: FinalizeAdaptInput): Promise<AdaptPayload> {
         proposals,
         goalId: defaultGoalId,
       });
-      gate = evaluatePlan(gateContext, proposals);
+      const firstGate = evaluatePlan(gateContext, proposals);
 
       const snapshotContext = buildDecisionSnapshotContext(snapshot);
-      const decisions = await Promise.all(
-        gate.sessions.map((sessionResult) =>
-          createCoachingDecision(athleteId, {
-            trainingDayId: computeTrainingDayId(
-              new Date(`${sessionResult.proposal.date}T00:00:00`),
-            ),
-            source: 'PLAN_ADAPTER',
-            proposal: sessionResult.proposal,
-            gateResult: sessionResult,
-            snapshotContext,
-            snapshotIdAtRecommendation: snapshot.snapshotId,
-          }),
-        ),
-      );
-      gatedPairs.forEach((pair, i) => decisionIdByChange.set(pair.change, decisions[i].id));
+      const recordDecision = (sessionResult: GateResult['sessions'][number]) =>
+        createCoachingDecision(athleteId, {
+          trainingDayId: computeTrainingDayId(new Date(`${sessionResult.proposal.date}T00:00:00`)),
+          source: 'PLAN_ADAPTER',
+          proposal: sessionResult.proposal,
+          gateResult: sessionResult,
+          snapshotContext,
+          snapshotIdAtRecommendation: snapshot.snapshotId,
+        }).then((decision) => decision.id);
+      const decisionIds = await Promise.all(firstGate.sessions.map(recordDecision));
+      gatedPairs.forEach((pair, i) => decisionIdByChange.set(pair.change, decisionIds[i]));
+
+      // As for a generated week (ADR-132): a change the Gate rejects comes back as its lighter
+      // version, with the rule's reason and a decision of its own, or is taken out when the Gate
+      // has none to offer. Every rejection stays recorded.
+      const { offered, gate: offeredGate } = offerSessions(gateContext, firstGate);
+      const offeredIndexes = new Set(offered.map((session) => session.index));
       gatedPairs.forEach((pair, i) => {
-        if (gate.sessions[i]?.status === 'REJECTED') {
+        if (!offeredIndexes.has(i)) {
           rejected.add(pair.change);
         }
       });
+      await Promise.all(
+        offered.map(async ({ index, proposal, lightened }, position) => {
+          if (lightened) {
+            const { change } = gatedPairs[index];
+            lighterByChange.set(change, proposal);
+            decisionIdByChange.set(change, await recordDecision(offeredGate.sessions[position]));
+          }
+        }),
+      );
+      gate = offeredGate;
     }
 
-    // As for a generated week: the Gate is the last word before the athlete sees anything, so a
-    // change it rejects is taken out here — its decision still recorded — never shown and refused.
     const changesWithDecisionId = validated.data.changes
       .filter((change) => !rejected.has(change))
-      .map((change) => ({
-        ...change,
-        title: sanitizeOptionalCoachCopy(change.title),
-        description: sanitizeOptionalCoachCopy(change.description),
-        reason: sanitizeCoachCopy(change.reason),
-        decisionId: decisionIdByChange.get(change) ?? null,
-      }));
+      .map((change) => {
+        const lighter = lighterByChange.get(change);
+        const offeredChange = lighter
+          ? {
+              ...change,
+              intensity: lighter.intensity,
+              load: lighter.load,
+              title: lighter.title,
+              // The written session belonged to the change as it was asked.
+              description: null,
+              reason: lighter.rationale ?? change.reason,
+            }
+          : change;
+        return {
+          ...offeredChange,
+          title: sanitizeOptionalCoachCopy(offeredChange.title),
+          description: sanitizeOptionalCoachCopy(offeredChange.description),
+          reason: sanitizeCoachCopy(offeredChange.reason),
+          decisionId: decisionIdByChange.get(change) ?? null,
+        };
+      });
 
     return {
       summary: sanitizeCoachCopy(validated.data.summary),
