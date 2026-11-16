@@ -32,6 +32,7 @@ vi.mock('@sharpit/db/client', () => ({
     athleteDayJournal: { findMany: (...args: unknown[]) => findManyMock(...args) },
     journalHabitExperiment: { findMany: (...args: unknown[]) => findManyMock(...args) },
     foodLogSkippedMeal: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    foodLogGroup: { findMany: (...args: unknown[]) => findManyMock(...args) },
     savedMeal: { findMany: (...args: unknown[]) => findManyMock(...args) },
     nutritionDayAnalysis: { findMany: (...args: unknown[]) => findManyMock(...args) },
     trainingPlan: { findMany: (...args: unknown[]) => findManyMock(...args) },

@@ -1,4 +1,5 @@
 import type { FoodLogEntry, FoodProduct } from '@prisma/client';
+import { randomUUID } from 'node:crypto';
 import { prisma } from '@sharpit/db/client';
 import {
   isFoodLogDayComplete,
@@ -340,7 +341,7 @@ export async function listFoodLogDay(
   const rows = await prisma.foodLogEntry.findMany({
     where: { athleteId, date: foodLogDayDate(trainingDayId) },
     orderBy: { createdAt: 'asc' },
-    include: { product: true },
+    include: { product: true, group: { select: { label: true } } },
   });
   const refreshed = new Map<string, FoodProduct>();
   const uniqueProducts = [
@@ -353,9 +354,13 @@ export async function listFoodLogDay(
       refreshed.set(product.id, await ensureProductHealth(product));
     }),
   );
-  return rows.map(({ product, ...entry }) => {
+  return rows.map(({ product, group, ...entry }) => {
     const resolved = product ? (refreshed.get(product.id) ?? product) : null;
-    return { ...entry, health: portionHealth(entry, resolved, diets) };
+    return {
+      ...entry,
+      groupLabel: group?.label ?? null,
+      health: portionHealth(entry, resolved, diets),
+    };
   });
 }
 
@@ -387,11 +392,25 @@ function quickEntryFields(quick: NonNullable<FoodLogEntryCreateInput['quick']>) 
  * The entry as the day lists it: with its food's score. A write answers this, so a client that
  * swaps its row for the server's echo keeps the score (it lost it on every portion change).
  */
-export async function servedEntry(entry: FoodLogEntry, diets: DeclaredDiets) {
+export async function servedEntry(
+  entry: FoodLogEntry,
+  diets: DeclaredDiets,
+  /** The entry's meal name when the caller already holds it; read otherwise. */
+  knownGroupLabel?: string | null,
+) {
   const product = entry.productId
     ? await prisma.foodProduct.findUnique({ where: { id: entry.productId } })
     : null;
-  return { ...entry, health: portionHealth(entry, product, diets) };
+  const groupLabel =
+    knownGroupLabel === undefined ? await groupLabelOf(entry.groupId) : knownGroupLabel;
+  return { ...entry, groupLabel, health: portionHealth(entry, product, diets) };
+}
+
+async function groupLabelOf(groupId: string | null): Promise<string | null> {
+  if (!groupId) {
+    return null;
+  }
+  return (await prisma.foodLogGroup.findUnique({ where: { id: groupId } }))?.label ?? null;
 }
 
 /** Resolves product / quick-add fields for a create, without writing. Used by batch + coach tools. */
@@ -426,22 +445,30 @@ export async function addFoodLogEntry(
 /**
  * Logs several entries in one transaction: all or none. Every food is resolved (and owned)
  * before anything is written; each day touched is rebuilt once. Answers the entries in order.
+ * With a `group`, the entries are one named meal (ADR-134), written in the same transaction.
  */
 export async function addFoodLogEntries(
   athleteId: string,
   inputs: FoodLogEntryCreateInput[],
   diets: DeclaredDiets = NO_DIETS,
+  group?: { label: string },
 ) {
   const rows = await Promise.all(
     inputs.map((input) => resolveFoodLogEntryCreateData(athleteId, input)),
   );
-  const entries = await prisma.$transaction(
-    rows.map((data) => prisma.foodLogEntry.create({ data })),
-  );
+  // Named here so the group and its entries go out as one array of writes.
+  const groupId = group ? randomUUID() : null;
+  const written = await prisma.$transaction([
+    ...(group && groupId
+      ? [prisma.foodLogGroup.create({ data: { id: groupId, athleteId, label: group.label } })]
+      : []),
+    ...rows.map((data) => prisma.foodLogEntry.create({ data: { ...data, groupId } })),
+  ]);
+  const entries = written.slice(group ? 1 : 0) as FoodLogEntry[];
   for (const dayId of new Set(inputs.map((input) => input.trainingDayId))) {
     await recomputeFoodLogDay(athleteId, dayId);
   }
-  return Promise.all(entries.map((entry) => servedEntry(entry, diets)));
+  return Promise.all(entries.map((entry) => servedEntry(entry, diets, group?.label ?? null)));
 }
 
 async function productEntryFields(athleteId: string, productId: string, grams: number) {
@@ -505,7 +532,26 @@ export async function updateFoodLogEntry(
 export async function deleteFoodLogEntry(athleteId: string, id: string): Promise<void> {
   const entry = await ownedEntry(athleteId, id);
   await prisma.foodLogEntry.delete({ where: { id } });
+  if (entry.groupId) {
+    // A meal with no food left is nothing: no empty shell stays behind.
+    await prisma.foodLogGroup.deleteMany({ where: { id: entry.groupId, entries: { none: {} } } });
+  }
   await recomputeFoodLogDay(athleteId, trainingDayIdOf(entry.date));
+}
+
+/** Deletes a named meal and its foods (the cascade), then rebuilds each day they sat in. */
+export async function deleteFoodLogGroup(athleteId: string, id: string): Promise<void> {
+  const group = await prisma.foodLogGroup.findFirst({
+    where: { id, athleteId },
+    include: { entries: { select: { date: true } } },
+  });
+  if (!group) {
+    throw new FoodLogNotFoundError('Repas introuvable');
+  }
+  await prisma.foodLogGroup.delete({ where: { id } });
+  for (const dayId of new Set(group.entries.map((entry) => trainingDayIdOf(entry.date)))) {
+    await recomputeFoodLogDay(athleteId, dayId);
+  }
 }
 
 function isStale(product: FoodProduct): boolean {

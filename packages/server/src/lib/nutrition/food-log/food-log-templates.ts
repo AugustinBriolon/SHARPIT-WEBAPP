@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import type { FoodLogEntry, Prisma } from '@prisma/client';
 import { prisma } from '@sharpit/db/client';
 import type { FoodMealKey } from '@sharpit/app/lib/nutrition/food-log/food-log-math';
@@ -60,11 +61,18 @@ function itemOf(entry: FoodLogEntry): SavedMealItem {
 async function logItems(
   athleteId: string,
   trainingDayId: string,
-  items: { meal: FoodMealKey; item: SavedMealItem }[],
+  items: { meal: FoodMealKey; item: SavedMealItem; group?: { id: string; label: string } }[],
   diets: DeclaredDiets,
 ) {
   if (items.length === 0) {
     return [];
+  }
+  // A named meal copied stays one meal (ADR-134): each source group is written once, under a new id.
+  const groups = new Map<string, { id: string; label: string }>();
+  for (const { group } of items) {
+    if (group && !groups.has(group.id)) {
+      groups.set(group.id, { id: randomUUID(), label: group.label });
+    }
   }
   const date = foodLogDayDate(trainingDayId);
   // Same rule as a new entry (`productForEntry`): a catalogue food, or one of the athlete's own.
@@ -76,8 +84,11 @@ async function logItems(
     select: { id: true },
   });
   const existing = new Set(products.map((product) => product.id));
-  const entries = await prisma.$transaction(
-    items.map(({ meal, item }) =>
+  const written = await prisma.$transaction([
+    ...[...groups.values()].map((group) =>
+      prisma.foodLogGroup.create({ data: { id: group.id, athleteId, label: group.label } }),
+    ),
+    ...items.map(({ meal, item, group }) =>
       prisma.foodLogEntry.create({
         data: {
           athleteId,
@@ -86,12 +97,16 @@ async function logItems(
           ...item,
           // A food deleted since still logs as it was, unlinked.
           productId: item.productId && existing.has(item.productId) ? item.productId : null,
+          groupId: group ? (groups.get(group.id)?.id ?? null) : null,
         },
       }),
     ),
-  );
+  ]);
+  const entries = written.slice(groups.size) as FoodLogEntry[];
   await recomputeFoodLogDay(athleteId, trainingDayId);
-  return Promise.all(entries.map((entry) => servedEntry(entry, diets)));
+  return Promise.all(
+    entries.map((entry, index) => servedEntry(entry, diets, items[index].group?.label ?? null)),
+  );
 }
 
 /** Copies a meal (into `toMeal`, by default the same) or a whole day into another day. */
@@ -107,6 +122,7 @@ export async function copyFoodLog(
       ...(input.fromMeal ? { meal: input.fromMeal } : {}),
     },
     orderBy: { createdAt: 'asc' },
+    include: { group: { select: { id: true, label: true } } },
   });
   return logItems(
     athleteId,
@@ -114,6 +130,7 @@ export async function copyFoodLog(
     source.map((entry) => ({
       meal: (input.toMeal ?? entry.meal) as FoodMealKey,
       item: itemOf(entry),
+      group: entry.group ?? undefined,
     })),
     diets,
   );

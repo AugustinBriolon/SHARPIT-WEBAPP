@@ -22,6 +22,13 @@ vi.mock('@sharpit/db/client', () => ({
     },
     dailyNutrition: { upsert: vi.fn(), deleteMany: vi.fn() },
     foodLogSkippedMeal: { findMany: vi.fn(), upsert: vi.fn(), deleteMany: vi.fn() },
+    foodLogGroup: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+      findFirst: vi.fn(),
+      delete: vi.fn(),
+      deleteMany: vi.fn(),
+    },
     athleteProfile: { findUnique: vi.fn(), update: vi.fn() },
   },
 }));
@@ -212,6 +219,91 @@ describe('food log service', () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
     expect(prisma.foodLogEntry.create).toHaveBeenCalledTimes(2);
     expect(prisma.dailyNutrition.upsert).toHaveBeenCalledTimes(1);
+  });
+
+  it('logs a batch as one named meal: the group and its foods in one transaction', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodLogGroup.create).mockResolvedValue({ id: 'g1' } as never);
+    vi.mocked(prisma.foodLogEntry.create).mockImplementation((async ({
+      data,
+    }: {
+      data: { name: string; groupId: string | null };
+    }) => storedEntry({ id: data.name, productId: null, ...data })) as never);
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([storedEntry()] as never);
+    const quick = (name: string) => ({
+      trainingDayId: '2026-10-01',
+      meal: 'LUNCH' as const,
+      grams: 100,
+      quick: { name, kcal: 300, protein: 10, carbs: 30, fat: 12 },
+    });
+
+    const entries = await service.addFoodLogEntries(
+      'athlete-1',
+      [quick('Pain pita'), quick('Frites')],
+      undefined,
+      { label: 'Kebab complet' },
+    );
+
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    const group = vi.mocked(prisma.foodLogGroup.create).mock.calls[0][0].data;
+    expect(group).toMatchObject({ athleteId: 'athlete-1', label: 'Kebab complet' });
+    // In order, each food under the group's id, and named on the way back without a read.
+    expect(entries.map((entry) => [entry.name, entry.groupId, entry.groupLabel])).toEqual([
+      ['Pain pita', group.id, 'Kebab complet'],
+      ['Frites', group.id, 'Kebab complet'],
+    ]);
+    expect(prisma.foodLogGroup.findUnique).not.toHaveBeenCalled();
+  });
+
+  it('leaves a batch without a group ungrouped', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodLogEntry.create).mockResolvedValue(
+      storedEntry({ productId: null, groupId: null }) as never,
+    );
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([storedEntry()] as never);
+
+    const [entry] = await service.addFoodLogEntries('athlete-1', [
+      {
+        trainingDayId: '2026-10-01',
+        meal: 'LUNCH',
+        grams: 100,
+        quick: { name: 'Riz', kcal: 130, protein: 3, carbs: 28, fat: 0 },
+      },
+    ]);
+
+    expect(prisma.foodLogGroup.create).not.toHaveBeenCalled();
+    expect(entry.groupLabel).toBeNull();
+  });
+
+  it('drops a named meal once its last food is deleted, and deletes one whole', async () => {
+    const { prisma, service } = await setup();
+    vi.mocked(prisma.foodLogEntry.findFirst).mockResolvedValue(
+      storedEntry({ groupId: 'g1' }) as never,
+    );
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([]);
+
+    await service.deleteFoodLogEntry('athlete-1', 'e1');
+    expect(prisma.foodLogGroup.deleteMany).toHaveBeenCalledWith({
+      where: { id: 'g1', entries: { none: {} } },
+    });
+
+    vi.mocked(prisma.foodLogGroup.findFirst).mockResolvedValue({
+      id: 'g1',
+      entries: [{ date: DAY }, { date: DAY }],
+    } as never);
+    await service.deleteFoodLogGroup('athlete-1', 'g1');
+    expect(prisma.foodLogGroup.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'g1', athleteId: 'athlete-1' } }),
+    );
+    expect(prisma.foodLogGroup.delete).toHaveBeenCalledWith({ where: { id: 'g1' } });
+
+    // Another athlete's meal is not found, and nothing is deleted.
+    vi.mocked(prisma.foodLogGroup.findFirst).mockResolvedValue(null);
+    vi.mocked(prisma.foodLogGroup.delete).mockClear();
+    await expect(service.deleteFoodLogGroup('athlete-2', 'g1')).rejects.toBeInstanceOf(
+      service.FoodLogNotFoundError,
+    );
+    expect(prisma.foodLogGroup.delete).not.toHaveBeenCalled();
   });
 
   it('writes nothing of a batch when one food is not the athlete’s', async () => {

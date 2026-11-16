@@ -20,6 +20,7 @@ import {
   createCustomFood,
   deleteCustomFood,
   deleteFoodLogEntry,
+  deleteFoodLogGroup,
   findProductByBarcode,
   FoodLogNotFoundError,
   getNutritionTargets,
@@ -154,7 +155,7 @@ export async function addEntries(request: NextRequest) {
     }
     const diets = await loadDeclaredDiet(athleteId);
     return NextResponse.json(
-      { entries: await addFoodLogEntries(athleteId, body.data.entries, diets) },
+      { entries: await addFoodLogEntries(athleteId, body.data.entries, diets, body.data.group) },
       { status: 201 },
     );
   } catch (error) {
@@ -174,6 +175,17 @@ export async function updateEntry(request: NextRequest, id: string) {
     return NextResponse.json({ entry: await updateFoodLogEntry(athleteId, id, body.data, diets) });
   } catch (error) {
     return failure('update', error);
+  }
+}
+
+/** `DELETE /api/v1/food-log/groups/[id]` — a named meal and its foods (ADR-134). */
+export async function deleteGroup(id: string) {
+  try {
+    const athleteId = await getCurrentAthleteId();
+    await deleteFoodLogGroup(athleteId, id);
+    return new NextResponse(null, { status: 204 });
+  } catch (error) {
+    return failure('delete group', error);
   }
 }
 

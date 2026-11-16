@@ -137,7 +137,20 @@ describe('/api/food-log', () => {
       'athlete-1',
       [item, { ...item, grams: 80 }],
       expect.anything(),
+      undefined,
     );
+
+    // A named meal: the label goes through trimmed; an empty one is refused.
+    await POST(
+      json('POST', '/entries/batch', { entries: [item], group: { label: ' Kebab complet ' } }),
+    );
+    expect(log.addFoodLogEntries).toHaveBeenLastCalledWith('athlete-1', [item], expect.anything(), {
+      label: 'Kebab complet',
+    });
+    const unnamed = await POST(
+      json('POST', '/entries/batch', { entries: [item], group: { label: '  ' } }),
+    );
+    expect(unnamed.status).toBe(400);
 
     const refused = await POST(
       json('POST', '/entries/batch', {
@@ -147,7 +160,7 @@ describe('/api/food-log', () => {
     expect(refused.status).toBe(400);
     const empty = await POST(json('POST', '/entries/batch', { entries: [] }));
     expect(empty.status).toBe(400);
-    expect(log.addFoodLogEntries).toHaveBeenCalledTimes(1);
+    expect(log.addFoodLogEntries).toHaveBeenCalledTimes(2);
   });
 
   it('marks a meal skipped and refuses an unknown meal (ADR-113)', async () => {

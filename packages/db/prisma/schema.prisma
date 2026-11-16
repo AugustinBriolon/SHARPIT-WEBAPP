@@ -423,6 +423,7 @@ model AthleteProfile {
   withingsAccount             WithingsAccount?
   calendarBusySnapshots       CalendarBusySnapshot[]
   foodLogEntries              FoodLogEntry[]
+  foodLogGroups               FoodLogGroup[]
   foodLogSkippedMeals         FoodLogSkippedMeal[]
   customFoods                 FoodProduct[]
   savedMeals                  SavedMeal[]
@@ -759,11 +760,29 @@ model FoodLogEntry {
   fat       Float
   fiber     Float?
   sugar     Float?
+  /// The meal this food was logged as part of (ADR-134); null for a food logged on its own.
+  groupId   String?
+  group     FoodLogGroup?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([athleteId, date])
+  @@index([groupId])
+}
+
+/// Foods logged together as one named meal — « Kebab complet » (ADR-134). The foods stay
+/// FoodLogEntry rows, scored and flagged one by one; the group only names them. It holds neither
+/// the day nor the meal: its entries do, so a food moved never contradicts it.
+model FoodLogGroup {
+  id        String         @id @default(cuid())
+  athleteId String
+  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  label     String
+  entries   FoodLogEntry[]
+  createdAt DateTime       @default(now())
+
+  @@index([athleteId])
 }
 
 /// A meal the athlete chose not to eat (ADR-113): the analysis reads it as a choice, not a gap in

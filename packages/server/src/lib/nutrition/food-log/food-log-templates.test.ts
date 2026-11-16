@@ -4,6 +4,7 @@ vi.mock('@sharpit/db/client', () => ({
   prisma: {
     $transaction: vi.fn(async (writes: Promise<unknown>[]) => Promise.all(writes)),
     foodLogEntry: { findMany: vi.fn(), create: vi.fn() },
+    foodLogGroup: { create: vi.fn() },
     foodProduct: { findMany: vi.fn(), findFirst: vi.fn(), create: vi.fn(), update: vi.fn() },
     savedMeal: {
       findMany: vi.fn(),
@@ -86,6 +87,32 @@ describe('food log templates (ADR-071)', () => {
     ]);
     expect(service.recomputeFoodLogDay).toHaveBeenCalledTimes(1);
     expect(service.recomputeFoodLogDay).toHaveBeenCalledWith('a1', '2026-10-02');
+  });
+
+  it('copies a named meal as one meal, under a new group', async () => {
+    const { prisma, templates } = await setup();
+    const group = { id: 'g-old', label: 'Kebab complet' };
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([
+      entry({ groupId: 'g-old', group }),
+      entry({ id: 'e2', groupId: 'g-old', group }),
+      entry({ id: 'e3' }),
+    ] as never);
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([{ id: 'p-skyr' }] as never);
+    vi.mocked(prisma.foodLogGroup.create).mockResolvedValue({} as never);
+
+    await templates.copyFoodLog('a1', {
+      fromTrainingDayId: '2026-10-01',
+      toTrainingDayId: '2026-10-02',
+    });
+
+    expect(prisma.foodLogGroup.create).toHaveBeenCalledTimes(1);
+    const created = vi.mocked(prisma.foodLogGroup.create).mock.calls[0][0].data;
+    expect(created).toMatchObject({ athleteId: 'a1', label: 'Kebab complet' });
+    expect(created.id).not.toBe('g-old');
+    const groupIds = vi
+      .mocked(prisma.foodLogEntry.create)
+      .mock.calls.map(([args]) => (args.data as { groupId: string | null }).groupId);
+    expect(groupIds).toEqual([created.id, created.id, null]);
   });
 
   it('copies a whole day meal by meal, and writes nothing for an empty one', async () => {

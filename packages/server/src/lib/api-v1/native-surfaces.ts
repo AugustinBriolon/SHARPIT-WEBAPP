@@ -123,6 +123,7 @@ export const NATIVE_V1_ONLY = [
   { path: 'goals/race-formats', methods: ['GET'] },
   { path: 'goals/projection-preview', methods: ['POST'] },
   { path: 'food-log/entries/batch', methods: ['POST'] },
+  { path: 'food-log/groups/[id]', methods: ['DELETE'] },
 ] as const;
 
 /**

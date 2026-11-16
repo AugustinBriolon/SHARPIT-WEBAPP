@@ -40,6 +40,8 @@ export const foodLogEntryCreateSchema = z
 /** Several new entries at once — a described meal validated whole — written together. */
 export const foodLogEntryBatchCreateSchema = z.object({
   entries: z.array(foodLogEntryCreateSchema).min(1).max(30),
+  /** Logs the entries as one named meal (ADR-134); absent, each food stands on its own. */
+  group: z.object({ label: z.string().trim().min(1).max(80) }).optional(),
 });
 
 export const foodLogEntryUpdateSchema = z

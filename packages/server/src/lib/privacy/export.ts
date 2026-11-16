@@ -84,6 +84,7 @@ export const EXPORT_COVERED_MODELS: readonly string[] = [
   'AthleteDayJournal',
   'JournalHabitExperiment',
   'FoodLogSkippedMeal',
+  'FoodLogGroup',
   'SavedMeal',
   'NutritionDayAnalysis',
   'TrainingPlan',
@@ -109,24 +110,34 @@ const OBSERVATION_EXPORT_LIMIT = 20000;
 /** What the athlete entered or SHARPIT collected, beyond the legacy tables. */
 async function loadObservationsAndJournal(athleteId: string) {
   const where = { athleteId };
-  const [observations, dayJournal, habitExperiments, skippedMeals, savedMeals, nutritionAnalyses] =
-    await Promise.all([
-      prisma.observation.findMany({
-        where,
-        orderBy: { timestamp: 'desc' },
-        take: OBSERVATION_EXPORT_LIMIT,
-      }),
-      prisma.athleteDayJournal.findMany({ where }),
-      prisma.journalHabitExperiment.findMany({ where }),
-      prisma.foodLogSkippedMeal.findMany({ where }),
-      prisma.savedMeal.findMany({ where }),
-      prisma.nutritionDayAnalysis.findMany({ where }),
-    ]);
+  const [
+    observations,
+    dayJournal,
+    habitExperiments,
+    skippedMeals,
+    foodLogGroups,
+    savedMeals,
+    nutritionAnalyses,
+  ] = await Promise.all([
+    prisma.observation.findMany({
+      where,
+      orderBy: { timestamp: 'desc' },
+      take: OBSERVATION_EXPORT_LIMIT,
+    }),
+    prisma.athleteDayJournal.findMany({ where }),
+    prisma.journalHabitExperiment.findMany({ where }),
+    prisma.foodLogSkippedMeal.findMany({ where }),
+    // The names the athlete gave to meals logged whole (ADR-134).
+    prisma.foodLogGroup.findMany({ where }),
+    prisma.savedMeal.findMany({ where }),
+    prisma.nutritionDayAnalysis.findMany({ where }),
+  ]);
   return {
     observations,
     dayJournal,
     habitExperiments,
     skippedMeals,
+    foodLogGroups,
     savedMeals,
     nutritionAnalyses,
   };
