@@ -50,7 +50,15 @@ function Guardrails() {
   );
 }
 
-/** The confidence policy as a scale, then what the model learns over time. */
+// A tier is a status said with a word (ADR-130): full advice reads good, cautious advice to watch,
+// and the two where SharpIt holds back stay neutral.
+const TIER_PILL = [
+  'border-(--status-good-border) bg-(--status-good) text-(--status-good-foreground)',
+  'border-(--status-watch-border) bg-(--status-watch) text-(--status-watch-foreground)',
+  'border-(--status-unknown-border) bg-(--status-unknown) text-(--status-unknown-foreground)',
+] as const;
+
+/** The confidence policy as a table of statuses, then what the model learns over time. */
 function Honesty() {
   return (
     <Band inner="py-24 sm:py-32" label={LANDING_HONESTY.label}>
@@ -59,20 +67,26 @@ function Honesty() {
         label={LANDING_HONESTY.label}
         title={LANDING_HONESTY.title}
       />
-      <ol className="mt-16 grid grid-cols-2 gap-px sm:grid-cols-4">
-        {LANDING_HONESTY.tiers.map((tier, i, tiers) => (
-          <li key={tier.label} className="pt-4" data-tier>
+      <ol className="mt-12 max-w-3xl border-t border-(--outline)">
+        {LANDING_HONESTY.tiers.map((tier, i) => (
+          <li key={tier.label} className="relative flex items-center gap-4 py-4" data-tier>
             <span
-              className="bg-foreground mb-4 block h-1 origin-left rounded-full"
-              style={{ opacity: 1 - i / tiers.length }}
+              className={cn(
+                'inline-block h-6 w-28 shrink-0 truncate rounded-(--shape-pill) border px-2.5 text-center text-xs leading-[1.375rem] font-semibold',
+                TIER_PILL[Math.min(i, TIER_PILL.length - 1)],
+              )}
+            >
+              {tier.label}
+            </span>
+            <span className={cn(DATA, 'w-16 shrink-0 text-sm font-semibold')}>
+              {tier.threshold}
+            </span>
+            <span className="text-[0.9375rem]">{tier.effect}</span>
+            <span
+              className="bg-border absolute inset-x-0 bottom-0 h-px origin-left"
               aria-hidden
               data-tier-bar
             />
-            <p className="flex items-baseline justify-between gap-3 pr-4">
-              <span className={cn(HEADING, 'text-xl')}>{tier.label}</span>
-              <span className={cn(DATA, 'text-muted-foreground text-xs')}>{tier.threshold}</span>
-            </p>
-            <p className="text-muted-foreground mt-1 pr-4 text-sm">{tier.effect}</p>
           </li>
         ))}
       </ol>

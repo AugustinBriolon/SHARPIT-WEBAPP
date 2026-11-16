@@ -7,6 +7,15 @@ const STEP_COUNT = LANDING_METHOD.steps.length;
 /** The track's first panel lines up with the reading column (`max-w-6xl`, `px-8`). */
 const TRACK_INSET = 'motion-safe:md:pl-[max(2rem,calc((100vw-72rem)/2+2rem))]';
 
+// A hue marks each step on the chain, never its text (ADR-130); the last one is ink.
+const STEP_HUES = [
+  'var(--pillar-sleep)',
+  'var(--pillar-recovery)',
+  'var(--pillar-coach)',
+  'var(--pillar-nutrition)',
+  'var(--foreground)',
+] as const;
+
 /**
  * The method's five steps, each with its schematic. On a wide screen with motion allowed the
  * section pins and the steps travel sideways under the reader's scroll (`LandingMotion`);
@@ -50,6 +59,10 @@ export function Method() {
                   )}
                   data-chain-label
                 >
+                  <span
+                    className="mr-1.5 inline-block size-2 rounded-full align-baseline"
+                    style={{ backgroundColor: STEP_HUES[i % STEP_HUES.length] }}
+                  />
                   {step.index} {step.label}
                 </li>
               ))}
