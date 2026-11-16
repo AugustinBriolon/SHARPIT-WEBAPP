@@ -2,7 +2,10 @@ import type { BodyViewModel } from '@sharpit/app/presentation/body-view-model';
 import type { PhysicalHealthViewModel } from '@sharpit/app/presentation/physical-health-view-model';
 import type { RecoveryViewModel } from '@sharpit/app/presentation/recovery-view-model';
 import type { SleepViewModel } from '@sharpit/app/presentation/sleep-view-model';
-import { CORPS_TONE_TEXT } from '@sharpit/app/lib/ui/metric-tone';
+import type { BloodMarkerStatus } from '@sharpit/app/lib/blood-markers/catalog';
+import { formatPace, formatSwimPace } from '@sharpit/app/lib/format';
+import type { ReactNode } from 'react';
+import { Suspense } from 'react';
 import {
   CHART_BASE_STROKE,
   CHART_RECOVERY_STROKE,
@@ -10,6 +13,12 @@ import {
 } from '@sharpit/app/lib/theme/chart-theme';
 import { CarnetBarChart, CarnetLineChart } from '@/components/carnet/carnet-charts';
 import { sleepStages } from '@/components/carnet/carnet-body';
+import {
+  type BloodTestReading,
+  type MarkerRow,
+  markerRows,
+  sparkline,
+} from '@/components/carnet/carnet-markers';
 import {
   ScoreRing,
   ScoreRingSkel,
@@ -27,9 +36,14 @@ import {
   ReadingRow,
   Reasons,
   StatusPill,
+  type StatusTone,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
-import { readCachedViewModel, readDayViewModel } from '@/components/carnet/carnet-read';
+import {
+  readCachedSection,
+  readCachedViewModel,
+  readDayViewModel,
+} from '@/components/carnet/carnet-read';
 import { ChartSkel, Reading, ReadingFigure, Skel } from '@/components/carnet/carnet-reading';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -39,6 +53,18 @@ const readSleep = () => readDayViewModel<SleepViewModel>('sleep');
 const readRecovery = () => readDayViewModel<RecoveryViewModel>('recovery');
 const readBody = () => readCachedViewModel<BodyViewModel>('/api/presentation/body?days=90');
 const readPhysical = () => readDayViewModel<PhysicalHealthViewModel>('physical-health');
+
+type Thresholds = {
+  ftpW: number | null;
+  lthr: number | null;
+  maxHr: number | null;
+  runThresholdPaceSecPerKm: number | null;
+  swimCssSecPer100m: number | null;
+};
+
+const readBloodTests = () =>
+  readCachedSection<{ bloodTests: BloodTestReading[] }>('/api/v1/blood-tests');
+const readThresholds = () => readCachedSection<Thresholds>('/api/v1/athlete-profile');
 
 function hoursOf(minutes: number | null | undefined): string {
   if (minutes === null || minutes === undefined) {
@@ -218,90 +244,342 @@ function Recovery() {
   );
 }
 
-type BodyMini = {
-  value: number | null;
-  deltaDisplay: string | null;
-  tone: keyof typeof CORPS_TONE_TEXT;
+const MARKER_STATUS: Record<BloodMarkerStatus, { tone: StatusTone; word: string }> = {
+  in_range: { tone: 'good', word: 'Bon' },
+  low: { tone: 'alert', word: 'Bas' },
+  high: { tone: 'alert', word: 'Haut' },
+  no_reference: { tone: 'unknown', word: 'Sans norme' },
 };
 
-function BodyFigure({
+const LAB_COLUMNS =
+  'grid grid-cols-[minmax(0,1.5fr)_5.5rem_minmax(0,1.2fr)_4rem_5.75rem] items-center gap-3';
+
+const SPARK_WIDTH = 64;
+const SPARK_HEIGHT = 24;
+
+/** A value on its range: the lab's range as a band in the middle, the value as a ringed dot. */
+function RangeBar({ position }: { position: number | null }) {
+  if (position === null) {
+    return <span className="bg-border block h-px w-full" aria-hidden />;
+  }
+  return (
+    <span className="bg-border relative block h-2 rounded-full" aria-hidden>
+      <span className="absolute inset-y-0 right-1/4 left-1/4 rounded-full bg-(--outline)" />
+      <span
+        className="border-foreground bg-card absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px]"
+        style={{ left: `${position}%` }}
+      />
+    </span>
+  );
+}
+
+function LabRow({
   label,
+  value,
   unit,
-  pick,
+  position = null,
+  range,
+  trend = [],
+  status,
 }: {
   label: string;
+  value: ReactNode;
   unit?: string;
-  pick: (vm: BodyViewModel) => BodyMini;
+  position?: number | null;
+  range: ReactNode;
+  trend?: readonly number[];
+  status?: { tone: StatusTone; word: string };
 }) {
+  const line = sparkline(trend, SPARK_WIDTH, SPARK_HEIGHT);
   return (
-    <Reading fallback={<WaitingFigure label={label} unit={unit} />} read={readBody}>
-      {(vm) => {
-        const mini = vm?.hasData ? pick(vm) : null;
-        return mini && mini.value !== null ? (
-          <Figure
-            hint={mini.deltaDisplay ?? undefined}
-            label={label}
-            tone={CORPS_TONE_TEXT[mini.tone]}
-            unit={unit}
-            value={unit === '%' ? mini.value.toFixed(1) : mini.value}
+    <li className={`${LAB_COLUMNS} py-3`}>
+      <span className="truncate text-[0.9375rem]">{label}</span>
+      <span className="text-instrument text-[0.9375rem]">
+        {value}
+        {unit ? (
+          <span className="text-muted-foreground ml-1 text-xs font-normal">{unit}</span>
+        ) : null}
+      </span>
+      <span className="flex flex-col gap-1.5">
+        <RangeBar position={position} />
+        <span className="text-data text-muted-foreground text-[0.6875rem] font-normal">
+          {range}
+        </span>
+      </span>
+      {line ? (
+        <svg className="h-6 w-16" viewBox={`0 0 ${SPARK_WIDTH} ${SPARK_HEIGHT}`} aria-hidden>
+          <polyline
+            fill="none"
+            points={line}
+            stroke="var(--foreground)"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="1.5"
           />
-        ) : null;
+        </svg>
+      ) : (
+        <span aria-hidden />
+      )}
+      <span className="flex justify-end">
+        {status ? <StatusPill tone={status.tone}>{status.word}</StatusPill> : null}
+      </span>
+    </li>
+  );
+}
+
+function LabGroup({ name, children }: { name: string; children: ReactNode }) {
+  return (
+    <>
+      <li className="pt-5 pb-1.5 text-[0.8125rem] font-semibold">{name}</li>
+      {children}
+    </>
+  );
+}
+
+function rangeOf(marker: MarkerRow): string {
+  if (marker.refLow !== null && marker.refHigh !== null) {
+    return `norme ${marker.refLow} – ${marker.refHigh}`;
+  }
+  if (marker.refLow !== null) {
+    return `norme ≥ ${marker.refLow}`;
+  }
+  if (marker.refHigh !== null) {
+    return `norme ≤ ${marker.refHigh}`;
+  }
+  return 'le laboratoire ne donne pas de norme';
+}
+
+const PROFILE = 'valeur de ton profil';
+
+function thresholdRows(thresholds: Thresholds): { label: string; value: string; unit?: string }[] {
+  return [
+    thresholds.ftpW
+      ? { label: 'Puissance seuil vélo', value: `${thresholds.ftpW}`, unit: 'W' }
+      : null,
+    thresholds.runThresholdPaceSecPerKm
+      ? { label: 'Allure seuil course', value: formatPace(thresholds.runThresholdPaceSecPerKm) }
+      : null,
+    thresholds.swimCssSecPer100m
+      ? { label: 'Allure critique natation', value: formatSwimPace(thresholds.swimCssSecPer100m) }
+      : null,
+    thresholds.lthr ? { label: 'FC au seuil', value: `${thresholds.lthr}`, unit: 'bpm' } : null,
+    thresholds.maxHr ? { label: 'FC max', value: `${thresholds.maxHr}`, unit: 'bpm' } : null,
+  ].filter((row) => row !== null);
+}
+
+type Composition = BodyViewModel['hero']['heroMini'];
+
+function compositionRows(vm: BodyViewModel) {
+  const mini: Composition = vm.hero.heroMini;
+  const weights = vm.chartData.map((p) => p.weightKg).filter((kg) => kg !== null);
+  return [
+    {
+      label: 'Poids',
+      value: vm.hero.latestWeightDisplay,
+      range: vm.hero.weightDeltaDisplay,
+      trend: weights,
+    },
+    {
+      label: 'Masse grasse',
+      value: mini.bodyFatPct.value?.toFixed(1),
+      unit: '%',
+      range: mini.bodyFatPct.deltaDisplay,
+    },
+    {
+      label: 'Muscle',
+      value: mini.musclePct.value?.toFixed(1),
+      unit: '%',
+      range: mini.musclePct.deltaDisplay,
+    },
+    {
+      label: 'Graisse viscérale',
+      value: mini.visceralFat.value?.toString(),
+      range: mini.visceralFat.deltaDisplay,
+    },
+  ].filter((row) => row.value !== null && row.value !== undefined);
+}
+
+/**
+ * The body as a lab report: one line a measure — its value, where it sits in its range, how it
+ * moved, its status. Blood markers come with the lab's own range; thresholds and composition
+ * have none and say where they come from instead.
+ */
+async function LabTable() {
+  const [tests, thresholds, body] = await Promise.all([
+    readBloodTests(),
+    readThresholds(),
+    readBody(),
+  ]);
+  const markers = tests ? markerRows(tests.bloodTests) : [];
+  const levels = thresholds ? thresholdRows(thresholds) : [];
+  const composition = body?.hasData ? compositionRows(body) : [];
+  if (markers.length + levels.length + composition.length === 0) {
+    return <Quiet>Aucune mesure à lire pour le moment.</Quiet>;
+  }
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[32rem]">
+        <div
+          className={`${LAB_COLUMNS} text-label text-muted-foreground border-b border-(--outline) py-3`}
+        >
+          <span>Mesure</span>
+          <span>Valeur</span>
+          <span>Dans sa norme</span>
+          <span>Tendance</span>
+          <span className="text-right">Statut</span>
+        </div>
+        <ul className="[&>li+li]:border-border [&>li+li]:border-t">
+          {markers.length > 0 ? (
+            <LabGroup name="Sang">
+              {markers.map((marker) => (
+                <LabRow
+                  key={marker.key}
+                  label={marker.label}
+                  position={marker.position}
+                  range={rangeOf(marker)}
+                  status={MARKER_STATUS[marker.status]}
+                  trend={marker.history}
+                  unit={marker.unit}
+                  value={marker.value}
+                />
+              ))}
+            </LabGroup>
+          ) : null}
+          {levels.length > 0 ? (
+            <LabGroup name="Seuils">
+              {levels.map((row) => (
+                <LabRow
+                  key={row.label}
+                  label={row.label}
+                  range={PROFILE}
+                  unit={row.unit}
+                  value={row.value}
+                />
+              ))}
+            </LabGroup>
+          ) : null}
+          {composition.length > 0 ? (
+            <LabGroup name="Composition">
+              {composition.map((row) => (
+                <LabRow
+                  key={row.label}
+                  label={row.label}
+                  range={row.range ?? 'pas de mesure précédente'}
+                  trend={row.trend}
+                  unit={row.unit}
+                  value={row.value}
+                />
+              ))}
+            </LabGroup>
+          ) : null}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/** How many markers with a range sit inside it, as the page's title; the plain title without any. */
+async function BodyTitle() {
+  const tests = await readBloodTests();
+  const ranged = (tests ? markerRows(tests.bloodTests) : []).filter(
+    (marker) => marker.status !== 'no_reference',
+  );
+  if (ranged.length === 0) {
+    return 'Comment tu vas';
+  }
+  const inRange = ranged.filter((marker) => marker.status === 'in_range').length;
+  return `${inRange} ${inRange > 1 ? 'marqueurs' : 'marqueur'} sur ${ranged.length} dans ${
+    inRange > 1 ? 'leur' : 'sa'
+  } norme`;
+}
+
+async function BodyLead() {
+  const tests = await readBloodTests();
+  const latest = tests?.bloodTests
+    .map((test) => test.sampledAt)
+    .sort()
+    .at(-1);
+  if (!latest) {
+    return null;
+  }
+  return `Dernier bilan sanguin : ${new Date(latest).toLocaleDateString('fr-FR', {
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  })}.`;
+}
+
+const NIGHTS = 14;
+
+/** The last fourteen nights as bars in sleep's hue, under their mean and the need. */
+function SleepNights() {
+  return (
+    <Reading fallback={<Skel className="block h-24 w-full" />} read={readSleep}>
+      {(vm) => {
+        const nights = (vm?.barData ?? []).slice(-NIGHTS);
+        const slept = nights.map((n) => n.minutes).filter((m) => m !== null);
+        if (!vm || slept.length === 0) {
+          return <Quiet>Aucune nuit synchronisée.</Quiet>;
+        }
+        const mean = slept.reduce((sum, m) => sum + m, 0) / slept.length;
+        const tallest = Math.max(...slept, vm.sleepTargetMin);
+        return (
+          <>
+            <p className="flex items-baseline gap-2">
+              <span className="text-data text-3xl">{hoursOf(mean)}</span>
+              <span className="text-muted-foreground text-[0.8125rem]">
+                en moyenne · besoin {hoursOf(vm.sleepTargetMin)}
+              </span>
+            </p>
+            <ol
+              aria-label={`Durée de sommeil des ${nights.length} dernières nuits`}
+              className="flex h-16 items-end gap-1"
+            >
+              {nights.map((night) => (
+                <li
+                  key={night.date}
+                  className="flex-1 rounded-t bg-(--pillar-sleep)"
+                  style={{ height: `${Math.round(((night.minutes ?? 0) / tallest) * 100)}%` }}
+                  title={`${night.date} : ${hoursOf(night.minutes)}`}
+                />
+              ))}
+            </ol>
+          </>
+        );
       }}
     </Reading>
   );
 }
 
-function Body() {
+/** Weight over ninety days: the latest value, then the line. */
+function WeightTrend() {
   return (
-    <>
-      <Reading fallback={null} read={readBody}>
-        {(vm) =>
-          vm && !vm.hasData ? <Quiet>{vm.emptyState?.title ?? 'Aucune pesée.'}</Quiet> : null
+    <Reading fallback={<Skel className="block h-24 w-full" />} read={readBody}>
+      {(vm) => {
+        if (!vm?.hasData) {
+          return <Quiet>{vm?.emptyState?.title ?? 'Aucune pesée.'}</Quiet>;
         }
-      </Reading>
-      <Figures>
-        <Figure
-          label="Poids"
-          hint={
-            <Reading read={readBody} skeleton="h-3 w-12">
-              {(vm) => vm?.hero.weightDeltaDisplay}
-            </Reading>
-          }
-          value={
-            <ReadingFigure
-              pick={(vm) => (vm.hasData ? vm.hero.latestWeightDisplay : null)}
-              read={readBody}
-              skeleton="h-7 w-20"
-            />
-          }
-        />
-        <BodyFigure label="Masse grasse" pick={(vm) => vm.hero.heroMini.bodyFatPct} unit="%" />
-        <BodyFigure label="Muscle" pick={(vm) => vm.hero.heroMini.musclePct} unit="%" />
-        <BodyFigure label="Graisse viscérale" pick={(vm) => vm.hero.heroMini.visceralFat} />
-      </Figures>
-      <Reading fallback={<ChartSkel title="Poids sur 90 jours" />} read={readBody}>
-        {(vm) =>
-          vm && vm.chartData.filter((p) => p.weightKg !== null).length > 1 ? (
-            <CarnetLineChart
-              data={vm.chartData.map((p) => ({ label: p.label, weight: p.weightKg }))}
-              series={[{ key: 'weight', name: 'Poids', stroke: CHART_BASE_STROKE, unit: 'kg' }]}
-              title="Poids sur 90 jours"
-            />
-          ) : null
-        }
-      </Reading>
-      <Reading fallback={null} read={readBody}>
-        {(vm) =>
-          vm?.hero.measuredAtLabel ? (
-            <Quiet>
-              Dernière mesure {vm.hero.measuredAtLabel}
-              {vm.hero.sourceLabel ? `, ${vm.hero.sourceLabel}` : ''}.
-            </Quiet>
-          ) : null
-        }
-      </Reading>
-      <UnreadableWhen read={readBody} what="La composition" />
-    </>
+        return (
+          <>
+            <p className="text-data text-3xl">{vm.hero.latestWeightDisplay}</p>
+            {vm.chartData.filter((p) => p.weightKg !== null).length > 1 ? (
+              <CarnetLineChart
+                data={vm.chartData.map((p) => ({ label: p.label, weight: p.weightKg }))}
+                height={140}
+                series={[{ key: 'weight', name: 'Poids', stroke: CHART_BASE_STROKE, unit: 'kg' }]}
+                title="Poids sur 90 jours"
+              />
+            ) : null}
+            {vm.hero.measuredAtLabel ? (
+              <Quiet>
+                Dernière mesure {vm.hero.measuredAtLabel}
+                {vm.hero.sourceLabel ? `, ${vm.hero.sourceLabel}` : ''}.
+              </Quiet>
+            ) : null}
+          </>
+        );
+      }}
+    </Reading>
   );
 }
 
@@ -360,42 +638,64 @@ function Zones() {
 
 export default function CarnetBodyPage() {
   return (
-    <CarnetPage kicker="Le corps" title="Comment tu vas">
-      <div className="grid lg:grid-cols-2 lg:gap-x-10">
-        <CarnetSection
-          label="La nuit"
-          title={
-            <Reading read={readSleep} skeleton="h-5 w-40">
-              {(vm) => vm?.adequacyDisplay.label}
-            </Reading>
-          }
-        >
-          <Sleep />
-        </CarnetSection>
-        <CarnetSection
-          label="La récupération"
-          title={
-            <Reading read={readRecovery} skeleton="h-5 w-36">
-              {(vm) => vm?.intensityLabel}
-            </Reading>
-          }
-        >
-          <Recovery />
-        </CarnetSection>
-        <CarnetSection label="La composition" title="Poids et composition">
-          <Body />
-        </CarnetSection>
-        <CarnetSection
-          label="Les zones sensibles"
-          title={
-            <Reading read={readPhysical} skeleton="h-5 w-44">
-              {(vm) => vm?.aggregate.decisionLabel}
-            </Reading>
-          }
-        >
-          <Zones />
-        </CarnetSection>
-      </div>
+    <CarnetPage
+      kicker="Le corps"
+      lead={
+        <Suspense fallback={null}>
+          <BodyLead />
+        </Suspense>
+      }
+      side={
+        <>
+          <CarnetSection
+            label="Zones sensibles"
+            title={
+              <Reading read={readPhysical} skeleton="h-5 w-44">
+                {(vm) => vm?.aggregate.decisionLabel}
+              </Reading>
+            }
+          >
+            <Zones />
+          </CarnetSection>
+          <CarnetSection label={`Sommeil · ${NIGHTS} nuits`}>
+            <SleepNights />
+          </CarnetSection>
+          <CarnetSection label="Poids · 90 jours">
+            <WeightTrend />
+          </CarnetSection>
+        </>
+      }
+      title={
+        <Suspense fallback={<Skel className="h-8 w-72 max-w-full" />}>
+          <BodyTitle />
+        </Suspense>
+      }
+    >
+      <CarnetSection label="Les mesures">
+        <Suspense fallback={<Skel className="block h-48 w-full" />}>
+          <LabTable />
+        </Suspense>
+      </CarnetSection>
+      <CarnetSection
+        label="La nuit"
+        title={
+          <Reading read={readSleep} skeleton="h-5 w-40">
+            {(vm) => vm?.adequacyDisplay.label}
+          </Reading>
+        }
+      >
+        <Sleep />
+      </CarnetSection>
+      <CarnetSection
+        label="La récupération"
+        title={
+          <Reading read={readRecovery} skeleton="h-5 w-36">
+            {(vm) => vm?.intensityLabel}
+          </Reading>
+        }
+      >
+        <Recovery />
+      </CarnetSection>
     </CarnetPage>
   );
 }
