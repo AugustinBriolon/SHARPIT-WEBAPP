@@ -124,3 +124,103 @@ describe('step races (B/C)', () => {
     expect(lines[0]).toMatch(/mini-affûtage.*course le.*récupération/);
   });
 });
+
+// ADR-133: a race with known demands pulls the plan toward them.
+describe('generateMacroPlan toward a race’s demands', () => {
+  const XXL = { peakWeeklyHours: 13, longRideHours: 5, longRunHours: 2.5 };
+  // The prod case: 47 weeks to a full-distance triathlon, from a CTL of 46 (about 5 h 45 a week).
+  const plan = generateMacroPlan({
+    raceDate: addWeeks(START, 46),
+    startDate: START,
+    baselineCtl: 46,
+    demands: XXL,
+  });
+  const growth = plan.weeks.filter((w) => ['BASE', 'BUILD', 'PEAK'].includes(w.phase));
+  const steady = growth.filter((w) => !w.isDeload);
+
+  it('starts from what the athlete does today', () => {
+    expect(plan.weeks[0]!.targetHours).toBeCloseTo((46 * 7) / 55, 1);
+  });
+
+  it('reaches the race’s peak on the last specific week', () => {
+    expect(growth[growth.length - 1]!.targetHours).toBeCloseTo(13, 1);
+    expect(Math.max(...plan.weeks.map((w) => w.targetHours))).toBeCloseTo(13, 1);
+  });
+
+  it('never drops between two steady weeks, nor climbs faster than the cap', () => {
+    for (let i = 1; i < steady.length; i++) {
+      expect(steady[i]!.targetLoad).toBeGreaterThanOrEqual(steady[i - 1]!.targetLoad);
+      expect(steady[i]!.targetLoad).toBeLessThanOrEqual(steady[i - 1]!.targetLoad * 1.08 + 1);
+    }
+  });
+
+  it('keeps deload weeks lighter than the week before', () => {
+    const deloads = growth.filter((w) => w.isDeload);
+    expect(deloads.length).toBeGreaterThan(5);
+    for (const deload of deloads) {
+      expect(deload.targetLoad).toBeLessThan(plan.weeks[deload.weekIndex - 1]!.targetLoad);
+    }
+  });
+
+  it('reads the taper and the race week from the peak reached', () => {
+    const taper = plan.weeks.filter((w) => w.phase === 'TAPER').map((w) => w.targetHours);
+    expect(taper[0]).toBeLessThan(13);
+    expect(taper[taper.length - 1]).toBeCloseTo(13 * 0.35, 0);
+    expect(plan.weeks[plan.weeks.length - 1]!.targetHours).toBeCloseTo(13 * 0.25, 0);
+  });
+
+  it('names the long ride and run to reach, growing to the race-prep length', () => {
+    expect(steady[0]!.focus).toContain(
+      "Sortie longue vélo jusqu'à 2 h 30, course longue jusqu'à 1 h 15",
+    );
+    expect(steady[steady.length - 1]!.focus).toContain(
+      "Sortie longue vélo jusqu'à 5 h, course longue jusqu'à 2 h 30",
+    );
+    expect(growth.find((w) => w.isDeload)!.focus).not.toContain('Sortie longue');
+  });
+
+  it('says in the summary where the volume goes', () => {
+    expect(plan.summary).toContain('Volume porté de 5 h 45 à 13 h par semaine.');
+  });
+
+  it('stops under the peak, and says so, when the race is too close', () => {
+    const short = generateMacroPlan({
+      raceDate: addWeeks(START, 9),
+      startDate: START,
+      baselineCtl: 46,
+      demands: XXL,
+    });
+    const top = Math.max(...short.weeks.map((w) => w.targetHours));
+    expect(top).toBeLessThan(13);
+    expect(short.summary).toContain('le temps restant ne permet pas d');
+  });
+
+  it('holds the volume of an athlete already above the peak', () => {
+    const fit = generateMacroPlan({
+      raceDate: addWeeks(START, 30),
+      startDate: START,
+      baselineCtl: 120,
+      demands: XXL,
+    });
+    const steadyFit = fit.weeks.filter(
+      (w) => ['BASE', 'BUILD', 'PEAK'].includes(w.phase) && !w.isDeload,
+    );
+    expect(new Set(steadyFit.map((w) => w.targetLoad)).size).toBe(1);
+  });
+
+  it('leaves a plan without demands exactly as before', () => {
+    const before = generateMacroPlan({
+      raceDate: addWeeks(START, 46),
+      startDate: START,
+      baselineCtl: 46,
+    });
+    const explicit = generateMacroPlan({
+      raceDate: addWeeks(START, 46),
+      startDate: START,
+      baselineCtl: 46,
+      demands: null,
+    });
+    expect(explicit).toEqual(before);
+    expect(Math.max(...before.weeks.map((w) => w.targetHours))).toBeLessThan(7);
+  });
+});

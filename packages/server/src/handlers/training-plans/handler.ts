@@ -3,6 +3,10 @@ import { NextResponse } from 'next/server';
 import { loadAthletePmcAnchor } from '@sharpit/server/lib/training/pmc/pmc-server';
 import { generateMacroPlan, type StepRace } from '@sharpit/app/lib/training/periodization';
 import {
+  raceDemandsFor,
+  type RaceDemands,
+} from '@sharpit/app/lib/training/periodization/race-demands';
+import {
   planStepRaces,
   planTargetRace,
   toPrioritizedRaces,
@@ -29,8 +33,9 @@ async function buildTravelAdjustedPlan(
   raceDate: Date,
   baselineCtl: number,
   stepRaces: StepRace[],
+  demands: RaceDemands | null,
 ) {
-  const draft = generateMacroPlan({ raceDate, baselineCtl, stepRaces });
+  const draft = generateMacroPlan({ raceDate, baselineCtl, stepRaces, demands });
   const travels = await listTravelContexts(prisma, athleteId);
   const weeks = applyTravelConstraintsToMacroWeeks(
     draft.weeks,
@@ -104,6 +109,9 @@ export async function POST(request: Request) {
       raceDate,
       baselineCtl,
       stepRaces,
+      // What the target race asks of its heaviest weeks (ADR-133); null keeps the plan relative
+      // to the current load.
+      raceDemandsFor(goal.raceFormat),
     );
 
     await archiveActiveTrainingPlans(athleteId);

@@ -1,4 +1,5 @@
 import type { PlanPhase } from '@prisma/client';
+import type { RaceDemands } from '@sharpit/app/lib/training/periodization/race-demands';
 import {
   addDays,
   addWeeks,
@@ -161,15 +162,21 @@ const PHASE_LOAD_FACTOR: Record<PlanPhase, number> = {
 };
 
 const PHASE_FOCUS: Record<PlanPhase, string> = {
-  BASE: 'Volume aérobie, endurance fondamentale, renforcement général',
+  // One short quality session a week from the start: five months with nothing above endurance
+  // left the athlete with no threshold work at all. No « renforcement » here: the word made
+  // `deriveWeekQuality` read every base week as a strength week.
+  BASE: 'Volume aérobie, endurance fondamentale, une séance tempo ou seuil courte par semaine',
   BUILD: 'Intensité progressive, séances seuil et tempo',
   PEAK: 'Spécificité course, simulation allure/puissance cible',
   TAPER: "Réduction volume, maintien de l'intensité courte",
   RACE: 'Repos actif, activation légère, course',
 };
 
+/** Training stress a typical hour is worth: the bridge between a week's hours and its load. */
+const LOAD_PER_HOUR = 55;
+
 function hoursForLoad(load: number): number {
-  return Number((load / 55).toFixed(1));
+  return Number((load / LOAD_PER_HOUR).toFixed(1));
 }
 
 function taperFactor(weekInTaper: number, totalTaper: number): number {
@@ -261,12 +268,93 @@ function buildMacroWeekDraft(input: {
   };
 }
 
+/** A non-deload week never asks more than this over the previous one. */
+export const MAX_WEEKLY_RAMP = 1.08;
+const DELOAD_FACTOR = 0.72;
+
+const GROWTH_PHASES: readonly PlanPhase[] = ['BASE', 'BUILD', 'PEAK'];
+
+function formatHours(hours: number): string {
+  const quarters = Math.round(hours * 4);
+  const minutes = (quarters % 4) * 15;
+  return `${Math.floor(quarters / 4)} h${minutes ? ` ${minutes}` : ''}`;
+}
+
+/**
+ * Weekly hours from today's volume to the race's peak, reached on the last growth week: a
+ * straight line, held under the weekly ramp cap. When the race is too close for the peak, the
+ * line stops where the cap leaves it.
+ */
+function growthHours(startHours: number, peakHours: number, weeks: number): number[] {
+  const peak = Math.max(startHours, peakHours);
+  const hours: number[] = [];
+  for (let i = 0; i < weeks; i++) {
+    const onTheLine = weeks > 1 ? startHours + ((peak - startHours) * i) / (weeks - 1) : peak;
+    const capped = i === 0 ? startHours : Math.min(onTheLine, hours[i - 1]! * MAX_WEEKLY_RAMP);
+    hours.push(capped);
+  }
+  return hours;
+}
+
+/**
+ * Replaces the load-relative weeks with a climb toward what the race asks (ADR-133). Phases,
+ * deload weeks and the taper's shape stay as drafted; the taper and race weeks are read from the
+ * peak actually reached. Long-session milestones are named in the focus of each growth week.
+ */
+function climbTowardRace(
+  weeks: MacroWeekDraft[],
+  baseWeeklyLoad: number,
+  demands: RaceDemands,
+): { weeks: MacroWeekDraft[]; reachedPeakHours: number } {
+  const growthCount = weeks.filter((week) => GROWTH_PHASES.includes(week.phase)).length;
+  const hours = growthHours(baseWeeklyLoad / LOAD_PER_HOUR, demands.peakWeeklyHours, growthCount);
+  const reachedPeakHours = hours[hours.length - 1] ?? demands.peakWeeklyHours;
+  const taperTotal = weeks.filter((week) => week.phase === 'TAPER').length;
+  let growthIndex = 0;
+  let taperIndex = 0;
+
+  const climbed = weeks.map((week) => {
+    if (GROWTH_PHASES.includes(week.phase)) {
+      const progress = growthCount > 1 ? growthIndex / (growthCount - 1) : 1;
+      const weekHours = hours[growthIndex]! * (week.isDeload ? DELOAD_FACTOR : 1);
+      growthIndex += 1;
+      // Long sessions start at half their race-prep length and grow with the plan.
+      const long = (peak: number) => formatHours((peak / 2) * (1 + progress));
+      const milestones = `Sortie longue vélo jusqu'à ${long(demands.longRideHours)}, course longue jusqu'à ${long(demands.longRunHours)}`;
+      return withHours(
+        week,
+        weekHours,
+        week.isDeload ? week.focus : `${week.focus} · ${milestones}`,
+      );
+    }
+    if (week.phase === 'TAPER') {
+      taperIndex += 1;
+      return withHours(week, reachedPeakHours * taperFactor(taperIndex, taperTotal), week.focus);
+    }
+    return withHours(week, reachedPeakHours * PHASE_LOAD_FACTOR.RACE, week.focus);
+  });
+  return { weeks: climbed, reachedPeakHours };
+}
+
+function withHours(week: MacroWeekDraft, hours: number, focus: string): MacroWeekDraft {
+  const targetLoad = Math.max(
+    week.phase === 'RACE' ? 20 : 80,
+    Math.min(900, Math.round(hours * LOAD_PER_HOUR)),
+  );
+  return { ...week, targetLoad, targetHours: hoursForLoad(targetLoad), focus };
+}
+
 export function generateMacroPlan(params: {
   raceDate: Date;
   startDate?: Date;
   baselineCtl: number;
   /** B/C races before the target (ADR-084). */
   stepRaces?: StepRace[];
+  /**
+   * What the race asks of its heaviest weeks (ADR-133). Absent: the plan stays relative to the
+   * athlete's current load, as before.
+   */
+  demands?: RaceDemands | null;
 }): MacroPlanDraft {
   const startDate = startOfWeek(startOfDay(params.startDate ?? new Date()), WEEK_OPTS);
   const raceWeek = startOfWeek(startOfDay(params.raceDate), WEEK_OPTS);
@@ -317,7 +405,16 @@ export function generateMacroPlan(params: {
   const stepSummary = stepRaces.length
     ? ` Courses intermédiaires : ${stepRaces.map(stepRaceLabel).join(', ')}.`
     : '';
-  const summary = `Macro-plan ${totalWeeks} semaines jusqu'au ${format(params.raceDate, 'd/MM/yyyy')} : ${phaseSummary}. Charge de référence CTL ${baselineCtl} (≈${baseWeeklyLoad} TSS/sem).${stepSummary}`;
+  const climb = params.demands ? climbTowardRace(weeks, baseWeeklyLoad, params.demands) : null;
+  const plannedWeeks = climb?.weeks ?? weeks;
+  const climbSummary = climb
+    ? ` Volume porté de ${formatHours(baseWeeklyLoad / LOAD_PER_HOUR)} à ${formatHours(climb.reachedPeakHours)} par semaine${
+        climb.reachedPeakHours < params.demands!.peakWeeklyHours - 0.25
+          ? ` (la course demande ${formatHours(params.demands!.peakWeeklyHours)} : le temps restant ne permet pas d'y monter sans risque)`
+          : ''
+      }.`
+    : '';
+  const summary = `Macro-plan ${totalWeeks} semaines jusqu'au ${format(params.raceDate, 'd/MM/yyyy')} : ${phaseSummary}. Charge de référence CTL ${baselineCtl} (≈${baseWeeklyLoad} TSS/sem).${climbSummary}${stepSummary}`;
 
   return {
     raceDate: params.raceDate,
@@ -325,7 +422,7 @@ export function generateMacroPlan(params: {
     totalWeeks,
     baselineCtl,
     summary,
-    weeks: applyStepRaces(weeks, stepRaces),
+    weeks: applyStepRaces(plannedWeeks, stepRaces),
   };
 }
 
