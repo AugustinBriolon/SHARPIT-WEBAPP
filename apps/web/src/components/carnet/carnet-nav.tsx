@@ -10,8 +10,9 @@ import { prefersReducedMotion } from './carnet-motion';
 import { ACCOUNT_PAGE, CARNET_PAGES, isCurrentPage } from './carnet-pages';
 
 /**
- * The row of pages. The mark under the current page glides to the next one (a shared
- * Motion layout), and on a phone the row scrolls the current page into view.
+ * The pages: a row on a phone, a rail beside the sheet from `lg` up. The mark under the
+ * current page glides to the next one (a shared Motion layout), and the row scrolls the
+ * current page into view.
  */
 export function CarnetNav() {
   return <CarnetNavRow pathname={usePathname()} />;
@@ -34,8 +35,11 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
   }, [pathname]);
 
   return (
-    <nav aria-label="Carnet" className="no-scrollbar -mx-4 overflow-x-auto px-4">
-      <ul ref={listRef} className="flex min-w-max gap-1">
+    <nav
+      aria-label="Carnet"
+      className="no-scrollbar -mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0"
+    >
+      <ul ref={listRef} className="flex min-w-max gap-1 lg:min-w-0 lg:flex-col">
         {CARNET_PAGES.map((page) => {
           const current = pathname !== null && isCurrentPage(pathname, page.href);
           return (
@@ -47,16 +51,16 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
                 // carry: this one tab is prefetched with them resolved (runtime prefetch).
                 prefetch={page.href === '/seances' ? true : undefined}
                 className={cn(
-                  'relative block rounded-md px-3 py-1.5 text-sm transition-colors duration-150',
+                  'relative flex h-10 items-center rounded-full px-3.5 text-sm transition-colors duration-150',
                   current
-                    ? // highlight fill + paired ink (dark lime would fail with text-foreground/snow)
-                      'text-highlight-foreground font-medium'
+                    ? // Ink runs the interface (ADR-130): the current page is an ink capsule.
+                      'text-primary-foreground font-semibold'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 {current ? (
                   <motion.span
-                    className="bg-highlight absolute inset-0 rounded-md"
+                    className="bg-primary absolute inset-0 rounded-full"
                     layoutId="carnet-nav-current"
                     transition={springs.snappy}
                     aria-hidden
@@ -83,8 +87,8 @@ export function CarnetAccountLinkFor({ pathname }: { pathname: string | null }) 
       aria-current={current ? 'page' : undefined}
       href={ACCOUNT_PAGE.href}
       className={cn(
-        'text-sm transition-colors',
-        current ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground',
+        'flex h-10 items-center rounded-full text-sm transition-colors lg:px-3.5',
+        current ? 'text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground',
       )}
     >
       {ACCOUNT_PAGE.label}

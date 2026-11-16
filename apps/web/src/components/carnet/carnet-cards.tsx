@@ -7,7 +7,8 @@ import {
 import { Skel } from './carnet-reading';
 import { ringDash, type SleepStage, type SleepStageKey } from './carnet-body';
 
-const RING_RADIUS = 42;
+// A thin ring (ADR-131): a 3-unit stroke on the divider track.
+const RING_RADIUS = 46;
 
 /** A score out of `max` as a ring with the number in its middle; static, no stroke motion. */
 export function ScoreRing({
@@ -15,17 +16,27 @@ export function ScoreRing({
   max = 100,
   stroke,
   caption,
+  text,
 }: {
   value: number | null;
   max?: number;
   stroke: string;
   caption: string;
+  /** The figure as written, when it is not the rounded value. */
+  text?: string;
 }) {
   const [filled, circumference] = ringDash(value ?? 0, max, RING_RADIUS);
   return (
     <div className="relative size-28 shrink-0">
       <svg className="size-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
-        <circle cx="50" cy="50" fill="none" r={RING_RADIUS} stroke="var(--track)" strokeWidth="9" />
+        <circle
+          cx="50"
+          cy="50"
+          fill="none"
+          r={RING_RADIUS}
+          stroke="var(--divider)"
+          strokeWidth="3"
+        />
         {value !== null ? (
           <circle
             cx="50"
@@ -35,13 +46,13 @@ export function ScoreRing({
             stroke={stroke}
             strokeDasharray={`${filled} ${circumference}`}
             strokeLinecap="round"
-            strokeWidth="9"
+            strokeWidth="3"
           />
         ) : null}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-instrument text-3xl font-semibold">
-          {value !== null ? Math.round(value) : '—'}
+          {value !== null ? (text ?? Math.round(value)) : '—'}
         </span>
         <span className="text-label text-muted-foreground mt-0.5 text-[0.6875rem]">{caption}</span>
       </div>
@@ -100,7 +111,14 @@ export function ScoreRingSkel({ caption }: { caption: string }) {
   return (
     <div className="relative size-28 shrink-0">
       <svg className="size-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
-        <circle cx="50" cy="50" fill="none" r={RING_RADIUS} stroke="var(--track)" strokeWidth="9" />
+        <circle
+          cx="50"
+          cy="50"
+          fill="none"
+          r={RING_RADIUS}
+          stroke="var(--divider)"
+          strokeWidth="3"
+        />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <Skel className="h-8 w-10" />

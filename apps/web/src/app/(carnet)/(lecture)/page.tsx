@@ -22,6 +22,7 @@ import {
 } from '@/components/carnet/carnet-parts';
 import { CarnetEmptyDay } from '@/components/carnet/carnet-empty-day';
 import { RaceBand } from '@/components/carnet/carnet-race';
+import { ScoreRing, ScoreRingSkel } from '@/components/carnet/carnet-cards';
 import { MorningCheckInReminder } from '@/components/today/morning-check-in-sheet';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
@@ -29,11 +30,22 @@ export const instant = true;
 
 type PageProps = { searchParams: Promise<{ jour?: string | string[] }> };
 
+// A hue names a reading on its ring, never as text (ADR-130).
 const SIGNALS = [
-  { key: 'sleep', label: 'Sommeil', score: 'sleepScore' },
-  { key: 'recovery', label: 'Récupération', score: 'recoveryScore' },
-  { key: 'effort', label: 'Effort', score: 'effortScore' },
-  { key: 'adaptation', label: 'Adaptation', score: 'adaptationScore' },
+  { key: 'sleep', label: 'Sommeil', score: 'sleepScore', stroke: 'var(--pillar-sleep)' },
+  {
+    key: 'recovery',
+    label: 'Récupération',
+    score: 'recoveryScore',
+    stroke: 'var(--pillar-recovery)',
+  },
+  { key: 'effort', label: 'Effort', score: 'effortScore', stroke: 'var(--pillar-nutrition)' },
+  {
+    key: 'adaptation',
+    label: 'Adaptation',
+    score: 'adaptationScore',
+    stroke: 'var(--pillar-coach)',
+  },
 ] as const;
 
 function TodayAside({ day, today }: { day: string; today: string }) {
@@ -65,25 +77,42 @@ function DayPager({ day, today }: { day: string; today: string }) {
 function Signals({ hero }: { hero: TodayViewModel['hero'] | undefined }) {
   const previews = new Map((hero?.signalPreviews ?? []).map((p) => [p.key, p]));
   return (
-    <Figures>
+    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4">
       {SIGNALS.map((signal) => {
         const rawScore = hero?.metricsRow[signal.score];
-        const preview = previews.get(signal.key);
-        let score: string | number | null | undefined = rawScore ?? '—';
-        if (typeof rawScore === 'number') {
-          score = signal.key === 'effort' ? Math.round(rawScore * 10) / 10 : Math.round(rawScore);
-        }
+        const score = typeof rawScore === 'number' ? rawScore : null;
+        const subtitle = previews.get(signal.key)?.subtitle;
         return (
-          <Figure
+          <li
             key={signal.key}
-            hint={hero ? (preview?.subtitle ?? null) : <Skel className="h-3 w-20" />}
-            label={signal.label}
-            unit={hero && rawScore !== null && rawScore !== undefined ? '/100' : null}
-            value={hero ? score : <Skel className="h-7 w-12" />}
-          />
+            className="border-border flex flex-col items-center gap-2 rounded-(--shape-card) border px-2 py-5 text-center"
+          >
+            {hero ? (
+              <ScoreRing
+                caption="/100"
+                stroke={signal.stroke}
+                value={score}
+                text={
+                  score !== null && signal.key === 'effort'
+                    ? String(Math.round(score * 10) / 10)
+                    : undefined
+                }
+              />
+            ) : (
+              <ScoreRingSkel caption="/100" />
+            )}
+            <p className="text-sm font-medium">{signal.label}</p>
+            {hero ? (
+              subtitle ? (
+                <p className="text-muted-foreground text-xs leading-snug">{subtitle}</p>
+              ) : null
+            ) : (
+              <Skel className="h-3 w-20" />
+            )}
+          </li>
         );
       })}
-    </Figures>
+    </ul>
   );
 }
 
@@ -239,6 +268,14 @@ function TodayFrame({
       kicker={kicker}
       lead={hero ? hero.subline : <Skel className="h-4 w-80 max-w-full" />}
       title={title}
+      side={
+        <CarnetSection
+          label="La journée"
+          title={actionRow ? actionRow.actionLabel : <Skel className="h-5 w-40" />}
+        >
+          {vm ? <TheDay vm={vm} /> : <Skel className="block h-16 w-full" />}
+        </CarnetSection>
+      }
     >
       {vm ? <RaceBand race={vm.race} /> : null}
 
@@ -299,13 +336,6 @@ function TodayFrame({
             ))}
           </Figures>
         ) : null}
-      </CarnetSection>
-
-      <CarnetSection
-        label="La journée"
-        title={actionRow ? actionRow.actionLabel : <Skel className="h-5 w-40" />}
-      >
-        {vm ? <TheDay vm={vm} /> : <Skel className="block h-16 w-full" />}
       </CarnetSection>
 
       {vm && vm.insights.length > 0 ? (

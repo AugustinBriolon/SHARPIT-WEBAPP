@@ -675,6 +675,9 @@
   font-family: var(--font-heading);
   letter-spacing: -0.025em;
   text-wrap: balance;
+  @media (width >= 64rem) {
+    font-size: 2.125rem;
+  }
 }
 
 @utility text-section-title {
@@ -722,11 +725,31 @@
   }
 }
 
+/*
+  Web surfaces are swept to Clinique (ADR-135). The Ink & Lime names keep their values in
+  `:root`, which iOS reads and the brand contract pins; under `body` they take the Clinique
+  ones, so every web screen changes without an edit: slate text, hairlines in place of the
+  card shadow, 20 px cards.
+*/
+body {
+  --background: var(--tile);
+  --muted-foreground: var(--slate);
+  --border: var(--divider);
+  --track: var(--divider);
+  --card-border: var(--divider);
+  --card-shadow: none;
+  --radius-card: var(--shape-card);
+}
+.dark body {
+  --background: #0b0b0c;
+}
+
 /* ── Ink & Lime primitives (ADR-085) ─────────────────────────────────────── */
 
 /* White card on the canvas: 28px corner, soft wide shadow, 24px padding. */
 @utility card-surface {
   padding: var(--space-card);
+  border: 1px solid var(--card-border, transparent);
   border-radius: var(--radius-card);
   background-color: var(--color-card);
   box-shadow: var(--card-shadow);

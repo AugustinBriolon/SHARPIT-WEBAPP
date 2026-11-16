@@ -6,9 +6,9 @@ import { CarnetCount } from './carnet-animated';
 import { CarnetIntentLink } from './carnet-intent-link';
 
 /**
- * The carnet's page grammar (ADR-109): a page is a title and a lead, then cards read top
- * down, each one section (`CarnetSection`). No buttons — figures, sentences and the
- * occasional chart.
+ * The carnet's page grammar (ADR-109, drawn in Clinique since ADR-135): a page is a title and
+ * a lead on one white sheet, then sections read top down, each parted from the last by a
+ * hairline (`CarnetSection`). No buttons — figures, sentences and the occasional chart.
  */
 
 export function CarnetPage({
@@ -17,6 +17,7 @@ export function CarnetPage({
   title,
   lead,
   aside,
+  side,
   children,
 }: {
   /** The page one level up, named: always above the title, where the eye starts. */
@@ -25,11 +26,13 @@ export function CarnetPage({
   title: ReactNode;
   lead?: ReactNode;
   aside?: ReactNode;
+  /** A second column beside the sections on a wide screen; under them on a narrow one. */
+  side?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <article className="space-y-8 pb-24">
-      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
+    <article className="pb-24">
+      <header className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4 pb-8">
         <div className="max-w-2xl min-w-0">
           {back ? (
             <CarnetStepLink className="mb-4 -ml-2.5" direction="back" href={back.href}>
@@ -44,12 +47,19 @@ export function CarnetPage({
         </div>
         {aside ? <div className="shrink-0">{aside}</div> : null}
       </header>
-      {children}
+      {side ? (
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="min-w-0 lg:pr-10">{children}</div>
+          <aside className="lg:border-border min-w-0 lg:border-l lg:pl-10">{side}</aside>
+        </div>
+      ) : (
+        children
+      )}
     </article>
   );
 }
 
-/** A card holding one reading: its name above, its verdict as the title, the reading below. */
+/** One reading under a hairline: its name above, its verdict as the title, the reading below. */
 export function CarnetSection({
   label,
   title,
@@ -62,7 +72,7 @@ export function CarnetSection({
   className?: string;
 }) {
   return (
-    <section className={cn('card-surface min-w-0 space-y-6', className)} data-reveal>
+    <section className={cn('border-border min-w-0 space-y-6 border-t py-8', className)} data-reveal>
       <header>
         <p className="text-label text-muted-foreground">{label}</p>
         {title ? <h2 className="text-card-title mt-1.5">{title}</h2> : null}
@@ -214,5 +224,31 @@ export function CarnetStepLink({
       />
       {children}
     </Link>
+  );
+}
+
+const STATUS_PILL = {
+  good: 'bg-(--status-good) border-(--status-good-border) text-(--status-good-foreground)',
+  watch: 'bg-(--status-watch) border-(--status-watch-border) text-(--status-watch-foreground)',
+  alert: 'bg-(--status-alert) border-(--status-alert-border) text-(--status-alert-foreground)',
+  unknown:
+    'bg-(--status-unknown) border-(--status-unknown-border) text-(--status-unknown-foreground)',
+  protect:
+    'bg-(--status-protect) border-(--status-protect-border) text-(--status-protect-foreground)',
+} as const;
+
+export type StatusTone = keyof typeof STATUS_PILL;
+
+/** A status, always said with a word (ADR-130): the tint never carries it alone. */
+export function StatusPill({ tone, children }: { tone: StatusTone; children: ReactNode }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex h-6 items-center rounded-(--shape-pill) border px-2.5 text-xs font-semibold whitespace-nowrap',
+        STATUS_PILL[tone],
+      )}
+    >
+      {children}
+    </span>
   );
 }
