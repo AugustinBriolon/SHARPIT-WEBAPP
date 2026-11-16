@@ -184,7 +184,7 @@ function Closing() {
         </h2>
         <div className="mt-12 flex flex-wrap items-center gap-6" data-reveal>
           <a
-            className={buttonVariants({ size: 'lg', variant: 'highlight', className: 'px-5' })}
+            className={buttonVariants({ size: 'lg', variant: 'secondary', className: 'px-5' })}
             href={LANDING_CLOSING.cta.href}
           >
             {LANDING_CLOSING.cta.label}
