@@ -118,6 +118,26 @@ describe('step races (B/C)', () => {
     expect(stepped.summary).toContain('Triathlon L');
   });
 
+  it('drops the deload that follows a B race recovery week', () => {
+    const start = new Date('2026-11-16T00:00:00');
+    const plan = generateMacroPlan({
+      raceDate: new Date('2027-10-10T00:00:00'),
+      startDate: start,
+      baselineCtl: 34,
+      demands: { peakWeeklyHours: 13, longRideHours: 5, longRunHours: 2.5 },
+      stepRaces: [{ title: 'L', date: new Date('2027-04-25T10:00:00'), priority: 'B' }],
+    });
+    const [steady, raceWeek, recovery, held, next] = plan.weeks.slice(21, 26);
+    expect(raceWeek.focus).toContain('Course étape');
+    expect(recovery.targetLoad).toBeLessThan(steady.targetLoad);
+    expect(held.isDeload).toBe(false);
+    expect(held.targetLoad).toBeGreaterThanOrEqual(steady.targetLoad);
+    expect(next.targetLoad / held.targetLoad).toBeLessThanOrEqual(1.08);
+    // Deloads away from the race are untouched.
+    expect(plan.weeks[20].isDeload).toBe(true);
+    expect(plan.weeks[28].isDeload).toBe(true);
+  });
+
   it('writes the generator constraints for the days in the window', () => {
     const lines = stepRaceConstraintLines([bRace, cRace], addDays(bRace.date, -3), 7);
     expect(lines).toHaveLength(1);

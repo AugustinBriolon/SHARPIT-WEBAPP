@@ -474,24 +474,42 @@ function inWeek(date: Date, weekStart: Date): boolean {
 
 /**
  * Lowers each week's load by the days its step races take away, and names them in its focus.
- * The A race's own taper and race weeks are left as they are.
+ * The A race's own taper and race weeks are left as they are. A deload week next to a week a
+ * B race already lightens is dropped: the race's taper and recovery are the easy stretch, and a
+ * third light week in a row would only cost fitness.
  */
 export function applyStepRaces(weeks: MacroWeekDraft[], races: StepRace[]): MacroWeekDraft[] {
   const days = races.flatMap(stepRaceDayModifiers);
-  return weeks.map((week) => {
+  const lostDays = weeks.map((week) =>
+    week.phase === 'TAPER' || week.phase === 'RACE'
+      ? 0
+      : days
+          .filter((d) => inWeek(d.date, week.weekStart))
+          .reduce((sum, d) => sum + (1 - d.loadFactor), 0),
+  );
+  return weeks.map((week, index) => {
     if (week.phase === 'TAPER' || week.phase === 'RACE') {
       return week;
     }
-    const lostDays = days
-      .filter((d) => inWeek(d.date, week.weekStart))
-      .reduce((sum, d) => sum + (1 - d.loadFactor), 0);
     const notes = races
       .filter((r) => inWeek(startOfDay(r.date), week.weekStart))
       .map(stepRaceFocus);
-    if (lostDays === 0 && notes.length === 0) {
-      return week;
+    const lost = lostDays[index]!;
+    if (lost === 0 && notes.length === 0) {
+      const besideRace = (lostDays[index - 1] ?? 0) > 0 || (lostDays[index + 1] ?? 0) > 0;
+      const lastSteady = weeks.slice(0, index).findLast((w) => !w.isDeload);
+      // Held at the last steady week's load, so the ramp cap still holds on the week after.
+      return week.isDeload && besideRace && lastSteady
+        ? {
+            ...week,
+            isDeload: false,
+            targetLoad: lastSteady.targetLoad,
+            targetHours: lastSteady.targetHours,
+            focus: lastSteady.focus,
+          }
+        : week;
     }
-    const targetLoad = Math.round(week.targetLoad * (1 - lostDays / 7));
+    const targetLoad = Math.round(week.targetLoad * (1 - lost / 7));
     return {
       ...week,
       targetLoad,
