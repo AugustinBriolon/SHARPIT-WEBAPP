@@ -1,8 +1,8 @@
 import type { SessionRoutines } from '@sharpit/app/lib/planned-session/routines/session-routines';
-import { ActivityType, SessionIntensity } from '@prisma/client';
+import { ActivityType, type PlanPhase, SessionIntensity } from '@prisma/client';
 import { addDays } from 'date-fns';
 import { comparePlannedSessionsBySchedule } from '@sharpit/app/lib/planned-session/planned-session-dates';
-import { dayIdOf, weekLabel } from './carnet-time';
+import { dayIdOf, dayOf, weekLabel } from './carnet-time';
 
 /** What the season page needs of a planned session, as `/api/v1/planned-sessions` sends it. */
 export type SeasonSession = {
@@ -123,4 +123,117 @@ export function weekDayKinds(sessions: readonly SeasonSession[], monday: Date): 
     }
     return ofDay.some((s) => s.isKey) ? 'key' : 'planned';
   });
+}
+
+/** What the season page reads of a macro-plan week, as `/api/v1/training-plans` sends it. */
+export type PlanWeekReading = {
+  weekStart: string | Date;
+  weekIndex: number;
+  phase: PlanPhase;
+  targetLoad: number;
+  isDeload: boolean;
+};
+
+export type TimelineWeek = {
+  index: number;
+  load: number;
+  /** The week's planned load against the plan's heaviest week, 0 to 1. */
+  share: number;
+  deload: boolean;
+  when: 'past' | 'current' | 'ahead';
+};
+
+export type TimelinePhase = {
+  phase: PlanPhase;
+  /** First and last week of the phase, counted from 1. */
+  first: number;
+  last: number;
+  weeks: number;
+  current: boolean;
+};
+
+export type PlanTimeline = {
+  weeks: TimelineWeek[];
+  phases: TimelinePhase[];
+  /** The week the athlete is in, counted from 1; null before the plan starts or after it ends. */
+  currentWeek: number | null;
+  currentPhase: PlanPhase | null;
+};
+
+function weekStartId(weekStart: string | Date): string {
+  return (typeof weekStart === 'string' ? weekStart : weekStart.toISOString()).slice(0, 10);
+}
+
+/**
+ * A macro-plan as the season page draws it: one bar a week, sized against the heaviest week,
+ * and the phases as runs of consecutive weeks. The current week is the last one begun by `today`,
+ * within seven days of its start.
+ */
+export function planTimeline(plan: readonly PlanWeekReading[], today: string): PlanTimeline {
+  const ordered = [...plan].sort((a, b) => a.weekIndex - b.weekIndex);
+  const peak = Math.max(1, ...ordered.map((w) => w.targetLoad));
+  const begun = ordered.filter((w) => weekStartId(w.weekStart) <= today);
+  const last = begun.at(-1);
+  const running =
+    last && dayIdOf(addDays(dayOf(weekStartId(last.weekStart)), 6)) >= today ? last : null;
+  const currentPosition = running ? ordered.indexOf(running) : -1;
+
+  const weeks = ordered.map((week, position): TimelineWeek => {
+    let when: TimelineWeek['when'] = 'ahead';
+    if (position === currentPosition) {
+      when = 'current';
+    } else if (weekStartId(week.weekStart) <= today) {
+      when = 'past';
+    }
+    return {
+      index: position + 1,
+      load: week.targetLoad,
+      share: week.targetLoad / peak,
+      deload: week.isDeload,
+      when,
+    };
+  });
+
+  const phases: TimelinePhase[] = [];
+  ordered.forEach((week, position) => {
+    const open = phases.at(-1);
+    if (open && open.phase === week.phase) {
+      open.last = position + 1;
+      open.weeks += 1;
+      open.current ||= position === currentPosition;
+      return;
+    }
+    phases.push({
+      phase: week.phase,
+      first: position + 1,
+      last: position + 1,
+      weeks: 1,
+      current: position === currentPosition,
+    });
+  });
+
+  return {
+    weeks,
+    phases,
+    currentWeek: running ? currentPosition + 1 : null,
+    currentPhase: running?.phase ?? null,
+  };
+}
+
+export type SportShare = { type: ActivityType; seconds: number; share: number };
+
+/** Time spent in each sport, the largest first, each as a share of the whole. */
+export function sportShares(
+  activities: readonly { type: ActivityType; duration: number | null }[],
+): SportShare[] {
+  const seconds = new Map<ActivityType, number>();
+  for (const activity of activities) {
+    if (activity.duration) {
+      seconds.set(activity.type, (seconds.get(activity.type) ?? 0) + activity.duration);
+    }
+  }
+  const total = [...seconds.values()].reduce((sum, value) => sum + value, 0);
+  return [...seconds.entries()]
+    .map(([type, value]) => ({ type, seconds: value, share: value / total }))
+    .sort((a, b) => b.seconds - a.seconds);
 }

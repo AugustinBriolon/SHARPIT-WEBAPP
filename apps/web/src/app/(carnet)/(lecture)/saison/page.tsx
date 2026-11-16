@@ -5,9 +5,12 @@ import type { AdaptationViewModel } from '@sharpit/app/presentation/adaptation-v
 import type { EffortViewModel } from '@sharpit/app/presentation/effort-view-model';
 import type { WeeklyCoachingBriefViewModel } from '@sharpit/app/presentation/weekly-coaching-brief-view-model';
 import type { ClientGoal } from '@sharpit/app/lib/query/types';
+import { activityTypeLabels, formatDuration } from '@sharpit/app/lib/format';
+import { phaseLabels } from '@sharpit/app/lib/training/periodization/periodization';
 import { CHART_BASE_STROKE, CHART_COUNTER_STROKE } from '@sharpit/app/lib/theme/chart-theme';
 import { trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { CarnetBarChart, CarnetLineChart } from '@/components/carnet/carnet-charts';
+import { cn } from '@sharpit/app/lib/utils';
 import {
   CarnetPage,
   CarnetSection,
@@ -17,6 +20,8 @@ import {
   ReadingList,
   ReadingRow,
   Reasons,
+  StatusPill,
+  type StatusTone,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import {
@@ -31,10 +36,16 @@ import { CarnetCount } from '@/components/carnet/carnet-animated';
 import { UpcomingSessions } from '@/components/carnet/carnet-upcoming-sessions';
 import {
   closedAdherence,
+  type PlanTimeline,
+  planTimeline,
+  type PlanWeekReading,
   type SeasonSession,
   seasonWeeks,
+  sportShares,
   upcomingSeasonSessions,
+  WEEK_DAY_NAMES,
 } from '@/components/carnet/carnet-season';
+import type { SessionListItem } from '@/components/carnet/carnet-sessions';
 import {
   countdownLabel,
   dayIdOf,
@@ -204,56 +215,266 @@ function seasonWeeksOf({ today, sessions }: Season) {
   return sessions ? seasonWeeks(sessions, seasonMondays(today), today) : [];
 }
 
+/** Planned sessions done: the share over the closed weeks, then one bar a week. */
 function Adherence() {
   return (
-    <>
-      <Figures className="grid-cols-1 sm:grid-cols-1">
-        <Figure
-          hint={`sur les ${WEEKS_BACK} dernières semaines`}
-          label="Séances faites"
-          value={
-            <Reading read={readSeason} skeleton="h-7 w-14">
-              {(season) => {
-                const adherence = season.sessions ? closedAdherence(seasonWeeksOf(season)) : null;
-                return (
-                  <>
-                    <CarnetCount text={percent(adherence)} />
-                    {adherence === null ? null : (
-                      <span className="text-muted-foreground text-data ml-1 text-xs">%</span>
-                    )}
-                  </>
-                );
-              }}
-            </Reading>
-          }
-        />
-      </Figures>
-      <Reading fallback={<ChartSkel title="Séances par semaine" />} read={readSeason}>
-        {(season) =>
-          season.sessions ? (
-            <CarnetBarChart
-              title="Séances par semaine"
-              data={seasonWeeksOf(season).map((w) => ({
-                label: w.label,
-                planned: w.planned,
-                done: w.done,
-              }))}
-              series={[
-                {
-                  key: 'planned',
-                  name: 'Prévues',
-                  stroke: 'var(--muted-foreground)',
-                  dashed: true,
-                },
-                { key: 'done', name: 'Faites', stroke: CHART_BASE_STROKE },
-              ]}
-            />
-          ) : (
-            <Unreadable what="Le plan" />
-          )
+    <Reading fallback={<Skel className={BLOCK} />} read={readSeason}>
+      {(season) => {
+        if (!season.sessions) {
+          return <Unreadable what="Le plan" />;
         }
-      </Reading>
-    </>
+        const weeks = seasonWeeksOf(season);
+        const adherence = closedAdherence(weeks);
+        return (
+          <>
+            <p className="flex items-baseline gap-2">
+              <span className="text-data text-3xl">
+                <CarnetCount text={percent(adherence)} />
+                {adherence === null ? null : ' %'}
+              </span>
+              <span className="text-muted-foreground text-[0.8125rem]">
+                des séances prévues, faites
+              </span>
+            </p>
+            <ol
+              aria-label="Part des séances faites, semaine par semaine"
+              className="flex h-14 items-end gap-1.5"
+            >
+              {weeks.map((week) => (
+                <li
+                  key={week.monday}
+                  className="bg-border flex h-full flex-1 items-end overflow-hidden rounded-t"
+                  title={`${week.label} : ${week.done} sur ${week.planned}`}
+                >
+                  <span
+                    className="w-full rounded-t bg-(--pillar-coach)"
+                    style={{ height: `${Math.round((week.adherence ?? 0) * 100)}%` }}
+                  />
+                </li>
+              ))}
+            </ol>
+          </>
+        );
+      }}
+    </Reading>
+  );
+}
+
+const SPLIT_DAYS = 28;
+
+const readRecentActivities = () =>
+  readCachedSection<SessionListItem[]>(`/api/v1/activities?sinceDays=${SPLIT_DAYS}`, true);
+
+/** Where the last four weeks went, sport by sport: a share bar and the hours. */
+function SportSplit() {
+  return (
+    <Reading fallback={<Skel className={BLOCK} />} read={readRecentActivities}>
+      {(activities) => {
+        if (!activities) {
+          return <Unreadable what="La répartition" />;
+        }
+        const shares = sportShares(activities);
+        if (shares.length === 0) {
+          return <Quiet>Aucune séance sur les quatre dernières semaines.</Quiet>;
+        }
+        return (
+          <ul className="divide-border divide-y">
+            {shares.map((sport) => (
+              <li key={sport.type} className="flex items-center gap-3 py-2.5">
+                <span className="w-24 truncate text-sm">
+                  {activityTypeLabels[sport.type] ?? sport.type}
+                </span>
+                <span className="bg-border flex h-1.5 flex-1 overflow-hidden rounded-full">
+                  <span
+                    className="bg-foreground h-full rounded-full"
+                    style={{ width: `${Math.round(sport.share * 100)}%` }}
+                  />
+                </span>
+                <span className="text-data text-muted-foreground w-14 text-right text-xs">
+                  {formatDuration(sport.seconds)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        );
+      }}
+    </Reading>
+  );
+}
+
+type PlanReading = { weeks: PlanWeekReading[] };
+
+async function readTimeline(): Promise<PlanTimeline | null> {
+  'use cache: private';
+  cacheLife(CARNET_FRESHNESS);
+  const plan = await readSection<PlanReading | null>('/api/v1/training-plans');
+  return plan?.weeks?.length ? planTimeline(plan.weeks, trainingDayIdForNow()) : null;
+}
+
+/** Where the athlete stands in the plan, as the page's title; the plain title without a plan. */
+async function SeasonTitle() {
+  const timeline = await readTimeline();
+  if (!timeline?.currentWeek || !timeline.currentPhase) {
+    return 'Où tu en es';
+  }
+  return `Semaine ${timeline.currentWeek} sur ${timeline.weeks.length}, en ${phaseLabels[
+    timeline.currentPhase
+  ].toLowerCase()}`;
+}
+
+const TIMELINE_BAR: Record<PlanTimeline['weeks'][number]['when'], string> = {
+  past: 'bg-foreground',
+  current: 'bg-(--pillar-recovery)',
+  ahead: 'border-muted-foreground border border-b-0',
+};
+
+function LegendMark({ className, children }: { className: string; children: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <span className={cn('size-2.5 rounded-[2px]', className)} aria-hidden />
+      {children}
+    </span>
+  );
+}
+
+/**
+ * The whole plan on one line: a bar a week, as tall as its planned load, and the phases under
+ * them. Passed weeks are ink, the running one takes the recovery hue, weeks ahead are outlined;
+ * a lighter week is drawn pale in either state. Nothing is drawn without a plan.
+ */
+async function PlanTimelineSection() {
+  const timeline = await readTimeline();
+  if (!timeline) {
+    return null;
+  }
+  const spoken = `Charge prévue sur ${timeline.weeks.length} semaines${
+    timeline.currentWeek ? `, semaine ${timeline.currentWeek} en cours` : ''
+  }`;
+  return (
+    <CarnetSection label="Les phases et la charge prévue, semaine par semaine">
+      <div className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-[0.8125rem]">
+        <LegendMark className="bg-foreground">Passée</LegendMark>
+        <LegendMark className="bg-(--pillar-recovery)">En cours</LegendMark>
+        <LegendMark className="border-muted-foreground border">À venir</LegendMark>
+        <LegendMark className="bg-(--outline)">Allégée</LegendMark>
+      </div>
+      <div className="overflow-x-auto">
+        <div className="min-w-[44rem]">
+          <ol aria-label={spoken} className="flex h-44 items-end gap-[3px]">
+            {timeline.weeks.map((week) => (
+              <li
+                key={week.index}
+                className="flex h-full flex-1 flex-col items-center justify-end gap-1"
+                title={`Semaine ${week.index} : charge ${week.load}`}
+              >
+                <span
+                  className={cn(
+                    'size-1.5 rounded-full',
+                    week.when === 'current' ? 'bg-foreground' : 'bg-transparent',
+                  )}
+                  aria-hidden
+                />
+                <span
+                  style={{ height: `${Math.max(4, Math.round(week.share * 88))}%` }}
+                  className={cn(
+                    'w-full rounded-t',
+                    TIMELINE_BAR[week.when],
+                    week.deload && week.when === 'past' && 'bg-(--outline)',
+                    week.deload && week.when === 'ahead' && 'border-(--outline)',
+                  )}
+                />
+              </li>
+            ))}
+          </ol>
+          <ol className="mt-2 flex gap-[3px]">
+            {timeline.phases.map((phase) => (
+              <li
+                key={`${phase.phase}-${phase.first}`}
+                style={{ flexGrow: phase.weeks, flexBasis: 0 }}
+                className={cn(
+                  'flex min-w-0 flex-col gap-0.5 rounded-(--shape-pill) px-3 py-2.5',
+                  phase.current ? 'border-foreground border' : 'bg-(--tile)',
+                )}
+              >
+                <span className="truncate text-xs font-semibold">{phaseLabels[phase.phase]}</span>
+                <span className="text-data text-muted-foreground truncate text-xs font-normal">
+                  {phase.first === phase.last ? `S${phase.first}` : `S${phase.first}–${phase.last}`}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </CarnetSection>
+  );
+}
+
+type WeekRow = {
+  key: string;
+  day: string;
+  title: string;
+  duration: string;
+  tone: StatusTone;
+  word: string;
+};
+
+/** The running week as a table: each planned session on its day, a rest day where there is none. */
+function weekRows(sessions: readonly SeasonSession[], today: string): WeekRow[] {
+  const monday = seasonMondays(today).at(-2) ?? dayOf(today);
+  return WEEK_DAY_NAMES.flatMap((name, i): WeekRow[] => {
+    const dayId = dayIdOf(addDays(monday, i));
+    const day = `${name.slice(0, 3)}.`;
+    const ofDay = sessions.filter((s) => s.date.slice(0, 10) === dayId);
+    if (ofDay.length === 0) {
+      return [{ key: dayId, day, title: 'Repos', duration: '—', tone: 'unknown', word: 'Repos' }];
+    }
+    return ofDay.map((session, n) => {
+      const done = session.completed || Boolean(session.activity);
+      let status: Pick<WeekRow, 'tone' | 'word'> = { tone: 'unknown', word: 'Prévue' };
+      if (done) {
+        status = { tone: 'good', word: session.isKey ? 'Clé faite' : 'Faite' };
+      } else if (dayId < today) {
+        status = { tone: 'watch', word: 'Manquée' };
+      } else if (session.isKey) {
+        status = { tone: 'unknown', word: 'Clé' };
+      }
+      return {
+        key: session.id ?? `${dayId}-${n}`,
+        day,
+        title: session.title ?? (session.type ? activityTypeLabels[session.type] : 'Séance'),
+        duration: session.durationMin ? formatDuration(session.durationMin * 60) : '—',
+        ...status,
+      };
+    });
+  });
+}
+
+function RunningWeek() {
+  return (
+    <Reading fallback={<Skel className={BLOCK} />} read={readSeason}>
+      {({ today, sessions }) =>
+        sessions ? (
+          <ul className="divide-border divide-y">
+            {weekRows(sessions, today).map((row) => (
+              <li key={row.key} className="flex items-center gap-4 py-3">
+                <span className="text-muted-foreground w-9 text-[0.8125rem]">{row.day}</span>
+                <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium">
+                  {row.title}
+                </span>
+                <span className="text-data text-muted-foreground text-[0.8125rem] font-normal">
+                  {row.duration}
+                </span>
+                <span className="flex w-24 justify-end">
+                  <StatusPill tone={row.tone}>{row.word}</StatusPill>
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <Unreadable what="La semaine" />
+        )
+      }
+    </Reading>
   );
 }
 
@@ -401,7 +622,6 @@ export default function CarnetSeasonPage() {
   return (
     <CarnetPage
       kicker="La saison"
-      title="Où tu en es"
       aside={
         <Suspense fallback={null}>
           <RaceCountdown />
@@ -414,8 +634,12 @@ export default function CarnetSeasonPage() {
       }
       side={
         <>
-          <CarnetSection label="La régularité" title="Séances prévues, séances faites">
+          <CarnetSection label={`Régularité · ${WEEKS_BACK} dernières semaines`}>
             <Adherence />
+          </CarnetSection>
+
+          <CarnetSection label="Répartition par sport · 4 semaines">
+            <SportSplit />
           </CarnetSection>
 
           <CarnetSection label="Prochaines séances" title="À venir, dans le plan">
@@ -440,9 +664,23 @@ export default function CarnetSeasonPage() {
           </CarnetSection>
         </>
       }
+      title={
+        <Suspense fallback={<Skel className="h-8 w-72 max-w-full" />}>
+          <SeasonTitle />
+        </Suspense>
+      }
+      top={
+        <Suspense fallback={null}>
+          <PlanTimelineSection />
+        </Suspense>
+      }
     >
+      <CarnetSection label="La semaine en cours">
+        <RunningWeek />
+      </CarnetSection>
+
       <CarnetSection
-        label="La semaine"
+        label="Le cadre de la semaine"
         title={
           <Reading read={readBrief} skeleton="h-5 w-44">
             {(brief) => (brief ? `${brief.weekStartLabel} – ${brief.weekEndLabel}` : null)}

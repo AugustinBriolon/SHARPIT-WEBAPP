@@ -18,6 +18,7 @@ export function CarnetPage({
   status,
   lead,
   aside,
+  top,
   side,
   children,
 }: {
@@ -29,6 +30,8 @@ export function CarnetPage({
   status?: ReactNode;
   lead?: ReactNode;
   aside?: ReactNode;
+  /** What spans the sheet's width above the columns: a chart too wide for one of them. */
+  top?: ReactNode;
   /** A second column beside the sections on a wide screen; under them on a narrow one. */
   side?: ReactNode;
   children: ReactNode;
@@ -53,6 +56,7 @@ export function CarnetPage({
         </div>
         {aside ? <div className="shrink-0">{aside}</div> : null}
       </header>
+      {top}
       {side ? (
         // A side with nothing to show (every section of it absent) gives the width back.
         <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:has-[>aside:empty]:block">

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
   closedAdherence,
+  planTimeline,
   type SeasonSession,
   seasonWeeks,
+  sportShares,
   upcomingSeasonSessions,
   weekDayKinds,
 } from './carnet-season';
@@ -142,5 +144,52 @@ describe('weekDayKinds', () => {
       monday,
     );
     expect(kinds[2]).toBe('planned');
+  });
+});
+
+describe('planTimeline', () => {
+  const plan = [
+    { weekStart: '2026-11-02', weekIndex: 0, phase: 'BASE', targetLoad: 400, isDeload: false },
+    { weekStart: '2026-11-09', weekIndex: 1, phase: 'BASE', targetLoad: 300, isDeload: true },
+    { weekStart: '2026-11-16', weekIndex: 2, phase: 'BUILD', targetLoad: 500, isDeload: false },
+    { weekStart: '2026-11-23', weekIndex: 3, phase: 'BUILD', targetLoad: 250, isDeload: false },
+  ] as const;
+
+  it('places today in its week and sizes each bar against the heaviest week', () => {
+    const timeline = planTimeline(plan, '2026-11-18');
+    expect(timeline.currentWeek).toBe(3);
+    expect(timeline.currentPhase).toBe('BUILD');
+    expect(timeline.weeks.map((w) => w.when)).toEqual(['past', 'past', 'current', 'ahead']);
+    expect(timeline.weeks.map((w) => w.share)).toEqual([0.8, 0.6, 1, 0.5]);
+    expect(timeline.weeks[1]?.deload).toBe(true);
+  });
+
+  it('groups consecutive weeks into phases and marks the running one', () => {
+    expect(planTimeline(plan, '2026-11-18').phases).toEqual([
+      { phase: 'BASE', first: 1, last: 2, weeks: 2, current: false },
+      { phase: 'BUILD', first: 3, last: 4, weeks: 2, current: true },
+    ]);
+  });
+
+  it('has no current week before the plan starts or once it is over', () => {
+    expect(planTimeline(plan, '2026-10-30').currentWeek).toBeNull();
+    const after = planTimeline(plan, '2026-12-15');
+    expect(after.currentWeek).toBeNull();
+    expect(after.weeks.every((w) => w.when === 'past')).toBe(true);
+  });
+});
+
+describe('sportShares', () => {
+  it('sums time by sport, largest first, ignoring sessions with no duration', () => {
+    expect(
+      sportShares([
+        { type: 'RUN', duration: 1800 },
+        { type: 'BIKE', duration: 5400 },
+        { type: 'RUN', duration: null },
+      ]),
+    ).toEqual([
+      { type: 'BIKE', seconds: 5400, share: 0.75 },
+      { type: 'RUN', seconds: 1800, share: 0.25 },
+    ]);
   });
 });
