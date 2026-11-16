@@ -6,6 +6,7 @@ import type { ClientActivityDetail } from '@sharpit/app/lib/query/types';
 import type { ActivityDetailPayload } from '@sharpit/app/lib/web/payloads';
 import type { ActivityStreamPayload } from '@sharpit/app/lib/streams/stream-types';
 import type { ActivityNarrative, SessionAnalysis } from '@sharpit/app/lib/validators/coach';
+import type { SplitRow, ZoneBucket } from '@sharpit/app/lib/activity/detail/activity-analysis';
 import { SESSION_ANALYSIS_SCORE_TAG_LABELS_FR } from '@sharpit/app/lib/coach/session-analysis-labels';
 import { sessionAnalysisNeedsFeelingGate } from '@sharpit/app/lib/coach/session-feeling-gate';
 import {
@@ -34,7 +35,12 @@ import {
 import { CARNET_FRESHNESS, readSection } from '@/components/carnet/carnet-read';
 import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import { RaceReading } from '@/components/carnet/carnet-race-analysis';
-import { streamProfile } from '@/components/carnet/carnet-stream';
+import {
+  heartRateLine,
+  type PowerBar,
+  powerBars,
+  streamProfile,
+} from '@/components/carnet/carnet-stream';
 
 // Navigations into the page show it at once: the App Shell carries it (ADR-072).
 export const instant = true;
@@ -118,31 +124,139 @@ function KeyFigures({
   );
 }
 
-/** Time in each heart-rate zone, one line a zone, on the five-step intensity scale (ADR-130). */
-function SessionHrZones({ zones }: { zones: { shortLabel: string; percent: number }[] }) {
-  if (zones.length === 0 || zones.every((z) => z.percent === 0)) {
-    return null;
-  }
+/** The five-step intensity scale (ADR-130); zones above the fifth take its colour. */
+function zoneColor(index: number): string {
+  return `var(--zone-${Math.min(index + 1, 5)})`;
+}
+
+/** Time in each zone, one line a zone: its share as a bar on the scale, then the time. */
+function ZoneTimes({ zones }: { zones: readonly ZoneBucket[] }) {
   return (
     <ul className="divide-border divide-y">
       {zones.map((zone, i) => (
-        <li key={zone.shortLabel} className="flex items-center gap-3 py-2.5">
+        <li key={zone.id} className="flex items-center gap-3 py-2.5">
           <span className="w-8 text-sm font-semibold">{zone.shortLabel}</span>
           <span className="bg-border flex h-2 flex-1 overflow-hidden rounded-full" aria-hidden>
             <span
               className="h-full rounded-full"
-              style={{
-                width: `${Math.max(zone.percent, 0)}%`,
-                backgroundColor: `var(--zone-${Math.min(i + 1, 5)})`,
-              }}
+              style={{ width: `${Math.max(zone.percent, 0)}%`, backgroundColor: zoneColor(i) }}
             />
           </span>
-          <span className="text-data text-muted-foreground w-12 text-right text-xs">
-            {zone.percent} %
+          <span className="text-data text-muted-foreground w-14 text-right text-xs font-normal">
+            {formatDuration(zone.seconds)}
           </span>
         </li>
       ))}
     </ul>
+  );
+}
+
+const TRACE_WIDTH = 600;
+const POWER_HEIGHT = 150;
+const HEART_HEIGHT = 90;
+
+/**
+ * Power as steps coloured by zone, heart rate as a line under them, on one time axis: a block
+ * and what it cost the heart read one above the other.
+ */
+function SessionTraces({
+  bars,
+  heartLine,
+  durationSec,
+}: {
+  bars: readonly PowerBar[];
+  heartLine: string;
+  durationSec: number | null;
+}) {
+  const slot = TRACE_WIDTH / bars.length;
+  return (
+    <figure>
+      <svg
+        aria-label="Puissance au fil de la séance, par tranche de temps, colorée par zone"
+        className="block h-44 w-full"
+        preserveAspectRatio="none"
+        role="img"
+        viewBox={`0 0 ${TRACE_WIDTH} ${POWER_HEIGHT}`}
+      >
+        {bars.map((bar, i) => (
+          <rect
+            key={i}
+            fill={bar.zone === null ? 'var(--foreground)' : zoneColor(bar.zone)}
+            height={bar.share * POWER_HEIGHT}
+            width={Math.max(slot - 1, 0.5)}
+            x={i * slot}
+            y={POWER_HEIGHT - bar.share * POWER_HEIGHT}
+          />
+        ))}
+      </svg>
+      {heartLine ? (
+        <svg
+          aria-label="Fréquence cardiaque au fil de la séance"
+          className="border-border block h-24 w-full border-t"
+          preserveAspectRatio="none"
+          role="img"
+          viewBox={`0 0 ${TRACE_WIDTH} ${HEART_HEIGHT}`}
+        >
+          <polyline
+            fill="none"
+            points={heartLine}
+            stroke="var(--foreground)"
+            strokeWidth="1.5"
+            vectorEffect="non-scaling-stroke"
+          />
+        </svg>
+      ) : null}
+      <figcaption className="text-data text-muted-foreground mt-2 flex justify-between text-xs font-normal">
+        <span>0:00</span>
+        <span>Puissance par zone{heartLine ? ' · fréquence cardiaque dessous' : ''}</span>
+        <span>{durationSec ? formatDuration(durationSec) : ''}</span>
+      </figcaption>
+    </figure>
+  );
+}
+
+const SPLIT_COLUMNS = 'grid grid-cols-[1.4fr_1fr_1fr_1fr_1fr] items-center gap-3';
+
+/** The session cut in equal distances, as the analysis sends it: one line a stretch. */
+function Splits({ splits, byPower }: { splits: readonly SplitRow[]; byPower: boolean }) {
+  return (
+    <div className="overflow-x-auto">
+      <div className="min-w-[30rem]">
+        <div
+          className={`${SPLIT_COLUMNS} text-label text-muted-foreground border-b border-(--outline) py-2.5`}
+        >
+          <span>Tronçon</span>
+          <span>Durée</span>
+          <span>{byPower ? 'Puissance' : 'Allure'}</span>
+          <span>FC</span>
+          <span>Dénivelé</span>
+        </div>
+        <ul className="divide-border divide-y">
+          {splits.map((split) => (
+            <li
+              key={split.index}
+              className={`${SPLIT_COLUMNS} text-data py-2.5 text-sm font-normal`}
+            >
+              <span>{split.label}</span>
+              <span>{formatDuration(split.durationSec)}</span>
+              <span className="font-semibold">
+                {byPower
+                  ? split.avgWatts !== null
+                    ? `${Math.round(split.avgWatts)} W`
+                    : '—'
+                  : split.paceSecPerKm !== null
+                    ? formatPace(split.paceSecPerKm)
+                    : '—'}
+              </span>
+              <span>{split.avgHr !== null ? `${Math.round(split.avgHr)} bpm` : '—'}</span>
+              <span>
+                {split.elevationGainM !== null ? `${Math.round(split.elevationGainM)} m` : '—'}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
   );
 }
 
@@ -310,10 +424,19 @@ function SessionLoaded({
   const planned = activity.plannedSession;
   const analysis = planned && isAnalysis(planned.analysis) ? planned.analysis : null;
   const profile = streams?.available ? streamProfile(streams.samples) : [];
-  const hasProfile = profile.some((p) => p.hr !== null || p.alt !== null);
   const sport = activityTypeLabels[activity.type];
   const liveHrBle = streams?.liveHr?.source === 'ble';
+  const powerZones = streams?.analysis?.power?.zones ?? [];
   const hrZones = streams?.analysis?.hr.zones ?? [];
+  // Power zones when the session has power, else the heart's: one reading of intensity a page.
+  const zones = powerZones.some((z) => z.seconds > 0) ? powerZones : hrZones;
+  const samples = streams?.available ? streams.samples : [];
+  const bars = powerBars(samples, streams?.analysis?.thresholds.ftp ?? null);
+  const heartLine = bars.length > 0 ? heartRateLine(samples, TRACE_WIDTH, HEART_HEIGHT) : '';
+  const bikeSplits = streams?.analysis?.bike?.splits ?? [];
+  const runSplits = streams?.analysis?.run?.splits ?? [];
+  const splits = bikeSplits.length > 0 ? bikeSplits : runSplits;
+  const hasProfile = profile.some((p) => p.alt !== null || (bars.length === 0 && p.hr !== null));
 
   return (
     <div className="activity-reading">
@@ -334,9 +457,9 @@ function SessionLoaded({
               </CarnetSection>
             ) : null}
 
-            {hrZones.length > 0 ? (
-              <CarnetSection label="Zones cardiaques">
-                <SessionHrZones zones={hrZones} />
+            {zones.some((z) => z.seconds > 0) ? (
+              <CarnetSection label="Temps par zone">
+                <ZoneTimes zones={zones} />
               </CarnetSection>
             ) : null}
 
@@ -347,6 +470,28 @@ function SessionLoaded({
             ) : null}
           </>
         }
+        status={
+          analysis ? (
+            <StatusPill tone={VERDICT_TONE[analysis.verdict]}>
+              {VERDICT_LABEL[analysis.verdict]}
+            </StatusPill>
+          ) : null
+        }
+        top={
+          <div className="space-y-4 pb-8">
+            <KeyFigures
+              activity={activity}
+              analysisHr={streams?.analysis?.hr ?? null}
+              stats={streams?.stats ?? null}
+            />
+            {liveHrBle ? (
+              <Quiet>
+                <span className="text-foreground font-medium">FC captée en direct</span>
+              </Quiet>
+            ) : null}
+            {activity.notes ? <Quiet>{activity.notes}</Quiet> : null}
+          </div>
+        }
       >
         <RaceReading
           analysis={raceAnalysis}
@@ -355,23 +500,21 @@ function SessionLoaded({
           legs={multisportLegs}
         />
 
-        <CarnetSection label="Les chiffres">
-          <KeyFigures
-            activity={activity}
-            analysisHr={streams?.analysis?.hr ?? null}
-            stats={streams?.stats ?? null}
-          />
-          {liveHrBle ? (
-            <Quiet>
-              <span className="text-foreground font-medium">FC captée en direct</span>
-            </Quiet>
-          ) : null}
-          {activity.notes ? <Quiet>{activity.notes}</Quiet> : null}
-        </CarnetSection>
+        {bars.length > 0 ? (
+          <CarnetSection label={heartLine ? 'Puissance et fréquence cardiaque' : 'Puissance'}>
+            <SessionTraces bars={bars} durationSec={activity.duration} heartLine={heartLine} />
+          </CarnetSection>
+        ) : null}
+
+        {splits.length > 0 ? (
+          <CarnetSection label="Les tronçons">
+            <Splits byPower={bikeSplits.length > 0} splits={splits} />
+          </CarnetSection>
+        ) : null}
 
         {hasProfile ? (
           <CarnetSection label="Le profil">
-            {profile.some((p) => p.hr !== null) ? (
+            {bars.length === 0 && profile.some((p) => p.hr !== null) ? (
               <CarnetLineChart
                 data={profile.map((p) => ({ label: p.label, hr: p.hr }))}
                 title="Fréquence cardiaque"
@@ -398,18 +541,7 @@ function SessionLoaded({
         ) : null}
 
         {planned ? (
-          <CarnetSection
-            label="Face au plan"
-            title={
-              analysis ? (
-                <StatusPill tone={VERDICT_TONE[analysis.verdict]}>
-                  {VERDICT_LABEL[analysis.verdict]}
-                </StatusPill>
-              ) : (
-                (planned.title ?? 'Séance prévue')
-              )
-            }
-          >
+          <CarnetSection label="Face au plan" title={planned.title ?? 'Séance prévue'}>
             {analysis ? (
               <PlanDebrief
                 activity={activity}

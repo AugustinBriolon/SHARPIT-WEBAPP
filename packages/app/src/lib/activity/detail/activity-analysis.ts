@@ -240,6 +240,11 @@ function zoneIndex(value: number, ref: number, defs: ZoneDef[]): number {
   return defs.length - 1;
 }
 
+/** The power zone a wattage falls in for this FTP, from 0 (Z1), by the bounds of the zone times. */
+export function powerZoneIndex(watts: number, ftp: number): number {
+  return zoneIndex(watts, ftp, POWER_ZONE_DEFS);
+}
+
 function computeZoneTimes(
   values: number[],
   times: number[],

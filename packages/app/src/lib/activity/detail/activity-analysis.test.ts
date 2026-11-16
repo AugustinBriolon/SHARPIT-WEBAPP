@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   analyzeActivityStreams,
+  powerZoneIndex,
   type AthleteThresholds,
 } from '@sharpit/app/lib/activity/detail/activity-analysis';
 
@@ -45,5 +46,14 @@ describe('analyzeActivityStreams splits', () => {
     );
 
     expect(analysis?.bike?.splits.at(-1)?.label).toBe('40,9 km');
+  });
+});
+
+describe('powerZoneIndex', () => {
+  it('places a wattage in its zone by share of FTP', () => {
+    expect(powerZoneIndex(100, 200)).toBe(0);
+    expect(powerZoneIndex(130, 200)).toBe(1);
+    expect(powerZoneIndex(200, 200)).toBe(3);
+    expect(powerZoneIndex(400, 200)).toBe(6);
   });
 });
