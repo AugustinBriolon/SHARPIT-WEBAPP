@@ -126,6 +126,7 @@
 | [ADR-128](./ADR-128-blood-tests-are-kept-as-sealed-results.md)                             | Blood tests are kept as sealed results, never as a document                                                                                                                                                     | Accepted                          |
 | [ADR-129](./ADR-129-blood-tests-get-a-sourced-training-reading.md)                         | Blood tests get a sourced training reading, computed without a model                                                                                                                                            | Accepted                          |
 | [ADR-132](./ADR-132-the-plan-gate-withholds-intensity-only-where-it-protects.md)           | The plan Gate withholds intensity only where it protects: posture exempt, rejected sessions offered lighter, day state bound to its day                                                                         | Accepted                          |
+| [ADR-133](./ADR-133-the-macro-plan-climbs-toward-what-the-race-asks.md)                    | The macro-plan climbs toward what the race asks: volume from today's to the race's peak, one short quality session a week in base                                                                               | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
