@@ -191,7 +191,12 @@ export async function createSavedMeal(
   diets: DeclaredDiets = NO_DIETS,
 ) {
   const entries = await prisma.foodLogEntry.findMany({
-    where: { athleteId, date: foodLogDayDate(input.trainingDayId), meal: input.meal },
+    where: {
+      athleteId,
+      date: foodLogDayDate(input.trainingDayId),
+      meal: input.meal,
+      ...(input.groupId ? { groupId: input.groupId } : {}),
+    },
     orderBy: { createdAt: 'asc' },
   });
   if (entries.length === 0) {

@@ -168,6 +168,29 @@ describe('food log templates (ADR-071)', () => {
     ).rejects.toThrow('Ce repas est vide');
   });
 
+  it('saves only the foods of one described meal when a group is named', async () => {
+    const { prisma, templates } = await setup();
+    vi.mocked(prisma.foodLogEntry.findMany).mockResolvedValue([entry()] as never);
+    vi.mocked(prisma.savedMeal.create).mockImplementation((async ({ data }: { data: object }) => ({
+      id: 'm2',
+      updatedAt: DAY,
+      ...data,
+    })) as never);
+    vi.mocked(prisma.foodProduct.findMany).mockResolvedValue([]);
+
+    await templates.createSavedMeal('a1', {
+      name: 'Kebab',
+      trainingDayId: '2026-10-01',
+      meal: 'LUNCH',
+      groupId: 'g1',
+    });
+    expect(prisma.foodLogEntry.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ athleteId: 'a1', meal: 'LUNCH', groupId: 'g1' }),
+      }),
+    );
+  });
+
   it("logs a saved meal into the chosen meal, never another athlete's", async () => {
     const { prisma, templates } = await setup();
     vi.mocked(prisma.savedMeal.findFirst).mockResolvedValue({

@@ -92,6 +92,8 @@ The meal is a single `FoodLogEntry` with the summed macros; its foods are kept a
 
 - A group is not renamed yet: no route does it.
 - A group of one food is shown by the iPhone as that food.
+- A group can be kept in « Mes repas »: `POST /api/v1/food-log/meals` takes an optional `groupId`
+  and saves only that meal's foods (2026-11-17). Logged again, they are ungrouped foods, as any saved meal.
 
 ---
 

@@ -91,6 +91,8 @@ export const savedMealCreateSchema = z.object({
   name: z.string().trim().min(1).max(80),
   trainingDayId,
   meal,
+  /** Keeps only the foods of one named meal (ADR-134); absent, the whole meal of the day. */
+  groupId: z.string().trim().min(1).max(64).optional(),
 });
 
 /** Logs a saved meal into a meal of a day. */
