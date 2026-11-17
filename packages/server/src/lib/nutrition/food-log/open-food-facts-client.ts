@@ -7,6 +7,7 @@ import {
 } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
 import {
   dedupeFoods,
+  matchesFoodQuery,
   normalizeFoodText,
   rankFoodsByName,
 } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
@@ -151,9 +152,11 @@ function uniqueByCode(hits: OffProduct[]): OffProduct[] {
 
 /**
  * French-first search, keeping only products the log can use, best name match first (ADR-064),
- * verified and complete products first among alike names, duplicates merged (ADR-069). The words
- * typed first and last are also asked as the brand (`brandProbeQueries`, ADR-136): their hits come
- * before the plain query's, and a failed probe never fails the search — only the plain query does.
+ * verified and complete products first among alike names, duplicates merged (ADR-069). Only when
+ * no usable hit holds every typed word are the first and last words also asked as the brand
+ * (`brandProbeQueries`, ADR-136): one call when the plain query finds the product, the probes' hits
+ * before the plain query's when it does not. A failed probe never fails the search — only the plain
+ * query does.
  * A search hit lacks the additive list: its score is a summary until the product is opened.
  */
 export async function searchOffProducts(
@@ -161,18 +164,23 @@ export async function searchOffProducts(
   { limit = 20, fetcher = fetch }: { limit?: number; fetcher?: Fetch } = {},
 ): Promise<MappedFood[]> {
   const pageSize = limit * CANDIDATES_PER_RESULT;
-  const [plain, ...probes] = await Promise.all([
-    searchHits(query, pageSize, fetcher),
-    ...brandProbeQueries(query).map((probe) =>
-      searchHits(probe, pageSize, fetcher).catch((error: unknown) => {
-        console.warn('[off] brand probe failed', error);
-        return [];
-      }),
-    ),
-  ]);
-  const foods = uniqueByCode([...probes.flat(), ...plain])
-    .map((hit) => mapOffProduct(hit, 'summary'))
-    .filter((food): food is MappedFood => food !== null);
+  const usable = (hits: OffProduct[]) =>
+    hits
+      .map((hit) => mapOffProduct(hit, 'summary'))
+      .filter((food): food is MappedFood => food !== null);
+  const plain = await searchHits(query, pageSize, fetcher);
+  const found = usable(plain).some((food) => matchesFoodQuery(food, query));
+  const probes = found
+    ? []
+    : await Promise.all(
+        brandProbeQueries(query).map((probe) =>
+          searchHits(probe, pageSize, fetcher).catch((error: unknown) => {
+            console.warn('[off] brand probe failed', error);
+            return [];
+          }),
+        ),
+      );
+  const foods = usable(uniqueByCode([...probes.flat(), ...plain]));
   const ranked = rankFoodsByName(query, foods, {
     preference: verifiedFirst,
     quality: labelQuality,

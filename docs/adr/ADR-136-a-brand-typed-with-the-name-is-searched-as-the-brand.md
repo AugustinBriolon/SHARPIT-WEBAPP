@@ -26,15 +26,18 @@ found nothing. Two causes, read on Open Food Facts' search (search-a-licious) on
 
 ## Decision
 
-1. **The words typed first and last are also asked as the brand** (`brandProbeQueries`): for
-   « club original spicy reghalal », `brands:reghalal AND club AND original AND spicy` and
-   `brands:club AND original AND spicy AND reghalal`, beside the plain query, in parallel. Only
-   queries of two words or more (of three letters or more, figures and « avec », « sans »… left
-   out) are probed: a single word is already searched well.
-2. **The probes' hits come before the plain query's**, one per barcode, then the name ranking of
+1. **The plain query goes first, alone.** When one of its usable hits holds every typed word (in
+   its name or brand, `matchesFoodQuery`), the search stops there: one call, as before.
+2. **Only when none does are the words typed first and last also asked as the brand**
+   (`brandProbeQueries`), in parallel: for « club original spicy reghalal »,
+   `brands:reghalal AND club AND original AND spicy` and
+   `brands:club AND original AND spicy AND reghalal`. Only queries of two words or more (of three
+   letters or more, figures and « avec », « sans »… left out) are probed: a single word is already
+   searched well.
+3. **The probes' hits come before the plain query's**, one per barcode, then the name ranking of
    ADR-064 / ADR-069 orders the whole. A probe that fails is logged and ignored; only the plain
    query failing makes OFF « indisponible ».
-3. **Among names that miss a typed word, the one holding more of them ranks first**
+4. **Among names that miss a typed word, the one holding more of them ranks first**
    (`rankFoodsByName`, after the match tier): « Club original dinde ciboulette » by Reghalal holds 3
    of the 4 words and comes before « Spicy beef » by Sam's Club (2).
 
@@ -42,6 +45,9 @@ found nothing. Two causes, read on Open Food Facts' search (search-a-licious) on
 
 ## Rationale
 
+- Probing every search in parallel tripled the calls of « poulet riz » or « skyr isey », which the
+  plain query already answers. As a fallback the probes cost nothing there, and only a search that
+  missed pays for them — in calls and in one more round trip.
 - A brand word guessed wrong costs one OFF call that finds little, and the ranking sorts it out.
 - First and last cover how a product is typed (« Danone yaourt », « skyr Isey »); probing every word
   would multiply the calls for each keystroke the search debounces.
@@ -71,8 +77,8 @@ found nothing. Two causes, read on Open Food Facts' search (search-a-licious) on
 
 ### Negative
 
-- A multi-word search costs OFF up to three calls instead of one, for the athlete and for the meal
-  describe's resolution.
+- A multi-word search the plain query misses costs OFF up to three calls instead of one, and waits
+  for two round trips, for the athlete and for the meal describe's resolution.
 
 ---
 

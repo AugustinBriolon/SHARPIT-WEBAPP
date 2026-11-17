@@ -163,13 +163,13 @@ describe('searchOffProducts, brand typed with the name (ADR-136)', () => {
     ]);
   });
 
-  it('lists the brand’s products the plain query buried, once each', async () => {
+  it('asks the brand when no plain hit holds every word, its products first, once each', async () => {
     const club = hit('3242272845058', 'Club jambon cheddar', 'Sodebo');
     const fetcher = vi.fn(async (url: string | URL | Request) => {
       const q = new URL(String(url)).searchParams.get('q') ?? '';
       const hits = q.startsWith('brands:sodebo')
         ? [club]
-        : [hit('5059697712296', 'Brie & bacon sandwich', 'Tesco'), club];
+        : [hit('5059697712296', 'Brie & bacon sandwich', 'Tesco')];
       return new Response(JSON.stringify({ hits }), { status: 200 });
     }) as unknown as typeof fetch;
 
@@ -187,8 +187,18 @@ describe('searchOffProducts, brand typed with the name (ADR-136)', () => {
         : new Response(JSON.stringify({ hits: [SKYR] }), { status: 200 });
     }) as unknown as typeof fetch;
 
+    const foods = await searchOffProducts('skyr fraise', { fetcher });
+
+    expect(foods.map((food) => food.barcode)).toEqual(['5690845000621']);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it('asks OFF once when a plain hit already holds every typed word', async () => {
+    const fetcher = respond(200, { hits: [SKYR] });
+
     const foods = await searchOffProducts('skyr isey', { fetcher });
 
     expect(foods.map((food) => food.barcode)).toEqual(['5690845000621']);
+    expect(fetcher).toHaveBeenCalledTimes(1);
   });
 });
