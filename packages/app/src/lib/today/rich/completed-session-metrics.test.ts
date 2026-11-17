@@ -116,20 +116,25 @@ describe('buildCompletedSessionMetrics', () => {
     ]);
   });
 
-  it('builds strength duration, RPE, and exercise count', () => {
+  it('builds strength duration, kilos lifted, and exercise count', () => {
     const metrics = buildCompletedSessionMetrics(
       source({
         type: 'STRENGTH',
         duration: 2700,
         rpe: 7,
         load: 35,
-        strengthSets: [{ exercise: 'Squat' }, { exercise: 'Press' }, { exercise: 'Squat' }],
+        strengthSets: [
+          { exercise: 'Squat', sets: 3, reps: 10, weightKg: 60 },
+          { exercise: 'Press', sets: 2, reps: 8, weightKg: 22.5 },
+          { exercise: 'Squat', sets: 1, reps: 5, weightKg: null },
+        ],
       }),
     );
 
+    // 3×10×60 + 2×8×22.5 = 2160; the set without a load adds nothing. RPE gives its place.
     expect(metrics).toEqual([
       { label: 'Durée', value: '45:00', unit: 'min' },
-      { label: 'RPE', value: '7', unit: '' },
+      { label: 'Volume', value: '2160', unit: 'kg' },
       { label: 'Exercices', value: '2', unit: 'exos' },
     ]);
   });
@@ -146,8 +151,8 @@ describe('buildCompletedSessionMetrics', () => {
 
     expect(metrics).toEqual([
       { label: 'Durée', value: '30:00', unit: 'min' },
-      { label: 'RPE', value: '6', unit: '' },
       { label: 'Exercices', value: '2', unit: 'exos' },
+      { label: 'RPE', value: '6', unit: '' },
     ]);
   });
 

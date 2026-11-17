@@ -17,7 +17,13 @@ export type CompletedSessionMetricSource = {
   bikeMetrics: { tss: number | null; avgPower: number | null } | null;
   swimMetrics: { distanceM: number | null } | null;
   hikeMetrics: { distanceM: number | null; elevationM: number | null } | null;
-  strengthSets: { exercise: string }[];
+  /** `sets`, `reps` and `weightKg` are absent from selects that only name the exercises. */
+  strengthSets: {
+    exercise: string;
+    sets?: number | null;
+    reps?: number | null;
+    weightKg?: number | null;
+  }[];
 };
 
 const MAX_METRICS = 3;
@@ -130,6 +136,20 @@ function strengthExerciseMetric(sets: { exercise: string }[]): CompletedSessionM
   };
 }
 
+/** Kilos lifted: sets × reps × load, over the sets that carry a load. */
+function strengthVolumeMetric(
+  sets: CompletedSessionMetricSource['strengthSets'],
+): CompletedSessionMetric | null {
+  const kilos = sets.reduce(
+    (total, set) => total + (set.sets ?? 0) * (set.reps ?? 0) * (set.weightKg ?? 0),
+    0,
+  );
+  if (kilos <= 0) {
+    return null;
+  }
+  return { label: 'Volume', value: String(Math.round(kilos)), unit: 'kg' };
+}
+
 function buildRunMetrics(activity: CompletedSessionMetricSource): CompletedSessionMetric[] {
   const metrics: CompletedSessionMetric[] = [];
   pushMetric(metrics, distanceMetric(activity.runMetrics?.distanceM));
@@ -167,9 +187,12 @@ function buildHikeMetrics(activity: CompletedSessionMetricSource): CompletedSess
 
 function buildStrengthMetrics(activity: CompletedSessionMetricSource): CompletedSessionMetric[] {
   const metrics: CompletedSessionMetric[] = [];
+  // What was done before how it felt: the kilos lifted and the exercises, then the RPE if a
+  // place is left (a session with no load keeps it).
   pushMetric(metrics, durationMetric(activity.duration));
-  pushMetric(metrics, rpeMetric(activity.rpe));
+  pushMetric(metrics, strengthVolumeMetric(activity.strengthSets));
   pushMetric(metrics, strengthExerciseMetric(activity.strengthSets));
+  pushMetric(metrics, rpeMetric(activity.rpe));
   return metrics;
 }
 

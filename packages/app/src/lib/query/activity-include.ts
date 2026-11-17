@@ -79,7 +79,10 @@ export const activityListSelect = {
   bikeMetrics: { select: { distanceM: true, tss: true, avgPower: true } },
   swimMetrics: { select: { distanceM: true, avgPaceSecPer100m: true } },
   hikeMetrics: { select: { distanceM: true, elevationM: true } },
-  strengthSets: { select: { exercise: true }, orderBy: { order: 'asc' as const } },
+  strengthSets: {
+    select: { exercise: true, sets: true, reps: true, weightKg: true },
+    orderBy: { order: 'asc' as const },
+  },
   plannedSession: { select: plannedSessionSummarySelect },
   multisportLegs: true,
   goalId: true,
