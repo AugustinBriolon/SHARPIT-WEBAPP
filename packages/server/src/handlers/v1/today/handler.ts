@@ -4,7 +4,7 @@ import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { getActivitiesList, getHealthEntries } from '@sharpit/server/lib/queries';
 import { getOrBuildAthleteSnapshot } from '@sharpit/server/lib/athlete-state/snapshot-service';
 import {
-  analyzeLinkedPlannedSessions,
+  analyzeAwaitingPlannedSessions,
   autoLinkActivitiesOfDay,
 } from '@sharpit/server/lib/planned-session/linking/session-linking';
 import { addDays, format, startOfDay } from 'date-fns';
@@ -41,13 +41,16 @@ function referenceDateFor(trainingDayId: string): Date {
  */
 async function autoLinkTodayActivities(athleteId: string, trainingDayId: string): Promise<void> {
   try {
-    const sessionIds = await autoLinkActivitiesOfDay(athleteId, referenceDateFor(trainingDayId));
-    if (sessionIds.length > 0) {
-      after(() => analyzeLinkedPlannedSessions(athleteId, sessionIds));
-    }
+    await autoLinkActivitiesOfDay(athleteId, referenceDateFor(trainingDayId));
   } catch (error) {
     console.error('[api/v1/today/auto-link]', error);
   }
+  // The sessions just linked and any reading still owed from an earlier failure.
+  after(() =>
+    analyzeAwaitingPlannedSessions(athleteId).catch((error) =>
+      console.error('[api/v1/today/analyze-awaiting]', error),
+    ),
+  );
 }
 
 /**

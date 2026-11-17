@@ -1,3 +1,4 @@
+import { isStravaOnly } from '@sharpit/server/lib/activity/list/activity-dedup';
 import { NextRequest, NextResponse, after } from 'next/server';
 import { isCoachConfigured } from '@sharpit/server/lib/ai';
 import { requirePro } from '@sharpit/server/lib/access/require-pro';
@@ -42,6 +43,13 @@ export async function POST(_request: NextRequest, context: RouteContext) {
     }
     if (!existing.activity) {
       return NextResponse.json({ error: 'Aucune activité liée à analyser' }, { status: 400 });
+    }
+    // Said at once: it used to answer « scheduled » and never write a reading (ADR-126).
+    if (isStravaOnly(existing.activity.source)) {
+      return NextResponse.json(
+        { error: "Une séance enregistrée uniquement par Strava n'est pas analysée." },
+        { status: 400 },
+      );
     }
 
     const rateLimit = await checkRateLimit(rateLimiters.sessionAnalyze, athleteId, {

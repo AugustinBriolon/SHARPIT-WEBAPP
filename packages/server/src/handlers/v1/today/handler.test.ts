@@ -44,7 +44,7 @@ vi.mock('next/server', async (importOriginal) => ({
 
 vi.mock('@sharpit/server/lib/planned-session/linking/session-linking', () => ({
   autoLinkActivitiesOfDay: vi.fn().mockResolvedValue([]),
-  analyzeLinkedPlannedSessions: vi.fn().mockResolvedValue(0),
+  analyzeAwaitingPlannedSessions: vi.fn().mockResolvedValue(0),
 }));
 
 vi.mock('@sharpit/server/lib/travel-context/travel-conflict', () => ({
@@ -170,26 +170,16 @@ describe('GET /api/v1/today', () => {
       expect(linking.autoLinkActivitiesOfDay).not.toHaveBeenCalled();
     });
 
-    it('schedules the compliance analysis for what it linked', async () => {
-      const linking = await import('@sharpit/server/lib/planned-session/linking/session-linking');
-      vi.mocked(linking.autoLinkActivitiesOfDay).mockResolvedValue(['session-1']);
-
-      const { GET } = await importRoute();
-      await GET(request());
-
-      expect(afterMock).toHaveBeenCalledTimes(1);
-      await afterMock.mock.calls[0][0]();
-      expect(linking.analyzeLinkedPlannedSessions).toHaveBeenCalledWith('athlete-1', ['session-1']);
-    });
-
-    it('schedules nothing when nothing was linked', async () => {
+    it('schedules the readings still owed, linked now or left by an earlier failure', async () => {
       const linking = await import('@sharpit/server/lib/planned-session/linking/session-linking');
       vi.mocked(linking.autoLinkActivitiesOfDay).mockResolvedValue([]);
 
       const { GET } = await importRoute();
       await GET(request());
 
-      expect(afterMock).not.toHaveBeenCalled();
+      expect(afterMock).toHaveBeenCalledTimes(1);
+      await afterMock.mock.calls[0][0]();
+      expect(linking.analyzeAwaitingPlannedSessions).toHaveBeenCalledWith('athlete-1');
     });
 
     it('still answers when linking fails', async () => {

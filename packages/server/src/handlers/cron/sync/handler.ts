@@ -8,7 +8,7 @@ import {
 import { after, NextResponse } from 'next/server';
 import { addTrainingDays } from '@sharpit/core/training/training-day';
 import {
-  analyzeLinkedPlannedSessions,
+  analyzeAwaitingPlannedSessions,
   autoLinkActivitiesOfDay,
 } from '@sharpit/server/lib/planned-session/linking/session-linking';
 import { sendMorningPushOnceNightIsRead } from '@sharpit/server/lib/push/morning-push';
@@ -74,10 +74,15 @@ async function countRecentSessions(athleteId: string): Promise<void> {
       ),
     );
     const sessionIds = linked.flat();
+    // The sessions just linked and any reading still owed from an earlier failure.
+    after(() =>
+      analyzeAwaitingPlannedSessions(athleteId).catch((error) =>
+        console.error('[cron/sync] analyze awaiting', athleteId, error),
+      ),
+    );
     if (sessionIds.length === 0) {
       return;
     }
-    after(() => analyzeLinkedPlannedSessions(athleteId, sessionIds));
     await notifySessionsDone(athleteId, sessionIds, today);
   } catch (error) {
     console.error('[cron/sync] count sessions', athleteId, error);

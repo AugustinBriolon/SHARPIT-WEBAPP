@@ -9,7 +9,11 @@ import {
 } from '@sharpit/server/lib/queries/planned-sessions';
 import { prisma } from '@sharpit/db/client';
 import { withAnalysisRun } from '@sharpit/server/lib/analysis/analysis-run-store';
-import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
+import {
+  aiReadableActivityWhere,
+  visibleActivityWhere,
+} from '@sharpit/app/lib/query/activity-include';
+import { Prisma } from '@prisma/client';
 import { checkRateLimit, rateLimiters } from '@sharpit/server/lib/rate-limit';
 
 export { scorePlannedActivityMatch } from '@sharpit/app/lib/planned-session/linking/session-link-match-score';
@@ -153,4 +157,62 @@ export async function analyzeLinkedPlannedSessions(
     }
   }
   return analyzed;
+}
+
+/** How far back a linked session without its reading is still picked up. */
+const AWAITING_WINDOW_DAYS = 7;
+/** A reading that failed or came back empty is not asked again before this. */
+const RETRY_AFTER_MS = 6 * 60 * 60_000;
+
+/**
+ * Linked sessions of the last week that still have no compliance reading. The reading is
+ * asked once when a session is linked; when that run fails, is rate-limited or returns
+ * nothing, nothing asked again and the athlete read « Calcul en cours » for good. Strava-only
+ * records are left out (they may not reach a model, ADR-126), and so is a session whose run
+ * is in flight or ended less than six hours ago, so a broken one costs four calls a day at most.
+ */
+export async function plannedSessionsAwaitingAnalysis(
+  athleteId: string,
+  now: Date = new Date(),
+): Promise<string[]> {
+  const sessions = await prisma.plannedSession.findMany({
+    where: {
+      athleteId,
+      analysis: { equals: Prisma.DbNull },
+      activity: {
+        is: {
+          ...visibleActivityWhere,
+          ...aiReadableActivityWhere,
+          date: { gte: addDays(now, -AWAITING_WINDOW_DAYS) },
+        },
+      },
+    },
+    select: { id: true },
+  });
+  if (sessions.length === 0) {
+    return [];
+  }
+  const ids = sessions.map((session) => session.id);
+  const recentRuns = await prisma.analysisRun.findMany({
+    where: {
+      athleteId,
+      kind: 'SESSION_COMPLIANCE',
+      targetId: { in: ids },
+      OR: [
+        { status: 'RUNNING' },
+        { finishedAt: { gte: new Date(now.getTime() - RETRY_AFTER_MS) } },
+      ],
+    },
+    select: { targetId: true },
+  });
+  const held = new Set(recentRuns.map((run) => run.targetId));
+  return ids.filter((id) => !held.has(id));
+}
+
+/** Asks again for every reading still owed — run off the HTTP critical path. */
+export async function analyzeAwaitingPlannedSessions(athleteId: string): Promise<number> {
+  if (!isCoachConfigured()) {
+    return 0;
+  }
+  return analyzeLinkedPlannedSessions(athleteId, await plannedSessionsAwaitingAnalysis(athleteId));
 }
