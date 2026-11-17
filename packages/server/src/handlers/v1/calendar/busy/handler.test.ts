@@ -64,4 +64,25 @@ describe('/api/v1/calendar/busy', () => {
     expect(json.count).toBe(1);
     expect(snapshotModule.saveAppleCalendarBusy).toHaveBeenCalledWith('ath-1', intervals);
   });
+
+  it('leaves out an event with no length instead of refusing the whole upload', async () => {
+    vi.mocked(authModule.getCurrentAthleteId).mockResolvedValue('ath-1');
+    const slot = { start: '2026-11-17T09:00:00.000Z', end: '2026-11-17T10:00:00.000Z' };
+
+    const req = new NextRequest('https://sharpit.app/api/v1/calendar/busy', {
+      method: 'POST',
+      body: JSON.stringify({
+        provider: 'apple-calendar',
+        intervals: [
+          slot,
+          { start: '2026-11-17T12:00:00.000Z', end: '2026-11-17T12:00:00.000Z' },
+          { start: 'soon', end: '2026-11-17T14:00:00.000Z' },
+        ],
+      }),
+    });
+    const res = await POST(req);
+    expect(res.status).toBe(200);
+    expect((await res.json()).count).toBe(1);
+    expect(snapshotModule.saveAppleCalendarBusy).toHaveBeenCalledWith('ath-1', [slot]);
+  });
 });

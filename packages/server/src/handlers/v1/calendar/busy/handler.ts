@@ -3,24 +3,24 @@ import { z } from 'zod';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { saveAppleCalendarBusy } from '@sharpit/server/lib/integrations/apple-calendar/calendar-busy-snapshot';
 
-const intervalSchema = z
-  .object({
-    start: z.string().min(1),
-    end: z.string().min(1),
-  })
-  .refine(
-    (v) => {
-      const start = Date.parse(v.start);
-      const end = Date.parse(v.end);
-      return Number.isFinite(start) && Number.isFinite(end) && start < end;
-    },
-    { message: 'invalid_interval' },
-  );
+const intervalSchema = z.object({ start: z.string(), end: z.string() });
 
 const bodySchema = z.object({
   provider: z.literal('apple-calendar'),
   intervals: z.array(intervalSchema).max(2_000),
 });
+
+/**
+ * One event with no length or an unreadable date used to refuse the whole upload (400), and
+ * the app told the athlete on every sync. Such an event blocks no slot: it is left out.
+ */
+function usableIntervals<T extends { start: string; end: string }>(intervals: T[]): T[] {
+  return intervals.filter(({ start, end }) => {
+    const from = Date.parse(start);
+    const to = Date.parse(end);
+    return Number.isFinite(from) && Number.isFinite(to) && from < to;
+  });
+}
 
 /** Stores EventKit busy intervals from the iPhone for coach free-slot logic. */
 export async function POST(request: NextRequest) {
@@ -36,12 +36,9 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    await saveAppleCalendarBusy(athleteId, parsed.data.intervals);
-    return NextResponse.json({
-      apiVersion: 1,
-      ok: true,
-      count: parsed.data.intervals.length,
-    });
+    const intervals = usableIntervals(parsed.data.intervals);
+    await saveAppleCalendarBusy(athleteId, intervals);
+    return NextResponse.json({ apiVersion: 1, ok: true, count: intervals.length });
   } catch (error) {
     console.error('[api/v1/calendar/busy]', error);
     return NextResponse.json({ error: 'Busy upload failed' }, { status: 500 });
