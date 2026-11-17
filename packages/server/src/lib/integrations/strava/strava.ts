@@ -55,12 +55,23 @@ export function buildAuthorizeUrl(state: string, origin?: string) {
   return `${STRAVA_OAUTH_BASE}/authorize?${params.toString()}`;
 }
 
+/**
+ * Strava ids become 64-bit after June 2027: `id` may exceed 2^53 and lose precision
+ * once parsed as a JS number. `id_str` is the exact value and is what we store;
+ * `String(id)` stays as the fallback while the field is not returned everywhere.
+ */
+export function stravaIdString(object: { id: number; id_str?: string }): string {
+  return object.id_str ?? String(object.id);
+}
+
 export interface StravaTokenResponse {
   access_token: string;
   refresh_token: string;
   expires_at: number;
   athlete?: {
     id: number;
+    /** Same value as `id`, as a string — Strava moves to 64-bit ids (June 2027). */
+    id_str?: string;
     firstname?: string;
     lastname?: string;
     profile?: string;
@@ -113,6 +124,8 @@ export async function refreshAccessToken(refreshToken: string): Promise<StravaTo
 
 export interface StravaActivity {
   id: number;
+  /** Same value as `id`, as a string — Strava moves to 64-bit ids (June 2027). */
+  id_str?: string;
   name: string;
   type: string;
   sport_type: string;

@@ -16,6 +16,7 @@ import {
   mapStravaType,
   refreshAccessToken,
   type StravaActivity,
+  stravaIdString,
 } from '@sharpit/server/lib/integrations/strava/strava';
 import { stravaWallClockStart } from '@sharpit/server/lib/integrations/strava/strava-time';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
@@ -172,7 +173,7 @@ function buildActivityData(
     duration: strava.moving_time || strava.elapsed_time || null,
     load: strava.suffer_score ?? null,
     source: 'strava',
-    stravaId: String(strava.id),
+    stravaId: stravaIdString(strava),
   };
 
   STRAVA_SPORT_METRIC_ATTACHERS[type]?.(base, strava);
@@ -276,7 +277,7 @@ function stravaEnrichmentUpdate(
   existingSource: string,
 ): Prisma.ActivityUpdateInput {
   const data: Prisma.ActivityUpdateInput = {
-    stravaId: String(strava.id),
+    stravaId: stravaIdString(strava),
     source: mergedSource(
       Boolean(existingGarminId),
       true,
@@ -415,7 +416,7 @@ function collectStravaCandidates(
   let skipped = 0;
   const candidates: StravaCandidate[] = [];
   for (const strava of activities) {
-    const stravaId = String(strava.id);
+    const stravaId = stravaIdString(strava);
     if (seenStravaIds.has(stravaId)) {
       skipped += 1;
       continue;

@@ -5,7 +5,10 @@ import {
   connectStateMatchesSession,
   readConnectState,
 } from '@sharpit/server/lib/integrations/oauth-state';
-import { exchangeCodeForToken } from '@sharpit/server/lib/integrations/strava/strava';
+import {
+  exchangeCodeForToken,
+  stravaIdString,
+} from '@sharpit/server/lib/integrations/strava/strava';
 import { encryptSecret } from '@sharpit/server/lib/secret-box';
 
 function readOAuthParams(searchParams: URLSearchParams) {
@@ -26,7 +29,7 @@ async function persistStravaAccount(
   }
 
   const data = {
-    stravaAthleteId: String(athlete.id),
+    stravaAthleteId: stravaIdString(athlete),
     firstName: athlete.firstname ?? null,
     lastName: athlete.lastname ?? null,
     avatarUrl: athlete.profile ?? null,

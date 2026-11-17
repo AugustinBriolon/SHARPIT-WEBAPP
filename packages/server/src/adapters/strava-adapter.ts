@@ -14,7 +14,10 @@
  * "perceived exertion" field (if available) is not exposed in the API we use.
  */
 
-import type { StravaActivity } from '@sharpit/server/lib/integrations/strava/strava';
+import {
+  stravaIdString,
+  type StravaActivity,
+} from '@sharpit/server/lib/integrations/strava/strava';
 
 import type {
   RawSessionObservation,
@@ -154,7 +157,7 @@ export function stravaActivityToSession(
     receivedAt,
     sportType,
     durationSec,
-    externalId: String(activity.id),
+    externalId: stravaIdString(activity),
     title: activity.name,
     powerData,
     hrData,
