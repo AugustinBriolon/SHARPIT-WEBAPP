@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fetchOffProduct, searchOffProducts } from './open-food-facts-client';
+import { brandProbeQueries, fetchOffProduct, searchOffProducts } from './open-food-facts-client';
 
 const SKYR = {
   code: '5690845000621',
@@ -139,5 +139,56 @@ describe('searchOffProducts, fruit and vegetable names (ADR-122)', () => {
     const foods = await searchOffProducts('skyr', { fetcher });
 
     expect(foods.map((food) => food.name)).toEqual(['Skyr', 'Skyr vanille']);
+  });
+});
+
+describe('searchOffProducts, brand typed with the name (ADR-136)', () => {
+  const hit = (code: string, name: string, brands: string) => ({
+    ...SKYR,
+    code,
+    product_name: name,
+    brands,
+  });
+
+  it('asks the first and last words as the brand, the other words required', () => {
+    expect(brandProbeQueries('Club Original Spicy Reghalal')).toEqual([
+      'brands:reghalal AND club AND original AND spicy',
+      'brands:club AND original AND spicy AND reghalal',
+    ]);
+    expect(brandProbeQueries('skyr')).toEqual([]);
+    expect(brandProbeQueries('yaourt 0 %')).toEqual([]);
+    expect(brandProbeQueries('poulet avec riz')).toEqual([
+      'brands:riz AND poulet',
+      'brands:poulet AND riz',
+    ]);
+  });
+
+  it('lists the brand’s products the plain query buried, once each', async () => {
+    const club = hit('3242272845058', 'Club jambon cheddar', 'Sodebo');
+    const fetcher = vi.fn(async (url: string | URL | Request) => {
+      const q = new URL(String(url)).searchParams.get('q') ?? '';
+      const hits = q.startsWith('brands:sodebo')
+        ? [club]
+        : [hit('5059697712296', 'Brie & bacon sandwich', 'Tesco'), club];
+      return new Response(JSON.stringify({ hits }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const foods = await searchOffProducts('club sodebo', { fetcher });
+
+    expect(foods.map((food) => food.barcode)).toEqual(['3242272845058', '5059697712296']);
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
+
+  it('keeps the plain results when a brand probe fails', async () => {
+    const fetcher = vi.fn(async (url: string | URL | Request) => {
+      const q = new URL(String(url)).searchParams.get('q') ?? '';
+      return q.startsWith('brands:')
+        ? new Response('{}', { status: 500 })
+        : new Response(JSON.stringify({ hits: [SKYR] }), { status: 200 });
+    }) as unknown as typeof fetch;
+
+    const foods = await searchOffProducts('skyr isey', { fetcher });
+
+    expect(foods.map((food) => food.barcode)).toEqual(['5690845000621']);
   });
 });

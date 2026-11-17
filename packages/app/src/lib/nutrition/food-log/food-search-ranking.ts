@@ -177,6 +177,7 @@ export type RankOptions<T> = {
 type Ranked<T> = {
   food: T;
   tier: number;
+  coverage: number;
   sameLead: number;
   preference: number;
   words: number;
@@ -187,6 +188,7 @@ type Ranked<T> = {
 function compare<T>(a: Ranked<T>, b: Ranked<T>): number {
   return (
     b.tier - a.tier ||
+    b.coverage - a.coverage ||
     b.sameLead - a.sameLead ||
     b.preference - a.preference ||
     a.words - b.words ||
@@ -195,9 +197,16 @@ function compare<T>(a: Ranked<T>, b: Ranked<T>): number {
   );
 }
 
+/** How many typed words start a word of the name or the brand. */
+function coverageOf(text: string[], query: string): number {
+  return query.split(' ').filter((word) => containsWord(text, word)).length;
+}
+
 /**
  * Best match first: tier of the match (against the query or one of its synonyms, the name alone or
- * with its brand), then a name opening on the very word typed (« pâtes » before « pâté », which fold
+ * with its brand), then how many typed words the name and brand hold — among names that miss a
+ * word, « Club original dinde » by Reghalal (3 of « club original spicy reghalal ») before
+ * « Club Social Original » (2) — then a name opening on the very word typed (« pâtes » before « pâté », which fold
  * to the same letters), then the athlete's preference, then the shorter name (« Banane » before
  * « Banane plantain frite »), then the entry's quality, then the original order, which carries the
  * source's own relevance.
@@ -217,9 +226,11 @@ export function rankFoodsByName<T extends RankableFood>(
       const name = normalizeFoodText(food.name);
       const brand = normalizeFoodText(food.brand ?? '');
       const words = name.split(' ');
+      const text = brand ? [...words, ...brand.split(' ')] : words;
       return {
         food,
         tier: Math.max(...variants.map((variant) => tierWithBrand(name, brand, variant))),
+        coverage: Math.max(...variants.map((variant) => coverageOf(text, variant))),
         sameLead: leads.includes(words[0]) ? 1 : 0,
         preference: options.preference?.(food) ?? 0,
         words: words.length,

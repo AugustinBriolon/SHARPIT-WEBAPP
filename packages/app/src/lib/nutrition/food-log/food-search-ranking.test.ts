@@ -19,6 +19,19 @@ function names(query: string, list: string[]): string[] {
 }
 
 describe('rankFoodsByName', () => {
+  it('puts the name and brand holding more typed words first when none holds them all', () => {
+    const foods = [
+      { name: 'Club Social Original', brand: 'Nabisco, Club Social' },
+      { name: 'Spicy de poulet', brand: 'Reghalal' },
+      { name: 'Club original dinde ciboulette', brand: 'Reghalal' },
+    ];
+    expect(rankFoodsByName('club original spicy reghalal', foods).map((f) => f.name)).toEqual([
+      'Club original dinde ciboulette',
+      'Club Social Original',
+      'Spicy de poulet',
+    ]);
+  });
+
   it('puts the banana before the banana nectar', () => {
     expect(
       names('banane', [

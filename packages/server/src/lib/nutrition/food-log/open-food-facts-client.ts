@@ -7,6 +7,7 @@ import {
 } from '@sharpit/app/lib/nutrition/food-log/open-food-facts';
 import {
   dedupeFoods,
+  normalizeFoodText,
   rankFoodsByName,
 } from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
 import { produceFirst } from './ciqual-search';
@@ -84,25 +85,92 @@ function labelQuality(food: MappedFood): number {
   return (food.quality.labelComplete ? 2 : 0) + (food.quality.soldInFrance ? 1 : 0);
 }
 
+/** Words that never name a brand: probing them only costs OFF a call. */
+const NOT_A_BRAND = new Set([
+  'aux',
+  'avec',
+  'sans',
+  'les',
+  'des',
+  'une',
+  'pour',
+  'sur',
+  'par',
+  'and',
+  'the',
+  'with',
+]);
+
+/**
+ * OFF's free-text search weighs every word on its own and boosts categories, so « club spicy
+ * reghalal » opens on British sandwiches (« club » reads as the sandwich) and the brand's own
+ * products sit past the fiftieth hit. A brand is usually typed first or last: each of those words
+ * is also asked as the brand, the other words required (`brands:reghalal AND club AND spicy`). A
+ * word that names no brand finds little, and the name ranking sorts whatever it finds.
+ */
+export function brandProbeQueries(query: string): string[] {
+  const words = normalizeFoodText(query)
+    .split(' ')
+    .filter((word) => word.length >= 3 && !/^\d+$/.test(word) && !NOT_A_BRAND.has(word));
+  if (words.length < 2) {
+    return [];
+  }
+  const brands = [...new Set([words.at(-1)!, words[0]!])];
+  return brands.map((brand) =>
+    [`brands:${brand}`, ...words.filter((word) => word !== brand)].join(' AND '),
+  );
+}
+
+async function searchHits(q: string, pageSize: number, fetcher: Fetch): Promise<OffProduct[]> {
+  const params = new URLSearchParams({
+    q,
+    langs: 'fr,en',
+    page_size: String(pageSize),
+    fields: OFF_FIELDS.join(','),
+  });
+  const body = (await getJson(`${SEARCH_URL}?${params}`, fetcher)) as {
+    hits?: OffProduct[];
+  } | null;
+  return body?.hits ?? [];
+}
+
+/** One hit per barcode, the first kept: a brand probe and the plain query often find the same. */
+function uniqueByCode(hits: OffProduct[]): OffProduct[] {
+  const seen = new Set<string>();
+  return hits.filter((hit) => {
+    if (!hit.code) {
+      return true;
+    }
+    if (seen.has(hit.code)) {
+      return false;
+    }
+    seen.add(hit.code);
+    return true;
+  });
+}
+
 /**
  * French-first search, keeping only products the log can use, best name match first (ADR-064),
- * verified and complete products first among alike names, duplicates merged (ADR-069).
+ * verified and complete products first among alike names, duplicates merged (ADR-069). The words
+ * typed first and last are also asked as the brand (`brandProbeQueries`, ADR-136): their hits come
+ * before the plain query's, and a failed probe never fails the search — only the plain query does.
  * A search hit lacks the additive list: its score is a summary until the product is opened.
  */
 export async function searchOffProducts(
   query: string,
   { limit = 20, fetcher = fetch }: { limit?: number; fetcher?: Fetch } = {},
 ): Promise<MappedFood[]> {
-  const params = new URLSearchParams({
-    q: query,
-    langs: 'fr,en',
-    page_size: String(limit * CANDIDATES_PER_RESULT),
-    fields: OFF_FIELDS.join(','),
-  });
-  const body = (await getJson(`${SEARCH_URL}?${params}`, fetcher)) as {
-    hits?: OffProduct[];
-  } | null;
-  const foods = (body?.hits ?? [])
+  const pageSize = limit * CANDIDATES_PER_RESULT;
+  const [plain, ...probes] = await Promise.all([
+    searchHits(query, pageSize, fetcher),
+    ...brandProbeQueries(query).map((probe) =>
+      searchHits(probe, pageSize, fetcher).catch((error: unknown) => {
+        console.warn('[off] brand probe failed', error);
+        return [];
+      }),
+    ),
+  ]);
+  const foods = uniqueByCode([...probes.flat(), ...plain])
     .map((hit) => mapOffProduct(hit, 'summary'))
     .filter((food): food is MappedFood => food !== null);
   const ranked = rankFoodsByName(query, foods, {
