@@ -107,6 +107,21 @@ describe('applyStrengthScoringGuards', () => {
     expect(guarded.complianceScore).toBe(90);
   });
 
+  it('never calls a session different when its score says it was followed', () => {
+    const guarded = applyStrengthScoringGuards(
+      analysis({ complianceScore: 98, verdict: 'DIFFERENT' }),
+      'STRENGTH',
+      null,
+    );
+    expect(guarded.verdict).toBe('AS_PLANNED');
+    const low = applyStrengthScoringGuards(
+      analysis({ complianceScore: 55, verdict: 'DIFFERENT' }),
+      'STRENGTH',
+      null,
+    );
+    expect(low.verdict).toBe('DIFFERENT');
+  });
+
   it('rewrites duration verdicts even without realized sets', () => {
     const guarded = applyStrengthScoringGuards(analysis({ complianceScore: 60 }), 'STRENGTH', null);
     expect(guarded.verdict).toBe('DIFFERENT');

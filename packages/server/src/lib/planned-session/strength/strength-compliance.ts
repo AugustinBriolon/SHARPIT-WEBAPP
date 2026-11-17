@@ -174,11 +174,13 @@ export function applyStrengthScoringGuards(
     : analysis.complianceScore;
 
   const isDurationVerdict = analysis.verdict === 'SHORTER' || analysis.verdict === 'LONGER';
+  // « Différent » beside 98/100 contradicts itself: the score, floored by the content, wins.
+  const contradictsScore = analysis.verdict === 'DIFFERENT' && complianceScore >= AS_PLANNED_SCORE;
   const replacement = complianceScore >= AS_PLANNED_SCORE ? 'AS_PLANNED' : 'DIFFERENT';
 
   return {
     ...analysis,
     complianceScore,
-    verdict: isDurationVerdict ? replacement : analysis.verdict,
+    verdict: isDurationVerdict || contradictsScore ? replacement : analysis.verdict,
   };
 }
