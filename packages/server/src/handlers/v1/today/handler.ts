@@ -149,7 +149,22 @@ export async function GET(request: NextRequest) {
       energyBank: dayScores.energyBank,
       targetBand: dayScores.targetBand,
     });
-    const timeline = await loadV1DayTimeline(athleteId, trainingDayId, {
+    // Only today speaks of the plan ahead (its end, a trip it no longer fits): a past day reads as it was.
+    const isToday = trainingDayId === todayIsoDate();
+    // Started before the timeline: neither reads the other.
+    const horizonPromise = isToday
+      ? Promise.all([
+          readPlanHorizonView(athleteId, trainingDayId).catch((error) => {
+            console.error('[api/v1/today/plan-horizon]', error);
+            return null;
+          }),
+          readTravelConflictView(prisma, athleteId, trainingDayId).catch((error) => {
+            console.error('[api/v1/today/travel-conflict]', error);
+            return null;
+          }),
+        ])
+      : Promise.resolve([null, null] as const);
+    const timelinePromise = loadV1DayTimeline(athleteId, trainingDayId, {
       sessions: projected.sessions.map((session) => ({
         title: session.title,
         kind: session.kind,
@@ -162,22 +177,11 @@ export async function GET(request: NextRequest) {
       console.error('[api/v1/today/timeline]', error);
       return [];
     });
+    const [timeline, [planHorizon, travelConflict]] = await Promise.all([
+      timelinePromise,
+      horizonPromise,
+    ]);
     timing.mark('timeline');
-    // Only today speaks of the plan ahead (its end, a trip it no longer fits): a past day reads as it was.
-    const isToday = trainingDayId === todayIsoDate();
-    const [planHorizon, travelConflict] = isToday
-      ? await Promise.all([
-          readPlanHorizonView(athleteId, trainingDayId).catch((error) => {
-            console.error('[api/v1/today/plan-horizon]', error);
-            return null;
-          }),
-          readTravelConflictView(prisma, athleteId, trainingDayId).catch((error) => {
-            console.error('[api/v1/today/travel-conflict]', error);
-            return null;
-          }),
-        ])
-      : [null, null];
-    timing.mark('horizon');
     return NextResponse.json(
       { ...projected, timeline, planHorizon, travelConflict },
       { headers: { 'server-timing': timing.header('today') } },
