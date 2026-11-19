@@ -5,13 +5,12 @@
  *   yarn db:backfill:narratives
  *   yarn db:backfill:narratives --dry-run
  */
-import { ActivityType } from '@prisma/client';
-import { createScriptPrismaClient } from '@sharpit/db/adapter';
+import { ActivityType, PrismaClient } from '@prisma/client';
 import { format } from 'date-fns';
 import { NARRATIVE_ANALYSIS_SINCE } from '@sharpit/server/lib/activity-narrative-config';
 import { backfillActivityNarratives } from '@sharpit/server/lib/activity-narrative';
 
-const prisma = createScriptPrismaClient();
+const prisma = new PrismaClient();
 const dryRun = process.argv.includes('--dry-run');
 
 async function main() {

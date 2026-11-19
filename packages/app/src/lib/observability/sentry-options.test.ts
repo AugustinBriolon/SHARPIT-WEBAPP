@@ -13,7 +13,7 @@ describe('sentryOptions', () => {
     expect(new URL(SENTRY_DSN).host.endsWith('.ingest.de.sentry.io')).toBe(true);
     expect(options.sendDefaultPii).toBe(false);
     expect(options.tracesSampleRate).toBe(0);
-    expect(options.skipOpenTelemetrySetup).toBe(true);
+    expect(options.enableOpenTelemetrySetup).toBe(false);
   });
 });
 

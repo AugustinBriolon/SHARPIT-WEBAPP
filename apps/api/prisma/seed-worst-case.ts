@@ -9,7 +9,6 @@
  * `yarn db:seed` restores the small demo dataset. Refuses any database that is not local.
  */
 import { ActivityType, GoalKind, GoalPriority, PrismaClient } from '@prisma/client';
-import { createScriptPrismaClient } from '@sharpit/db/adapter';
 import {
   demoDateFromTrainingDayId,
   demoTrainingDayIdDaysAgo,
@@ -451,7 +450,7 @@ async function main(): Promise<void> {
   if (!['worst', 'empty', 'one'].includes(mode)) {
     throw new Error(`Unknown mode "${mode}" — use worst, empty or one.`);
   }
-  const prisma = createScriptPrismaClient();
+  const prisma = new PrismaClient();
   try {
     const today = new Date(`${demoTrainingDayIdDaysAgo(0)}T07:00:00.000Z`);
     await upsertAthlete(prisma);

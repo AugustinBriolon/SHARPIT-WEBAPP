@@ -4,7 +4,6 @@
   "private": true,
   "exports": {
     "./client": "./src/client.ts",
-    "./adapter": "./src/adapter.ts",
     "./athlete-scope": "./src/athlete-scope.ts"
   },
   "scripts": {
@@ -14,7 +13,6 @@
   },
   "dependencies": {
     "@prisma/adapter-neon": "^6.19.3",
-    "@prisma/adapter-pg": "6.19.3",
     "@prisma/client": "^6.19.3"
   },
   "devDependencies": {

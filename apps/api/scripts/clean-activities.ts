@@ -13,9 +13,9 @@
  *   yarn db:clean:activities --streams # invalide uniquement le cache streams (carte/courbes)
  */
 import { createInterface } from 'node:readline/promises';
-import { createScriptPrismaClient } from '@sharpit/db/adapter';
+import { PrismaClient } from '@prisma/client';
 
-const prisma = createScriptPrismaClient();
+const prisma = new PrismaClient();
 
 async function confirm(question: string): Promise<boolean> {
   if (process.argv.includes('--yes') || process.argv.includes('-y')) {

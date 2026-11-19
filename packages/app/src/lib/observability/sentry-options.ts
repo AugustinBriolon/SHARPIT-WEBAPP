@@ -8,8 +8,9 @@ import type { ErrorEvent, EventHint } from '@sentry/nextjs';
  * Every event loses its request body, cookies, headers and query string before it is sent.
  * A DSN is a public client key: it can only send events.
  *
- * `skipOpenTelemetrySetup` is kept for SDKs that honour it; even if Sentry 11 still
- * touches OTEL, it must not run before Langfuse registration.
+ * `enableOpenTelemetrySetup: false` keeps Sentry off the global OTEL provider altogether, so
+ * Langfuse owns it whatever the init order. Sentry 11 dropped `skipOpenTelemetrySetup`, which
+ * this file used to set: until then only the order in `instrumentation.ts` protected Langfuse.
  */
 export const SENTRY_DSN =
   'https://fa037dbf4a20c605a69f85fae538b80f@o4512180262535168.ingest.de.sentry.io/4512180422246480';
@@ -48,7 +49,7 @@ export function sentryOptions(app: 'web' | 'api') {
     initialScope: { tags: { app } },
     sendDefaultPii: false,
     tracesSampleRate: 0,
-    skipOpenTelemetrySetup: true,
+    enableOpenTelemetrySetup: false,
     beforeSend: scrubSentryEvent,
   };
 }

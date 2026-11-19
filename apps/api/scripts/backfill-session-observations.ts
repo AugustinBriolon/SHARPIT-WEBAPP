@@ -14,11 +14,11 @@
  *   yarn db:backfill:session-observations --dry-run
  *   yarn db:backfill:session-observations
  */
-import { createScriptPrismaClient } from '@sharpit/db/adapter';
+import { PrismaClient } from '@prisma/client';
 import { observationEngine } from '@sharpit/server/lib/engines/observation-engine';
 import { storedActivityToSession } from '@sharpit/server/lib/observation/activity-to-session';
 
-const prisma = createScriptPrismaClient();
+const prisma = new PrismaClient();
 const dryRun = process.argv.includes('--dry-run');
 const ATHLETE_ID = 'default';
 

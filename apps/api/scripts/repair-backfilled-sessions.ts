@@ -18,9 +18,9 @@
  *   yarn tsx scripts/repair-backfilled-sessions.ts --since 2026-08-11 --dry-run
  *   yarn tsx scripts/repair-backfilled-sessions.ts --since 2026-08-11
  */
-import { createScriptPrismaClient } from '@sharpit/db/adapter';
+import { PrismaClient } from '@prisma/client';
 
-const prisma = createScriptPrismaClient();
+const prisma = new PrismaClient();
 const dryRun = process.argv.includes('--dry-run');
 const sinceArg = process.argv[process.argv.indexOf('--since') + 1];
 

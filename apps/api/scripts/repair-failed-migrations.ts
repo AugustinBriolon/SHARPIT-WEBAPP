@@ -9,7 +9,7 @@
  * pre-created / half-applied (Postgres 42P07 relation already exists).
  */
 import { execSync } from 'node:child_process';
-import { createScriptPrismaClient } from '@sharpit/db/adapter';
+import { PrismaClient } from '@prisma/client';
 import {
   ANALYSIS_EVIDENCE_MIGRATION,
   BASELINE_MIGRATION,
@@ -25,7 +25,7 @@ type ExistsRow = {
   exists: boolean;
 };
 
-const prisma = createScriptPrismaClient();
+const prisma = new PrismaClient();
 
 function runResolve(migrationName: string, flag: '--applied' | '--rolled-back'): void {
   execSync(`yarn prisma migrate resolve ${flag} ${migrationName}`, {

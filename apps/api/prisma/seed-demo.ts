@@ -1,7 +1,7 @@
-import { createScriptPrismaClient } from '@sharpit/db/adapter';
+import { PrismaClient } from '@prisma/client';
 import { seedDemoAthlete } from '@sharpit/server/lib/demo/seed-demo-data';
 
-const prisma = createScriptPrismaClient();
+const prisma = new PrismaClient();
 
 seedDemoAthlete(prisma)
   .catch((error) => {
