@@ -182,3 +182,49 @@ describe('load band — intensity counts, not minutes alone', () => {
     expect(facts.load.band).toBe('very_high');
   });
 });
+
+describe('timing (ADR-137)', () => {
+  it('leaves the facts as they were when no food carries a time', () => {
+    const facts = buildNutritionAnalysisFacts(
+      input({ sessions: [{ type: 'RUN', minutes: 75, tss: 80, start: '18:00' }] }),
+    );
+    expect(facts).not.toHaveProperty('timing');
+    expect(facts.load.sessions).toEqual([{ type: 'RUN', minutes: 75, tss: 80 }]);
+  });
+
+  it('reads when the day was eaten and when its sessions started', () => {
+    const timed = (label: string, times: Array<string | undefined>) => ({
+      ...meal(label, 30),
+      entries: times.map((time, index) => ({
+        name: `Aliment ${index}`,
+        calories: 100,
+        protein: 10,
+        carbs: 10,
+        fat: 2,
+        ...(time ? { time } : {}),
+      })),
+    });
+    const facts = buildNutritionAnalysisFacts(
+      input({
+        meals: [
+          timed('Petit-déjeuner', ['07:40', undefined]),
+          timed('Collations', ['16:30', '10:05']),
+        ],
+        sessions: [
+          { type: 'RUN', minutes: 75, tss: 80, start: '18:00' },
+          { type: 'STRENGTH', minutes: 30, tss: null, start: null },
+        ],
+      }),
+    );
+    expect(facts.timing).toEqual({
+      timedEntries: 3,
+      firstEaten: '07:40',
+      lastEaten: '16:30',
+      meals: [
+        { meal: 'Petit-déjeuner', from: '07:40', to: '07:40' },
+        { meal: 'Collations', from: '10:05', to: '16:30' },
+      ],
+      sessions: [{ type: 'RUN', start: '18:00', minutes: 75 }],
+    });
+  });
+});

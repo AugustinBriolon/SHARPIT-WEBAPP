@@ -72,6 +72,7 @@ function asLogged(entry: FoodLogEntry): LoggedEntry {
     fat: entry.fat,
     fiber: entry.fiber,
     sugar: entry.sugar,
+    eatenMinute: entry.eatenMinute,
   };
 }
 
@@ -426,6 +427,7 @@ export async function resolveFoodLogEntryCreateData(
     date: foodLogDayDate(input.trainingDayId),
     meal: input.meal,
     grams: input.grams,
+    eatenMinute: input.eatenMinute ?? null,
     ...fields,
   };
 }
@@ -523,7 +525,13 @@ export async function updateFoodLogEntry(
       : {};
   const updated = await prisma.foodLogEntry.update({
     where: { id },
-    data: { ...nutrients, grams: input.grams ?? entry.grams, meal: input.meal ?? entry.meal },
+    data: {
+      ...nutrients,
+      grams: input.grams ?? entry.grams,
+      meal: input.meal ?? entry.meal,
+      // Absent leaves the time; null clears it (ADR-137).
+      ...(input.eatenMinute === undefined ? {} : { eatenMinute: input.eatenMinute }),
+    },
   });
   await recomputeFoodLogDay(athleteId, trainingDayIdOf(entry.date));
   return servedEntry(updated, diets);

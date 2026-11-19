@@ -3,7 +3,7 @@
  *
  * Callers: handlers/v1/today/handler.ts, day-timeline.test.ts, TodayFold (iOS).
  * API: GET /api/v1/today optional `timeline` array.
- * Schema: reads dailyHealth, athleteDayJournal, foodLogEntry (no new tables).
+ * Schema: reads dailyHealth, athleteDayJournal, foodLogEntry (its `eatenMinute` places a meal, ADR-137).
  * User: "fix all" — go-all P2 day timeline sprint.
  */
 
@@ -37,6 +37,67 @@ const MEAL_MINUTE: Record<FoodMealKey, number> = {
   SNACKS: 16 * 60,
   DINNER: 19 * 60 + 30,
 };
+
+/** Foods of one meal eaten further apart than this are two moments of the day (ADR-137). */
+const MEAL_MOMENT_GAP_MIN = 45;
+
+export type V1DayTimelineMeal = {
+  meal: FoodMealKey;
+  count: number;
+  kcal: number;
+  /** When it was eaten; absent or null reads at the meal's usual hour. */
+  minuteOfDay?: number | null;
+};
+
+type TimelineFood = { meal: FoodMealKey; kcal: number; eatenMinute: number | null };
+
+function mealMoment(meal: FoodMealKey, foods: readonly TimelineFood[], minute: number | null) {
+  return {
+    meal,
+    count: foods.length,
+    kcal: foods.reduce((sum, food) => sum + food.kcal, 0),
+    minuteOfDay: minute,
+  };
+}
+
+/**
+ * A day's foods as moments on the rail (ADR-137): each meal at the time its foods were eaten,
+ * split where they were eaten more than 45 minutes apart — a snack at 10:00 and one at 16:30 are
+ * two beats of the day. Foods without a time join the meal's first moment; a meal with no time
+ * at all stands at its usual hour.
+ */
+export function mealMoments(foods: readonly TimelineFood[]): V1DayTimelineMeal[] {
+  const moments: V1DayTimelineMeal[] = [];
+  for (const meal of Object.keys(MEAL_MINUTE) as FoodMealKey[]) {
+    const ofMeal = foods.filter((food) => food.meal === meal);
+    if (ofMeal.length === 0) {
+      continue;
+    }
+    const timed = ofMeal
+      .filter((food) => food.eatenMinute !== null)
+      .sort((a, b) => a.eatenMinute! - b.eatenMinute!);
+    const untimed = ofMeal.filter((food) => food.eatenMinute === null);
+    if (timed.length === 0) {
+      moments.push(mealMoment(meal, untimed, null));
+      continue;
+    }
+    const clusters: TimelineFood[][] = [];
+    for (const food of timed) {
+      const current = clusters.at(-1);
+      const last = current?.at(-1);
+      if (current && last && food.eatenMinute! - last.eatenMinute! <= MEAL_MOMENT_GAP_MIN) {
+        current.push(food);
+      } else {
+        clusters.push([food]);
+      }
+    }
+    clusters[0]!.push(...untimed);
+    for (const cluster of clusters) {
+      moments.push(mealMoment(meal, cluster, cluster[0]!.eatenMinute));
+    }
+  }
+  return moments;
+}
 
 export type V1DayTimelineSession = {
   title: string;
@@ -91,7 +152,7 @@ export function buildV1DayTimeline(input: {
   bedtimeMin: number | null;
   wakeMin: number | null;
   sessions: readonly V1DayTimelineSession[];
-  meals: ReadonlyArray<{ meal: FoodMealKey; count: number; kcal: number }>;
+  meals: readonly V1DayTimelineMeal[];
   journal: {
     moodLabel: string | null;
     hydrationMl: number | null;
@@ -131,7 +192,7 @@ export function buildV1DayTimeline(input: {
   for (const meal of input.meals) {
     events.push({
       kind: 'meal',
-      minuteOfDay: MEAL_MINUTE[meal.meal],
+      minuteOfDay: meal.minuteOfDay ?? MEAL_MINUTE[meal.meal],
       title: FOOD_MEAL_LABELS[meal.meal],
       detail: `${meal.count} aliment${meal.count > 1 ? 's' : ''} · ${Math.round(meal.kcal).toLocaleString('fr-FR')} kcal`,
     });
@@ -198,30 +259,25 @@ export async function loadV1DayTimeline(
     getDayJournalEntry(prisma, athleteId, trainingDayId),
     prisma.foodLogEntry.findMany({
       where: { athleteId, date: foodLogDayDate(trainingDayId) },
-      select: { meal: true, kcal: true },
+      select: { meal: true, kcal: true, eatenMinute: true },
     }),
   ]);
 
   const todayHealth = healthEntries.find((entry) => trainingDayKey(entry.date) === trainingDayId);
 
-  const mealsByKey = new Map<FoodMealKey, { count: number; kcal: number }>();
-  for (const row of mealRows) {
-    const meal = row.meal as FoodMealKey;
-    if (!(meal in FOOD_MEAL_LABELS)) {
-      continue;
-    }
-    const current = mealsByKey.get(meal) ?? { count: 0, kcal: 0 };
-    mealsByKey.set(meal, {
-      count: current.count + 1,
-      kcal: current.kcal + (row.kcal ?? 0),
-    });
-  }
-
   return buildV1DayTimeline({
     bedtimeMin: todayHealth?.sleepBedtimeMin ?? null,
     wakeMin: todayHealth?.sleepWakeMin ?? null,
     sessions: extras.sessions,
-    meals: [...mealsByKey.entries()].map(([meal, stats]) => ({ meal, ...stats })),
+    meals: mealMoments(
+      mealRows
+        .filter((row) => row.meal in FOOD_MEAL_LABELS)
+        .map((row) => ({
+          meal: row.meal as FoodMealKey,
+          kcal: row.kcal ?? 0,
+          eatenMinute: row.eatenMinute,
+        })),
+    ),
     journal: {
       moodLabel: journal.moodLabel,
       hydrationMl: journal.hydrationMl,

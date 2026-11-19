@@ -69,10 +69,21 @@ export type LoggedEntry = PortionNutrients & {
   meal: FoodMealKey;
   name: string;
   brand?: string | null;
+  /** Minutes after the day's local midnight; null or absent when no time was given (ADR-137). */
+  eatenMinute?: number | null;
 };
+
+/** A minute of the day as the athlete reads it: « 07:45 ». */
+export function formatEatenMinute(minute: number): string {
+  const wrapped = ((Math.round(minute) % 1440) + 1440) % 1440;
+  const hours = Math.floor(wrapped / 60);
+  return `${String(hours).padStart(2, '0')}:${String(wrapped % 60).padStart(2, '0')}`;
+}
 
 type StoredFoodEntry = {
   name: string;
+  /** « HH:MM » when the athlete said when it was eaten. */
+  time?: string;
   calories: number;
   protein: number;
   carbs: number;
@@ -114,6 +125,9 @@ function storedEntry(entry: LoggedEntry): StoredFoodEntry {
     fat: entry.fat,
     ...(entry.sugar === null ? {} : { sugar: entry.sugar }),
     ...(entry.fiber === null ? {} : { fiber: entry.fiber }),
+    ...(entry.eatenMinute === null || entry.eatenMinute === undefined
+      ? {}
+      : { time: formatEatenMinute(entry.eatenMinute) }),
   };
 }
 

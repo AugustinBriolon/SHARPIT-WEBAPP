@@ -3,7 +3,7 @@
  * User: "fix all" — go-all P2 day timeline.
  */
 import { describe, expect, it } from 'vitest';
-import { buildV1DayTimeline } from './day-timeline';
+import { buildV1DayTimeline, mealMoments } from './day-timeline';
 
 describe('buildV1DayTimeline', () => {
   it('orders wake, check-ins, meals, sessions and stress by minuteOfDay', () => {
@@ -71,6 +71,57 @@ describe('buildV1DayTimeline', () => {
         title: 'Stress du jour',
         detail: '40 / 100',
       },
+    ]);
+  });
+});
+
+describe('mealMoments (ADR-137)', () => {
+  it('stands a meal without any time at its usual hour', () => {
+    const [moment] = mealMoments([
+      { meal: 'LUNCH', kcal: 300, eatenMinute: null },
+      { meal: 'LUNCH', kcal: 200, eatenMinute: null },
+    ]);
+    expect(moment).toEqual({ meal: 'LUNCH', count: 2, kcal: 500, minuteOfDay: null });
+  });
+
+  it('places a meal at its first food and folds the untimed foods into it', () => {
+    expect(
+      mealMoments([
+        { meal: 'BREAKFAST', kcal: 100, eatenMinute: 7 * 60 + 40 },
+        { meal: 'BREAKFAST', kcal: 50, eatenMinute: null },
+        { meal: 'BREAKFAST', kcal: 80, eatenMinute: 7 * 60 + 10 },
+      ]),
+    ).toEqual([{ meal: 'BREAKFAST', count: 3, kcal: 230, minuteOfDay: 7 * 60 + 10 }]);
+  });
+
+  it('splits foods of one meal eaten more than 45 minutes apart', () => {
+    const moments = mealMoments([
+      { meal: 'SNACKS', kcal: 90, eatenMinute: 10 * 60 },
+      { meal: 'SNACKS', kcal: 200, eatenMinute: 16 * 60 + 30 },
+      { meal: 'SNACKS', kcal: 40, eatenMinute: 16 * 60 + 45 },
+    ]);
+    expect(moments.map((moment) => [moment.minuteOfDay, moment.count])).toEqual([
+      [10 * 60, 1],
+      [16 * 60 + 30, 2],
+    ]);
+  });
+
+  it('puts a timed meal on the rail at its own time, not the usual hour', () => {
+    const events = buildV1DayTimeline({
+      bedtimeMin: null,
+      wakeMin: null,
+      sessions: [],
+      meals: [
+        { meal: 'DINNER', count: 1, kcal: 600, minuteOfDay: 21 * 60 + 15 },
+        { meal: 'LUNCH', count: 1, kcal: 500 },
+      ],
+      journal: { moodLabel: null, hydrationMl: null, caffeineMg: null },
+      stress: null,
+      energyBank: null,
+    });
+    expect(events.map((event) => [event.title, event.minuteOfDay])).toEqual([
+      ['Déjeuner', 12 * 60 + 30],
+      ['Dîner', 21 * 60 + 15],
     ]);
   });
 });

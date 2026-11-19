@@ -17,6 +17,8 @@ export type NutritionGoalsProgress = {
 
 export type NutritionFoodEntry = {
   name: string;
+  /** « HH:MM » when the food log knows when it was eaten (ADR-137). */
+  time?: string;
   calories: number;
   protein: number;
   carbs: number;
