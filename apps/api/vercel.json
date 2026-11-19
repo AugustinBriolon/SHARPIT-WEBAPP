@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "corepack enable && HUSKY=0 yarn install --immutable",
   "buildCommand": "yarn db:migrate:deploy && yarn build",
+  "regions": ["lhr1"],
   "ignoreCommand": "node ../../scripts/ci/vercel-ignore-build.mjs --app api",
   "git": {
     "deploymentEnabled": false

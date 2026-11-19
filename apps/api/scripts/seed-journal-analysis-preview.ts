@@ -8,7 +8,7 @@
  * - Sometimes: late_meal, device_in_bed
  * - Caffeine: ~2 small cups (~80–100 mg)
  */
-import { PrismaClient } from '@prisma/client';
+import { createScriptPrismaClient } from '@sharpit/db/adapter';
 import {
   DEMO_JOURNAL_DAYS,
   demoJournalCaffeineMg,
@@ -18,7 +18,7 @@ import {
   demoJournalNightOutcomes,
 } from '@sharpit/server/lib/demo/demo-journal-seed';
 
-const prisma = new PrismaClient();
+const prisma = createScriptPrismaClient();
 
 function dayIdOffset(daysAgo: number): string {
   const d = new Date();

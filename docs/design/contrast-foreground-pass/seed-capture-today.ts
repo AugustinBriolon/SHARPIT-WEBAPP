@@ -8,7 +8,7 @@
  * + Frein · 2 signaux (hrv_low, sleep_short).
  */
 import { randomUUID } from 'node:crypto';
-import { PrismaClient } from '@prisma/client';
+import { createScriptPrismaClient } from '@sharpit/db/adapter';
 import { seedDemoAthlete, DEMO_CLERK_USER_ID } from '@sharpit/server/lib/demo/seed-demo-data';
 import { demoAnchorTrainingDayId } from '@sharpit/server/lib/demo/demo-calendar';
 import { addTrainingDays } from '@sharpit/core/training/training-day';
@@ -16,7 +16,7 @@ import { encryptSecret } from '@sharpit/server/lib/secret-box';
 
 const CAPTURE_CLERK_USER_ID = 'local_fictional_capture';
 
-const prisma = new PrismaClient();
+const prisma = createScriptPrismaClient();
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (value && typeof value === 'object' && !Array.isArray(value)) {

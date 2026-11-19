@@ -13,10 +13,10 @@
  *   yarn tsx scripts/remove-duplicate-session-observations.ts --apply --backup <file.json>
  */
 import { writeFile } from 'node:fs/promises';
-import { PrismaClient } from '@prisma/client';
+import { createScriptPrismaClient } from '@sharpit/db/adapter';
 import { planDuplicateSessionRemoval } from '@sharpit/server/lib/observation/duplicate-session-observations';
 
-const prisma = new PrismaClient();
+const prisma = createScriptPrismaClient();
 const arg = (name: string) => {
   const index = process.argv.indexOf(`--${name}`);
   return index > 0 ? process.argv[index + 1] : undefined;

@@ -6,7 +6,7 @@
  *   yarn tsx scripts/evaluate-decision-outcomes.ts
  *   yarn tsx scripts/evaluate-decision-outcomes.ts --dry-run
  */
-import { PrismaClient } from '@prisma/client';
+import { createScriptPrismaClient } from '@sharpit/db/adapter';
 import {
   expireDecision,
   findDecisionsPendingOutcomeEvaluation,
@@ -14,7 +14,7 @@ import {
 } from '@sharpit/server/lib/decision-memory/repository';
 import { evaluateAndSaveDecisionOutcome } from '@sharpit/server/lib/decision-memory/evaluate-decision-outcome';
 
-const prisma = new PrismaClient();
+const prisma = createScriptPrismaClient();
 const dryRun = process.argv.includes('--dry-run');
 
 async function main() {

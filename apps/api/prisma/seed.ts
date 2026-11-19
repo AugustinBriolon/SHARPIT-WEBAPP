@@ -1,7 +1,8 @@
-import { ActivityType, GoalHorizon, PrismaClient } from '@prisma/client';
+import { ActivityType, GoalHorizon } from '@prisma/client';
+import { createScriptPrismaClient } from '@sharpit/db/adapter';
 import { addDays, startOfDay, subDays } from 'date-fns';
 
-const prisma = new PrismaClient();
+const prisma = createScriptPrismaClient();
 
 async function main() {
   await prisma.strengthSet.deleteMany();

@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { createScriptPrismaClient } from '@sharpit/db/adapter';
 
-const prisma = new PrismaClient();
+const prisma = createScriptPrismaClient();
 
 async function main() {
   const profile = await prisma.athleteProfile.findFirst({
