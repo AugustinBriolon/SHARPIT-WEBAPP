@@ -48,6 +48,23 @@ describe('demo identity', () => {
   });
 });
 
+describe('demo identity from the environment', () => {
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    (await import('./demo-identity')).resetDemoIdentityCache();
+  });
+
+  it('reads DEMO_CLERK_USER_ID without asking Clerk', async () => {
+    vi.stubEnv('DEMO_CLERK_USER_ID', 'user_demo_env');
+    const { isDemoClerkUser } = await import('./demo-identity');
+
+    await expect(isDemoClerkUser('user_demo_env')).resolves.toBe(true);
+    await expect(isDemoClerkUser('user_athlete')).resolves.toBe(false);
+    expect(getUserList).not.toHaveBeenCalled();
+    vi.unstubAllEnvs();
+  });
+});
+
 describe('isDemoBlockedRequest', () => {
   it('blocks writes and provider connects, lets reads through', async () => {
     const { isDemoBlockedRequest } = await import('./demo-identity-shared');

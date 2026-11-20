@@ -8,6 +8,12 @@ import {
 const trainingDayId = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const grams = z.coerce.number().positive().max(5000);
 const per100g = z.coerce.number().min(0).max(1000);
+/** When a food was eaten: minutes after the training day's local midnight (ADR-137). */
+const eatenMinute = z.coerce
+  .number()
+  .int()
+  .min(0)
+  .max(24 * 60 - 1);
 
 /** Marks a meal of a day skipped on purpose, or clears the mark (ADR-113). */
 export const foodLogSkippedMealSchema = z.object({
@@ -22,6 +28,8 @@ export const foodLogEntryCreateSchema = z
     trainingDayId,
     meal: z.enum(FOOD_MEALS),
     grams,
+    /** Absent or null: no time given, the meal's usual hour stands in (ADR-137). */
+    eatenMinute: eatenMinute.nullable().optional(),
     productId: z.string().min(1).optional(),
     quick: z
       .object({
@@ -44,11 +52,18 @@ export const foodLogEntryBatchCreateSchema = z.object({
   group: z.object({ label: z.string().trim().min(1).max(80) }).optional(),
 });
 
+/** Any of the portion, the meal or the time; an explicit null clears the time (ADR-137). */
 export const foodLogEntryUpdateSchema = z
-  .object({ grams: grams.optional(), meal: z.enum(FOOD_MEALS).optional() })
-  .refine((value) => value.grams !== undefined || value.meal !== undefined, {
-    message: 'Rien à modifier.',
-  });
+  .object({
+    grams: grams.optional(),
+    meal: z.enum(FOOD_MEALS).optional(),
+    eatenMinute: eatenMinute.nullable().optional(),
+  })
+  .refine(
+    (value) =>
+      value.grams !== undefined || value.meal !== undefined || value.eatenMinute !== undefined,
+    { message: 'Rien à modifier.' },
+  );
 
 export const customFoodSchema = z.object({
   name: z.string().trim().min(1).max(120),

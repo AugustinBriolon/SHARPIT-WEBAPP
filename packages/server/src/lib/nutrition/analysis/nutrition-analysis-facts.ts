@@ -34,6 +34,8 @@ export type NutritionAnalysisMealInput = {
   fat: number;
   entries: readonly {
     name: string;
+    /** « HH:MM » when the athlete said when it was eaten (ADR-137). */
+    time?: string;
     calories: number;
     protein: number;
     carbs: number;
@@ -45,6 +47,8 @@ export type NutritionAnalysisSessionInput = {
   type: string;
   minutes: number | null;
   tss: number | null;
+  /** Local start, « HH:MM ». Read only by `timing`, so a day without food times keeps its hash. */
+  start?: string | null;
 };
 
 export type NutritionAnalysisPlannedInput = {
@@ -126,6 +130,21 @@ export type NutritionAnalysisFacts = {
     measuredMaintenanceKcal: number | null;
   } | null;
   meals: NutritionAnalysisMealInput[];
+  /**
+   * When the day was eaten, set only when at least one food carries a time (ADR-137) — absent,
+   * the facts (and their hash) are those of a day logged before times existed.
+   */
+  timing?: NutritionAnalysisTiming;
+};
+
+export type NutritionAnalysisTiming = {
+  timedEntries: number;
+  firstEaten: string;
+  lastEaten: string;
+  /** Each meal with a timed food: its first and last time. */
+  meals: { meal: string; from: string; to: string }[];
+  /** The day's sessions whose start is known, to read what was eaten around them. */
+  sessions: { type: string; start: string; minutes: number | null }[];
 };
 
 function round(value: number, decimals = 1): number {
@@ -264,10 +283,44 @@ export function countLoggedEntries(meals: readonly NutritionAnalysisMealInput[])
   return meals.reduce((sum, meal) => sum + meal.entries.length, 0);
 }
 
+/** « HH:MM » sorts as the clock does. */
+function byClock(a: string, b: string): number {
+  return a.localeCompare(b);
+}
+
+export function buildTiming(
+  meals: readonly NutritionAnalysisMealInput[],
+  sessions: readonly NutritionAnalysisSessionInput[],
+): NutritionAnalysisTiming | undefined {
+  const times = meals.flatMap((meal) => meal.entries.flatMap((entry) => entry.time ?? []));
+  if (times.length === 0) {
+    return undefined;
+  }
+  const sorted = [...times].sort(byClock);
+  return {
+    timedEntries: times.length,
+    firstEaten: sorted[0]!,
+    lastEaten: sorted.at(-1)!,
+    meals: meals.flatMap((meal) => {
+      const own = meal.entries.flatMap((entry) => entry.time ?? []).sort(byClock);
+      return own.length === 0 ? [] : [{ meal: meal.label, from: own[0]!, to: own.at(-1)! }];
+    }),
+    sessions: sessions.flatMap((session) =>
+      session.start ? [{ type: session.type, start: session.start, minutes: session.minutes }] : [],
+    ),
+  };
+}
+
+/** The sessions as the facts carry them: their start lives in `timing` only. */
+function factSessions(sessions: readonly NutritionAnalysisSessionInput[]) {
+  return sessions.map(({ type, minutes, tss }) => ({ type, minutes, tss }));
+}
+
 export function buildNutritionAnalysisFacts(raw: NutritionAnalysisInput): NutritionAnalysisFacts {
   // Weigh-ins come back as 81.082000000001 — one decimal is what the athlete reads.
   const input = { ...raw, weightKg: raw.weightKg === null ? null : round(raw.weightKg) };
-  const load = buildLoad(input.sessions);
+  const load = buildLoad(factSessions(input.sessions));
+  const timing = buildTiming(input.meals, input.sessions);
   return {
     day: input.day,
     logging: {
@@ -293,5 +346,6 @@ export function buildNutritionAnalysisFacts(raw: NutritionAnalysisInput): Nutrit
     },
     weightGoal: buildWeightGoal(input),
     meals: input.meals.map((meal) => ({ ...meal, entries: [...meal.entries] })),
+    ...(timing ? { timing } : {}),
   };
 }

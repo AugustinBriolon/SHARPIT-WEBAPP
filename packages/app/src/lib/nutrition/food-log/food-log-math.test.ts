@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  formatEatenMinute,
   isFoodLogDayComplete,
   portionNutrients,
   projectFoodLogDay,
@@ -68,6 +69,26 @@ describe('projectFoodLogDay', () => {
       sugar: null,
       meals: [],
     });
+  });
+});
+
+describe('eaten time (ADR-137)', () => {
+  it('reads a minute of the day as the clock does', () => {
+    expect(formatEatenMinute(7 * 60 + 5)).toBe('07:05');
+    expect(formatEatenMinute(23 * 60 + 59)).toBe('23:59');
+    expect(formatEatenMinute(0)).toBe('00:00');
+  });
+
+  it('stores the time of a food that has one, and nothing for one that has not', () => {
+    const base = { kcal: 100, protein: 5, carbs: 10, fat: 2, fiber: null, sugar: null };
+    const day = projectFoodLogDay([
+      { ...base, meal: 'LUNCH', name: 'Riz', eatenMinute: 12 * 60 + 45 },
+      { ...base, meal: 'LUNCH', name: 'Pomme', eatenMinute: null },
+    ]);
+    expect(day.meals[0]?.entries).toEqual([
+      { name: 'Riz', calories: 100, protein: 5, carbs: 10, fat: 2, time: '12:45' },
+      { name: 'Pomme', calories: 100, protein: 5, carbs: 10, fat: 2 },
+    ]);
   });
 });
 

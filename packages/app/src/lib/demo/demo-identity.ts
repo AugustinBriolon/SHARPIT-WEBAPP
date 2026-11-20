@@ -11,9 +11,19 @@ export {
 /** The demo user never changes once created: one lookup per server instance. */
 let knownDemoUserId: string | null = null;
 
+/**
+ * `DEMO_CLERK_USER_ID`, when set, names the demo user without asking Clerk: the lookup is
+ * otherwise a Backend API round trip on the first authenticated request of every cold instance
+ * (`getCurrentAthleteId` → `isDemoSession`).
+ */
 async function findDemoUserId(): Promise<string | null> {
   if (knownDemoUserId) {
     return knownDemoUserId;
+  }
+  const configured = process.env.DEMO_CLERK_USER_ID?.trim();
+  if (configured) {
+    knownDemoUserId = configured;
+    return configured;
   }
   const client = await clerkClient();
   const { data } = await client.users.getUserList({ externalId: [DEMO_EXTERNAL_ID], limit: 1 });

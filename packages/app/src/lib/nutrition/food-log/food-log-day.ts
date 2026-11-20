@@ -30,6 +30,8 @@ export type FoodLogEntryPayload = {
   fat: number;
   fiber?: number | null;
   sugar?: number | null;
+  /** When it was eaten, minutes after the day's local midnight; null when not given (ADR-137). */
+  eatenMinute?: number | null;
   /** The linked product's Sharpit score, live (ADR-063); absent for a quick add. */
   health?: ServedFoodHealth | null;
 };
@@ -257,7 +259,12 @@ export function entryRecreateInput(
   entry: FoodLogEntryPayload,
   trainingDayId: string,
 ): FoodLogEntryCreateInput {
-  const base = { trainingDayId, meal: entry.meal, grams: entry.grams };
+  const base = {
+    trainingDayId,
+    meal: entry.meal,
+    grams: entry.grams,
+    eatenMinute: entry.eatenMinute ?? null,
+  };
   if (entry.productId) {
     return { ...base, productId: entry.productId };
   }

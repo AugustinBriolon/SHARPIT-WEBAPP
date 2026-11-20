@@ -743,26 +743,29 @@ enum FoodProductSource {
 /// at logging, so a product refreshed later never rewrites a past day. The day's
 /// `DailyNutrition` row (`provider: sharpit`) is recomputed from these entries on every change.
 model FoodLogEntry {
-  id        String         @id @default(cuid())
-  athleteId String
-  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  id          String         @id @default(cuid())
+  athleteId   String
+  athlete     AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
   /// Training day, stored at UTC midnight like DailyNutrition.date.
-  date      DateTime
-  meal      FoodMeal
-  productId String?
-  product   FoodProduct?   @relation(fields: [productId], references: [id], onDelete: SetNull)
-  name      String
-  brand     String?
-  grams     Float
-  kcal      Float
-  protein   Float
-  carbs     Float
-  fat       Float
-  fiber     Float?
-  sugar     Float?
+  date        DateTime
+  meal        FoodMeal
+  productId   String?
+  product     FoodProduct?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name        String
+  brand       String?
+  grams       Float
+  kcal        Float
+  protein     Float
+  carbs       Float
+  fat         Float
+  fiber       Float?
+  sugar       Float?
+  /// When it was eaten, in minutes after the training day's local midnight (0–1439, ADR-137);
+  /// null when the athlete gave no time — readers fall back on the meal's usual hour.
+  eatenMinute Int?
   /// The meal this food was logged as part of (ADR-134); null for a food logged on its own.
-  groupId   String?
-  group     FoodLogGroup?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId     String?
+  group       FoodLogGroup?  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

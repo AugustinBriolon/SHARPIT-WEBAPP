@@ -116,8 +116,14 @@ describe('entryRecreateInput', () => {
       trainingDayId: '2026-10-01',
       meal: 'LUNCH',
       grams: 150,
+      eatenMinute: null,
       productId: 'skyr',
     });
+  });
+
+  it('keeps the time the food was eaten (ADR-137)', () => {
+    const timed = { ...entry('a', 'LUNCH', 93), eatenMinute: 12 * 60 + 40 };
+    expect(entryRecreateInput(timed, '2026-10-01')).toMatchObject({ eatenMinute: 12 * 60 + 40 });
   });
 
   it('logs a quick add again with its typed nutrients', () => {
@@ -126,6 +132,7 @@ describe('entryRecreateInput', () => {
       trainingDayId: '2026-10-01',
       meal: 'DINNER',
       grams: 150,
+      eatenMinute: null,
       quick: { name: 'Pizza', kcal: 650, protein: 16.5, carbs: 6, fat: 0.3 },
     });
   });
