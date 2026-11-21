@@ -95,7 +95,7 @@ function caffeineTimingFactors(
     lastCoffeeMinute: row.caffeineLoggedAt
       ? minuteOnDay(row.caffeineLoggedAt, row.trainingDayId, timeZone)
       : null,
-    nextBedtimeMinute: (nextDay && healthByDay.get(nextDay)?.sleepBedtimeMin) ?? null,
+    nextBedtimeMinute: nextDay ? (healthByDay.get(nextDay)?.sleepBedtimeMin ?? null) : null,
   });
   return late ? { [LATE_COFFEE_FACTOR_ID]: late } : {};
 }
