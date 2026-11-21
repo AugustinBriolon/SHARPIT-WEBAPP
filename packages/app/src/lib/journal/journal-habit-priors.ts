@@ -22,6 +22,7 @@ const PRIMARY: Partial<Record<JournalOutcomeKey, ReadonlySet<string>>> = {
     'device_in_bed',
     'alcohol',
     'coffee',
+    'late_coffee',
     'shared_bed',
     'night_work',
     'earplugs',
@@ -67,6 +68,7 @@ const SECONDARY: Partial<Record<JournalOutcomeKey, ReadonlySet<string>>> = {
     'menstruation',
   ]),
   recoveryScore: new Set([
+    'late_coffee',
     'creatine',
     'magnesium',
     'ashwagandha',

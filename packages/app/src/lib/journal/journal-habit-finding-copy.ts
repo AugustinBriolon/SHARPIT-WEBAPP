@@ -5,6 +5,10 @@ import type {
   JournalOutcomeKey,
 } from '@sharpit/app/lib/journal/journal-habit-analysis';
 import { journalTrackableById } from '@sharpit/app/lib/journal/journal-trackables';
+import {
+  LATE_COFFEE_FACTOR_ID,
+  LATE_COFFEE_LABEL,
+} from '@sharpit/app/lib/journal/journal-caffeine-timing';
 
 const OUTCOME_LABELS: Record<JournalOutcomeKey, string> = {
   sleepMinutes: 'sommeil',
@@ -16,6 +20,9 @@ export function journalFactorDisplayLabel(factorId: string): string {
   const trackable = journalTrackableById(factorId);
   if (trackable) {
     return trackable.label;
+  }
+  if (factorId === LATE_COFFEE_FACTOR_ID) {
+    return LATE_COFFEE_LABEL;
   }
   const factor = DAY_CONTEXT_FACTORS.find((item) => item.id === factorId);
   if (factor) {

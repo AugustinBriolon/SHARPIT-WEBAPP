@@ -5,8 +5,14 @@
 import type { Prisma, PrismaClient } from '@prisma/client';
 import { parseDayJournalEntry } from '@sharpit/app/lib/journal/day-journal';
 import {
+  LATE_COFFEE_FACTOR_ID,
+  lateCoffeeFactor,
+} from '@sharpit/app/lib/journal/journal-caffeine-timing';
+import { athleteTimeZone, minuteOnDay } from '@sharpit/server/lib/athlete-time-zone';
+import {
   buildJournalHabitFindings,
   recordedFactorValue,
+  shiftTrainingDayId,
   type JournalAnalysisDay,
   type JournalHabitFinding,
   type RecordedFactor,
@@ -40,6 +46,7 @@ const JOURNAL_ROW_SELECT = {
   moodLabel: true,
   hydrationMl: true,
   caffeineMg: true,
+  caffeineLoggedAt: true,
   drivingMinutes: true,
   updatedAt: true,
 } as const;
@@ -47,6 +54,7 @@ const JOURNAL_ROW_SELECT = {
 export const HEALTH_ROW_SELECT = {
   date: true,
   sleepMinutes: true,
+  sleepBedtimeMin: true,
   recoveryScore: true,
   bodyBattery: true,
 } as const;
@@ -72,10 +80,31 @@ function healthOutcomes(
   };
 }
 
+/**
+ * The day's caffeine timing as a factor (ADR-139): its last coffee against the bedtime of the night
+ * after it, the one the analysis reads the day's habits on.
+ */
+function caffeineTimingFactors(
+  row: JournalRow,
+  healthByDay: Map<string, HealthRow>,
+  timeZone: string,
+): Record<string, RecordedFactor> {
+  const nextDay = shiftTrainingDayId(row.trainingDayId, 1);
+  const late = lateCoffeeFactor({
+    caffeineMg: row.caffeineMg,
+    lastCoffeeMinute: row.caffeineLoggedAt
+      ? minuteOnDay(row.caffeineLoggedAt, row.trainingDayId, timeZone)
+      : null,
+    nextBedtimeMinute: (nextDay && healthByDay.get(nextDay)?.sleepBedtimeMin) ?? null,
+  });
+  return late ? { [LATE_COFFEE_FACTOR_ID]: late } : {};
+}
+
 /** Null when the day carries no explicit athlete signal. */
 function toAnalysisDay(
   row: JournalRow,
   healthByDay: Map<string, HealthRow>,
+  timeZone: string,
 ): JournalAnalysisDay | null {
   const entry = parseDayJournalEntry(row.trainingDayId, {
     trainingDayId: row.trainingDayId,
@@ -91,7 +120,10 @@ function toAnalysisDay(
   }
   return {
     trainingDayId: row.trainingDayId,
-    factors: parseRecordedFactors(entry.factors),
+    factors: {
+      ...parseRecordedFactors(entry.factors),
+      ...caffeineTimingFactors(row, healthByDay, timeZone),
+    },
     ...healthOutcomes(healthByDay.get(row.trainingDayId)),
   };
 }
@@ -100,15 +132,16 @@ export async function loadJournalAnalysisSeries(
   prisma: PrismaClient,
   athleteId: string,
 ): Promise<JournalAnalysisDay[]> {
-  const [journals, healthRows] = await Promise.all([
+  const [journals, healthRows, timeZone] = await Promise.all([
     prisma.athleteDayJournal.findMany({ where: { athleteId }, select: JOURNAL_ROW_SELECT }),
     prisma.dailyHealth.findMany({ where: { athleteId }, select: HEALTH_ROW_SELECT }),
+    athleteTimeZone(athleteId),
   ]);
 
   const healthByDay = indexHealthByDay(healthRows);
   const days: JournalAnalysisDay[] = [];
   for (const row of journals) {
-    const day = toAnalysisDay(row, healthByDay);
+    const day = toAnalysisDay(row, healthByDay, timeZone);
     if (day) {
       days.push(day);
     }
