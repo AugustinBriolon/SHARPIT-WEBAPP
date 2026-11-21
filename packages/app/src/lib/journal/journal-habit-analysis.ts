@@ -2,7 +2,8 @@
  * Journal habit × physiology associations — presentation analytics only (no Core).
  *
  * Scientific framing (n=1 athlete mirror, ADR-098):
- * - Association, not causation. Training load is controlled; travel and illness are not.
+ * - Association, not causation. Training load, weekday, slow trends, illness and trips are
+ *   controlled; everything else is not.
  * - Null / unset excluded. Constant habits (always yes / always no) yield no contrast.
  * - Central tendency = median (robust to outliers).
  * - Every outcome is a morning reading (the night ending on the day, readiness on waking), so
@@ -13,6 +14,13 @@
  *   the sessions.
  * - Weekday: a weekend morning is brought back to the athlete's weekday level, so a habit
  *   of Saturday evenings is not credited with Sunday's longer night.
+ * - Own baseline (ADR-140): each morning is read against the mornings around it, so a block of
+ *   form, a season or a new watch is not credited to a habit started at the same time.
+ * - Spells, not days (ADR-140): days in a row with the same answer are one spell. The rank test
+ *   compares spell with spell, and a habit seen on and off fewer than three separate times is a
+ *   before/after, not an association.
+ * - Illness and trips (ADR-140): a morning of fever, a declared sick period or a trip is left
+ *   out, so what is done because of them does not take their blame.
  * - Net vs lead: a Mann–Whitney rank test per contrast, then Benjamini–Hochberg across every
  *   contrast tested, so testing fifty habits does not manufacture associations.
  * - Habits always logged together are inseparable in the data: one row names them all, and
@@ -28,6 +36,7 @@ import {
 } from '@sharpit/app/lib/journal/day-context-factors';
 import { habitOutcomePlausibility } from '@sharpit/app/lib/journal/journal-habit-priors';
 import {
+  baselineAdjuster,
   benjaminiHochberg,
   loadAdjuster,
   mannWhitneyPValue,
@@ -68,7 +77,11 @@ export type FactorOutcomeEffect = {
   polarity: ObservationPolarity;
   confidence: ObservationConfidence;
   lagDays: number;
-  /** Two-sided Mann–Whitney p-value of the contrast. */
+  /** Separate spells with the habit: a run of days in a row counts once. */
+  episodesYes: number;
+  /** Separate spells without it. */
+  episodesNo: number;
+  /** Two-sided Mann–Whitney p-value of the contrast, spell against spell. */
   pValue: number;
 };
 
@@ -78,6 +91,11 @@ export type JournalHabitAnalysisOptions = {
    * load adjustment.
    */
   loadByDay?: ReadonlyMap<string, number>;
+  /**
+   * Days (`YYYY-MM-DD`) the athlete was away or declared sick: neither their habits nor their
+   * mornings are compared, for any habit.
+   */
+  excludedDayIds?: ReadonlySet<string>;
 };
 
 export type JournalHabitFinding = {
@@ -132,7 +150,16 @@ export const MIN_N_PER_GROUP_MEDIUM = 4;
 export const NET_FALSE_DISCOVERY_RATE = 0.1;
 
 /** A lead still has to be unlikely as chance on its own. */
-export const LEAD_MAX_P_VALUE = 0.2;
+export const LEAD_MAX_P_VALUE = 0.05;
+
+/** A lead needs the habit on and off this many separate times: fewer is a before/after. */
+export const MIN_EPISODES_MEDIUM = 3;
+
+/** A net association needs this many separate spells on each side. */
+export const MIN_EPISODES_HIGH = 5;
+
+/** Days with nothing noted between two days of a spell before it counts as a new one. */
+export const EPISODE_MAX_GAP_DAYS = 3;
 
 /** Two habits this correlated over the days both were noted cannot be told apart. */
 export const INSEPARABLE_PHI = 0.7;
@@ -149,6 +176,17 @@ const CONCURRENT_STATE_FACTORS: ReadonlySet<string> = new Set([
   'cramps',
   'abdominal_cramps',
   'pregnant',
+]);
+
+/**
+ * Illness noted in the journal. Such a morning is low whatever else was done, and what is
+ * taken because of it (zinc, a nap, rest) would carry the blame: these days are left out of
+ * every other habit's contrast. The illness itself is still read against its own mornings.
+ */
+export const ILLNESS_FACTORS: ReadonlySet<string> = new Set([
+  'fever',
+  'cold_congestion',
+  'antibiotic',
 ]);
 
 export function recordedFactorValue(state: string | null | undefined): RecordedFactor | null {
@@ -308,6 +346,36 @@ function isWeekendMorning(trainingDayId: string): boolean {
   return weekday === 0 || weekday === 6;
 }
 
+/** `YYYY-MM-DD` as a day count, for distances between mornings. */
+function dayIndex(trainingDayId: string): number {
+  return Math.round(Date.parse(`${trainingDayId}T00:00:00Z`) / 86_400_000);
+}
+
+/** Days with an illness noted: left out of the fits and of every other habit's contrast. */
+function illDayIds(days: readonly JournalAnalysisDay[]): Set<string> {
+  const ill = new Set<string>();
+  for (const day of days) {
+    if ([...ILLNESS_FACTORS].some((id) => day.factors[id] === 'yes')) {
+      ill.add(day.trainingDayId);
+    }
+  }
+  return ill;
+}
+
+type AnalysisFrame = {
+  /** Mornings never compared for any habit: away, or declared sick. */
+  excluded: ReadonlySet<string>;
+  /** Mornings with an illness noted in the journal. */
+  ill: ReadonlySet<string>;
+};
+
+function analysisFrame(
+  days: readonly JournalAnalysisDay[],
+  options: JournalHabitAnalysisOptions,
+): AnalysisFrame {
+  return { excluded: options.excludedDayIds ?? new Set(), ill: illDayIds(days) };
+}
+
 /** A reader adjusted for the load of the day before, when there are days enough to fit it. */
 function loadAdjustedReader(
   days: readonly JournalAnalysisDay[],
@@ -331,62 +399,154 @@ function loadAdjustedReader(
   };
 }
 
+function weekendAdjustedReader(
+  days: readonly JournalAnalysisDay[],
+  read: OutcomeReader,
+): OutcomeReader {
+  const points = days.flatMap((day) => {
+    const value = read(day.trainingDayId);
+    return value === null ? [] : [{ value, weekend: isWeekendMorning(day.trainingDayId) }];
+  });
+  const adjust = weekendAdjuster(points);
+  if (!adjust) {
+    return read;
+  }
+  return (dayId) => {
+    const value = read(dayId);
+    return value === null ? null : adjust(value, isWeekendMorning(dayId));
+  };
+}
+
+/** Each morning against the mornings around it, so a slow shift is not credited to a habit. */
+function baselineAdjustedReader(
+  days: readonly JournalAnalysisDay[],
+  read: OutcomeReader,
+): OutcomeReader {
+  const points = days.flatMap((day) => {
+    const value = read(day.trainingDayId);
+    return value === null ? [] : [{ value, dayIndex: dayIndex(day.trainingDayId) }];
+  });
+  const adjust = baselineAdjuster(points);
+  if (!adjust) {
+    return read;
+  }
+  const cache = new Map<string, number | null>();
+  return (dayId) => {
+    if (!cache.has(dayId)) {
+      const value = read(dayId);
+      cache.set(dayId, value === null ? null : adjust(value, dayIndex(dayId)));
+    }
+    return cache.get(dayId) ?? null;
+  };
+}
+
+/**
+ * A morning's outcome once the load of the day before, the weekend and the level of the
+ * mornings around it are taken out. The three fits are made on ordinary mornings only: a week
+ * of flu or a trip would bend them.
+ */
 function outcomeReader(
   days: readonly JournalAnalysisDay[],
   outcome: JournalOutcomeKey,
-  loadByDay: ReadonlyMap<string, number> | undefined,
+  options: JournalHabitAnalysisOptions,
+  frame: AnalysisFrame = analysisFrame(days, options),
 ): OutcomeReader {
   const byId = indexDaysById(days);
   const raw = (dayId: string) => {
     const day = byId.get(dayId);
     return day ? outcomeValue(day, outcome) : null;
   };
-  const forLoad = loadAdjustedReader(days, raw, loadByDay);
-  const points = days.flatMap((day) => {
-    const value = forLoad(day.trainingDayId);
-    return value === null ? [] : [{ value, weekend: isWeekendMorning(day.trainingDayId) }];
-  });
-  const adjust = weekendAdjuster(points);
-  if (!adjust) {
-    return forLoad;
-  }
-  return (dayId) => {
-    const value = forLoad(dayId);
-    return value === null ? null : adjust(value, isWeekendMorning(dayId));
-  };
+  const ordinary = days.filter(
+    (day) => !frame.excluded.has(day.trainingDayId) && !frame.ill.has(day.trainingDayId),
+  );
+  const forLoad = loadAdjustedReader(ordinary, raw, options.loadByDay);
+  const forWeekend = weekendAdjustedReader(ordinary, forLoad);
+  return baselineAdjustedReader(ordinary, forWeekend);
 }
 
+type FactorSplit = {
+  yesValues: number[];
+  noValues: number[];
+  /** One value per spell with the habit: the median of its mornings. */
+  yesEpisodes: number[];
+  noEpisodes: number[];
+};
+
+/**
+ * The mornings after the habit and after its absence, and the same grouped in spells: days in
+ * a row with the same answer are one spell. Mornings in a row resemble each other, so six
+ * evenings of one holiday week are one observation of that week, not six of the habit.
+ */
 function splitOutcomeByFactor(
   days: readonly JournalAnalysisDay[],
   factorId: string,
   lagDays: number,
   readOutcome: OutcomeReader,
-): { yesValues: number[]; noValues: number[] } {
-  const yesValues: number[] = [];
-  const noValues: number[] = [];
+  frame: AnalysisFrame,
+): FactorSplit {
+  const split: FactorSplit = { yesValues: [], noValues: [], yesEpisodes: [], noEpisodes: [] };
+  const skipsIll = !ILLNESS_FACTORS.has(factorId);
+  const left = (dayId: string) => frame.excluded.has(dayId) || (skipsIll && frame.ill.has(dayId));
 
-  for (const day of days) {
+  let spell: { factor: RecordedFactor; lastIndex: number; values: number[] } | null = null;
+  const closeSpell = () => {
+    if (spell) {
+      (spell.factor === 'yes' ? split.yesEpisodes : split.noEpisodes).push(median(spell.values));
+    }
+  };
+
+  const ordered = [...days].sort((a, b) => a.trainingDayId.localeCompare(b.trainingDayId));
+  for (const day of ordered) {
     const factor = day.factors[factorId] ?? null;
     const outcomeDayId = shiftTrainingDayId(day.trainingDayId, lagDays);
-    const value = factor === null || !outcomeDayId ? null : readOutcome(outcomeDayId);
+    if (factor === null || !outcomeDayId || left(day.trainingDayId) || left(outcomeDayId)) {
+      continue;
+    }
+    const value = readOutcome(outcomeDayId);
     if (value === null) {
       continue;
     }
-    (factor === 'yes' ? yesValues : noValues).push(value);
+    (factor === 'yes' ? split.yesValues : split.noValues).push(value);
+    const index = dayIndex(day.trainingDayId);
+    if (spell && spell.factor === factor && index - spell.lastIndex <= EPISODE_MAX_GAP_DAYS) {
+      spell.values.push(value);
+      spell.lastIndex = index;
+    } else {
+      closeSpell();
+      spell = { factor, lastIndex: index, values: [value] };
+    }
   }
+  closeSpell();
+  return split;
+}
 
-  return { yesValues, noValues };
+/** Too few separate spells is a before/after, whatever the number of days in them. */
+function capByEpisodes(confidence: ObservationConfidence, episodes: number): ObservationConfidence {
+  if (episodes < MIN_EPISODES_MEDIUM) {
+    return 'none';
+  }
+  return confidence === 'high' && episodes < MIN_EPISODES_HIGH ? 'medium' : confidence;
 }
 
 export function compareFactorOutcome(
   days: readonly JournalAnalysisDay[],
   factorId: string,
   outcome: JournalOutcomeKey,
-  options: JournalHabitAnalysisOptions & { readOutcome?: OutcomeReader } = {},
+  options: JournalHabitAnalysisOptions & {
+    readOutcome?: OutcomeReader;
+    frame?: AnalysisFrame;
+  } = {},
 ): FactorOutcomeEffect | null {
   const lagDays = outcomeLagDays(factorId);
-  const readOutcome = options.readOutcome ?? outcomeReader(days, outcome, options.loadByDay);
-  const { yesValues, noValues } = splitOutcomeByFactor(days, factorId, lagDays, readOutcome);
+  const frame = options.frame ?? analysisFrame(days, options);
+  const readOutcome = options.readOutcome ?? outcomeReader(days, outcome, options, frame);
+  const { yesValues, noValues, yesEpisodes, noEpisodes } = splitOutcomeByFactor(
+    days,
+    factorId,
+    lagDays,
+    readOutcome,
+    frame,
+  );
 
   if (yesValues.length === 0 || noValues.length === 0) {
     return null;
@@ -396,12 +556,15 @@ export function compareFactorOutcome(
   const medianNo = median(noValues);
   const absDelta = Math.abs(medianYes - medianNo);
   const polarity: ObservationPolarity = medianYes >= medianNo ? 'plus' : 'minus';
-  const confidence = scoreObservationConfidence({
-    nYes: yesValues.length,
-    nNo: noValues.length,
-    absDelta,
-    outcome,
-  });
+  const confidence = capByEpisodes(
+    scoreObservationConfidence({
+      nYes: yesValues.length,
+      nNo: noValues.length,
+      absDelta,
+      outcome,
+    }),
+    Math.min(yesEpisodes.length, noEpisodes.length),
+  );
 
   return {
     factorId,
@@ -416,7 +579,9 @@ export function compareFactorOutcome(
     polarity,
     confidence,
     lagDays,
-    pValue: mannWhitneyPValue(yesValues, noValues),
+    episodesYes: yesEpisodes.length,
+    episodesNo: noEpisodes.length,
+    pValue: mannWhitneyPValue(yesEpisodes, noEpisodes),
   };
 }
 
@@ -564,10 +729,11 @@ function testableEffects(
   factorIds: readonly string[],
   options: JournalHabitAnalysisOptions,
 ): FactorOutcomeEffect[] {
+  const frame = analysisFrame(days, options);
   return OUTCOMES.flatMap((outcome) => {
-    const readOutcome = outcomeReader(days, outcome, options.loadByDay);
+    const readOutcome = outcomeReader(days, outcome, options, frame);
     return factorIds.flatMap((factorId) => {
-      const effect = compareFactorOutcome(days, factorId, outcome, { readOutcome });
+      const effect = compareFactorOutcome(days, factorId, outcome, { readOutcome, frame });
       return effect && Math.min(effect.nYes, effect.nNo) >= MIN_N_PER_GROUP_MEDIUM ? [effect] : [];
     });
   });

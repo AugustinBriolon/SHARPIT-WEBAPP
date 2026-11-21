@@ -1,5 +1,6 @@
 /**
- * Load joined journal × DailyHealth series, and the daily training load, for habit analysis.
+ * Load joined journal × DailyHealth series, the daily training load and the days set aside
+ * (trips, declared illness), for habit analysis.
  */
 
 import type { Prisma, PrismaClient } from '@prisma/client';
@@ -162,17 +163,63 @@ export async function loadDailyLoadByDay(athleteId: string): Promise<Map<string,
   return new Map(entries.map(({ date, load }) => [trainingDayIdFromDate(date), load]));
 }
 
+/** A period longer than this is not a parenthesis in the athlete's life: it is their life. */
+const MAX_EXCLUDED_PERIOD_DAYS = 120;
+
+/** Every training day from `start` to `end` inclusive, for each period. */
+export function dayIdsInPeriods(periods: ReadonlyArray<{ start: Date; end: Date }>): Set<string> {
+  const ids = new Set<string>();
+  for (const { start, end } of periods) {
+    const first = toUtcDateOnly(start).getTime();
+    const last = toUtcDateOnly(end).getTime();
+    const length = Math.round((last - first) / DAY_MS) + 1;
+    if (length < 1 || length > MAX_EXCLUDED_PERIOD_DAYS) {
+      continue;
+    }
+    for (let offset = 0; offset < length; offset += 1) {
+      ids.add(new Date(first + offset * DAY_MS).toISOString().slice(0, 10));
+    }
+  }
+  return ids;
+}
+
+/**
+ * The days the analysis does not compare (ADR-140): the athlete's trips, where the bed, the
+ * clock and the habits all change at once, and the periods they declared themselves sick.
+ */
+export async function loadExcludedDayIds(
+  prisma: PrismaClient,
+  athleteId: string,
+  now: Date = new Date(),
+): Promise<Set<string>> {
+  const [trips, sickPeriods] = await Promise.all([
+    prisma.athleteTravelContext.findMany({
+      where: { athleteId, type: 'TRAVEL' },
+      select: { startDate: true, endDate: true },
+    }),
+    prisma.athleteActivityStatusHistory.findMany({
+      where: { athleteId, status: 'sick' },
+      select: { startedAt: true, endedAt: true },
+    }),
+  ]);
+  return dayIdsInPeriods([
+    ...trips.map((trip) => ({ start: trip.startDate, end: trip.endDate })),
+    ...sickPeriods.map((period) => ({ start: period.startedAt, end: period.endedAt ?? now })),
+  ]);
+}
+
 export async function loadJournalHabitFindings(
   prisma: PrismaClient,
   athleteId: string,
 ): Promise<{ daysWithSignal: number; daysInSpan: number; findings: JournalHabitFinding[] }> {
-  const [series, loadByDay] = await Promise.all([
+  const [series, loadByDay, excludedDayIds] = await Promise.all([
     loadJournalAnalysisSeries(prisma, athleteId),
     loadDailyLoadByDay(athleteId),
+    loadExcludedDayIds(prisma, athleteId),
   ]);
   return {
     daysWithSignal: series.length,
     daysInSpan: countDaysInSpan(series),
-    findings: buildJournalHabitFindings(series, { loadByDay }),
+    findings: buildJournalHabitFindings(series, { loadByDay, excludedDayIds }),
   };
 }

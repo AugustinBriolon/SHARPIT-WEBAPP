@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  baselineAdjuster,
   weekendAdjuster,
   benjaminiHochberg,
   loadAdjuster,
@@ -54,5 +55,21 @@ describe('weekendAdjuster', () => {
       ...[420, 430, 410, 440].map((value) => ({ weekend: false, value })),
     ];
     expect(weekendAdjuster(points)).toBeNull();
+  });
+
+  it('reads a morning against the mornings around it, not against another season', () => {
+    // 30 mornings at 50, then 30 at 70: each is ordinary for its own block.
+    const points = Array.from({ length: 60 }, (_, dayIndex) => ({
+      dayIndex,
+      value: dayIndex < 30 ? 50 : 70,
+    }));
+    const adjust = baselineAdjuster(points)!;
+    expect(adjust(50, 5)).toBe(adjust(70, 50));
+    // A morning ten points under its own block stays ten points under.
+    expect(adjust(60, 50) - adjust(70, 51)).toBe(-10);
+    // Too few mornings around: read as it is.
+    const sparse = baselineAdjuster([...points, { dayIndex: 200, value: 90 }])!;
+    expect(sparse(90, 200)).toBe(90);
+    expect(baselineAdjuster(points.slice(0, 3))).toBeNull();
   });
 });

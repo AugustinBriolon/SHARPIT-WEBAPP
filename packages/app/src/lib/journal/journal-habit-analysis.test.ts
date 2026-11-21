@@ -49,18 +49,19 @@ describe('journal-habit-analysis', () => {
   });
 
   it('compares median sleep with vs without habit (association)', () => {
+    // Screen nights and screen-free nights alternate: six separate spells of each.
     const days = [
       day('2026-09-01', 'yes', 360),
-      day('2026-09-02', 'yes', 350),
-      day('2026-09-03', 'yes', 370),
-      day('2026-09-04', 'yes', 340),
-      day('2026-09-05', 'yes', 355),
-      day('2026-09-06', 'yes', 365),
-      day('2026-09-07', 'no', 480),
-      day('2026-09-08', 'no', 470),
-      day('2026-09-09', 'no', 490),
-      day('2026-09-10', 'no', 460),
-      day('2026-09-11', 'no', 475),
+      day('2026-09-02', 'no', 480),
+      day('2026-09-03', 'yes', 350),
+      day('2026-09-04', 'no', 470),
+      day('2026-09-05', 'yes', 370),
+      day('2026-09-06', 'no', 490),
+      day('2026-09-07', 'yes', 340),
+      day('2026-09-08', 'no', 460),
+      day('2026-09-09', 'yes', 355),
+      day('2026-09-10', 'no', 475),
+      day('2026-09-11', 'yes', 365),
       day('2026-09-12', 'no', 485),
     ];
     const result = compareFactorOutcome(days, 'device_in_bed', 'sleepMinutes');
@@ -69,7 +70,67 @@ describe('journal-habit-analysis', () => {
     expect(result!.polarity).toBe('minus');
     expect(result!.nYes).toBe(6);
     expect(result!.nNo).toBe(6);
+    expect(result!.episodesYes).toBe(6);
+    expect(result!.episodesNo).toBe(6);
     expect(result!.confidence).toBe('high');
+  });
+
+  it('reads one block with the habit then one without as a before/after, not a habit', () => {
+    // Six screen nights in a row, then six without: one spell each, however wide the gap.
+    const days = Array.from({ length: 12 }, (_, i) =>
+      day(`2026-09-${String(i + 1).padStart(2, '0')}`, i < 6 ? 'yes' : 'no', i < 6 ? 350 : 480),
+    );
+    const result = compareFactorOutcome(days, 'device_in_bed', 'sleepMinutes');
+    expect(result!.episodesYes).toBe(1);
+    expect(result!.episodesNo).toBe(1);
+    expect(result!.confidence).toBe('none');
+    expect(buildJournalHabitFindings(days)).toEqual([]);
+  });
+
+  it('leaves a morning of illness out of every other habit, and keeps it for the illness', () => {
+    // Zinc is taken on the days of fever, and those mornings are low: the fever's doing.
+    const days: JournalAnalysisDay[] = Array.from({ length: 40 }, (_, i) => {
+      const ill = i % 10 >= 7;
+      return {
+        trainingDayId: new Date(Date.UTC(2026, 8, 1 + i)).toISOString().slice(0, 10),
+        factors: { fever: ill ? 'yes' : 'no', zinc: ill || i % 10 === 0 ? 'yes' : 'no' },
+        sleepMinutes: 450,
+        recoveryScore: ill ? 35 + (i % 3) : 70 + (i % 5),
+        bodyBattery: null,
+      };
+    });
+    const zinc = compareFactorOutcome(days, 'zinc', 'recoveryScore');
+    // Only the zinc taken in good health is left to compare.
+    expect(zinc!.nYes).toBe(4);
+    expect(zinc!.absDelta).toBeLessThan(10);
+    const fever = compareFactorOutcome(days, 'fever', 'recoveryScore');
+    expect(fever!.nYes).toBe(12);
+    expect(fever!.polarity).toBe('minus');
+    expect(buildJournalHabitFindings(days).some((f) => f.factorId === 'zinc')).toBe(false);
+  });
+
+  it('never compares a day away or declared sick', () => {
+    const days = Array.from({ length: 12 }, (_, i) =>
+      day(`2026-09-${String(i + 1).padStart(2, '0')}`, i % 2 === 0 ? 'yes' : 'no', 400),
+    );
+    const excludedDayIds = new Set(['2026-09-01', '2026-09-02', '2026-09-03']);
+    const result = compareFactorOutcome(days, 'device_in_bed', 'sleepMinutes', { excludedDayIds });
+    expect(result!.nYes).toBe(4);
+    expect(result!.nNo).toBe(5);
+  });
+
+  it('does not credit a habit started with a new level of form for that level', () => {
+    // Recovery steps up by 16 points half-way, and creatine starts the same week.
+    const days: JournalAnalysisDay[] = Array.from({ length: 80 }, (_, i) => ({
+      trainingDayId: new Date(Date.UTC(2026, 5, 1 + i)).toISOString().slice(0, 10),
+      factors: { creatine: i >= 40 !== (i % 9 === 0) ? 'yes' : 'no' },
+      sleepMinutes: 450,
+      recoveryScore: (i >= 40 ? 70 : 54) + ((i * 7) % 5),
+      bodyBattery: null,
+    }));
+    const effect = compareFactorOutcome(days, 'creatine', 'recoveryScore');
+    expect(effect!.absDelta).toBeLessThan(5);
+    expect(buildJournalHabitFindings(days)).toEqual([]);
   });
 
   it('applies alcohol lag +1 against next-day sleep', () => {
@@ -185,7 +246,7 @@ describe('journal-habit-analysis', () => {
   it('emits multiple outcomes, skips constants, collapses recovery/BB redundancy', () => {
     const days: JournalAnalysisDay[] = [];
     for (let i = 0; i < 12; i += 1) {
-      const screen = i < 6 ? 'yes' : 'no';
+      const screen = i % 2 === 0 ? 'yes' : 'no';
       days.push({
         trainingDayId: `2026-09-${String(i + 1).padStart(2, '0')}`,
         factors: {
@@ -328,6 +389,8 @@ describe('journal-habit-analysis', () => {
       outcome: 'sleepMinutes',
       nYes: 4,
       nNo: 3,
+      episodesYes: 4,
+      episodesNo: 3,
       medianYes: 360,
       medianNo: 416,
       yesValues: [360, 350, 370, 355],
@@ -499,5 +562,73 @@ describe('journal habit analysis — confounders', () => {
       }
     }
     expect(runsWithNet / runs).toBeLessThanOrEqual(NET_FALSE_DISCOVERY_RATE);
+  });
+});
+
+describe('journal-habit-analysis on journals that look like real ones (ADR-140)', () => {
+  const HABITS = ['alcohol', 'late_meal', 'device_in_bed', 'cold_shower', 'sauna', 'meditation'];
+  const RUNS = 120;
+
+  function seeded(seed: number) {
+    let state = seed * 2654435761;
+    return () => {
+      state = (state + 0x6d2b79f5) | 0;
+      let t = Math.imul(state ^ (state >>> 15), 1 | state);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  /**
+   * Mornings that resemble the one before (AR 0.6) and habits kept for days in a row, with no
+   * effect of any habit unless `alcoholCost` is set: recovery the morning after a drink.
+   */
+  function journal(seed: number, length: number, { alcoholCost = 0, persist = 0.8 } = {}) {
+    const random = seeded(seed);
+    const gauss = () =>
+      Math.sqrt(-2 * Math.log(random() + 1e-12)) * Math.cos(2 * Math.PI * random());
+    const state = Object.fromEntries(HABITS.map((id) => [id, random() > 0.5]));
+    let noise = 0;
+    let drankYesterday = false;
+    return Array.from({ length }, (_, i): JournalAnalysisDay => {
+      for (const id of HABITS) {
+        if (random() > persist) {
+          state[id] = random() > 0.5;
+        }
+      }
+      if (alcoholCost > 0) {
+        state.alcohol = random() < 0.3;
+      }
+      noise = 0.6 * noise + 0.8 * gauss();
+      const recovery = Math.round(62 + 9 * noise - (drankYesterday ? alcoholCost : 0));
+      drankYesterday = state.alcohol!;
+      return {
+        trainingDayId: new Date(Date.UTC(2026, 0, 1 + i)).toISOString().slice(0, 10),
+        factors: Object.fromEntries(HABITS.map((id) => [id, state[id] ? 'yes' : 'no'])),
+        sleepMinutes: Math.round(440 + 35 * gauss()),
+        recoveryScore: Math.max(1, Math.min(100, recovery)),
+        bodyBattery: null,
+      };
+    });
+  }
+
+  it('keeps net rows rare when habits come in runs and mornings follow each other', () => {
+    let journalsWithNet = 0;
+    for (let seed = 1; seed <= RUNS; seed += 1) {
+      const findings = buildJournalHabitFindings(journal(seed, 60));
+      journalsWithNet += findings.some((f) => f.confidence === 'high') ? 1 : 0;
+    }
+    expect(journalsWithNet / RUNS).toBeLessThanOrEqual(0.05);
+  });
+
+  it('still finds a real cost the morning after', () => {
+    let found = 0;
+    for (let seed = 1; seed <= RUNS; seed += 1) {
+      const findings = buildJournalHabitFindings(
+        journal(seed, 60, { alcoholCost: 12, persist: 0.5 }),
+      );
+      found += findings.some((f) => f.factorId === 'alcohol' && f.polarity === 'minus') ? 1 : 0;
+    }
+    expect(found / RUNS).toBeGreaterThanOrEqual(0.8);
   });
 });

@@ -118,3 +118,43 @@ export function weekendAdjuster(
   const gap = mean(weekend) - mean(weekday);
   return (value, isWeekend) => (isWeekend ? value - gap : value);
 }
+
+/** Calendar days on each side of a morning that make its own baseline. */
+export const BASELINE_HALF_WINDOW_DAYS = 10;
+
+/** Below this many neighbouring mornings the baseline is the whole journal's. */
+export const MIN_DAYS_FOR_BASELINE = 6;
+
+function medianOf(values: readonly number[]): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0 ? (sorted[mid - 1]! + sorted[mid]!) / 2 : sorted[mid]!;
+}
+
+/**
+ * Reads each morning against its own neighbourhood: the median of the mornings around it
+ * (ten days each side, itself left out), brought back to the journal's overall level. A block
+ * of fitness, a new watch or a season moves every morning in it together; without this, a
+ * habit started at the same time takes the whole shift. A morning with too few neighbours is
+ * read against the whole journal. Null when there is nothing to read.
+ */
+export function baselineAdjuster(
+  points: ReadonlyArray<{ dayIndex: number; value: number }>,
+): ((value: number, dayIndex: number) => number) | null {
+  if (points.length < MIN_DAYS_FOR_BASELINE) {
+    return null;
+  }
+  const sorted = [...points].sort((a, b) => a.dayIndex - b.dayIndex);
+  const overall = medianOf(sorted.map((point) => point.value));
+  return (value, dayIndex) => {
+    const around = sorted.filter(
+      (point) =>
+        point.dayIndex !== dayIndex &&
+        Math.abs(point.dayIndex - dayIndex) <= BASELINE_HALF_WINDOW_DAYS,
+    );
+    if (around.length < MIN_DAYS_FOR_BASELINE) {
+      return value;
+    }
+    return value - medianOf(around.map((point) => point.value)) + overall;
+  };
+}
