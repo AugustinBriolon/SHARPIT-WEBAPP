@@ -13,6 +13,7 @@ import { prisma } from '@sharpit/db/client';
 import { getDayJournalEntry } from '@sharpit/server/lib/journal/day-journal-service';
 import { foodLogDayDate } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
 import { getHealthEntries } from '@sharpit/server/lib/queries';
+import { athleteTimeZone, minuteOfClock, minuteOnDay } from '@sharpit/server/lib/athlete-time-zone';
 import type {
   V1TodayEnergyBank,
   V1TodayStress,
@@ -29,6 +30,8 @@ export type V1DayTimelineEvent = {
   minuteOfDay: number | null;
   title: string;
   detail: string | null;
+  /** A session's state: only a done one is drawn as such (ADR-138). Absent on other kinds. */
+  state?: 'done' | 'planned';
 };
 
 const MEAL_MINUTE: Record<FoodMealKey, number> = {
@@ -102,8 +105,18 @@ export function mealMoments(foods: readonly TimelineFood[]): V1DayTimelineMeal[]
 export type V1DayTimelineSession = {
   title: string;
   kind: 'planned' | 'done';
-  /** Best-effort start minute when the plan carries a clock. */
+  /** Its start: the activity's own when done, else the plan's « HH:mm » (ADR-138). */
   minuteOfDay?: number | null;
+};
+
+/** A session as Today lists it, with what places it on the clock. */
+export type V1DayTimelineSessionSource = {
+  title: string;
+  kind: 'planned' | 'done';
+  /** A done line's id is its activity (a brick's first done leg). */
+  id: string;
+  plannedSessionId: string | null;
+  brickLegs?: ReadonlyArray<{ id: string; activityId?: string | null }> | null;
 };
 
 function trainingDayKey(date: Date): string {
@@ -157,6 +170,8 @@ export function buildV1DayTimeline(input: {
     moodLabel: string | null;
     hydrationMl: number | null;
     caffeineMg: number | null;
+    /** When the latest coffee was noted, on this day; absent or null reads at 16:00. */
+    caffeineMinute?: number | null;
   };
   stress: V1TodayStress | null;
   energyBank: V1TodayEnergyBank | null;
@@ -186,6 +201,7 @@ export function buildV1DayTimeline(input: {
       minuteOfDay: session.minuteOfDay ?? null,
       title: session.title,
       detail: session.kind === 'done' ? 'Faite' : 'Prévue',
+      state: session.kind,
     });
   }
 
@@ -222,7 +238,7 @@ export function buildV1DayTimeline(input: {
   if (isSet(input.journal.caffeineMg) && input.journal.caffeineMg > 0) {
     events.push({
       kind: 'checkin',
-      minuteOfDay: 16 * 60,
+      minuteOfDay: input.journal.caffeineMinute ?? 16 * 60,
       title: 'Caféine',
       detail: `${Math.round(input.journal.caffeineMg)} mg`,
     });
@@ -238,6 +254,61 @@ export function buildV1DayTimeline(input: {
   });
 }
 
+/** The activity a done line stands for: its own id, or a brick's first done leg's. */
+function doneActivityId(session: V1DayTimelineSessionSource): string {
+  return session.brickLegs?.find((leg) => leg.activityId)?.activityId ?? session.id;
+}
+
+function plannedId(session: V1DayTimelineSessionSource): string | null {
+  return session.plannedSessionId ?? session.brickLegs?.[0]?.id ?? null;
+}
+
+/**
+ * Each session at its start (ADR-138): a done one when its activity began — on this day and not
+ * typed by hand, whose stored time is a day, not a clock — else the plan's start; neither leaves
+ * it unplaced, at the foot of the rail.
+ */
+async function placeSessions(
+  athleteId: string,
+  trainingDayId: string,
+  sessions: readonly V1DayTimelineSessionSource[],
+): Promise<V1DayTimelineSession[]> {
+  if (sessions.length === 0) {
+    return [];
+  }
+  const activityIds = sessions.filter((s) => s.kind === 'done').map(doneActivityId);
+  const plannedIds = sessions.flatMap((s) => plannedId(s) ?? []);
+  const [activities, planned, timeZone] = await Promise.all([
+    activityIds.length
+      ? prisma.activity.findMany({
+          where: { athleteId, id: { in: activityIds } },
+          select: { id: true, date: true, source: true },
+        })
+      : [],
+    plannedIds.length
+      ? prisma.plannedSession.findMany({
+          where: { athleteId, id: { in: plannedIds } },
+          select: { id: true, startTime: true },
+        })
+      : [],
+    athleteTimeZone(athleteId),
+  ]);
+  const activityStart = new Map(
+    activities.map((row) => [
+      row.id,
+      row.source === 'manual' ? null : minuteOnDay(row.date, trainingDayId, timeZone),
+    ]),
+  );
+  const plannedStart = new Map(planned.map((row) => [row.id, minuteOfClock(row.startTime)]));
+  return sessions.map((session) => {
+    const planId = plannedId(session);
+    const fromPlan = planId ? (plannedStart.get(planId) ?? null) : null;
+    const fromActivity =
+      session.kind === 'done' ? (activityStart.get(doneActivityId(session)) ?? null) : null;
+    return { title: session.title, kind: session.kind, minuteOfDay: fromActivity ?? fromPlan };
+  });
+}
+
 /**
  * Loads the day's timeline from health, journal and food log, plus caller-supplied sessions.
  */
@@ -245,14 +316,14 @@ export async function loadV1DayTimeline(
   athleteId: string,
   trainingDayId: string,
   extras: {
-    sessions: readonly V1DayTimelineSession[];
+    sessions: readonly V1DayTimelineSessionSource[];
     stress: V1TodayStress | null;
     energyBank: V1TodayEnergyBank | null;
     healthEntries?: Awaited<ReturnType<typeof getHealthEntries>>;
   },
 ): Promise<V1DayTimelineEvent[]> {
   const refDate = new Date(`${trainingDayId}T12:00:00`);
-  const [healthEntries, journal, mealRows] = await Promise.all([
+  const [healthEntries, journal, mealRows, timeZone, caffeine, sessions] = await Promise.all([
     extras.healthEntries
       ? Promise.resolve(extras.healthEntries)
       : getHealthEntries(athleteId, 3, refDate),
@@ -261,6 +332,12 @@ export async function loadV1DayTimeline(
       where: { athleteId, date: foodLogDayDate(trainingDayId) },
       select: { meal: true, kcal: true, eatenMinute: true },
     }),
+    athleteTimeZone(athleteId),
+    prisma.athleteDayJournal.findUnique({
+      where: { athleteId_trainingDayId: { athleteId, trainingDayId } },
+      select: { caffeineLoggedAt: true },
+    }),
+    placeSessions(athleteId, trainingDayId, extras.sessions),
   ]);
 
   const todayHealth = healthEntries.find((entry) => trainingDayKey(entry.date) === trainingDayId);
@@ -268,7 +345,7 @@ export async function loadV1DayTimeline(
   return buildV1DayTimeline({
     bedtimeMin: todayHealth?.sleepBedtimeMin ?? null,
     wakeMin: todayHealth?.sleepWakeMin ?? null,
-    sessions: extras.sessions,
+    sessions,
     meals: mealMoments(
       mealRows
         .filter((row) => row.meal in FOOD_MEAL_LABELS)
@@ -282,6 +359,9 @@ export async function loadV1DayTimeline(
       moodLabel: journal.moodLabel,
       hydrationMl: journal.hydrationMl,
       caffeineMg: journal.caffeineMg,
+      caffeineMinute: caffeine?.caffeineLoggedAt
+        ? minuteOnDay(caffeine.caffeineLoggedAt, trainingDayId, timeZone)
+        : null,
     },
     stress: extras.stress,
     energyBank: extras.energyBank,

@@ -131,6 +131,7 @@
 | [ADR-135](./ADR-135-the-web-is-swept-to-clinique-on-one-white-sheet.md)                    | The web is swept to Clinique on one white sheet: tokens remapped under `body`, a rail and a sheet, hairline sections, no wash                                                                                   | Accepted                          |
 | [ADR-136](./ADR-136-a-brand-typed-with-the-name-is-searched-as-the-brand.md)               | A brand typed with the name is searched as the brand: first and last words probed as `brands:` when the plain OFF query misses, more typed words ranked first                                                   | Accepted                          |
 | [ADR-137](./ADR-137-a-food-carries-the-time-it-was-eaten.md)                               | A food carries the time it was eaten: `FoodLogEntry.eatenMinute`, the timeline places meals at it, the day reading gains `timing`                                                                               | Accepted                          |
+| [ADR-138](./ADR-138-the-day-timeline-reads-the-clock.md)                                   | The day timeline reads the clock: the coffee when it was noted (`caffeineLoggedAt`), sessions at their start, a session's `state`                                                                               | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

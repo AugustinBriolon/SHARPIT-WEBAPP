@@ -1955,20 +1955,22 @@ model AthleteTravelContext {
 /// Subjective day journal (signals, mood chip, hydration, caffeine) — one row per athlete training day.
 /// App-layer persistence for future stats; not Core Gate input yet.
 model AthleteDayJournal {
-  id             String         @id @default(cuid())
-  athleteId      String
-  athlete        AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  id               String         @id @default(cuid())
+  athleteId        String
+  athlete          AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
   /// YYYY-MM-DD in athlete timezone (training day id).
-  trainingDayId  String
+  trainingDayId    String
   /// Factor map: { coffee?: 'yes'|'no'|'unset', sick?: ..., ... }
-  factors        Json           @default("{}")
-  moodLabel      String?
-  hydrationMl    Int?
-  caffeineMg     Int?
+  factors          Json           @default("{}")
+  moodLabel        String?
+  hydrationMl      Int?
+  caffeineMg       Int?
+  /// When the caffeine last went up — the latest coffee noted (ADR-138); null with none.
+  caffeineLoggedAt DateTime?
   /// Minutes spent driving that day — sitting still, often tense; the coach reads it.
-  drivingMinutes Int?
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  drivingMinutes   Int?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   @@unique([athleteId, trainingDayId])
   @@index([athleteId, trainingDayId])

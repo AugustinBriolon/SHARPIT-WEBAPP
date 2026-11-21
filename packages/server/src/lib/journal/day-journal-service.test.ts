@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { rowToDayJournalEntry } from './day-journal-service';
+import { nextCaffeineLoggedAt, rowToDayJournalEntry } from './day-journal-service';
 
 describe('day-journal-service', () => {
   it('maps a DB row to a day journal entry', () => {
@@ -80,5 +80,30 @@ describe('upsertDayJournalEntryDb', () => {
     await expect(
       upsertDayJournalEntryDb(prisma, 'athlete-1', { trainingDayId: '2026-10-02' }),
     ).rejects.toThrow('down');
+  });
+});
+
+describe('nextCaffeineLoggedAt (ADR-138)', () => {
+  const now = new Date('2026-11-21T12:00:00Z');
+  const earlier = new Date('2026-11-21T07:00:00Z');
+
+  it('takes now when the caffeine goes up', () => {
+    expect(nextCaffeineLoggedAt(null, 80, now)).toEqual(now);
+    expect(nextCaffeineLoggedAt({ caffeineMg: 80, caffeineLoggedAt: earlier }, 160, now)).toEqual(
+      now,
+    );
+  });
+
+  it('keeps the time of the coffee still counted when it goes down or stays', () => {
+    expect(nextCaffeineLoggedAt({ caffeineMg: 160, caffeineLoggedAt: earlier }, 80, now)).toEqual(
+      earlier,
+    );
+    expect(nextCaffeineLoggedAt({ caffeineMg: 80, caffeineLoggedAt: earlier }, 80, now)).toEqual(
+      earlier,
+    );
+  });
+
+  it('clears it with no caffeine left', () => {
+    expect(nextCaffeineLoggedAt({ caffeineMg: 80, caffeineLoggedAt: earlier }, 0, now)).toBeNull();
   });
 });

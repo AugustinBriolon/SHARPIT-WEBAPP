@@ -125,3 +125,39 @@ describe('mealMoments (ADR-137)', () => {
     ]);
   });
 });
+
+describe('sessions and coffee on the clock (ADR-138)', () => {
+  const quiet = {
+    bedtimeMin: null,
+    wakeMin: null,
+    meals: [],
+    stress: null,
+    energyBank: null,
+  };
+
+  it('places a session at its start and says whether it is done', () => {
+    const events = buildV1DayTimeline({
+      ...quiet,
+      sessions: [
+        { title: 'Footing', kind: 'done', minuteOfDay: 7 * 60 + 10 },
+        { title: 'Seuil', kind: 'planned', minuteOfDay: 18 * 60 },
+      ],
+      journal: { moodLabel: null, hydrationMl: null, caffeineMg: null },
+    });
+    expect(events.map((event) => [event.title, event.minuteOfDay, event.state])).toEqual([
+      ['Footing', 7 * 60 + 10, 'done'],
+      ['Seuil', 18 * 60, 'planned'],
+    ]);
+  });
+
+  it('puts the coffee when it was noted, else at the old fixed hour', () => {
+    const at = (caffeineMinute: number | null) =>
+      buildV1DayTimeline({
+        ...quiet,
+        sessions: [],
+        journal: { moodLabel: null, hydrationMl: null, caffeineMg: 80, caffeineMinute },
+      })[0]?.minuteOfDay;
+    expect(at(13 * 60 + 2)).toBe(13 * 60 + 2);
+    expect(at(null)).toBe(16 * 60);
+  });
+});

@@ -168,7 +168,9 @@ export async function GET(request: NextRequest) {
       sessions: projected.sessions.map((session) => ({
         title: session.title,
         kind: session.kind,
-        minuteOfDay: null,
+        id: session.id,
+        plannedSessionId: session.plannedSessionId,
+        brickLegs: session.brickLegs,
       })),
       stress: dayScores.stress,
       energyBank: dayScores.energyBank,

@@ -10,6 +10,8 @@ import { formatMealLabel, normalizeStoredMeals } from '@sharpit/server/lib/nutri
 import { skippedMealsOf } from '@sharpit/server/lib/nutrition/food-log/food-log-service';
 import { getAthleteProfile } from '@sharpit/server/lib/queries';
 import { prisma } from '@sharpit/db/client';
+import { athleteTimeZone, localDayAndMinute } from '@sharpit/server/lib/athlete-time-zone';
+import { formatEatenMinute } from '@sharpit/app/lib/nutrition/food-log/food-log-math';
 import { pickNutritionRow } from '@sharpit/app/lib/nutrition/food-log/nutrition-source';
 import type { NutritionAnalysisInput } from './nutrition-analysis-facts';
 import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
@@ -25,29 +27,6 @@ async function loadNutritionRow(athleteId: string, trainingDayId: string) {
       where: { athleteId, date: nutritionDayDate(trainingDayId) },
     }),
   );
-}
-
-const DEFAULT_ATHLETE_TIME_ZONE = 'Europe/Paris';
-
-/** The zone the athlete's clock reads in: the one their linked calendar declares, else Paris. */
-async function athleteTimeZone(athleteId: string): Promise<string> {
-  const google = await prisma.googleAccount.findUnique({
-    where: { athleteId },
-    select: { timeZone: true },
-  });
-  return google?.timeZone ?? DEFAULT_ATHLETE_TIME_ZONE;
-}
-
-/** An instant as the athlete's clock read it: « 07:45 ». */
-export function localClock(instant: Date, timeZone: string): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
-    timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(instant);
-  const part = (type: string) => parts.find((item) => item.type === type)?.value ?? '00';
-  return `${part('hour')}:${part('minute')}`;
 }
 
 async function loadDaySessions(athleteId: string, trainingDayId: string) {
@@ -69,7 +48,10 @@ async function loadDaySessions(athleteId: string, trainingDayId: string) {
     minutes: row.duration === null ? null : Math.round(row.duration / 60),
     tss: row.load === null ? null : Math.round(row.load),
     // A session typed by hand carries a day, not a clock: its start would be made up.
-    start: row.source === 'manual' ? null : localClock(row.date, timeZone),
+    start:
+      row.source === 'manual'
+        ? null
+        : formatEatenMinute(localDayAndMinute(row.date, timeZone).minute),
   }));
 }
 

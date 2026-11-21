@@ -125,6 +125,24 @@ export async function upsertDayJournalEntryDb(
   }
 }
 
+/**
+ * When the day's caffeine was last noted (ADR-138): a rise is a coffee taken now; a lower total
+ * keeps the time of the coffee still counted; none left clears it.
+ */
+export function nextCaffeineLoggedAt(
+  existing: { caffeineMg: number | null; caffeineLoggedAt?: Date | null } | null,
+  caffeineMg: number | null,
+  now: Date,
+): Date | null {
+  if (!caffeineMg || caffeineMg <= 0) {
+    return null;
+  }
+  if (caffeineMg > (existing?.caffeineMg ?? 0)) {
+    return now;
+  }
+  return existing?.caffeineLoggedAt ?? null;
+}
+
 async function writeDayJournalEntry(
   prisma: PrismaClient,
   athleteId: string,
@@ -141,6 +159,8 @@ async function writeDayJournalEntry(
     input,
   );
 
+  const caffeineLoggedAt = nextCaffeineLoggedAt(existing, caffeineMg, new Date());
+
   const row = await prisma.athleteDayJournal.upsert({
     where: {
       athleteId_trainingDayId: { athleteId, trainingDayId: input.trainingDayId },
@@ -152,6 +172,7 @@ async function writeDayJournalEntry(
       moodLabel,
       hydrationMl,
       caffeineMg,
+      caffeineLoggedAt,
       drivingMinutes,
     },
     update: {
@@ -159,6 +180,7 @@ async function writeDayJournalEntry(
       moodLabel,
       hydrationMl,
       caffeineMg,
+      caffeineLoggedAt,
       drivingMinutes,
     },
   });
