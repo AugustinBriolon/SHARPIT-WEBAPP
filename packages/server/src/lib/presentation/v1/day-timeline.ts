@@ -170,7 +170,7 @@ export function buildV1DayTimeline(input: {
     moodLabel: string | null;
     hydrationMl: number | null;
     caffeineMg: number | null;
-    /** When the latest coffee was noted, on this day; absent or null reads at 16:00. */
+    /** When the last coffee was had; absent or null reads at 16:00. */
     caffeineMinute?: number | null;
   };
   stress: V1TodayStress | null;
@@ -323,7 +323,7 @@ export async function loadV1DayTimeline(
   },
 ): Promise<V1DayTimelineEvent[]> {
   const refDate = new Date(`${trainingDayId}T12:00:00`);
-  const [healthEntries, journal, mealRows, timeZone, caffeine, sessions] = await Promise.all([
+  const [healthEntries, journal, mealRows, sessions] = await Promise.all([
     extras.healthEntries
       ? Promise.resolve(extras.healthEntries)
       : getHealthEntries(athleteId, 3, refDate),
@@ -331,11 +331,6 @@ export async function loadV1DayTimeline(
     prisma.foodLogEntry.findMany({
       where: { athleteId, date: foodLogDayDate(trainingDayId) },
       select: { meal: true, kcal: true, eatenMinute: true },
-    }),
-    athleteTimeZone(athleteId),
-    prisma.athleteDayJournal.findUnique({
-      where: { athleteId_trainingDayId: { athleteId, trainingDayId } },
-      select: { caffeineLoggedAt: true },
     }),
     placeSessions(athleteId, trainingDayId, extras.sessions),
   ]);
@@ -359,9 +354,7 @@ export async function loadV1DayTimeline(
       moodLabel: journal.moodLabel,
       hydrationMl: journal.hydrationMl,
       caffeineMg: journal.caffeineMg,
-      caffeineMinute: caffeine?.caffeineLoggedAt
-        ? minuteOnDay(caffeine.caffeineLoggedAt, trainingDayId, timeZone)
-        : null,
+      caffeineMinute: journal.caffeineMinute ?? null,
     },
     stress: extras.stress,
     energyBank: extras.energyBank,

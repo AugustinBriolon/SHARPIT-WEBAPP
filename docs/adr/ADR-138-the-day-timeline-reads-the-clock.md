@@ -21,11 +21,13 @@ The athlete's remarks on « Fil de la journée » (`GET /api/v1/today` `timeline
 
 ## Decision
 
-1. **`AthleteDayJournal.caffeineLoggedAt`** (`DateTime?`): set to now when a write raises the
-   caffeine, kept when it lowers it (the coffee still counted), cleared at zero
-   (`nextCaffeineLoggedAt`). The timeline puts « Caféine » at that minute when it falls on the
-   day, in the athlete's zone; otherwise at 16:00 as before. Noting yesterday's coffee today still
-   reads at 16:00: the journal has no time to ask.
+1. **`AthleteDayJournal.caffeineMinute`** (`Int?`): when the day's last coffee was had, in minutes
+   after local midnight, like a food's `eatenMinute` (ADR-137). The journal write (`PUT
+/day-journal`) takes it: a time the athlete gives wins — a coffee noted late keeps its real hour;
+   without one, a rise in the caffeine is a coffee had now, on today only (another day has no hour to
+   assume); a lower total keeps the time; zero clears it (`nextCaffeineMinute`). The app sends now by
+   default and lets the athlete change it. The timeline puts « Caféine » at that minute, else at
+   16:00 as before.
 2. **A session is placed at its start**: a done one at its activity's start in the athlete's zone
    (`athleteTimeZone`, the linked calendar's, else Paris) when that falls on the day and the
    activity was not typed by hand (a manual activity stores a day, not a clock); otherwise at its
@@ -42,4 +44,4 @@ The zone helpers (`lib/athlete-time-zone.ts`) are shared with the nutrition read
 
 - Hydration and mood keep their fixed hours: hydration is a running total and mood a morning
   check-in.
-- Days noted before the column read the coffee at 16:00.
+- Days noted before the column, and coffees added to another day without a time, read at 16:00.

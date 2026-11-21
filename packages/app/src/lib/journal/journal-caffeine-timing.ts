@@ -1,5 +1,5 @@
 /**
- * When the day's last coffee was noted, read against the night after it (ADR-139).
+ * When the day's last coffee was had, read against the night after it (ADR-139).
  *
  * Caffeine's half-life is about five hours; sleep hygiene guidance keeps it more than eight hours
  * before bed. So the journal analysis compares the nights after a late coffee with the nights after

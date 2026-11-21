@@ -1,4 +1,5 @@
 import { isUniqueViolation } from '@sharpit/server/lib/prisma-errors';
+import { athleteTimeZone, minuteOnDay } from '@sharpit/server/lib/athlete-time-zone';
 import type { PrismaClient } from '@prisma/client';
 import {
   emptyDayJournalEntry,
@@ -16,6 +17,8 @@ export type DayJournalWriteInput = {
   moodLabel?: string | null;
   hydrationMl?: number | null;
   caffeineMg?: number | null;
+  /** When the last coffee was had, minutes after local midnight; absent: now on a rise. */
+  caffeineMinute?: number | null;
   drivingMinutes?: number | null;
 };
 
@@ -41,6 +44,7 @@ export function rowToDayJournalEntry(row: {
   moodLabel: string | null;
   hydrationMl: number | null;
   caffeineMg: number | null;
+  caffeineMinute?: number | null;
   drivingMinutes?: number | null;
   updatedAt: Date;
 }): DayJournalEntry {
@@ -50,6 +54,7 @@ export function rowToDayJournalEntry(row: {
     moodLabel: row.moodLabel,
     hydrationMl: row.hydrationMl,
     caffeineMg: row.caffeineMg ?? 0,
+    caffeineMinute: row.caffeineMinute ?? null,
     drivingMinutes: row.drivingMinutes ?? null,
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -126,21 +131,26 @@ export async function upsertDayJournalEntryDb(
 }
 
 /**
- * When the day's caffeine was last noted (ADR-138): a rise is a coffee taken now; a lower total
- * keeps the time of the coffee still counted; none left clears it.
+ * When the day's last coffee was had (ADR-138). A time the athlete gives wins; otherwise a rise
+ * is a coffee had now — on today only, a coffee noted for another day has no time to assume — and a
+ * lower or equal total keeps the time already there. No caffeine left clears it.
  */
-export function nextCaffeineLoggedAt(
-  existing: { caffeineMg: number | null; caffeineLoggedAt?: Date | null } | null,
+export function nextCaffeineMinute(
+  existing: { caffeineMg: number | null; caffeineMinute?: number | null } | null,
   caffeineMg: number | null,
-  now: Date,
-): Date | null {
+  given: number | null | undefined,
+  nowMinuteOnDay: number | null,
+): number | null {
   if (!caffeineMg || caffeineMg <= 0) {
     return null;
   }
-  if (caffeineMg > (existing?.caffeineMg ?? 0)) {
-    return now;
+  if (given !== undefined) {
+    return given;
   }
-  return existing?.caffeineLoggedAt ?? null;
+  if (caffeineMg > (existing?.caffeineMg ?? 0)) {
+    return nowMinuteOnDay;
+  }
+  return existing?.caffeineMinute ?? null;
 }
 
 async function writeDayJournalEntry(
@@ -159,7 +169,13 @@ async function writeDayJournalEntry(
     input,
   );
 
-  const caffeineLoggedAt = nextCaffeineLoggedAt(existing, caffeineMg, new Date());
+  // « Now » is read on the athlete's clock only when a coffee is added without a time.
+  const addsCoffeeNow =
+    input.caffeineMinute === undefined && (caffeineMg ?? 0) > (existing?.caffeineMg ?? 0);
+  const nowMinute = addsCoffeeNow
+    ? minuteOnDay(new Date(), input.trainingDayId, await athleteTimeZone(athleteId, prisma))
+    : null;
+  const caffeineMinute = nextCaffeineMinute(existing, caffeineMg, input.caffeineMinute, nowMinute);
 
   const row = await prisma.athleteDayJournal.upsert({
     where: {
@@ -172,7 +188,7 @@ async function writeDayJournalEntry(
       moodLabel,
       hydrationMl,
       caffeineMg,
-      caffeineLoggedAt,
+      caffeineMinute,
       drivingMinutes,
     },
     update: {
@@ -180,7 +196,7 @@ async function writeDayJournalEntry(
       moodLabel,
       hydrationMl,
       caffeineMg,
-      caffeineLoggedAt,
+      caffeineMinute,
       drivingMinutes,
     },
   });

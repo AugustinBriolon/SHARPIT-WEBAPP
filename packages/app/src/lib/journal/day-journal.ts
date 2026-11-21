@@ -22,6 +22,8 @@ export type DayJournalEntry = {
   moodLabel: string | null;
   hydrationMl: number | null;
   caffeineMg: number | null;
+  /** When the last coffee was had, minutes after local midnight (ADR-138); null when unknown. */
+  caffeineMinute?: number | null;
   /** Minutes behind the wheel; absent from entries written before it existed. */
   drivingMinutes?: number | null;
   updatedAt: string;

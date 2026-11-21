@@ -3,12 +3,16 @@
  * it. Training days are local, so anything placed on a day (a session's start, a coffee) is read
  * here rather than in UTC.
  */
+import type { PrismaClient } from '@prisma/client';
 import { prisma } from '@sharpit/db/client';
 
 export const DEFAULT_ATHLETE_TIME_ZONE = 'Europe/Paris';
 
-export async function athleteTimeZone(athleteId: string): Promise<string> {
-  const google = await prisma.googleAccount.findUnique({
+export async function athleteTimeZone(
+  athleteId: string,
+  client: Pick<PrismaClient, 'googleAccount'> = prisma,
+): Promise<string> {
+  const google = await client.googleAccount.findUnique({
     where: { athleteId },
     select: { timeZone: true },
   });

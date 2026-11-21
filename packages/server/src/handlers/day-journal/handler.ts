@@ -28,6 +28,8 @@ const putSchema = z.object({
   moodLabel: z.string().max(64).nullable().optional(),
   hydrationMl: z.number().int().min(0).max(20_000).nullable().optional(),
   caffeineMg: z.number().int().min(0).max(5_000).nullable().optional(),
+  /** When the last coffee was had, minutes after local midnight; absent: now when it goes up. */
+  caffeineMinute: z.number().int().min(0).max(1_439).nullable().optional(),
   drivingMinutes: z.number().int().min(0).max(1_440).nullable().optional(),
 });
 

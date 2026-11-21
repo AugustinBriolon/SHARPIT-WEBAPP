@@ -1,3 +1,4 @@
--- When the day's caffeine was last noted (ADR-138), so « Fil de la journée » places the coffee at
--- its hour. Additive and nullable: days noted before read at the old fixed hour.
-ALTER TABLE "AthleteDayJournal" ADD COLUMN "caffeineLoggedAt" TIMESTAMP(3);
+-- When the day's last coffee was had (ADR-138), minutes after local midnight, so « Fil de la
+-- journée » and the journal analysis read it at its hour. Additive and nullable: days noted before
+-- read at the old fixed hour.
+ALTER TABLE "AthleteDayJournal" ADD COLUMN "caffeineMinute" INTEGER;

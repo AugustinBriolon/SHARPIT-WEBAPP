@@ -14,7 +14,7 @@ habit to the nights after days without. It read only yes/no factors: the day's c
 milligrams, never reached it, and the `coffee` factor is not one the athlete taps. Yet a coffee at
 10:00 and one at 16:00 do not weigh the same on the night: caffeine's half-life is about five hours,
 and sleep hygiene guidance keeps it more than eight hours before bed. Since ADR-138 the journal knows
-when the last coffee was noted (`caffeineLoggedAt`).
+when the day's last coffee was had (`caffeineMinute`), now by default and changed by the athlete for a coffee noted late.
 
 ---
 
@@ -22,9 +22,9 @@ when the last coffee was noted (`caffeineLoggedAt`).
 
 1. **A derived factor, `late_coffee` (« Café tardif »)**, set by the loader
    (`journal-habit-analysis-load.ts`, `lateCoffeeFactor`), never toggled:
-   - `yes` when the day's last coffee was noted less than eight hours before the bedtime of the
+   - `yes` when the day's last coffee was had less than eight hours before the bedtime of the
      night after it (`DailyHealth.sleepBedtimeMin` of J+1, a bedtime after midnight counted from the
-     evening); without that bedtime, when it was noted from 14:00 on;
+     evening); without that bedtime, when it was had from 14:00 on;
    - `no` when the day had caffeine noted earlier than that;
    - nothing when the day had no caffeine or its coffee has no time on that day — a day without
      coffee is not an early-coffee day.
@@ -38,5 +38,5 @@ when the last coffee was noted (`caffeineLoggedAt`).
 
 - The finding needs both kinds of days, at least four of each, before it shows: it appears after a
   few weeks of coffees noted on the day.
-- Coffees noted before `caffeineLoggedAt` existed, or the day after, carry no time and stay out.
+- Coffees noted before `caffeineMinute` existed, or added to another day without a time, stay out.
 - Only the last coffee counts: two coffees at 08:00 and 16:00 make a late-coffee day, as they should.
