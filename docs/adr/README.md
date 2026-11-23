@@ -136,6 +136,7 @@
 | [ADR-141](./ADR-141-a-described-meal-is-read-dish-by-dish.md)                              | A described meal is read dish by dish: `dishes[]` from the model, a dish known whole stays one line, a catalog match must agree on energy, one group per dish, live eval                                        |
 | [ADR-142](./ADR-142-the-landing-is-a-short-static-page-under-design-rules.md)              | The landing is a short static page under `docs/design/DESIGN_RULES.md`: seven server-rendered sections, no scroll or entrance animation, prices shown                                                           |
 | [ADR-143](./ADR-143-the-landing-shows-the-product-as-animated-widgets.md)                  | The landing shows the product as animated widgets: cards of diagrams and one live morning reading, each playing once on entry; amends ADR-142                                                                   |
+| [ADR-144](./ADR-144-the-carnet-has-four-destinations-and-pages-of-widgets.md)              | The carnet has four destinations by horizon (Aujourd'hui, Semaine, Progrès, Corps) and its pages are grids of widgets; Aujourd'hui is the pilot; web type is sentence case and medium                           |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
