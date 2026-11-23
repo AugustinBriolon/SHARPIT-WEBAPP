@@ -31,11 +31,16 @@ export const LANDING_HERO = {
   signIn: { label: 'Connexion', href: LANDING_LINKS.signIn },
 } as const;
 
+/** Read word by word as the visitor scrolls. */
+export const LANDING_STATEMENT =
+  'Tu ne manques pas de données. Il te manque quelqu’un qui les relie, se souvient de ce qui a marché, et te dit honnêtement quoi faire ce matin.';
+
 export type LandingCard = { title: string; body: string };
 
 /** An example morning, said as such: no athlete's data is shown on the landing. */
 export const LANDING_MORNING = {
   title: 'Chaque matin, une décision',
+  lead: 'Un verdict, trois raisons au plus, et son niveau de confiance.',
   example: {
     caption: 'Exemple · mardi, 07:02',
     verdict: 'Séance facile aujourd’hui, garde tes jambes pour jeudi',
@@ -65,12 +70,14 @@ export const LANDING_MORNING = {
 
 export const LANDING_PLAN = {
   title: 'Un plan qui suit ta vie',
+  lead: 'Construit vers ta course, réparé quand la vie s’en mêle.',
   programme: {
     title: 'Construit vers ta course',
     body: 'Deux ou trois séances clés par semaine. Le reste est du bonus.',
   } satisfies LandingCard,
   repair: {
-    title: 'Une séance ratée ? Il réorganise',
+    // A no-break space keeps the question mark with its word.
+    title: 'Une séance ratée\u00a0? Il réorganise',
     body: 'La fin de ta semaine est replacée, et attend ton accord.',
   } satisfies LandingCard,
 } as const;
@@ -87,6 +94,11 @@ export const LANDING_CONFIDENCE_STEPS = [
 
 export const LANDING_MODEL = {
   title: 'Il te connaît, et il le prouve',
+  lead: 'Tout ce qu’il te dit, tu peux le vérifier.',
+  consent: {
+    title: 'Rien ne change sans ton accord',
+    body: 'Tu acceptes, tu ajustes ou tu gardes ton plan.',
+  } satisfies LandingCard,
   observe: {
     title: 'Toutes tes sources, un seul modèle',
     body: 'Tu choisis l’appareil qui fait foi.',
@@ -191,6 +203,7 @@ export const LANDING_FAQ = {
 
 export const LANDING_CLOSING = {
   title: 'Une décision le matin. Le reste de la journée t’appartient.',
+  body: 'L’app iPhone est en bêta sur TestFlight.',
 } as const;
 
 export const LANDING_FOOTER_LINKS = [
@@ -216,6 +229,7 @@ export function landingCopyStrings(): string[] {
     LANDING_MODEL.compare,
     LANDING_MODEL.gate,
     LANDING_MODEL.honesty,
+    LANDING_MODEL.consent,
   ];
   return [
     ...LANDING_HERO.titleLines,
@@ -223,7 +237,11 @@ export function landingCopyStrings(): string[] {
     LANDING_HERO.download.label,
     LANDING_HERO.downloadNote,
     LANDING_HERO.demo.label,
+    LANDING_STATEMENT,
     LANDING_MORNING.title,
+    LANDING_MORNING.lead,
+    LANDING_PLAN.lead,
+    LANDING_MODEL.lead,
     ...Object.values(example)
       .filter((value) => typeof value !== 'number')
       .flat(),
@@ -244,5 +262,6 @@ export function landingCopyStrings(): string[] {
     LANDING_FAQ.title,
     ...LANDING_FAQ.items.flatMap((item) => [item.question, item.answer]),
     LANDING_CLOSING.title,
+    LANDING_CLOSING.body,
   ];
 }

@@ -1,114 +1,102 @@
 import Link from 'next/link';
-import { buttonVariants } from '@sharpit/ui/components/ui/button';
 import {
-  LANDING_CLOSING,
   LANDING_FOOTER_LINKS,
   LANDING_HERO,
   LANDING_SOCIAL_LINKS,
 } from '@sharpit/app/lib/landing/landing-copy';
-import { cn } from '@sharpit/app/lib/utils';
 import { LandingMotion } from './landing-motion';
-import { Brand, CONTAINER, HEADING } from './landing-parts';
+import { Brand } from './landing-parts';
 import {
-  DownloadButton,
+  Closing,
+  DownloadPill,
   Faq,
   Hero,
   Model,
   Morning,
   Plan,
-  SourcesAndPricing,
+  Pricing,
+  Sources,
+  Statement,
 } from './landing-sections';
 
-const FOOTER_LINK = 'underline-offset-4 hover:underline';
+const FOOTER_LINK =
+  'text-lg font-medium underline-offset-4 transition-opacity duration-150 hover:opacity-60';
 
-function Header() {
+/** A white capsule floating over the page, there from the hero to the footer. */
+function FloatingNav() {
   return (
-    <header className="bg-background border-border sticky top-0 z-20 border-b">
-      <div className={cn(CONTAINER, 'flex h-16 items-center justify-between')}>
-        <Brand />
-        <div className="flex items-center gap-1.5">
-          <a
-            className={buttonVariants({ size: 'sm', variant: 'ghost' })}
-            href={LANDING_HERO.signIn.href}
-          >
-            {LANDING_HERO.signIn.label}
-          </a>
-          <a className={buttonVariants({ size: 'sm' })} href={LANDING_HERO.download.href}>
-            {LANDING_HERO.download.label}
-          </a>
-        </div>
+    <header
+      className="pointer-events-none fixed inset-x-0 top-4 z-30 flex justify-center px-3"
+      data-nav
+    >
+      <div className="bg-background/80 float-lift pointer-events-auto flex h-14 items-center gap-4 rounded-[32px] pr-2 pl-5 backdrop-blur-xl">
+        <Link className="mr-2" href="/">
+          <Brand />
+        </Link>
+        <a
+          className="text-muted-foreground hover:text-foreground hidden text-base font-medium transition-colors duration-150 sm:block"
+          href={LANDING_HERO.demo.href}
+        >
+          {LANDING_HERO.demo.label}
+        </a>
+        <a
+          className="text-muted-foreground hover:text-foreground text-base font-medium transition-colors duration-150"
+          href={LANDING_HERO.signIn.href}
+        >
+          {LANDING_HERO.signIn.label}
+        </a>
+        <DownloadPill className="h-10 px-4" />
       </div>
     </header>
   );
 }
 
-function Closing() {
-  return (
-    <section aria-labelledby="closing-title" className="border-border border-t py-20 sm:py-28">
-      <div className={CONTAINER}>
-        <h2
-          className={cn(HEADING, 'max-w-3xl text-3xl leading-tight text-balance sm:text-5xl')}
-          id="closing-title"
-        >
-          {LANDING_CLOSING.title}
-        </h2>
-        <div className="mt-9">
-          <DownloadButton />
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function Footer() {
   return (
-    <footer className="border-border border-t">
-      <div
-        className={cn(
-          CONTAINER,
-          'text-muted-foreground flex flex-wrap items-center justify-between gap-4 py-8 text-sm',
-        )}
-      >
-        <Brand />
-        <nav aria-label="Pied de page" className="flex flex-wrap gap-x-5 gap-y-2">
+    <footer className="mx-auto flex w-full max-w-[1200px] flex-wrap items-start justify-between gap-10 px-5 py-20 sm:px-8 sm:py-32">
+      <Brand />
+      <nav aria-label="Pied de page" className="flex flex-wrap gap-x-16 gap-y-8">
+        <ul className="space-y-4">
           {LANDING_FOOTER_LINKS.map((link) => (
-            <Link key={link.href} className={FOOTER_LINK} href={link.href}>
-              {link.label}
-            </Link>
+            <li key={link.href}>
+              <Link className={FOOTER_LINK} href={link.href}>
+                {link.label}
+              </Link>
+            </li>
           ))}
+        </ul>
+        <ul className="space-y-4">
           {LANDING_SOCIAL_LINKS.map((link) => (
-            <a
-              key={link.href}
-              className={FOOTER_LINK}
-              href={link.href}
-              rel="noopener noreferrer"
-              target="_blank"
-            >
-              {link.label}
-            </a>
+            <li key={link.href}>
+              <a className={FOOTER_LINK} href={link.href} rel="noopener noreferrer" target="_blank">
+                {link.label}
+              </a>
+            </li>
           ))}
-        </nav>
-      </div>
+        </ul>
+      </nav>
     </footer>
   );
 }
 
 /**
- * sharpit.app, the public landing: the promise, then the product shown as widgets (a morning to
- * decide, a week that repairs itself, the model behind it), what it costs and the questions.
- * Markup is complete without script; motion lives in `LandingMotion`, the one interaction in
- * `MorningWidget`. `docs/design/DESIGN_RULES.md` is the law it is checked against.
+ * sharpit.app's home, built to `docs/design/LANDING_STYLE.md` (ADR-147): a field of daylight
+ * holding the promise and the app, then the product shown as widgets on cloud cards. Markup is
+ * complete without script; motion lives in `LandingMotion`, the one interaction in
+ * `MorningWidget`. It is a light page whatever the theme (`landing-style`).
  */
 export function Landing() {
   return (
     <LandingMotion>
-      <Header />
+      <FloatingNav />
       <main>
         <Hero />
+        <Sources />
+        <Statement />
         <Morning />
         <Plan />
         <Model />
-        <SourcesAndPricing />
+        <Pricing />
         <Faq />
         <Closing />
       </main>

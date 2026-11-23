@@ -3,6 +3,11 @@
 Read this before touching any UI. Each line is a decision, not a taste: a draft that breaks one
 is not done. On the public pages (`apps/hub`) these rules win over older guidance in this folder.
 
+**The landing is the one exception.** Its home page follows [`LANDING_STYLE.md`](./LANDING_STYLE.md)
+(ADR-147), which allows what is banned here: a gradient behind the hero, headings at weight 600,
+pinned sections, parallax and text revealed by the scroll. Everything else on the web keeps to
+this file.
+
 ## Never
 
 - No gradients, no glow.
