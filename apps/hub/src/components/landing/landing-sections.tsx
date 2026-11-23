@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import Image, { type StaticImageData } from 'next/image';
 import { Plus } from 'lucide-react';
 import { buttonTapScale, buttonVariants } from '@sharpit/ui/components/ui/button';
 import {
@@ -18,6 +19,20 @@ import { DIAGRAMS } from './landing-diagrams';
 import { ConfidenceBar, MorningWidget } from './landing-morning';
 import { CONTAINER, DATA, HEADING, LEAD } from './landing-parts';
 import { Phone } from './landing-phone';
+// The integrations' marks live once, with the web app that lists them in Connexions.
+import appleHealth from '../../../../web/public/images/applehealth.svg';
+import garmin from '../../../../web/public/images/garmin.png';
+import googleCalendar from '../../../../web/public/images/googleagenda.png';
+import strava from '../../../../web/public/images/strava.png';
+import withings from '../../../../web/public/images/withings.png';
+
+const SOURCE_LOGOS: Record<(typeof LANDING_SOURCES.connected)[number], StaticImageData> = {
+  Garmin: garmin,
+  Strava: strava,
+  'Apple Santé': appleHealth,
+  Withings: withings,
+  'Google Agenda': googleCalendar,
+};
 
 const SECTION = 'border-border border-t py-20 sm:py-28';
 const SECTION_TITLE = cn(HEADING, 'text-3xl leading-tight text-balance sm:text-4xl');
@@ -38,7 +53,7 @@ const LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
 
 export function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="overflow-hidden pt-16 sm:pt-24">
+    <section aria-labelledby="hero-title" className="pt-16 sm:pt-24">
       <div className={cn(CONTAINER, 'flex flex-col items-center text-center')}>
         <h1 className={cn(HEADING, 'text-[clamp(2.5rem,7vw,5rem)] leading-[1.05]')} id="hero-title">
           {LANDING_HERO.titleLines.map((line) => (
@@ -64,14 +79,10 @@ export function Hero() {
         <p className="text-muted-foreground mt-4 text-sm" data-hero-fade>
           {LANDING_HERO.downloadNote}
         </p>
-        {/* The phone runs off the section's foot: the screen is the picture, not the bezel. */}
-        <div className="mt-14 -mb-40 sm:-mb-48">
+        <div className="mt-14 pb-16 sm:pb-24">
           <Phone />
         </div>
       </div>
-      <p className="bg-background border-border text-muted-foreground relative border-t py-6 text-center text-sm">
-        {LANDING_HERO.sourcesLabel} {LIST.format(LANDING_SOURCES.connected)}
-      </p>
     </section>
   );
 }
@@ -220,8 +231,19 @@ export function SourcesAndPricing() {
       <div className={cn(CONTAINER, SPLIT)}>
         <div>
           <h2 className={SECTION_TITLE}>{LANDING_SOURCES.title}</h2>
-          <p className="mt-6">{LIST.format(LANDING_SOURCES.connected)}.</p>
-          <p className="text-muted-foreground mt-1">
+          <ul className="mt-8 grid max-w-md grid-cols-2 gap-x-6 gap-y-5">
+            {LANDING_SOURCES.connected.map((name) => (
+              <li key={name} className="flex items-center gap-3">
+                <Image
+                  alt=""
+                  className="size-9 rounded-lg object-contain"
+                  src={SOURCE_LOGOS[name]}
+                />
+                {name}
+              </li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground mt-6 text-sm">
             {LANDING_SOURCES.upcomingLabel} : {LIST.format(LANDING_SOURCES.upcoming)}.
           </p>
         </div>

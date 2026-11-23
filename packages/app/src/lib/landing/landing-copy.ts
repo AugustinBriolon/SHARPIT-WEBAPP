@@ -27,7 +27,6 @@ export const LANDING_HERO = {
   body: 'SharpIt construit ta semaine vers ta course, la relit chaque matin avec ce que ta montre a mesuré, et la répare quand la vie s’en mêle.',
   download: { label: 'Télécharger', href: LANDING_LINKS.download },
   downloadNote: 'iPhone, en bêta sur TestFlight',
-  sourcesLabel: 'Fonctionne avec',
   demo: { label: 'Voir la démo', href: LANDING_LINKS.demo },
   signIn: { label: 'Connexion', href: LANDING_LINKS.signIn },
 } as const;
@@ -223,7 +222,6 @@ export function landingCopyStrings(): string[] {
     LANDING_HERO.body,
     LANDING_HERO.download.label,
     LANDING_HERO.downloadNote,
-    LANDING_HERO.sourcesLabel,
     LANDING_HERO.demo.label,
     LANDING_MORNING.title,
     ...Object.values(example)
