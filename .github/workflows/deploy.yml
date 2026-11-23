@@ -1,12 +1,14 @@
 name: Deploy
 
-# Vercel's own Git deployments are off (Hobby has no per-app filtering worth the name): this
-# workflow deploys only the apps a push to main touches, through each project's Deploy Hook
-# (scopes: scripts/ci/deploy-scopes.mjs). Hook URLs are secrets: VERCEL_DEPLOY_HOOK_WEB,
-# VERCEL_DEPLOY_HOOK_API, VERCEL_DEPLOY_HOOK_HUB.
+# Vercel's own Git deployments are off: this workflow deploys only the apps a change to main
+# touches, through each project's Deploy Hook (scopes: scripts/ci/deploy-scopes.mjs), and only
+# once CI is green on that commit, so a broken commit never costs a Vercel build. Hook URLs
+# are secrets: VERCEL_DEPLOY_HOOK_WEB, VERCEL_DEPLOY_HOOK_API, VERCEL_DEPLOY_HOOK_HUB.
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -19,13 +21,21 @@ concurrency:
   group: deploy-main
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  actions: read
+
 jobs:
   deploy:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           fetch-depth: 0
 
       - name: Setup Node
@@ -33,16 +43,30 @@ jobs:
         with:
           node-version: 20
 
+      # A CI run cancelled by a newer push never deploys, so the range starts at the last
+      # commit this workflow deployed, not at the previous push.
+      - name: Last deployed commit
+        id: base
+        if: github.event_name == 'workflow_run'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(gh run list -R "$GITHUB_REPOSITORY" --workflow Deploy --branch main --status success \
+            --limit 1 --json headSha --jq '.[0].headSha // ""')
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "Last deployed commit: ${sha:-none}"
+
       - name: Affected apps
         id: affected
         env:
-          BASE: ${{ github.event.before }}
+          BASE: ${{ steps.base.outputs.sha }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
           MANUAL: ${{ github.event.inputs.apps }}
         run: |
           if [ -n "$MANUAL" ]; then
             apps="$MANUAL"
           else
-            apps=$(node scripts/ci/affected-apps.mjs "$BASE" "$GITHUB_SHA" | tr '\n' ' ')
+            apps=$(node scripts/ci/affected-apps.mjs "$BASE" "$HEAD_SHA" | tr '\n' ' ')
           fi
           echo "apps=$apps" >> "$GITHUB_OUTPUT"
           echo "Apps to deploy: ${apps:-none}"

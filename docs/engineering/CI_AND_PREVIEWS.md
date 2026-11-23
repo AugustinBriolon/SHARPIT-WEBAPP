@@ -9,10 +9,15 @@ Three Vercel projects build from this repository: `sharpit-webapp` (`apps/web`),
 `sharpit-hub` (`apps/hub`). What each one is built from is listed once, in
 [`scripts/ci/deploy-scopes.mjs`](../../scripts/ci/deploy-scopes.mjs).
 
-- **Deploy workflow** ([`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml)): on a push to `main`,
-  [`scripts/ci/affected-apps.mjs`](../../scripts/ci/affected-apps.mjs) lists the apps whose scope changed and the
+- **Deploy workflow** ([`.github/workflows/deploy.yml`](../../.github/workflows/deploy.yml)): runs when CI
+  finishes green on a push to `main` (`workflow_run`), so a red commit never costs a Vercel build.
+  [`scripts/ci/affected-apps.mjs`](../../scripts/ci/affected-apps.mjs) lists the apps whose scope changed since the
+  last commit Deploy succeeded on (a CI run cancelled by a newer push is folded into the next one) and the
   workflow calls those projects' Deploy Hooks (secrets `VERCEL_DEPLOY_HOOK_WEB`, `_API`, `_HUB`). A docs-only push
-  deploys nothing. Manual run: _Actions → Deploy → Run workflow_ with the apps to deploy.
+  skips CI and deploys nothing. Manual run: _Actions → Deploy → Run workflow_ with the apps to deploy.
+- **Vercel builds skip type checking** (`typescript.ignoreBuildErrors` in each `next.config.ts`): CI already
+  typechecks the commit Deploy ships, so the build does not pay for it twice. A manual Deploy run or a
+  `vercel deploy` from a laptop is not gated by CI: run `yarn typecheck` first.
 - **Vercel's own Git deployments** are off since 2026-09-27 (`git.deploymentEnabled: false` in each
   `vercel.json`), so a push creates no deployment at all on the projects it does not touch, and branches build no
   preview.
