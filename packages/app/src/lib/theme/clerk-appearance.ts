@@ -28,7 +28,7 @@ const sharedElements = {
   cardBox: 'shadow-none border border-foreground/15 rounded-none bg-transparent',
   card: 'rounded-none border-0 bg-transparent shadow-none gap-4',
   header: 'gap-1',
-  headerTitle: 'font-heading text-lg font-semibold tracking-tight text-foreground',
+  headerTitle: 'font-heading text-lg font-medium tracking-tight text-foreground',
   headerSubtitle: 'text-sm text-muted-foreground',
   socialButtonsBlockButton:
     'rounded-lg border border-border bg-card text-foreground shadow-none hover:bg-muted/60',
@@ -40,7 +40,7 @@ const sharedElements = {
   footerActionLink: 'text-primary hover:text-primary/80 font-medium',
   identityPreviewEditButton: 'text-primary',
   dividerLine: 'bg-border',
-  dividerText: 'text-muted-foreground text-xs uppercase tracking-wider',
+  dividerText: 'text-muted-foreground text-xs',
   navbar: 'hidden',
   footer: 'bg-transparent',
   footerActionText: 'text-muted-foreground',
@@ -99,14 +99,14 @@ const authElements = {
   footer: 'bg-transparent pt-2',
   cardBox: 'shadow-none border-0 rounded-none bg-transparent',
   socialButtonsBlockButton:
-    'rounded-lg border border-auth-input bg-auth-input text-foreground! shadow-none hover:bg-muted/60',
+    'rounded-full border border-auth-input bg-auth-input text-foreground! shadow-none hover:bg-muted/60',
   socialButtonsBlockButtonText: 'font-medium text-foreground!',
   /**
    * Ink CTA — Snow fill + Forest text on dark (≥ 4.5:1). Forces over Clerk
    * solid primary paint (Lime would also pass; ink matches Seed filled CTA).
    */
   formButtonPrimary:
-    'rounded-lg bg-foreground! text-background! shadow-none hover:bg-foreground/90!',
+    'rounded-full bg-foreground! text-background! shadow-none hover:bg-foreground/90!',
   /** Beat shadcn theme `input: dark:bg-input/30` so auth fill stays distinct */
   input:
     'bg-auth-input! border-auth-input! text-foreground! placeholder:text-auth-placeholder! dark:bg-[color:var(--auth-input-bg)]! dark:border-[color:var(--auth-input-border)]! dark:text-[color:var(--auth-foreground)]! dark:placeholder:text-[color:var(--auth-placeholder)]!',
@@ -121,7 +121,7 @@ const authElements = {
   identityPreviewEditButton: 'text-primary!',
   identityPreviewText: 'text-foreground!',
   dividerLine: 'bg-auth-divider',
-  dividerText: 'text-auth-muted text-xs uppercase tracking-wider',
+  dividerText: 'text-auth-muted text-xs',
   footerActionText: 'text-auth-muted',
   formFieldAction: 'text-primary!',
   otpCodeFieldInput: 'rounded-lg border border-auth-input bg-auth-input text-foreground!',
@@ -129,7 +129,7 @@ const authElements = {
   alertText__danger: 'text-destructive!',
   formResendCodeLink: 'text-primary!',
   alternativeMethodsBlockButton:
-    'rounded-lg border border-auth-input bg-auth-input text-foreground! shadow-none hover:bg-muted/60',
+    'rounded-full border border-auth-input bg-auth-input text-foreground! shadow-none hover:bg-muted/60',
   alternativeMethodsBlockButtonText: 'font-medium text-foreground!',
 } as const;
 

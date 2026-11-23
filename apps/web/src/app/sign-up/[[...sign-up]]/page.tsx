@@ -10,22 +10,18 @@ import { cn } from '@sharpit/app/lib/utils';
  */
 export default function SignUpPage() {
   return (
-    <AuthShell subtitle="Ton compte se crée dans l'app SharpIt sur iPhone.">
-      <div className="border-foreground/15 flex flex-col gap-4 border-t border-b py-6 text-center">
-        <p className="text-foreground text-sm leading-relaxed text-pretty">
-          L&apos;app te pose quelques questions, relie ta montre et prépare ta première semaine. Le
-          site sert ensuite à relire ta saison sur grand écran.
-        </p>
-        <Link
-          className={cn(buttonVariants({ variant: 'accent', size: 'lg' }), 'w-full')}
-          href="/sign-in"
-        >
-          J&apos;ai déjà un compte
-        </Link>
-        <a className="text-auth-muted hover:text-foreground text-sm" href="/demo">
+    <AuthShell
+      subtitle="L'app te pose quelques questions, relie ta montre et prépare ta première semaine. Le site sert ensuite à relire ta saison sur grand écran."
+      title="Ton compte se crée dans l'app iPhone"
+      footer={
+        <a className="text-foreground underline underline-offset-4" href="/demo">
           Voir la démo
         </a>
-      </div>
+      }
+    >
+      <Link className={cn(buttonVariants({ size: 'lg' }), 'w-full')} href="/sign-in">
+        J&apos;ai déjà un compte
+      </Link>
     </AuthShell>
   );
 }
