@@ -24,6 +24,9 @@ const API_ORIGIN = 'https://api.sharpit.app';
 const APPLE_NOTIFICATIONS_PATH = '/api/billing/apple/notifications';
 
 const nextConfig: NextConfig = {
+  // CI typechecks every commit and Deploy only runs once CI is green, so the Vercel build
+  // skips its own pass instead of paying for it twice.
+  typescript: { ignoreBuildErrors: true },
   cacheComponents: true,
   poweredByHeader: false,
   outputFileTracingRoot: path.join(__dirname, '../../'),

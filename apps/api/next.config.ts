@@ -6,6 +6,9 @@ import type { NextConfig } from 'next';
  * route-handler semantics as the web app (`cacheComponents`), no pages.
  */
 const nextConfig: NextConfig = {
+  // CI typechecks every commit and Deploy only runs once CI is green, so the Vercel build
+  // skips its own pass instead of paying for it twice.
+  typescript: { ignoreBuildErrors: true },
   cacheComponents: true,
   poweredByHeader: false,
   outputFileTracingRoot: path.join(__dirname, '../../'),

@@ -17,6 +17,9 @@ function loadAllowedDevOrigins(): string[] {
 }
 
 const nextConfig: NextConfig = {
+  // CI typechecks every commit and Deploy only runs once CI is green, so the Vercel build
+  // skips its own pass instead of paying for it twice.
+  typescript: { ignoreBuildErrors: true },
   // Instant UX, framework side: every route gets a prerendered shell that is
   // served immediately while dynamic content streams in, and <Link> prefetches
   // one reusable shell per route instead of one payload per link.
