@@ -38,11 +38,6 @@ jobs:
       - name: Enable Corepack (Yarn 4)
         run: corepack enable
 
-      - name: Install OS dependencies (sharp/prisma)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y python3 make g++ libvips-dev
-
       # Prisma Client generate is incompatible with Yarn PnP autoinstall and
       # recurses into yarn install (postinstall → prisma generate → yarn add → …)
       # until the runner SIGTERMs the job (exit 143). Use node-modules for this job.
