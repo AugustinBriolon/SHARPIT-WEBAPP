@@ -5,6 +5,7 @@ import {
   MAX_EXERCISE_NAME,
   MAX_EXERCISE_NOTE,
   loadExerciseHistory,
+  loadExerciseSessions,
   saveAthleteExerciseNote,
 } from '@sharpit/server/lib/strength/exercise-history';
 
@@ -41,5 +42,26 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('[api/v1/strength-exercises] note', { ok: false, hasError: Boolean(error) });
     return NextResponse.json({ error: 'Note non enregistrée' }, { status: 500 });
+  }
+}
+
+/** `?name=` — the days one exercise was done, oldest first, for its progression screen. */
+export async function GET_PROGRESSION(request: NextRequest) {
+  const name = new URL(request.url).searchParams.get('name')?.trim() ?? '';
+  if (!name || name.length > MAX_EXERCISE_NAME) {
+    return NextResponse.json({ error: 'Exercice manquant' }, { status: 400 });
+  }
+  try {
+    const athleteId = await getCurrentAthleteId();
+    return NextResponse.json({
+      apiVersion: 1,
+      sessions: await loadExerciseSessions(athleteId, name),
+    });
+  } catch (error) {
+    console.error('[api/v1/strength-exercises/progression]', {
+      ok: false,
+      hasError: Boolean(error),
+    });
+    return NextResponse.json({ error: 'Impossible de lire la progression' }, { status: 500 });
   }
 }

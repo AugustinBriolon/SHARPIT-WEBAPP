@@ -98,6 +98,7 @@ export const NATIVE_V1_ONLY = [
   { path: 'health-workouts', methods: ['POST'] },
   { path: 'strength-sessions', methods: ['POST'] },
   { path: 'strength-exercises', methods: ['GET', 'PUT'] },
+  { path: 'strength-exercises/progression', methods: ['GET'] },
   { path: 'apple-health/link', methods: ['POST'] },
   { path: 'apple-calendar/link', methods: ['POST'] },
   { path: 'calendar/busy', methods: ['POST'] },

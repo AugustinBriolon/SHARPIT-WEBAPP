@@ -162,6 +162,57 @@ async function loadStrengthSetRows(athleteId: string): Promise<StrengthSetRow[]>
   return sets.map(({ activity, ...set }) => ({ ...set, date: activity.date }));
 }
 
+/** One day an exercise was done: its blocks of sets and what they add up to. */
+export type ExerciseSession = {
+  date: string;
+  blocks: { sets: number; reps: number; weightKg: number | null; durationSec: number | null }[];
+  bestWeightKg: number | null;
+  bestDurationSec: number | null;
+  volumeKg: number;
+};
+
+/** The progression screen shows a year of a weekly lifter; older days add nothing to read. */
+const PROGRESSION_SESSION_LIMIT = 60;
+
+/** The days one exercise was done, oldest first, read under its folded name. */
+export function summarizeExerciseSessions(rows: StrengthSetRow[], name: string): ExerciseSession[] {
+  const key = exerciseKey(name);
+  const byDay = new Map<string, ExerciseSession>();
+  for (const row of rows) {
+    if (exerciseKey(row.exercise) !== key) {
+      continue;
+    }
+    const date = row.date.toISOString().slice(0, 10);
+    const session = byDay.get(date) ?? {
+      date,
+      blocks: [],
+      bestWeightKg: null,
+      bestDurationSec: null,
+      volumeKg: 0,
+    };
+    byDay.set(date, session);
+    const { sets, reps, weightKg, durationSec } = row;
+    session.blocks.push({ sets, reps, weightKg, durationSec });
+    if (weightKg !== null && weightKg > 0) {
+      session.bestWeightKg = Math.max(session.bestWeightKg ?? 0, weightKg);
+      session.volumeKg += sets * reps * weightKg;
+    }
+    if (durationSec !== null && durationSec > 0) {
+      session.bestDurationSec = Math.max(session.bestDurationSec ?? 0, durationSec);
+    }
+  }
+  return [...byDay.values()]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(-PROGRESSION_SESSION_LIMIT);
+}
+
+export async function loadExerciseSessions(
+  athleteId: string,
+  name: string,
+): Promise<ExerciseSession[]> {
+  return summarizeExerciseSessions(await loadStrengthSetRows(athleteId), name);
+}
+
 /** Exercises given to the plan generator: enough to cover a programme, short in the prompt. */
 const COACH_HISTORY_LIMIT = 25;
 

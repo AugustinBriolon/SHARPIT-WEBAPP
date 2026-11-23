@@ -4,6 +4,7 @@ import {
   exerciseKey,
   formatStrengthHistoryBlock,
   summarizeExerciseHistory,
+  summarizeExerciseSessions,
   type StrengthSetRow,
 } from './exercise-history';
 
@@ -113,5 +114,33 @@ describe('attachAthleteNotes', () => {
       ]),
     );
     expect(block).toContain('consigne de l’athlète ⟦Épaule droite : pas sous 90°⟧');
+  });
+});
+
+describe('summarizeExerciseSessions', () => {
+  it('gathers one exercise by day, oldest first, with its best load and volume', () => {
+    const sessions = summarizeExerciseSessions(
+      [
+        row({ date: new Date('2026-11-08T10:00:00Z'), weightKg: 65, sets: 1, reps: 5 }),
+        row({ date: new Date('2026-11-08T10:00:00Z') }),
+        row({ exercise: 'developpe COUCHE', date: new Date('2026-10-01T10:00:00Z'), weightKg: 55 }),
+        row({ exercise: 'Squat', date: new Date('2026-11-01T10:00:00Z'), weightKg: 100 }),
+      ],
+      'Développé couché',
+    );
+    expect(sessions.map((s) => s.date)).toEqual(['2026-10-01', '2026-11-08']);
+    expect(sessions[1].bestWeightKg).toBe(65);
+    expect(sessions[1].volumeKg).toBe(65 * 5 + 3 * 8 * 60);
+    expect(sessions[1].blocks).toHaveLength(2);
+  });
+
+  it('keeps the longest hold of a timed exercise and no load', () => {
+    const [session] = summarizeExerciseSessions(
+      [row({ exercise: 'Gainage', weightKg: null, reps: 1, durationSec: 45 })],
+      'gainage',
+    );
+    expect(session.bestDurationSec).toBe(45);
+    expect(session.bestWeightKg).toBeNull();
+    expect(session.volumeKg).toBe(0);
   });
 });
