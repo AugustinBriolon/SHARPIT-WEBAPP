@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { carnetPageIndex, headingBetween, isCurrentPage } from './carnet-pages';
+import { carnetPageIndex, destinationOf, headingBetween, isCurrentPage } from './carnet-pages';
 
 describe('carnet pages', () => {
   it('marks a page current on itself and on the pages under it', () => {
@@ -20,5 +20,13 @@ describe('carnet pages', () => {
     expect(headingBetween('/', '/corps')).toBe(1);
     expect(headingBetween('/corps', '/saison')).toBe(-1);
     expect(headingBetween('/seances', '/seances/abc')).toBe(0);
+  });
+
+  it('finds the destination a page sits under, and none for Compte', () => {
+    expect(destinationOf('/')?.label).toBe("Aujourd'hui");
+    expect(destinationOf('/bilans/2026-W47')?.label).toBe('Semaine');
+    expect(destinationOf('/seances/abc')?.label).toBe('Progrès');
+    expect(destinationOf('/nutrition')?.label).toBe('Corps');
+    expect(destinationOf('/compte/sources')).toBeNull();
   });
 });

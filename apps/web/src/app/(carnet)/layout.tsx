@@ -8,11 +8,13 @@ import {
   CarnetAccountLinkFor,
   CarnetNav,
   CarnetNavRow,
+  CarnetSubNav,
 } from '@/components/carnet/carnet-nav';
 
 /**
  * The web is the carnet: a place to read, the iPhone app the place to act (ADR-072).
- * One header with the pages (a rail beside the sheet on a wide screen), and the page under it.
+ * One header with the four destinations (a rail beside the sheet on a wide screen), the
+ * current destination's pages in a row, and the page under them (ADR-144).
  * Printed, a page is its sheet alone: a bilan goes to paper or PDF from the browser (ADR-135).
  */
 
@@ -54,6 +56,7 @@ export default function CarnetLayout({ children }: { children: ReactNode }) {
             {/* The header paints at once and each page draws its own frame, with a skeleton on
                 the values it still reads (ADR-110): nothing waits here but the address. */}
             <Suspense fallback={null}>
+              <CarnetSubNav />
               <CarnetHeading>{children}</CarnetHeading>
             </Suspense>
           </div>

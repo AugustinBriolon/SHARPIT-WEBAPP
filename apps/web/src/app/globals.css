@@ -4,3 +4,17 @@
 /* Tailwind scans this app; the shared packages hold class names too. */
 @source '../../../../packages/ui/src';
 @source '../../../../packages/app/src';
+
+/* A score ring's stroke draws once from empty to its value (ADR-144); still under Reduce Motion. */
+@keyframes ring-draw {
+  from {
+    stroke-dashoffset: var(--ring-filled);
+  }
+}
+
+@utility ring-draw {
+  animation: ring-draw 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}

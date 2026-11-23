@@ -7,12 +7,12 @@ import { motion } from 'motion/react';
 import { cn } from '@sharpit/app/lib/utils';
 import { springs } from '@/client/motion/tokens';
 import { prefersReducedMotion } from './carnet-motion';
-import { ACCOUNT_PAGE, CARNET_PAGES, isCurrentPage } from './carnet-pages';
+import { ACCOUNT_PAGE, CARNET_DESTINATIONS, destinationOf, isCurrentPage } from './carnet-pages';
 
 /**
- * The pages: a row on a phone, a rail beside the sheet from `lg` up. The mark under the
- * current page glides to the next one (a shared Motion layout), and the row scrolls the
- * current page into view.
+ * The destinations: a row on a phone, a rail beside the sheet from `lg` up. The mark under the
+ * current one glides to the next (a shared Motion layout). A destination's other pages are
+ * `CarnetSubNav`, above the page.
  */
 export function CarnetNav() {
   return <CarnetNavRow pathname={usePathname()} />;
@@ -39,9 +39,10 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
       aria-label="Carnet"
       className="no-scrollbar -mx-4 overflow-x-auto px-4 lg:mx-0 lg:overflow-visible lg:px-0"
     >
-      <ul ref={listRef} className="flex min-w-max gap-1 lg:min-w-0 lg:flex-col">
-        {CARNET_PAGES.map((page) => {
-          const current = pathname !== null && isCurrentPage(pathname, page.href);
+      <ul ref={listRef} className="flex gap-1 lg:flex-col">
+        {CARNET_DESTINATIONS.map((destination) => {
+          const [page] = destination.pages;
+          const current = pathname !== null && destinationOf(pathname) === destination;
           return (
             <li key={page.href}>
               <Link
@@ -54,7 +55,7 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
                   'relative flex h-10 items-center rounded-full px-3.5 text-sm transition-colors duration-150',
                   current
                     ? // Ink runs the interface (ADR-130): the current page is an ink capsule.
-                      'text-primary-foreground font-semibold'
+                      'text-primary-foreground font-medium'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
@@ -66,12 +67,43 @@ export function CarnetNavRow({ pathname }: { pathname: string | null }) {
                     aria-hidden
                   />
                 ) : null}
-                <span className="relative">{page.label}</span>
+                <span className="relative">{destination.label}</span>
               </Link>
             </li>
           );
         })}
       </ul>
+    </nav>
+  );
+}
+
+/** The pages of the current destination, when it has more than one. */
+export function CarnetSubNav() {
+  const pathname = usePathname();
+  const destination = destinationOf(pathname);
+  if (!destination || destination.pages.length < 2) {
+    return null;
+  }
+  return (
+    <nav aria-label={destination.label} className="-ml-3 flex gap-1 pb-8 print:hidden">
+      {destination.pages.map((page) => {
+        const current = isCurrentPage(pathname, page.href);
+        return (
+          <Link
+            key={page.href}
+            aria-current={current ? 'page' : undefined}
+            href={page.href}
+            className={cn(
+              'flex h-9 items-center rounded-full px-3 text-sm transition-colors duration-150',
+              current
+                ? 'bg-muted text-foreground font-medium'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {page.label}
+          </Link>
+        );
+      })}
     </nav>
   );
 }
@@ -88,7 +120,7 @@ export function CarnetAccountLinkFor({ pathname }: { pathname: string | null }) 
       href={ACCOUNT_PAGE.href}
       className={cn(
         'flex h-10 items-center rounded-full text-sm transition-colors lg:px-3.5',
-        current ? 'text-foreground font-semibold' : 'text-muted-foreground hover:text-foreground',
+        current ? 'text-foreground font-medium' : 'text-muted-foreground hover:text-foreground',
       )}
     >
       {ACCOUNT_PAGE.label}

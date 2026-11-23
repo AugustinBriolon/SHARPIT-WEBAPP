@@ -649,18 +649,17 @@
   }
 }
 
+/* A quiet label in sentence case (DESIGN_RULES: no capitals, two weights). */
 @utility text-label {
   color: var(--color-muted-foreground);
-  font-weight: 600;
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-weight: 400;
+  font-size: 0.8125rem;
   text-wrap: balance;
 }
 
 /* Caption / meta tier — DESIGN_LANGUAGE §4.2, the floor for text that is read
-   rather than classified. `text-label` is not a size: it also forces uppercase,
-   weight 600 and the muted colour, so it must not be used to shrink prose.
+   rather than classified. `text-label` is not a size: it also forces the muted
+   colour, so it must not be used to shrink prose.
    Reach for this instead of an arbitrary `text-[10px]`, which sits under the
    §4.3 minimum and reads as anxiety. */
 @utility text-meta {
@@ -669,7 +668,7 @@
 }
 
 @utility text-page-title {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 1.625rem;
   line-height: 1.15;
   font-family: var(--font-heading);
@@ -681,7 +680,7 @@
 }
 
 @utility text-section-title {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 1.125rem;
   line-height: 1.25;
   font-family: var(--font-heading);
@@ -690,7 +689,7 @@
 }
 
 @utility text-card-title {
-  font-weight: 600;
+  font-weight: 500;
   font-size: 1.0625rem;
   line-height: 1.3;
   font-family: var(--font-heading);
@@ -699,21 +698,21 @@
 }
 
 @utility text-data {
-  font-weight: 700;
+  font-weight: 500;
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
 @utility text-instrument {
-  font-weight: 600;
+  font-weight: 500;
   font-family: var(--font-data);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
 
 @utility text-verdict {
-  font-weight: 700;
+  font-weight: 500;
   font-size: 1.25rem;
   line-height: 1.2;
   font-family: var(--font-heading);

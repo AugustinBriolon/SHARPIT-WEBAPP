@@ -1,13 +1,36 @@
-/** The carnet's pages, in the order of its row; Compte closes it. */
-export const CARNET_PAGES = [
-  { href: '/', label: "Aujourd'hui" },
-  { href: '/saison', label: 'La saison' },
-  { href: '/bilans', label: 'Les bilans' },
-  { href: '/seances', label: 'Les séances' },
-  { href: '/records', label: 'Les records' },
-  { href: '/corps', label: 'Le corps' },
-  { href: '/nutrition', label: 'La nutrition' },
+/**
+ * The carnet's destinations, one per time horizon (ADR-144): now, the week, the long run, the
+ * body. A destination opens on its first page; the others sit in a row above the page.
+ */
+export const CARNET_DESTINATIONS = [
+  { label: "Aujourd'hui", pages: [{ href: '/', label: "Aujourd'hui" }] },
+  {
+    label: 'Semaine',
+    pages: [
+      { href: '/saison', label: 'Saison' },
+      { href: '/bilans', label: 'Bilans' },
+    ],
+  },
+  {
+    label: 'Progrès',
+    pages: [
+      { href: '/seances', label: 'Séances' },
+      { href: '/records', label: 'Records' },
+    ],
+  },
+  {
+    label: 'Corps',
+    pages: [
+      { href: '/corps', label: 'Santé' },
+      { href: '/nutrition', label: 'Nutrition' },
+    ],
+  },
 ] as const;
+
+export type CarnetDestination = (typeof CARNET_DESTINATIONS)[number];
+
+/** Every page in the order of the rail; Compte closes it. */
+export const CARNET_PAGES = CARNET_DESTINATIONS.flatMap((destination) => [...destination.pages]);
 
 export const ACCOUNT_PAGE = { href: '/compte', label: 'Compte' } as const;
 
@@ -32,4 +55,13 @@ export function headingBetween(from: string | null, to: string): -1 | 0 | 1 {
   const a = carnetPageIndex(from);
   const b = carnetPageIndex(to);
   return a === b ? 0 : b > a ? 1 : -1;
+}
+
+/** The destination a path belongs to, or none (Compte, an unknown path). */
+export function destinationOf(pathname: string): CarnetDestination | null {
+  return (
+    CARNET_DESTINATIONS.find((destination) =>
+      destination.pages.some((page) => isCurrentPage(pathname, page.href)),
+    ) ?? null
+  );
 }

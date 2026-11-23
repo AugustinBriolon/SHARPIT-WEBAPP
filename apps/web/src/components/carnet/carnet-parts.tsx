@@ -95,6 +95,30 @@ export function CarnetSection({
   );
 }
 
+/**
+ * One cell of a page laid out as a grid of widgets (ADR-144): a tinted tile on the sheet, its
+ * name in a quiet line, then the widget. Never inside another tile.
+ */
+export function Tile({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section
+      className={cn('bg-background flex min-w-0 flex-col gap-5 rounded-3xl p-6', className)}
+      data-reveal
+    >
+      <h2 className="text-label">{title}</h2>
+      {children}
+    </section>
+  );
+}
+
 export function Figure({
   label,
   value,
@@ -258,7 +282,7 @@ export function StatusPill({ tone, children }: { tone: StatusTone; children: Rea
     <span
       className={cn(
         // One line, cut with an ellipsis when its place is narrower than its word.
-        'inline-block h-6 max-w-full truncate rounded-(--shape-pill) border px-2.5 text-xs leading-[1.375rem] font-semibold',
+        'inline-block h-6 max-w-full truncate rounded-(--shape-pill) border px-2.5 text-xs leading-[1.375rem] font-medium',
         STATUS_PILL[tone],
       )}
     >

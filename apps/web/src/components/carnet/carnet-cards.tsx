@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import {
   CHART_BASE_STROKE,
   CHART_CAUTION_STROKE,
@@ -10,7 +11,7 @@ import { ringDash, type SleepStage, type SleepStageKey } from './carnet-body';
 // A thin ring (ADR-131): a 3-unit stroke on the divider track.
 const RING_RADIUS = 46;
 
-/** A score out of `max` as a ring with the number in its middle; static, no stroke motion. */
+/** A score out of `max` as a ring with the number in its middle; the stroke draws once. */
 export function ScoreRing({
   value,
   max = 100,
@@ -39,6 +40,7 @@ export function ScoreRing({
         />
         {value !== null ? (
           <circle
+            className="ring-draw"
             cx="50"
             cy="50"
             fill="none"
@@ -47,11 +49,12 @@ export function ScoreRing({
             strokeDasharray={`${filled} ${circumference}`}
             strokeLinecap="round"
             strokeWidth="3"
+            style={{ '--ring-filled': filled } as CSSProperties}
           />
         ) : null}
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-instrument text-3xl font-semibold">
+        <span className="text-instrument text-3xl">
           {value !== null ? (text ?? Math.round(value)) : '—'}
         </span>
         <span className="text-label text-muted-foreground mt-0.5 text-[0.6875rem]">{caption}</span>

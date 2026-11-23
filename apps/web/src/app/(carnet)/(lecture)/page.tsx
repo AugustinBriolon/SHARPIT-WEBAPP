@@ -22,14 +22,13 @@ import {
 import {
   CarnetPage,
   CarnetStepLink,
-  CarnetSection,
   MeasureRow,
-  NumberedReasons,
   Quiet,
   ReadingList,
   ReadingRow,
   StatusPill,
   type StatusTone,
+  Tile,
   Unreadable,
 } from '@/components/carnet/carnet-parts';
 import { CarnetEmptyDay } from '@/components/carnet/carnet-empty-day';
@@ -100,21 +99,30 @@ function gaugeOf(preview: SignalPreview | undefined) {
   return preview?.visual.kind === 'gauge' ? preview.visual : null;
 }
 
-/** The four readings side by side: a thin ring in the reading's hue, its name, its word. */
+/** A reading's word, then what it is read against when that says more. */
+function SignalWord({ preview }: { preview: SignalPreview | undefined }) {
+  const gauge = gaugeOf(preview);
+  const word = gauge?.statusLabel ?? preview?.subtitle ?? 'Pas encore';
+  const against = gauge?.baselineDetail ?? gauge?.baselineTitle;
+  return (
+    <p className="text-muted-foreground mt-0.5 text-[0.8125rem] text-balance">
+      {word}
+      {against && against !== word ? <span className="block">{against}</span> : null}
+    </p>
+  );
+}
+
+/** The four readings side by side: a ring that draws in the reading's hue, its name, its word. */
 function Signals({ hero }: { hero: TodayViewModel['hero'] | undefined }) {
   const previews = new Map((hero?.signalPreviews ?? []).map((p) => [p.key, p]));
   return (
-    <ul className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-4">
       {SIGNALS.map((signal) => {
         const rawScore = hero?.metricsRow[signal.score];
         const score = typeof rawScore === 'number' ? rawScore : null;
         const preview = previews.get(signal.key);
-        const word = gaugeOf(preview)?.statusLabel ?? preview?.subtitle;
         return (
-          <li
-            key={signal.key}
-            className="border-border flex flex-col items-center gap-2.5 rounded-(--shape-card) border px-2 py-5 text-center"
-          >
+          <li key={signal.key} className="flex flex-col items-center gap-3 text-center">
             {hero ? (
               <ScoreRing
                 caption="/100"
@@ -129,12 +137,10 @@ function Signals({ hero }: { hero: TodayViewModel['hero'] | undefined }) {
             ) : (
               <ScoreRingSkel caption="/100" />
             )}
-            <p className="text-[0.8125rem] font-medium">{signal.label}</p>
-            {hero ? (
-              <StatusPill tone="unknown">{word ?? 'Pas encore'}</StatusPill>
-            ) : (
-              <Skel className="h-6 w-16" />
-            )}
+            <div>
+              <p className="text-sm font-medium">{signal.label}</p>
+              {hero ? <SignalWord preview={preview} /> : <Skel className="mt-1 h-4 w-16" />}
+            </div>
           </li>
         );
       })}
@@ -142,33 +148,22 @@ function Signals({ hero }: { hero: TodayViewModel['hero'] | undefined }) {
   );
 }
 
-/** Each reading on a line: its value, what it is read against, its word. */
-function BodyRows({ vm }: { vm: TodayViewModel }) {
-  const previews = new Map(vm.hero.signalPreviews.map((p) => [p.key, p]));
+/** Why the day reads as it does: the reasons as the server wrote them, then what holds it back. */
+function Why({ vm, reasons }: { vm: TodayViewModel; reasons: readonly string[] }) {
   return (
-    <ul className="divide-border divide-y">
-      {SIGNALS.map((signal) => {
-        const preview = previews.get(signal.key);
-        const gauge = gaugeOf(preview);
-        return (
-          <MeasureRow
-            key={signal.key}
-            against={gauge?.baselineDetail ?? gauge?.baselineTitle ?? preview?.subtitle}
-            label={signal.label}
-            unit={preview?.unit}
-            value={preview?.scoreDisplay ?? '—'}
-            status={
-              gauge?.statusLabel ? (
-                <StatusPill tone="unknown">{gauge.statusLabel}</StatusPill>
-              ) : null
-            }
-          />
-        );
-      })}
-      {vm.actionRow.limitingFacts.map((fact) => (
-        <MeasureRow key={fact.label} against={fact.hint} label={fact.label} value={fact.value} />
-      ))}
-    </ul>
+    <>
+      {vm.statusMessage ? <Quiet>{vm.statusMessage}</Quiet> : null}
+      <ul className="divide-border divide-y">
+        {reasons.map((reason) => (
+          <li key={reason} className="py-3 text-[0.9375rem] leading-relaxed first:pt-0">
+            {reason}
+          </li>
+        ))}
+        {vm.actionRow.limitingFacts.map((fact) => (
+          <MeasureRow key={fact.label} against={fact.hint} label={fact.label} value={fact.value} />
+        ))}
+      </ul>
+    </>
   );
 }
 
@@ -183,10 +178,10 @@ function Proposal({ proposal }: { proposal: MorningProposal }) {
   const from = prescription(proposal.fromIntensity, proposal.fromDurationMin);
   const to = prescription(proposal.toIntensity, proposal.toDurationMin);
   return (
-    <div className="border-border flex flex-col gap-3 rounded-(--shape-card) border p-5">
+    <div className="flex flex-col gap-2">
       {from ? <p className="text-muted-foreground text-[0.8125rem] line-through">{from}</p> : null}
-      <p className="text-lg leading-snug font-semibold">{to || proposal.changeSummary}</p>
-      <p className="text-muted-foreground text-[0.8125rem] leading-relaxed">{proposal.why}</p>
+      <p className="text-xl leading-snug font-medium">{to || proposal.changeSummary}</p>
+      <p className="text-muted-foreground max-w-2xl text-sm leading-relaxed">{proposal.why}</p>
       <p className="text-muted-foreground text-[0.8125rem]">À valider dans l&apos;app</p>
     </div>
   );
@@ -196,7 +191,8 @@ const WEEK_DOT: Record<WeekDayKind, string> = {
   done: 'bg-foreground',
   key: 'border-foreground border-[3px]',
   planned: 'border border-(--outline)',
-  none: 'bg-(--tile)',
+  // On a tile, an empty day is the sheet's white showing through.
+  none: 'bg-card',
 };
 
 const WEEK_WORD: Record<WeekDayKind, string> = {
@@ -405,21 +401,6 @@ function TodayFrame({
       kicker={kicker}
       lead={hero && trust ? <VerdictLead hero={hero} /> : <Skel className="h-4 w-80 max-w-full" />}
       title={title}
-      side={
-        <>
-          {proposal ? (
-            <CarnetSection label="Proposé">
-              <Proposal proposal={proposal} />
-            </CarnetSection>
-          ) : null}
-          <CarnetSection label="Le déroulé du jour">
-            {vm ? <TheDay vm={vm} /> : <Skel className="block h-16 w-full" />}
-          </CarnetSection>
-          <CarnetSection label="Cette semaine">
-            <Week jour={jour} />
-          </CarnetSection>
-        </>
-      }
       status={
         hero?.postureLabel ? (
           <StatusPill tone={POSTURE_TONE[hero.posture]}>{hero.postureLabel}</StatusPill>
@@ -428,42 +409,47 @@ function TodayFrame({
     >
       {vm ? <RaceBand race={vm.race} /> : null}
 
-      <CarnetSection label="Les quatre lectures">
-        <Signals hero={hero} />
-      </CarnetSection>
-
-      <CarnetSection label="Pourquoi">
-        {vm ? (
-          <>
-            {vm.statusMessage ? <Quiet>{vm.statusMessage}</Quiet> : null}
-            <NumberedReasons items={explained} />
-          </>
-        ) : (
-          <div className="space-y-2">
-            <Skel className="block h-4 w-full" />
-            <Skel className="block h-4 w-2/3" />
-          </div>
-        )}
-      </CarnetSection>
-
-      <CarnetSection label="Ce que le corps dit">
-        {vm ? <BodyRows vm={vm} /> : <Skel className="block h-24 w-full" />}
-      </CarnetSection>
-
-      {vm && vm.insights.length > 0 ? (
-        <CarnetSection label="Ce que le coach remarque">
-          <div className="space-y-5">
-            {vm.insights.map((insight) => (
-              <div key={insight.id}>
-                <p className="font-medium">{insight.title}</p>
-                <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
-                  {insight.summary}
-                </p>
-              </div>
-            ))}
-          </div>
-        </CarnetSection>
-      ) : null}
+      {/* The day as a grid of widgets (ADR-144): what the body says, the week, then why and what. */}
+      <div className="grid gap-4 lg:grid-cols-6">
+        <Tile className="lg:col-span-4" title="Les quatre lectures">
+          <Signals hero={hero} />
+        </Tile>
+        <Tile className="lg:col-span-2" title="Cette semaine">
+          <Week jour={jour} />
+        </Tile>
+        {proposal ? (
+          <Tile className="lg:col-span-6" title="Proposé ce matin">
+            <Proposal proposal={proposal} />
+          </Tile>
+        ) : null}
+        <Tile className="lg:col-span-3" title="Pourquoi">
+          {vm ? (
+            <Why reasons={explained} vm={vm} />
+          ) : (
+            <div className="space-y-2">
+              <Skel className="block h-4 w-full" />
+              <Skel className="block h-4 w-2/3" />
+            </div>
+          )}
+        </Tile>
+        <Tile className="lg:col-span-3" title="Le déroulé du jour">
+          {vm ? <TheDay vm={vm} /> : <Skel className="block h-16 w-full" />}
+        </Tile>
+        {vm && vm.insights.length > 0 ? (
+          <Tile className="lg:col-span-6" title="Ce que le coach remarque">
+            <ul className="grid gap-x-10 gap-y-6 md:grid-cols-2">
+              {vm.insights.map((insight) => (
+                <li key={insight.id}>
+                  <p className="font-medium">{insight.title}</p>
+                  <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
+                    {insight.summary}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </Tile>
+        ) : null}
+      </div>
     </CarnetPage>
   );
 }
