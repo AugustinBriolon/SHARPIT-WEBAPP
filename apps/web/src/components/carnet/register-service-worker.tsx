@@ -3,23 +3,14 @@
 import { useEffect } from 'react';
 
 /**
- * The old web app installed a service worker that cached its pages. The carnet has none
- * (ADR-072): on the first visit after the switch-over, unregister it and drop its caches
- * so nothing stale is ever served again. `public/sw.js` does the same from the worker's
- * side, for a browser that checks for an update before this runs.
+ * Registers the carnet's service worker (ADR-145): what makes it installable and gives it a
+ * page to show offline. The worker caches no reading; on its first activation it also drops the
+ * caches the old web app's worker left behind (ADR-072).
  */
-export function RetireServiceWorker() {
+export function RegisterServiceWorker() {
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) {
-      return;
-    }
-    void navigator.serviceWorker
-      .getRegistrations()
-      .then((registrations) =>
-        Promise.all(registrations.map((registration) => registration.unregister())),
-      );
-    if ('caches' in window) {
-      void caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+    if ('serviceWorker' in navigator) {
+      void navigator.serviceWorker.register('/sw.js', { scope: '/' });
     }
   }, []);
 

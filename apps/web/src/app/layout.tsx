@@ -5,7 +5,7 @@ import { Toaster } from '@/components/ui/toast';
 import { THEME_DARK_COLOR, THEME_LIGHT_COLOR } from '@sharpit/app/lib/theme/theme';
 import { RootLayoutHead } from '@/app/root-layout-head';
 import { CarnetMotion } from '@/components/carnet/carnet-motion';
-import { RetireServiceWorker } from '@/components/carnet/retire-service-worker';
+import { RegisterServiceWorker } from '@/components/carnet/register-service-worker';
 import { cn } from '@sharpit/app/lib/utils';
 import { FONT_VARIABLES } from '@sharpit/ui/fonts';
 import './globals.css';
@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   title: 'SharpIt',
   description: 'Ton carnet d’entraînement : ta saison, tes séances et ton corps, à relire.',
   applicationName: 'SharpIt',
+  // Opens without Safari's chrome once added to an iPhone's or iPad's home screen.
+  appleWebApp: { capable: true, title: 'SharpIt', statusBarStyle: 'default' },
   formatDetection: {
     telephone: false,
   },
@@ -63,8 +65,8 @@ export default function RootLayout({
             <CarnetMotion>{children}</CarnetMotion>
           </ThemeProvider>
           <Toaster />
-          {/* Retires the service worker of the old installable web app (ADR-072). */}
-          <RetireServiceWorker />
+          {/* Installable, with a page to show offline and no cached reading (ADR-145). */}
+          <RegisterServiceWorker />
         </body>
       </html>
     </AppClerkProvider>
