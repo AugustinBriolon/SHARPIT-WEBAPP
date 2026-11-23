@@ -27,85 +27,114 @@ export const LANDING_HERO = {
   body: 'SharpIt construit ta semaine vers ta course, la relit chaque matin avec ce que ta montre a mesuré, et la répare quand la vie s’en mêle.',
   download: { label: 'Télécharger', href: LANDING_LINKS.download },
   downloadNote: 'iPhone, en bêta sur TestFlight',
+  sourcesLabel: 'Fonctionne avec',
   demo: { label: 'Voir la démo', href: LANDING_LINKS.demo },
   signIn: { label: 'Connexion', href: LANDING_LINKS.signIn },
 } as const;
 
+export type LandingCard = { title: string; body: string };
+
 /** An example morning, said as such: no athlete's data is shown on the landing. */
 export const LANDING_MORNING = {
-  title: 'Ce que tu lis à 7 h',
-  body: 'Un verdict, trois raisons au plus, et son niveau de confiance. Si deux lectures se contredisent, la plus prudente gagne et tu sais pourquoi.',
+  title: 'Chaque matin, une décision',
   example: {
     caption: 'Exemple · mardi, 07:02',
     verdict: 'Séance facile aujourd’hui, garde tes jambes pour jeudi',
-    evidenceLabel: 'Pourquoi',
     evidence: [
       'Charge des 7 derniers jours 18 % au-dessus de ton habitude',
       'Séance clé jeudi : seuil vélo, 3 × 12 min',
       'Mollet gauche en reprise : pas de côtes aujourd’hui',
     ],
-    facts: [
-      { label: 'Facteur limitant', value: 'Fatigue' },
-      { label: 'Prévu', value: '8 × 400 m' },
-      { label: 'Proposé', value: '45 min footing facile' },
-      { label: 'Confiance', value: 'Moyenne · 0,68' },
-    ],
-    choice: 'Tu allèges ou tu gardes ton plan. C’est toi qui choisis.',
+    sessionLabel: 'Séance du jour',
+    planned: '8 × 400 m',
+    proposed: '45 min footing facile',
+    confidenceLabel: 'Confiance',
+    confidence: 'Moyenne · 0,68',
+    /** Where 0.68 sits on the 0–1 scale, for the confidence bar. */
+    confidenceValue: 0.68,
+    accept: 'Alléger',
+    keep: 'Garder le plan',
+    accepted: 'Séance allégée. Jeudi reste ta séance clé.',
+    kept: 'Plan gardé. SharpIt s’en souviendra.',
+    undo: 'Revenir',
   },
+  arbitrate: {
+    title: 'La prudence gagne',
+    body: 'Cinq lectures, une seule décision. Tu sais laquelle a tranché.',
+  } satisfies LandingCard,
 } as const;
 
-export type LandingRepairDay = {
-  day: string;
-  planned: string;
-  repaired: string;
-  /** What happened to this day: the session was missed, or the repair moved one here. */
-  change?: 'missed' | 'moved';
-};
-
-/** An example week, before and after a missed key session. */
-export const LANDING_REPAIR = {
-  title: 'Une séance ratée ne casse pas ta semaine',
-  body: 'Le lendemain, SharpIt propose de réorganiser la fin de ta semaine. Les séances clés sont replacées, le bonus cède sa place, et rien ne bouge tant que tu n’as pas dit oui.',
-  caption: 'Exemple : le seuil de mardi est raté',
-  columns: { day: 'Jour', planned: 'Prévu', repaired: 'Proposé' },
-  missedLabel: 'Ratée',
-  movedLabel: 'Déplacée ici',
-  days: [
-    { day: 'Lundi', planned: 'Repos', repaired: 'Repos' },
-    { day: 'Mardi', planned: 'Seuil course · clé', repaired: 'Rien', change: 'missed' },
-    { day: 'Mercredi', planned: 'Footing 40 min', repaired: 'Seuil course · clé', change: 'moved' },
-    { day: 'Jeudi', planned: 'Vélo 1 h', repaired: 'Vélo 1 h' },
-    { day: 'Vendredi', planned: 'Repos', repaired: 'Repos' },
-    { day: 'Samedi', planned: 'Sortie longue · clé', repaired: 'Sortie longue · clé' },
-    { day: 'Dimanche', planned: 'Natation', repaired: 'Natation' },
-  ] satisfies LandingRepairDay[],
+export const LANDING_PLAN = {
+  title: 'Un plan qui suit ta vie',
+  programme: {
+    title: 'Construit vers ta course',
+    body: 'Deux ou trois séances clés par semaine. Le reste est du bonus.',
+  } satisfies LandingCard,
+  repair: {
+    title: 'Une séance ratée ? Il réorganise',
+    body: 'La fin de ta semaine est replacée, et attend ton accord.',
+  } satisfies LandingCard,
 } as const;
 
 /** One control per rule of the plan's Gate (ADR-005); the test counts the rule files. */
 export const LANDING_GATE_RULE_COUNT = 17;
 
-export const LANDING_TRUST = {
-  title: 'Pourquoi lui faire confiance',
-  reasons: [
-    {
-      title: `${LANDING_GATE_RULE_COUNT} contrôles avant chaque séance`,
-      body: 'Le coach rédige, des règles fixes vérifient : charge tenable, séances intenses espacées, rien après ta course, pas de conflit avec ton agenda.',
-    },
-    {
-      title: 'Il te dit quand il ne sait pas',
-      body: 'Chaque verdict porte son niveau de confiance. Quand les données manquent, il retient son conseil et te dit ce qui lui manque.',
-    },
-    {
-      title: 'Rien ne change sans ton accord',
-      body: 'Une proposition n’est jamais appliquée en silence. Tu acceptes, tu ajustes ou tu gardes ton plan.',
-    },
-  ],
+/** The decision engine's confidence policy: where advice turns careful, then complete. */
+export const LANDING_CONFIDENCE_STEPS = [
+  { from: 0, label: 'Fragile' },
+  { from: 0.6, label: 'Prudent dès 0,60' },
+  { from: 0.75, label: 'Complet dès 0,75' },
+] as const;
+
+export const LANDING_MODEL = {
+  title: 'Il te connaît, et il le prouve',
+  observe: {
+    title: 'Toutes tes sources, un seul modèle',
+    body: 'Tu choisis l’appareil qui fait foi.',
+  } satisfies LandingCard,
+  compare: {
+    title: 'Comparé à toi, pas à une moyenne',
+    body: 'Sous 5 % d’écart, c’est du bruit.',
+  } satisfies LandingCard,
+  gate: {
+    title: 'contrôles avant chaque séance',
+    body: 'Le coach rédige, des règles fixes vérifient.',
+  } satisfies LandingCard,
+  honesty: {
+    title: 'Il te dit quand il ne sait pas',
+    body: 'Sans données, pas de conseil.',
+  } satisfies LandingCard,
 } as const;
+
+/** The words drawn inside the diagrams. */
+export const LANDING_DIAGRAMS = {
+  observe: {
+    sources: ['Strava', 'Apple Santé', 'Withings'],
+    primary: 'principale',
+    model: 'Ton modèle',
+  },
+  compare: { window: '14 jours', band: '±5 % : bruit', outlier: '−9 % : à lire' },
+  arbitrate: {
+    readings: ['RAS', 'Prudence', 'Bonne', 'RAS', 'Pousser'],
+    verdict: 'Séance facile',
+    rule: 'La prudence gagne',
+  },
+  programme: { days: ['L', 'M', 'M', 'J', 'V', 'S', 'D'], key: 'Clé', checks: '17 / 17 contrôles' },
+  repair: { missed: 'Ratée', proposal: 'Proposé, à valider' },
+} as const;
+
+/** The decision engine's domain priority, safest first (DECISION_ENGINE.md). */
+export const LANDING_PRIORITY = [
+  'État physique',
+  'Fatigue',
+  'Forme du jour',
+  'Conditions',
+  'Progression',
+] as const;
 
 /** Only what ships is listed as connected; the rest is announced, never claimed. */
 export const LANDING_SOURCES = {
   title: 'Branché sur tes appareils',
-  body: 'La montre change, ton modèle reste.',
   connected: ['Garmin', 'Strava', 'Apple Santé', 'Withings', 'Google Agenda'],
   upcomingLabel: 'Bientôt',
   upcoming: ['Polar'],
@@ -180,31 +209,35 @@ export const LANDING_SOCIAL_LINKS = [
 /** Every athlete-facing string on the landing, for the forbidden-copy guard. */
 export function landingCopyStrings(): string[] {
   const { example } = LANDING_MORNING;
+  const cards: LandingCard[] = [
+    LANDING_MORNING.arbitrate,
+    LANDING_PLAN.programme,
+    LANDING_PLAN.repair,
+    LANDING_MODEL.observe,
+    LANDING_MODEL.compare,
+    LANDING_MODEL.gate,
+    LANDING_MODEL.honesty,
+  ];
   return [
     ...LANDING_HERO.titleLines,
     LANDING_HERO.body,
     LANDING_HERO.download.label,
     LANDING_HERO.downloadNote,
+    LANDING_HERO.sourcesLabel,
     LANDING_HERO.demo.label,
     LANDING_MORNING.title,
-    LANDING_MORNING.body,
-    example.caption,
-    example.verdict,
-    example.evidenceLabel,
-    ...example.evidence,
-    ...example.facts.flatMap((fact) => [fact.label, fact.value]),
-    example.choice,
-    LANDING_REPAIR.title,
-    LANDING_REPAIR.body,
-    LANDING_REPAIR.caption,
-    ...Object.values(LANDING_REPAIR.columns),
-    LANDING_REPAIR.missedLabel,
-    LANDING_REPAIR.movedLabel,
-    ...LANDING_REPAIR.days.flatMap((day) => [day.day, day.planned, day.repaired]),
-    LANDING_TRUST.title,
-    ...LANDING_TRUST.reasons.flatMap((reason) => [reason.title, reason.body]),
+    ...Object.values(example)
+      .filter((value) => typeof value !== 'number')
+      .flat(),
+    LANDING_PLAN.title,
+    LANDING_MODEL.title,
+    ...cards.flatMap((card) => [card.title, card.body]),
+    ...LANDING_CONFIDENCE_STEPS.map((step) => step.label),
+    ...LANDING_PRIORITY,
+    ...Object.values(LANDING_DIAGRAMS).flatMap((labels) =>
+      Object.values(labels).flatMap((value) => (typeof value === 'string' ? [value] : value)),
+    ),
     LANDING_SOURCES.title,
-    LANDING_SOURCES.body,
     ...LANDING_SOURCES.connected,
     LANDING_SOURCES.upcomingLabel,
     ...LANDING_SOURCES.upcoming,

@@ -1,16 +1,21 @@
+import type { ReactNode } from 'react';
 import { Plus } from 'lucide-react';
 import { buttonTapScale, buttonVariants } from '@sharpit/ui/components/ui/button';
 import {
+  LANDING_CONFIDENCE_STEPS,
   LANDING_FAQ,
+  LANDING_GATE_RULE_COUNT,
   LANDING_HERO,
+  LANDING_MODEL,
   LANDING_MORNING,
+  LANDING_PLAN,
   LANDING_PRICING,
-  LANDING_REPAIR,
   LANDING_SOURCES,
-  LANDING_TRUST,
-  type LandingRepairDay,
+  type LandingCard,
 } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
+import { DIAGRAMS } from './landing-diagrams';
+import { ConfidenceBar, MorningWidget } from './landing-morning';
 import { CONTAINER, DATA, HEADING, LEAD } from './landing-parts';
 import { Phone } from './landing-phone';
 
@@ -29,170 +34,185 @@ export function DownloadButton() {
   );
 }
 
+const LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
+
 export function Hero() {
   return (
-    <section aria-labelledby="hero-title" className="py-16 sm:py-24">
-      <div className={cn(CONTAINER, 'grid items-center gap-14 lg:grid-cols-[1fr_auto] lg:gap-20')}>
-        <div>
-          <h1
-            className={cn(HEADING, 'text-[clamp(2.5rem,6vw,4.25rem)] leading-[1.05]')}
-            id="hero-title"
-          >
-            {LANDING_HERO.titleLines.map((line) => (
-              <span key={line} className="block">
+    <section aria-labelledby="hero-title" className="overflow-hidden pt-16 sm:pt-24">
+      <div className={cn(CONTAINER, 'flex flex-col items-center text-center')}>
+        <h1 className={cn(HEADING, 'text-[clamp(2.5rem,7vw,5rem)] leading-[1.05]')} id="hero-title">
+          {LANDING_HERO.titleLines.map((line) => (
+            <span key={line} className="block overflow-hidden pb-[0.12em]">
+              <span className="block" data-hero-line>
                 {line}
               </span>
-            ))}
-          </h1>
-          <p className={cn(LEAD, 'mt-6 max-w-xl')}>{LANDING_HERO.body}</p>
-          <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <DownloadButton />
-            <a className="text-sm underline underline-offset-4" href={LANDING_HERO.demo.href}>
-              {LANDING_HERO.demo.label}
-            </a>
-          </div>
-          <p className="text-muted-foreground mt-4 text-sm">{LANDING_HERO.downloadNote}</p>
+            </span>
+          ))}
+        </h1>
+        <p className={cn(LEAD, 'mt-5 max-w-xl')} data-hero-fade>
+          {LANDING_HERO.body}
+        </p>
+        <div
+          className="mt-8 flex flex-wrap items-center justify-center gap-x-6 gap-y-3"
+          data-hero-fade
+        >
+          <DownloadButton />
+          <a className="text-sm underline underline-offset-4" href={LANDING_HERO.demo.href}>
+            {LANDING_HERO.demo.label}
+          </a>
         </div>
-        <Phone />
+        <p className="text-muted-foreground mt-4 text-sm" data-hero-fade>
+          {LANDING_HERO.downloadNote}
+        </p>
+        {/* The phone runs off the section's foot: the screen is the picture, not the bezel. */}
+        <div className="mt-14 -mb-40 sm:-mb-48">
+          <Phone />
+        </div>
       </div>
+      <p className="bg-background border-border text-muted-foreground relative border-t py-6 text-center text-sm">
+        {LANDING_HERO.sourcesLabel} {LIST.format(LANDING_SOURCES.connected)}
+      </p>
     </section>
   );
 }
 
-/** The morning verdict as one flat sheet: hairlines between its parts, no card inside a card. */
-function MorningExample() {
-  const { example } = LANDING_MORNING;
+/** One cell of a bento: the widget on top, then a title and at most one sentence. */
+function Card({
+  card,
+  className,
+  children,
+}: {
+  card?: LandingCard;
+  className?: string;
+  children: ReactNode;
+}) {
   return (
-    <figure className="bg-card border-border rounded-2xl border p-6 sm:p-8">
-      <figcaption className="text-muted-foreground text-sm">{example.caption}</figcaption>
-      <p className={cn(HEADING, 'mt-3 text-2xl leading-snug text-balance')}>{example.verdict}</p>
-      <p className="text-muted-foreground mt-8 text-sm">{example.evidenceLabel}</p>
-      <ul className="divide-border border-border mt-2 divide-y border-y">
-        {example.evidence.map((line) => (
-          <li key={line} className="py-3 text-sm">
-            {line}
-          </li>
-        ))}
-      </ul>
-      <dl className="mt-6 grid grid-cols-2 gap-x-6 gap-y-5">
-        {example.facts.map((fact) => (
-          <div key={fact.label}>
-            <dt className="text-muted-foreground text-sm">{fact.label}</dt>
-            <dd className={cn(DATA, 'mt-1 text-sm')}>{fact.value}</dd>
-          </div>
-        ))}
-      </dl>
-      <p className="text-muted-foreground border-border mt-6 border-t pt-4 text-sm">
-        {example.choice}
-      </p>
-    </figure>
+    <article
+      className={cn(
+        'bg-card border-border flex flex-col justify-between gap-8 rounded-3xl border p-6 sm:p-8',
+        className,
+      )}
+      data-reveal
+    >
+      {children}
+      {card ? (
+        <div>
+          <h3 className="text-lg font-medium text-balance">{card.title}</h3>
+          <p className="text-muted-foreground mt-1.5 text-pretty">{card.body}</p>
+        </div>
+      ) : null}
+    </article>
+  );
+}
+
+function SectionTitle({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <h2 className={cn(SECTION_TITLE, 'mb-10 sm:mb-14 sm:text-5xl')} id={id} data-reveal>
+      {children}
+    </h2>
   );
 }
 
 export function Morning() {
   return (
     <section aria-labelledby="morning-title" className={SECTION}>
-      <div className={cn(CONTAINER, SPLIT)}>
-        <div>
-          <h2 className={SECTION_TITLE} id="morning-title">
-            {LANDING_MORNING.title}
-          </h2>
-          <p className={cn(LEAD, 'mt-5 max-w-lg')}>{LANDING_MORNING.body}</p>
-        </div>
-        <MorningExample />
-      </div>
-    </section>
-  );
-}
-
-function RepairRow({ day }: { day: LandingRepairDay }) {
-  const missed = day.change === 'missed';
-  const moved = day.change === 'moved';
-  return (
-    <tr className="border-border border-t">
-      <th className="text-muted-foreground py-3 pr-3 text-left font-normal" scope="row">
-        {day.day}
-      </th>
-      <td className={cn('py-3 pr-3', missed && 'text-muted-foreground')}>
-        <span className={cn(missed && 'line-through')}>{day.planned}</span>
-        {missed ? <span className="block">{LANDING_REPAIR.missedLabel}</span> : null}
-      </td>
-      <td
-        className={cn(
-          'py-3',
-          missed && 'text-muted-foreground',
-          moved && 'bg-accent text-accent-foreground rounded-md px-3',
-        )}
-      >
-        {day.repaired}
-        {moved ? <span className="block">{LANDING_REPAIR.movedLabel}</span> : null}
-      </td>
-    </tr>
-  );
-}
-
-export function Repair() {
-  const { columns } = LANDING_REPAIR;
-  return (
-    <section aria-labelledby="repair-title" className={SECTION}>
-      <div className={cn(CONTAINER, SPLIT)}>
-        <div>
-          <h2 className={SECTION_TITLE} id="repair-title">
-            {LANDING_REPAIR.title}
-          </h2>
-          <p className={cn(LEAD, 'mt-5 max-w-lg')}>{LANDING_REPAIR.body}</p>
-        </div>
-        <table className="w-full border-collapse text-sm">
-          <caption className="text-muted-foreground pb-4 text-left">
-            {LANDING_REPAIR.caption}
-          </caption>
-          <thead>
-            <tr className="text-muted-foreground text-left">
-              <th className="pr-3 pb-3 font-normal" scope="col">
-                {columns.day}
-              </th>
-              <th className="pr-3 pb-3 font-normal" scope="col">
-                {columns.planned}
-              </th>
-              <th className="pb-3 font-normal" scope="col">
-                {columns.repaired}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {LANDING_REPAIR.days.map((day) => (
-              <RepairRow key={day.day} day={day} />
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-export function Trust() {
-  return (
-    <section aria-labelledby="trust-title" className={SECTION}>
       <div className={CONTAINER}>
-        <h2 className={SECTION_TITLE} id="trust-title">
-          {LANDING_TRUST.title}
-        </h2>
-        <ul className="mt-12 grid gap-10 md:grid-cols-3 md:gap-12">
-          {LANDING_TRUST.reasons.map((reason) => (
-            <li key={reason.title}>
-              <h3 className="text-lg font-medium">{reason.title}</h3>
-              <p className="text-muted-foreground mt-2 leading-relaxed text-pretty">
-                {reason.body}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <SectionTitle id="morning-title">{LANDING_MORNING.title}</SectionTitle>
+        <div className="grid gap-4 lg:grid-cols-5 lg:gap-5">
+          <Card className="lg:col-span-3">
+            <MorningWidget />
+          </Card>
+          <Card card={LANDING_MORNING.arbitrate} className="lg:col-span-2">
+            <DIAGRAMS.Arbitrate />
+          </Card>
+        </div>
       </div>
     </section>
   );
 }
 
-const LIST = new Intl.ListFormat('fr', { type: 'conjunction' });
+export function Plan() {
+  return (
+    <section aria-labelledby="plan-title" className={SECTION}>
+      <div className={CONTAINER}>
+        <SectionTitle id="plan-title">{LANDING_PLAN.title}</SectionTitle>
+        <div className="grid gap-4 md:grid-cols-2 lg:gap-5">
+          <Card card={LANDING_PLAN.programme}>
+            <DIAGRAMS.Programme />
+          </Card>
+          <Card card={LANDING_PLAN.repair}>
+            <DIAGRAMS.Repair />
+          </Card>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** The Gate's count, and one tick per rule. */
+function GateCount() {
+  return (
+    <div>
+      <p
+        className={cn(DATA, HEADING, 'text-8xl leading-none')}
+        data-count={LANDING_GATE_RULE_COUNT}
+      >
+        {LANDING_GATE_RULE_COUNT}
+      </p>
+      <div className="mt-6 flex gap-1.5" aria-hidden>
+        {Array.from({ length: LANDING_GATE_RULE_COUNT }, (_, i) => (
+          <span
+            key={i}
+            className="bg-foreground h-6 w-1 origin-bottom rounded-full"
+            data-count-tick
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** The confidence scale and the three ways advice is given along it. */
+function ConfidenceScale() {
+  const { example } = LANDING_MORNING;
+  return (
+    <div>
+      <p className={cn(DATA, HEADING, 'text-8xl leading-none')}>
+        {example.confidenceValue.toLocaleString('fr')}
+      </p>
+      <ConfidenceBar className="mt-6" value={example.confidenceValue} />
+      <ol className="text-muted-foreground mt-2.5 flex justify-between gap-3 text-sm">
+        {LANDING_CONFIDENCE_STEPS.map((step) => (
+          <li key={step.label}>{step.label}</li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+export function Model() {
+  return (
+    <section aria-labelledby="model-title" className={SECTION}>
+      <div className={CONTAINER}>
+        <SectionTitle id="model-title">{LANDING_MODEL.title}</SectionTitle>
+        <div className="grid gap-4 md:grid-cols-2 lg:gap-5">
+          <Card card={LANDING_MODEL.observe}>
+            <DIAGRAMS.Observe />
+          </Card>
+          <Card card={LANDING_MODEL.compare}>
+            <DIAGRAMS.Compare />
+          </Card>
+          <Card card={LANDING_MODEL.gate}>
+            <GateCount />
+          </Card>
+          <Card card={LANDING_MODEL.honesty}>
+            <ConfidenceScale />
+          </Card>
+        </div>
+      </div>
+    </section>
+  );
+}
 
 export function SourcesAndPricing() {
   return (
@@ -200,7 +220,6 @@ export function SourcesAndPricing() {
       <div className={cn(CONTAINER, SPLIT)}>
         <div>
           <h2 className={SECTION_TITLE}>{LANDING_SOURCES.title}</h2>
-          <p className={cn(LEAD, 'mt-5')}>{LANDING_SOURCES.body}</p>
           <p className="mt-6">{LIST.format(LANDING_SOURCES.connected)}.</p>
           <p className="text-muted-foreground mt-1">
             {LANDING_SOURCES.upcomingLabel} : {LIST.format(LANDING_SOURCES.upcoming)}.

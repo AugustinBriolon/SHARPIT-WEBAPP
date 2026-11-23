@@ -7,15 +7,16 @@ import {
   LANDING_SOCIAL_LINKS,
 } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
+import { LandingMotion } from './landing-motion';
 import { Brand, CONTAINER, HEADING } from './landing-parts';
 import {
   DownloadButton,
   Faq,
   Hero,
+  Model,
   Morning,
-  Repair,
+  Plan,
   SourcesAndPricing,
-  Trust,
 } from './landing-sections';
 
 const FOOTER_LINK = 'underline-offset-4 hover:underline';
@@ -93,24 +94,25 @@ function Footer() {
 }
 
 /**
- * sharpit.app, the public landing: the promise, a morning, a repaired week, why to trust it,
- * what it plugs into and costs, then the questions. Server-rendered markup with no script of
- * its own; `docs/design/DESIGN_RULES.md` is the law it is checked against.
+ * sharpit.app, the public landing: the promise, then the product shown as widgets (a morning to
+ * decide, a week that repairs itself, the model behind it), what it costs and the questions.
+ * Markup is complete without script; motion lives in `LandingMotion`, the one interaction in
+ * `MorningWidget`. `docs/design/DESIGN_RULES.md` is the law it is checked against.
  */
 export function Landing() {
   return (
-    <>
+    <LandingMotion>
       <Header />
       <main>
         <Hero />
         <Morning />
-        <Repair />
-        <Trust />
+        <Plan />
+        <Model />
         <SourcesAndPricing />
         <Faq />
         <Closing />
       </main>
       <Footer />
-    </>
+    </LandingMotion>
   );
 }

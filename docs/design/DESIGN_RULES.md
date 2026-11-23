@@ -11,7 +11,8 @@ is not done. On the public pages (`apps/hub`) these rules win over older guidanc
 - No nested cards, no decorative pills.
 - No bold. Regular (400) and medium (500) only.
 - No numbered lists as decoration (01, 02, 03).
-- No scroll-driven animation, no entrance animation, no stagger.
+- No pinned sections, no parallax, no text revealed by scrubbing the scroll.
+- No section that is only text: show the product, as a widget or a diagram, and say one sentence.
 
 ## Always
 
@@ -20,8 +21,12 @@ is not done. On the public pages (`apps/hub`) these rules win over older guidanc
   never a hex or oklch value in a component.
 - Surfaces stay neutral. The accent shows only on what is active, selected or changed.
 - Shadows only on things that float (menus, dialogs, toasts).
-- Motion under 300 ms, exits faster than entries, no bounce. Buttons press to 0.97. Keyboard
-  focus moves instantly; only the pointer gets a transition.
+- Interface feedback (hover, press, open, close) under 300 ms, exits faster than entries, no
+  bounce. Buttons press to 0.97. Keyboard focus moves instantly; only the pointer gets a
+  transition.
+- Storytelling motion (a widget assembling, a diagram drawing, a count running up) may take up to
+  a second. It plays once as the widget enters the view, shows something the product does, and
+  stands still under Reduce Motion.
 - One type scale, two weights.
 
 ## Before saying done
