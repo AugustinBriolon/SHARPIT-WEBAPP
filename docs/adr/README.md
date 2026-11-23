@@ -133,6 +133,7 @@
 | [ADR-137](./ADR-137-a-food-carries-the-time-it-was-eaten.md)                               | A food carries the time it was eaten: `FoodLogEntry.eatenMinute`, the timeline places meals at it, the day reading gains `timing`                                                                               | Accepted                          |
 | [ADR-138](./ADR-138-the-day-timeline-reads-the-clock.md)                                   | The day timeline reads the clock: the coffee at its hour (`caffeineMinute`, now by default, editable), sessions at their start, a session's `state`                                                             | Accepted                          |
 | [ADR-139](./ADR-139-a-late-coffee-is-read-against-the-night-after-it.md)                   | A late coffee is read against the night after it: derived `late_coffee` factor (last coffee < 8 h before bed) in the journal habit analysis                                                                     | Accepted                          |
+| [ADR-141](./ADR-141-a-described-meal-is-read-dish-by-dish.md)                              | A described meal is read dish by dish: `dishes[]` from the model, a dish known whole stays one line, a catalog match must agree on energy, one group per dish, live eval                                        |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
