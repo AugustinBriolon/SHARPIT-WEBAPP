@@ -551,8 +551,10 @@ export async function syncFromGoogle(athleteId: string): Promise<GooglePullResul
 
   const todayStart = new Date(now);
   todayStart.setHours(0, 0, 0, 0);
+  // A session already done is not pushed again: its event removed by the athlete came back
+  // on every sync.
   const unsynced = await prisma.plannedSession.findMany({
-    where: { athleteId, googleEventId: null, date: { gte: todayStart } },
+    where: { athleteId, googleEventId: null, activityId: null, date: { gte: todayStart } },
   });
   const pushed = await pushUnsyncedSessionsToGoogle(unsynced);
   const { updated, unlinked } = await pullGoogleUpdatesOntoSessions({
