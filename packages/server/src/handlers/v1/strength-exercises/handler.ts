@@ -1,6 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
-import { loadExerciseHistory } from '@sharpit/server/lib/strength/exercise-history';
+import {
+  MAX_EXERCISE_NAME,
+  MAX_EXERCISE_NOTE,
+  loadExerciseHistory,
+  saveAthleteExerciseNote,
+} from '@sharpit/server/lib/strength/exercise-history';
 
 /**
  * The athlete's own exercises for native clients (ADR-040): each one's last session and best
@@ -14,5 +20,26 @@ export async function GET() {
   } catch (error) {
     console.error('[api/v1/strength-exercises]', { ok: false, hasError: Boolean(error) });
     return NextResponse.json({ error: 'Impossible de lire tes exercices' }, { status: 500 });
+  }
+}
+
+const noteSchema = z.object({
+  name: z.string().trim().min(1).max(MAX_EXERCISE_NAME),
+  note: z.string().max(MAX_EXERCISE_NOTE),
+});
+
+/** The athlete's standing note on one exercise (ADR-146); an empty note removes it. */
+export async function PUT(request: NextRequest) {
+  const parsed = noteSchema.safeParse(await request.json().catch(() => null));
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Données invalides' }, { status: 400 });
+  }
+  try {
+    const athleteId = await getCurrentAthleteId();
+    await saveAthleteExerciseNote(athleteId, parsed.data.name, parsed.data.note);
+    return NextResponse.json({ apiVersion: 1, note: parsed.data.note.trim() || null });
+  } catch (error) {
+    console.error('[api/v1/strength-exercises] note', { ok: false, hasError: Boolean(error) });
+    return NextResponse.json({ error: 'Note non enregistrée' }, { status: 500 });
   }
 }

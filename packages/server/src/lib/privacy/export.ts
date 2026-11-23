@@ -86,6 +86,7 @@ export const EXPORT_COVERED_MODELS: readonly string[] = [
   'FoodLogSkippedMeal',
   'FoodLogGroup',
   'SavedMeal',
+  'AthleteExerciseNote',
   'NutritionDayAnalysis',
   'TrainingPlan',
   'PlanWeek',
@@ -118,6 +119,7 @@ async function loadObservationsAndJournal(athleteId: string) {
     foodLogGroups,
     savedMeals,
     nutritionAnalyses,
+    exerciseNotes,
   ] = await Promise.all([
     prisma.observation.findMany({
       where,
@@ -131,6 +133,8 @@ async function loadObservationsAndJournal(athleteId: string) {
     prisma.foodLogGroup.findMany({ where }),
     prisma.savedMeal.findMany({ where }),
     prisma.nutritionDayAnalysis.findMany({ where }),
+    // Standing notes the athlete keeps on exercises (ADR-146).
+    prisma.athleteExerciseNote.findMany({ where }),
   ]);
   return {
     observations,
@@ -140,6 +144,7 @@ async function loadObservationsAndJournal(athleteId: string) {
     foodLogGroups,
     savedMeals,
     nutritionAnalyses,
+    exerciseNotes,
   };
 }
 

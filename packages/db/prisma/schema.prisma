@@ -437,6 +437,7 @@ model AthleteProfile {
   coachingDecisions           CoachingDecision[]
   snapshotRecords             AthleteSnapshotRecord[]
   aiUsageEvents               AiUsageEvent[]
+  exerciseNotes               AthleteExerciseNote[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -944,6 +945,23 @@ model HikeMetrics {
   avgHr          Int?
   calories       Int?
   avgSpeedMps    Float?
+}
+
+/// A standing note the athlete keeps on one exercise (cue, setting, pain to watch), shown each
+/// time the exercise comes back and read by the plan generator. Keyed like the exercise history.
+model AthleteExerciseNote {
+  id          String         @id @default(cuid())
+  athleteId   String
+  athlete     AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  /// `exerciseKey(name)`: accents, case and spacing folded.
+  exerciseKey String
+  name        String
+  note        String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([athleteId, exerciseKey])
 }
 
 model StrengthSet {

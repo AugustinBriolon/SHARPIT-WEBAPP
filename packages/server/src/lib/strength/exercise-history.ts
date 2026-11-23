@@ -1,5 +1,6 @@
 import { prisma } from '@sharpit/db/client';
 import { visibleActivityWhere } from '@sharpit/app/lib/query/activity-include';
+import { athleteText } from '@sharpit/server/lib/ai/athlete-text';
 
 /** One logged block of sets, with the day it was done. */
 export type StrengthSetRow = {
@@ -18,6 +19,8 @@ export type StrengthExerciseHistory = {
   name: string;
   catalogId: string | null;
   note: string | null;
+  /** The standing note the athlete keeps on this exercise (ADR-146), not one session's note. */
+  athleteNote: string | null;
   sessions: number;
   last: {
     date: string;
@@ -54,6 +57,7 @@ export function summarizeExerciseHistory(rows: StrengthSetRow[]): StrengthExerci
         name: row.exercise.trim(),
         catalogId: row.exerciseCatalogId,
         note: null,
+        athleteNote: null,
         sessions: 0,
         last: {
           date: day,
@@ -86,8 +90,59 @@ export function summarizeExerciseHistory(rows: StrengthSetRow[]): StrengthExerci
   return [...byKey.values()].map(({ days, ...entry }) => ({ ...entry, sessions: days.size }));
 }
 
-/** Every exercise the athlete has logged, with its last and best figures. */
+/** Puts each standing note on its exercise, matched by `exerciseKey`. */
+export function attachAthleteNotes(
+  history: StrengthExerciseHistory[],
+  notes: readonly { exerciseKey: string; note: string }[],
+): StrengthExerciseHistory[] {
+  const byKey = new Map(notes.map((n) => [n.exerciseKey, n.note]));
+  // shortcut: a note on an exercise never logged stays hidden until its first set is saved.
+  return history.map((entry) => ({
+    ...entry,
+    athleteNote: byKey.get(exerciseKey(entry.name)) ?? null,
+  }));
+}
+
+/** Every exercise the athlete has logged, with its last and best figures and standing note. */
 export async function loadExerciseHistory(athleteId: string): Promise<StrengthExerciseHistory[]> {
+  const [sets, notes] = await Promise.all([
+    loadStrengthSetRows(athleteId),
+    loadAthleteNotes(athleteId),
+  ]);
+  return attachAthleteNotes(summarizeExerciseHistory(sets), notes);
+}
+
+function loadAthleteNotes(athleteId: string) {
+  return prisma.athleteExerciseNote.findMany({
+    where: { athleteId },
+    select: { exerciseKey: true, note: true },
+  });
+}
+
+export const MAX_EXERCISE_NAME = 120;
+export const MAX_EXERCISE_NOTE = 500;
+
+/** Writes, replaces or (empty text) removes the athlete's standing note on one exercise. */
+export async function saveAthleteExerciseNote(
+  athleteId: string,
+  name: string,
+  note: string,
+): Promise<void> {
+  const key = exerciseKey(name);
+  const text = note.trim().slice(0, MAX_EXERCISE_NOTE);
+  if (!text) {
+    await prisma.athleteExerciseNote.deleteMany({ where: { athleteId, exerciseKey: key } });
+    return;
+  }
+  const label = name.trim().slice(0, MAX_EXERCISE_NAME);
+  await prisma.athleteExerciseNote.upsert({
+    where: { athleteId_exerciseKey: { athleteId, exerciseKey: key } },
+    create: { athleteId, exerciseKey: key, name: label, note: text },
+    update: { name: label, note: text },
+  });
+}
+
+async function loadStrengthSetRows(athleteId: string): Promise<StrengthSetRow[]> {
   const sets = await prisma.strengthSet.findMany({
     where: { activity: { athleteId, ...visibleActivityWhere } },
     select: {
@@ -104,9 +159,7 @@ export async function loadExerciseHistory(athleteId: string): Promise<StrengthEx
     // Two years of a daily lifter stay well under this; older sets no longer set a default.
     take: 5000,
   });
-  return summarizeExerciseHistory(
-    sets.map(({ activity, ...set }) => ({ ...set, date: activity.date })),
-  );
+  return sets.map(({ activity, ...set }) => ({ ...set, date: activity.date }));
 }
 
 /** Exercises given to the plan generator: enough to cover a programme, short in the prompt. */
@@ -129,7 +182,8 @@ function historyLine(entry: StrengthExerciseHistory): string {
       : best.durationSec !== null
         ? `, meilleur ${best.durationSec} s`
         : '';
-  return `- ${entry.name} : dernière fois ${lastText} (${last.date})${bestText}, ${entry.sessions} séance(s)`;
+  const cue = entry.athleteNote ? ` — consigne de l’athlète ${athleteText(entry.athleteNote)}` : '';
+  return `- ${entry.name} : dernière fois ${lastText} (${last.date})${bestText}, ${entry.sessions} séance(s)${cue}`;
 }
 
 /**

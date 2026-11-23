@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  attachAthleteNotes,
   exerciseKey,
   formatStrengthHistoryBlock,
   summarizeExerciseHistory,
@@ -90,5 +91,27 @@ describe('formatStrengthHistoryBlock', () => {
     expect(block).toContain('Développé couché : dernière fois 3×8 à 60 kg (2026-11-01)');
     expect(block).toContain('meilleur 5 rép. à 70 kg');
     expect(block).toContain('Gainage : dernière fois 3×45 s');
+  });
+});
+
+describe('attachAthleteNotes', () => {
+  it('puts a standing note on its exercise whatever the accents and case', () => {
+    const history = attachAthleteNotes(
+      summarizeExerciseHistory([row({}), row({ exercise: 'Gainage' })]),
+      [{ exerciseKey: exerciseKey('DEVELOPPE couche'), note: 'Omoplates serrées' }],
+    );
+    expect(history.find((e) => e.name === 'Développé couché')?.athleteNote).toBe(
+      'Omoplates serrées',
+    );
+    expect(history.find((e) => e.name === 'Gainage')?.athleteNote).toBeNull();
+  });
+
+  it('hands the note to the plan generator as athlete text', () => {
+    const block = formatStrengthHistoryBlock(
+      attachAthleteNotes(summarizeExerciseHistory([row({})]), [
+        { exerciseKey: exerciseKey('Développé couché'), note: 'Épaule droite : pas sous 90°' },
+      ]),
+    );
+    expect(block).toContain('consigne de l’athlète ⟦Épaule droite : pas sous 90°⟧');
   });
 });
