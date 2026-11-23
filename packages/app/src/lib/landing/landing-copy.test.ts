@@ -4,10 +4,9 @@ import { describe, expect, it } from 'vitest';
 import { TEASER_FORBIDDEN_COPY } from '@sharpit/app/lib/teaser/screens';
 import { PROVIDER_CATALOG } from '@sharpit/app/lib/integrations/provider-catalog';
 import {
-  LANDING_GUARDRAILS,
+  LANDING_GATE_RULE_COUNT,
   LANDING_HERO,
   LANDING_LINKS,
-  LANDING_METHOD,
   LANDING_SOCIAL_LINKS,
   LANDING_SOURCES,
   landingCopyStrings,
@@ -23,6 +22,12 @@ describe('landing copy', () => {
     const text = landingCopyStrings().join('\n').toLowerCase();
     for (const forbidden of TEASER_FORBIDDEN_COPY) {
       expect(text, forbidden).not.toContain(forbidden.toLowerCase());
+    }
+  });
+
+  it('writes every line in sentence case, never in capitals', () => {
+    for (const line of landingCopyStrings()) {
+      expect(line, line).not.toMatch(/\p{Lu}{4,}/u);
     }
   });
 
@@ -50,17 +55,11 @@ describe('landing copy', () => {
     ]);
   });
 
-  it('anchors the method section the hero links to', () => {
-    expect(LANDING_LINKS.method).toBe('#methode');
-    expect(LANDING_METHOD.steps.map((step) => step.index)).toEqual(['01', '02', '03', '04', '05']);
-  });
-
   it('counts one guardrail per rule of the plan Gate', () => {
     const rules = readdirSync(GATE_RULES_DIR).filter(
       (file) => file.endsWith('.ts') && !file.endsWith('.test.ts'),
     );
-    expect(LANDING_GUARDRAILS.rules).toHaveLength(rules.length);
-    expect(LANDING_GUARDRAILS.count).toBe(rules.length);
+    expect(LANDING_GATE_RULE_COUNT).toBe(rules.length);
   });
 
   it('claims as connected only the sources the catalog ships', () => {

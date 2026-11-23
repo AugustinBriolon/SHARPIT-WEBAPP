@@ -12,8 +12,7 @@ export function Phone() {
   return (
     <figure
       aria-label="L’écran Résumé de l’app SharpIt, sur des données d’exemple"
-      className="relative mx-auto w-[300px] shrink-0 rounded-[3.1rem] border-[10px] border-[oklch(0.2_0.04_139)] bg-[oklch(0.2_0.04_139)] dark:ring-1 dark:ring-white/15"
-      data-phone
+      className="dark:ring-border relative mx-auto w-[300px] shrink-0 rounded-[3.1rem] border-[10px] border-(--landing-night) bg-(--landing-night) dark:ring-1"
     >
       <Image
         alt="Résumé : le verdict du jour « Reste en endurance facile », le sommeil et la récupération en anneaux, la séance prévue."

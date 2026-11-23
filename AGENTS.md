@@ -19,6 +19,7 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 - [`docs/models/CORE_ARCHITECTURE.md`](docs/models/CORE_ARCHITECTURE.md) — **architectural constitution** (frozen Core)
 - [`docs/product/PRODUCT.md`](docs/product/PRODUCT.md) — constitution, execution doctrine, athlete journey
 - [`docs/design/DESIGN_LANGUAGE.md`](docs/design/DESIGN_LANGUAGE.md) — visual and interaction law
+- [`docs/design/DESIGN_RULES.md`](docs/design/DESIGN_RULES.md) — the short list of bans every UI change is checked against
 - [`docs/design/DESIGN_SYSTEM_PROMPT.md`](docs/design/DESIGN_SYSTEM_PROMPT.md) — agent-facing design prompt (tokens, patterns, anti-patterns)
 - [`docs/design/INFORMATION_ARCHITECTURE.md`](docs/design/INFORMATION_ARCHITECTURE.md) — required when changing navigation, page hierarchy, contextual Coach entry points, or athlete-facing information structure
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — code structure and conventions
