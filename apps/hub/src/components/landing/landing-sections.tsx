@@ -237,6 +237,7 @@ export function SourcesAndPricing() {
                 <Image
                   alt=""
                   className="size-9 rounded-lg object-contain"
+                  sizes="36px"
                   src={SOURCE_LOGOS[name]}
                 />
                 {name}
