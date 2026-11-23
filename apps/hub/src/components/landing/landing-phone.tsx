@@ -35,7 +35,7 @@ export function Phone() {
             priority
           />
           <div
-            className="absolute inset-x-[9px] top-[9px] flex h-[50px] items-center justify-between px-7 text-white"
+            className="absolute inset-x-[9px] top-[9px] flex h-[50px] items-center justify-between px-7 text-(--landing-night-foreground)"
             aria-hidden
           >
             <span className="text-[13px] font-medium tabular-nums">9:41</span>
