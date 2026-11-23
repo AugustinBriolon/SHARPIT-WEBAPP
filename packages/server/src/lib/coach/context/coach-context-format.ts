@@ -500,6 +500,7 @@ function formatRecentActivityLine(a: CoachContext['recent'][number]): string {
     isSet(a.load) ? `charge ${a.load}` : null,
     isSet(a.rpe) ? `RPE ${a.rpe}` : null,
     a.feeling ? `ressenti ${a.feeling}` : null,
+    a.notes ? `notes de l’athlète ${a.notes}` : null,
     a.detail || null,
   ]
     .filter(Boolean)

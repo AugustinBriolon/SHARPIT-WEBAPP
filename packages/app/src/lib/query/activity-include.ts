@@ -100,11 +100,12 @@ export const activityCoachSelect = {
   load: true,
   rpe: true,
   feeling: true,
+  notes: true,
   runMetrics: { select: { distanceM: true, paceSecPerKm: true, avgHr: true } },
   bikeMetrics: { select: { tss: true, avgPower: true, normalizedPower: true } },
   swimMetrics: { select: { distanceM: true } },
   strengthSets: {
-    select: { exercise: true, sets: true, reps: true, weightKg: true },
+    select: { exercise: true, sets: true, reps: true, weightKg: true, notes: true },
     orderBy: { order: 'asc' as const },
   },
 } satisfies Prisma.ActivitySelect;

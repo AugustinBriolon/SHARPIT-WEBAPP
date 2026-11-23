@@ -148,10 +148,19 @@ function appendStrengthDetailParts(a: CoachActivity, parts: string[]): void {
     .slice(0, 5)
     .map((s) => {
       const w = isSet(s.weightKg) ? ` ${s.weightKg}kg` : '';
-      return `${s.exercise} ${s.sets}x${s.reps}${w}`;
+      const note = athleteNote(s.notes);
+      return `${s.exercise} ${s.sets}x${s.reps}${w}${note ? ` (note ${note})` : ''}`;
     })
     .join(', ');
   parts.push(exos);
+}
+
+/** An athlete's own words about a session, kept short: 14 sessions ride in every prompt. */
+const MAX_COACH_NOTE = 240;
+
+export function athleteNote(notes: string | null | undefined): string | null {
+  const trimmed = notes?.trim();
+  return trimmed ? athleteText(trimmed.slice(0, MAX_COACH_NOTE)) : null;
 }
 
 function activityDetailParts(a: CoachActivity): string[] {
@@ -176,6 +185,7 @@ export function mapActivityForCoachRecent(a: CoachActivity, today: Date) {
     load: isSet(a.load) ? Math.round(a.load) : null,
     rpe: a.rpe,
     feeling: a.feeling ?? null,
+    notes: athleteNote(a.notes),
     detail: activityDetailParts(a).join(' · '),
   };
 }

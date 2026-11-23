@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { sensitiveZonesFrom } from '@sharpit/app/lib/physical-health/sensitive-zones';
 import { normalizeAthleteEquipment } from '@sharpit/app/lib/equipment/parse';
 import { normalizeTrainingAvailability } from '@sharpit/server/lib/training-availability/parse';
-import { buildHealthFromEntries, flareLoadNote } from './coach-context-assembly';
+import {
+  athleteNote,
+  buildHealthFromEntries,
+  flareLoadNote,
+  type CoachActivity,
+} from './coach-context-assembly';
+import { formatCoachActivityLine } from './coach-context-format';
 import {
   athleteCalendarMoment,
   buildPhysicalContext,
@@ -625,6 +631,7 @@ describe('coach context data reliability', () => {
             load: null,
             rpe: null,
             feeling: null,
+            notes: null,
             detail: '',
           },
         ],
@@ -683,5 +690,42 @@ describe('coach context — zones over time', () => {
       { date: new Date('2026-08-01'), severity: 5 },
     ] as never;
     expect(flareLoadNote(improving, [{ load: 50, date: new Date('2026-08-05') }])).toBeNull();
+  });
+});
+
+describe('formatCoachActivityLine athlete notes', () => {
+  const base: CoachActivity = {
+    id: 'a1',
+    type: 'STRENGTH',
+    date: new Date('2026-11-20T08:00:00Z'),
+    title: null,
+    duration: 45,
+    load: null,
+    rpe: 7,
+    feeling: null,
+    notes: '  Genou gauche sensible en fin de séance  ',
+    runMetrics: null,
+    bikeMetrics: null,
+    swimMetrics: null,
+    strengthSets: [
+      { exercise: 'Squat', sets: 4, reps: 6, weightKg: 80, notes: 'Descendre sous la parallèle' },
+      { exercise: 'Gainage', sets: 3, reps: 1, weightKg: null, notes: '  ' },
+    ],
+  };
+  const today = new Date('2026-11-23T08:00:00Z');
+
+  it('quotes the session note and each exercise note as athlete text', () => {
+    const line = formatCoachActivityLine(base, today);
+    expect(line).toContain('notes de l’athlète ⟦Genou gauche sensible en fin de séance⟧');
+    expect(line).toContain('Squat 4x6 80kg (note ⟦Descendre sous la parallèle⟧)');
+    expect(line).toContain('Gainage 3x1');
+    expect(line).not.toContain('Gainage 3x1 (note');
+  });
+
+  it('writes nothing for an empty note and keeps a long one short', () => {
+    expect(
+      formatCoachActivityLine({ ...base, notes: null, strengthSets: [] }, today),
+    ).not.toContain('notes');
+    expect(athleteNote('x'.repeat(500))).toBe(`⟦${'x'.repeat(240)}⟧`);
   });
 });
