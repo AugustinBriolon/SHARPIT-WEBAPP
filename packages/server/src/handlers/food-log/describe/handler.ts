@@ -23,8 +23,8 @@ import {
 import type { FoodProduct } from '@prisma/client';
 
 /**
- * `POST /api/v1/food-log/describe` — Pro: free-text meal → distinct foods, matched to known
- * products when the name is confident (eaten → own → Ciqual → OFF), else estimated macros.
+ * `POST /api/v1/food-log/describe` — Pro: free-text meal → its dishes, each one's foods matched
+ * to known products when the name is confident (eaten → own → Ciqual → OFF), else estimated.
  */
 export async function POST(request: NextRequest) {
   let athleteId: string;
@@ -67,15 +67,23 @@ export async function POST(request: NextRequest) {
       athleteId,
       description: parsed.data.description,
     });
-    const [resolved, diets] = await Promise.all([
-      resolveDescribedFoods(athleteId, result.items),
+    const [dishes, diets] = await Promise.all([
+      Promise.all(
+        result.dishes.map(async (dish) => ({
+          name: dish.name,
+          resolved: await resolveDescribedFoods(athleteId, dish.items),
+        })),
+      ),
       loadDeclaredDiet(athleteId),
     ]);
-    return NextResponse.json({
-      items: resolved.map(({ item, product, match }) =>
+    const served = dishes.map((dish) => ({
+      name: dish.name,
+      items: dish.resolved.map(({ item, product, match }) =>
         serializeDescribedItem(item, product, match, diets),
       ),
-    });
+    }));
+    // `items` is the same foods flat: what the app builds before the dishes read.
+    return NextResponse.json({ dishes: served, items: served.flatMap((dish) => dish.items) });
   } catch (error) {
     if (error instanceof FoodDescribeEmptyError) {
       return NextResponse.json({ error: error.message }, { status: 422 });

@@ -1,4 +1,9 @@
 import { PRODUCE } from '@sharpit/app/lib/nutrition/food-log/produce-reference';
+import {
+  FOOD_MATCH_TIER_GENERIC,
+  foodMatchTier,
+  rankFoodsByName,
+} from '@sharpit/app/lib/nutrition/food-log/food-search-ranking';
 import { describe, expect, it } from 'vitest';
 import type { CiqualFood } from '@sharpit/app/lib/nutrition/food-log/ciqual';
 import table from './ciqual-foods.json';
@@ -14,6 +19,21 @@ function names(query: string): string[] {
 }
 
 describe('searchCiqualFoods (bundled table)', () => {
+  // A described dish known as a whole is logged on the table's measured line, not on guessed
+  // ingredients: these names must clear the auto-match bar.
+  it.each([
+    ['lasagnes bolognaise', /^Lasagnes/],
+    ['mousse au chocolat', /^Mousse au chocolat/],
+    ['quiche lorraine', /^Quiche lorraine/],
+    ['oeuf dur', /^Oeuf, dur/],
+    ['riz blanc cuit', /^Riz blanc, cuit/],
+    ['steak hache cuit', /^Boeuf, steak haché, cuit/],
+  ])('auto-matches the described dish « %s »', (query, expected) => {
+    const [best] = rankFoodsByName(query, searchCiqualFoods(query, 5));
+    expect(best?.name).toMatch(expected);
+    expect(foodMatchTier(best!, query)).toBeGreaterThanOrEqual(FOOD_MATCH_TIER_GENERIC);
+  });
+
   it('opens « banane » on the raw banana, plural or not', () => {
     expect(names('banane')[0]).toBe('Banane, pulpe, crue');
     expect(names('bananes')[0]).toBe('Banane, pulpe, crue');

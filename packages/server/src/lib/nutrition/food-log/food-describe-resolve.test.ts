@@ -25,7 +25,11 @@ vi.mock('./food-log-service', () => ({
 vi.mock('./ciqual-search', () => ({ searchCiqualFoods }));
 vi.mock('./open-food-facts-client', () => ({ searchOffProducts }));
 
-import { resolveDescribedFoods, resolveDescribedName } from './food-describe-resolve';
+import {
+  isPlausibleMatch,
+  resolveDescribedFoods,
+  resolveDescribedName,
+} from './food-describe-resolve';
 
 function product(id: string, name: string, brand: string | null = null) {
   return {
@@ -118,17 +122,63 @@ describe('resolveDescribedFoods', () => {
     cacheSearchResults.mockResolvedValue([]);
   });
 
+  const item = {
+    name: 'Dish of the day',
+    searchName: 'plat du jour',
+    grams: 400,
+    kcalPer100g: 150,
+    proteinPer100g: 10,
+    carbsPer100g: 20,
+    fatPer100g: 5,
+  };
+
   it('keeps the LLM item when nothing matches', async () => {
-    const item = {
-      name: 'Plat du jour',
-      grams: 400,
-      kcalPer100g: 150,
-      proteinPer100g: 10,
-      carbsPer100g: 20,
-      fatPer100g: 5,
-    };
     await expect(resolveDescribedFoods('ath-1', [item])).resolves.toEqual([
       { item, product: null, match: null },
     ]);
+  });
+
+  it('searches the catalogs with the French table name, not the name shown', async () => {
+    await resolveDescribedFoods('ath-1', [item]);
+    expect(searchCiqualFoods).toHaveBeenCalledWith('plat du jour', 5);
+    expect(searchOwnFoods).toHaveBeenCalledWith('ath-1', 'plat du jour');
+  });
+
+  it('keeps the estimate when the only match is another food under the same word', async () => {
+    const rice = { ...item, searchName: 'riz', kcalPer100g: 135 };
+    const raw = { ...product('c1', 'Riz blanc, cru'), kcalPer100g: 352 };
+    searchCiqualFoods.mockReturnValue([raw]);
+    cacheGenericFoods.mockResolvedValue([raw]);
+
+    await expect(resolveDescribedFoods('ath-1', [rice])).resolves.toEqual([
+      { item: rice, product: null, match: null },
+    ]);
+  });
+
+  it('links the food of the same energy past one that is not', async () => {
+    const rice = { ...item, searchName: 'riz', kcalPer100g: 135 };
+    const raw = { ...product('c1', 'Riz blanc, cru'), kcalPer100g: 352 };
+    const cooked = { ...product('c2', 'Riz blanc, cuit, non salé'), kcalPer100g: 145 };
+    searchCiqualFoods.mockReturnValue([raw, cooked]);
+    cacheGenericFoods.mockResolvedValue([raw, cooked]);
+
+    const [resolved] = await resolveDescribedFoods('ath-1', [rice]);
+    expect(resolved).toMatchObject({ product: { id: 'c2' }, match: 'generic' });
+  });
+});
+
+describe('isPlausibleMatch', () => {
+  it('accepts two readings of the same food', () => {
+    expect(isPlausibleMatch(150, 134)).toBe(true);
+    expect(isPlausibleMatch(250, 303)).toBe(true);
+  });
+
+  it('accepts light foods whatever their ratio', () => {
+    expect(isPlausibleMatch(25, 12)).toBe(true);
+  });
+
+  it('refuses a food of another energy', () => {
+    expect(isPlausibleMatch(135, 352)).toBe(false);
+    expect(isPlausibleMatch(700, 250)).toBe(false);
   });
 });

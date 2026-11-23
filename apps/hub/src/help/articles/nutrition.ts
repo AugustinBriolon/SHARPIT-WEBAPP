@@ -30,7 +30,7 @@ Un aliment vérifié (Ciqual, ou valeurs fournies par le fabricant) porte un sce
 
 ### Décrire un repas (Pro)
 
-**Décrire un repas** laisse SharpIt découper ta description en aliments distincts (ex. faux-filet, frites, brocolis). Pour chaque nom, SharpIt cherche d’abord parmi tes aliments déjà mangés, tes aliments perso, la table Ciqual, puis Open Food Facts : un match fiable garde la note du produit. Sinon, grammes et macros restent une estimation (sans note). Tu ajustes les portions, puis tu ajoutes le tout d’un geste.
+**Décrire un repas** laisse SharpIt séparer les plats de ta description et estimer chacun à part : « un œuf mayo en entrée, des lasagnes et une mousse au chocolat » donne trois plats. Un plat cuisiné connu (lasagnes, quiche, mousse au chocolat) reste une seule ligne, lue dans la table Ciqual quand elle le connaît ; une assiette composée (faux-filet, frites, brocolis) garde ses aliments. Pour chaque nom, SharpIt cherche d’abord parmi tes aliments déjà mangés, tes aliments perso, la table Ciqual, puis Open Food Facts : un match fiable garde la note du produit. Sinon, grammes et macros restent une estimation (sans note). Tu renommes un plat, ajustes les portions ou glisses pour retirer une ligne, puis tu ajoutes le tout d’un geste : chaque plat est noté sous son nom.
 
 ### Scanner un code-barres
 
@@ -47,17 +47,17 @@ Touche une entrée pour la modifier, glisse-la pour la supprimer. Tout s’affic
     },
     {
       slug: 'aliments-recettes-repas',
-      title: 'Tes aliments, recettes et repas enregistrés',
+      title: 'Tes aliments et repas enregistrés',
       summary:
-        'Crée tes propres aliments, compose une recette à partir d’autres aliments, enregistre un repas entier, ou copie celui de la veille en une touche.',
+        'Crée tes propres aliments, enregistre un repas entier, ou copie celui de la veille en une touche.',
       body: `
 ### Mes aliments
 
 Un aliment à toi se crée pour 100 g, depuis l’étiquette. Retrouve-les dans **Mes aliments** (et dans **Paramètres › Nutrition**) : glisse pour modifier ou supprimer. Les repas déjà notés gardent leurs valeurs.
 
-### Créer une recette
+### Tes recettes
 
-**Créer une recette** assemble des ingrédients pesés crus. Le poids cuit et le nombre de portions sont facultatifs ; l’étiquette pour 100 g se calcule en direct.
+Les recettes déjà créées restent dans **Mes aliments** : tu peux toujours les ajouter à un repas et modifier leurs ingrédients. Il n’est plus possible d’en créer : pour un plat maison, [décris-le](/aide/nutrition/noter-un-repas) ou enregistre le repas sous un nom.
 
 ### Mes repas
 

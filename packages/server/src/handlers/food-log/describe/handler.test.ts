@@ -62,13 +62,14 @@ describe('POST /api/v1/food-log/describe', () => {
   it('returns estimated macros when no product matched', async () => {
     const item = {
       name: 'Faux-filet',
+      searchName: 'faux-filet',
       grams: 300,
       kcalPer100g: 200,
       proteinPer100g: 25,
       carbsPer100g: 0,
       fatPer100g: 10,
     };
-    describeMealFromText.mockResolvedValue({ items: [item] });
+    describeMealFromText.mockResolvedValue({ dishes: [{ name: 'Faux-filet', items: [item] }] });
     resolveDescribedFoods.mockResolvedValue([{ item, product: null, match: null }]);
     const { POST } = await import('./handler');
     const response = await POST(
@@ -78,26 +79,71 @@ describe('POST /api/v1/food-log/describe', () => {
       }),
     );
     expect(response.status).toBe(200);
+    const served = {
+      name: 'Faux-filet',
+      grams: 300,
+      kcal: 600,
+      protein: 75,
+      carbs: 0,
+      fat: 30,
+      per100g: { kcal: 200, protein: 25, carbs: 0, fat: 10 },
+      product: null,
+      match: null,
+    };
     await expect(response.json()).resolves.toEqual({
-      items: [
-        {
-          name: 'Faux-filet',
-          grams: 300,
-          kcal: 600,
-          protein: 75,
-          carbs: 0,
-          fat: 30,
-          per100g: { kcal: 200, protein: 25, carbs: 0, fat: 10 },
-          product: null,
-          match: null,
-        },
+      dishes: [{ name: 'Faux-filet', items: [served] }],
+      items: [served],
+    });
+  });
+
+  it('answers each dish with its own foods, and the same foods flat', async () => {
+    const food = (name: string) => ({
+      name,
+      searchName: name,
+      grams: 100,
+      kcalPer100g: 100,
+      proteinPer100g: 5,
+      carbsPer100g: 10,
+      fatPer100g: 4,
+    });
+    describeMealFromText.mockResolvedValue({
+      dishes: [
+        { name: 'Œuf mayonnaise', items: [food('Œuf dur'), food('Mayonnaise')] },
+        { name: 'Lasagnes bolognaise', items: [food('Lasagnes')] },
+        { name: 'Mousse au chocolat', items: [food('Mousse au chocolat')] },
       ],
     });
+    resolveDescribedFoods.mockImplementation(async (_athleteId: string, items: object[]) =>
+      items.map((item) => ({ item, product: null, match: null })),
+    );
+    const { POST } = await import('./handler');
+    const response = await POST(
+      new NextRequest('http://localhost/api/v1/food-log/describe', {
+        method: 'POST',
+        body: JSON.stringify({
+          description: 'Un œuf mayo en entrée, des lasagnes et une mousse au chocolat',
+        }),
+      }),
+    );
+    const body = await response.json();
+    expect(body.dishes.map((dish: { name: string }) => dish.name)).toEqual([
+      'Œuf mayonnaise',
+      'Lasagnes bolognaise',
+      'Mousse au chocolat',
+    ]);
+    expect(body.dishes.map((dish: { items: unknown[] }) => dish.items.length)).toEqual([2, 1, 1]);
+    expect(body.items.map((item: { name: string }) => item.name)).toEqual([
+      'Œuf dur',
+      'Mayonnaise',
+      'Lasagnes',
+      'Mousse au chocolat',
+    ]);
   });
 
   it('returns the matched product and catalog macros when resolved', async () => {
     const item = {
       name: 'brocolis',
+      searchName: 'brocoli',
       grams: 200,
       kcalPer100g: 35,
       proteinPer100g: 3,
@@ -114,7 +160,7 @@ describe('POST /api/v1/food-log/describe', () => {
       carbsPer100g: 6.6,
       fatPer100g: 0.4,
     };
-    describeMealFromText.mockResolvedValue({ items: [item] });
+    describeMealFromText.mockResolvedValue({ dishes: [{ name: 'Brocolis', items: [item] }] });
     resolveDescribedFoods.mockResolvedValue([{ item, product, match: 'generic' }]);
     const { POST } = await import('./handler');
     const response = await POST(
