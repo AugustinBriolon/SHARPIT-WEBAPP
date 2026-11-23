@@ -139,6 +139,7 @@
 | [ADR-144](./ADR-144-the-carnet-has-four-destinations-and-pages-of-widgets.md)              | The carnet has four destinations by horizon (Aujourd'hui, Semaine, Progrès, Corps) and its pages are grids of widgets; Aujourd'hui is the pilot; web type is sentence case and medium                           |
 | [ADR-145](./ADR-145-the-carnet-installs-as-an-app-and-caches-no-reading.md)                | The carnet installs as an app again: manifest, icons from the brand mark, a service worker that keeps one offline page and caches no reading; amends ADR-072                                                    |
 | [ADR-146](./ADR-146-an-exercise-keeps-the-athletes-standing-note.md)                       | An exercise keeps the athlete's standing note: one per athlete and exercise, read by the plan generator and shown in the guided session                                                                         |
+| [ADR-147](./ADR-147-the-landing-follows-its-own-style-guide.md)                            | The landing's home follows `docs/design/LANDING_STYLE.md` under one class: daylight hero, cloud cards, GSAP entrance, parallax, a pinned track; amends ADR-142/143 for the landing                              |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 
