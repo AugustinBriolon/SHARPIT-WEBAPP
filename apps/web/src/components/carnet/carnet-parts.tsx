@@ -6,9 +6,9 @@ import { CarnetCount } from './carnet-animated';
 import { CarnetIntentLink } from './carnet-intent-link';
 
 /**
- * The carnet's page grammar (ADR-109, drawn in Clinique since ADR-135): a page is a title and
- * a lead on one white sheet, then sections read top down, each parted from the last by a
- * hairline (`CarnetSection`). No buttons — figures, sentences and the occasional chart.
+ * The carnet's page grammar (ADR-109, drawn as widgets since ADR-144): a page is a title and a
+ * lead on one white sheet, then its sections as tinted tiles (`CarnetSection`). No buttons:
+ * figures, sentences and the occasional chart.
  */
 
 export function CarnetPage({
@@ -56,39 +56,48 @@ export function CarnetPage({
         </div>
         {aside ? <div className="shrink-0">{aside}</div> : null}
       </header>
-      {top}
+      {top ? <div className="pb-4">{top}</div> : null}
       {side ? (
         // A side with nothing to show (every section of it absent) gives the width back.
-        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:has-[>aside:empty]:block">
-          <div className="min-w-0 lg:pr-10">{children}</div>
-          <aside className="lg:border-border min-w-0 empty:hidden lg:border-l lg:pl-10">
-            {side}
-          </aside>
+        <div className="gap-4 max-lg:space-y-4 lg:grid lg:grid-cols-[minmax(0,1fr)_20rem] lg:has-[>aside:empty]:block">
+          <div className={COLUMN}>{children}</div>
+          <aside className={cn(COLUMN, 'empty:hidden')}>{side}</aside>
         </div>
       ) : (
-        children
+        <div className="grid gap-4 lg:grid-cols-2">{children}</div>
       )}
     </article>
   );
 }
 
-/** One reading under a hairline: its name above, its verdict as the title, the reading below. */
+/** A column of tiles: the page's sections, or the ones beside them. */
+const COLUMN = 'grid min-w-0 content-start gap-4';
+const TILE = 'bg-background min-w-0 rounded-3xl p-6';
+
+/**
+ * One reading as a tile on the sheet (ADR-144): its name in a quiet line, its verdict as the
+ * title, the reading below. It takes the page's full width unless `half`, where two sit side by
+ * side on a wide screen. Never inside another section.
+ */
 export function CarnetSection({
   label,
   title,
+  half = false,
   children,
   className,
 }: {
   label: string;
   title?: ReactNode;
+  /** Shares its row with the next section on a wide screen. */
+  half?: boolean;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <section className={cn('border-border min-w-0 space-y-6 border-t py-8', className)} data-reveal>
+    <section className={cn(TILE, 'space-y-5', !half && 'lg:col-span-full', className)} data-reveal>
       <header>
-        <p className="text-label text-muted-foreground">{label}</p>
-        {title ? <h2 className="text-card-title mt-1.5">{title}</h2> : null}
+        <h2 className="text-label">{label}</h2>
+        {title ? <p className="text-card-title mt-1.5">{title}</p> : null}
       </header>
       {children}
     </section>
@@ -96,8 +105,8 @@ export function CarnetSection({
 }
 
 /**
- * One cell of a page laid out as a grid of widgets (ADR-144): a tinted tile on the sheet, its
- * name in a quiet line, then the widget. Never inside another tile.
+ * A tile placed by hand in a grid the page draws itself (Aujourd'hui): its name in a quiet line,
+ * then the widget. `CarnetSection` is the same tile for a page that reads top down.
  */
 export function Tile({
   title,
@@ -109,10 +118,7 @@ export function Tile({
   className?: string;
 }) {
   return (
-    <section
-      className={cn('bg-background flex min-w-0 flex-col gap-5 rounded-3xl p-6', className)}
-      data-reveal
-    >
+    <section className={cn(TILE, 'flex flex-col gap-5', className)} data-reveal>
       <h2 className="text-label">{title}</h2>
       {children}
     </section>

@@ -4,6 +4,7 @@ import {
   countdownLabel,
   dayIdOf,
   dayOf,
+  dayStrip,
   resolveDayParam,
   weekLabel,
   weekStartsEndingAt,
@@ -57,5 +58,36 @@ describe('carnetHref', () => {
     expect(carnetHref('/activite/nouvelle')).toBeNull();
     expect(carnetHref('/settings/integrations')).toBeNull();
     expect(carnetHref(null)).toBeNull();
+  });
+});
+
+describe('dayStrip', () => {
+  it('lays out the seven days ending today, oldest first', () => {
+    const strip = dayStrip('2026-11-23', '2026-11-23');
+    expect(strip.days.map((d) => d.id)).toEqual([
+      '2026-11-17',
+      '2026-11-18',
+      '2026-11-19',
+      '2026-11-20',
+      '2026-11-21',
+      '2026-11-22',
+      '2026-11-23',
+    ]);
+    // 2026-11-23 is a Monday.
+    expect(strip.days.map((d) => d.letter).join('')).toBe('MMJVSDL');
+    expect(strip.previous).toBe('2026-11-16');
+    expect(strip.next).toBeNull();
+  });
+
+  it('keeps the same seven days while the day moves inside them', () => {
+    expect(dayStrip('2026-11-19', '2026-11-23').days.at(-1)?.id).toBe('2026-11-23');
+  });
+
+  it('steps a week back and a week on from an earlier stretch', () => {
+    const strip = dayStrip('2026-11-12', '2026-11-23');
+    expect(strip.days[0]?.id).toBe('2026-11-10');
+    expect(strip.days.at(-1)?.id).toBe('2026-11-16');
+    expect(strip.previous).toBe('2026-11-05');
+    expect(strip.next).toBe('2026-11-19');
   });
 });

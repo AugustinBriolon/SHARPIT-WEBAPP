@@ -30,6 +30,47 @@ export function longDayLabel(trainingDayId: string): string {
   return format(dayOf(trainingDayId), 'EEEE d MMMM', { locale: fr });
 }
 
+export type StripDay = {
+  id: string;
+  /** « L », « M »… */
+  letter: string;
+  dayOfMonth: number;
+  /** « lundi 5 octobre », for a reader who cannot see the chip. */
+  label: string;
+};
+
+const STRIP_LENGTH = 7;
+
+/**
+ * Seven days for the day picker of Aujourd'hui, oldest first: the stretch of seven that holds
+ * `day`, counted back from today so no day of it is ahead. With them, the day a week back and
+ * the day a week on (never past today, absent when the stretch ends today).
+ */
+export function dayStrip(
+  day: string,
+  today: string,
+): { days: StripDay[]; previous: string; next: string | null } {
+  const stretchesBack = Math.floor(
+    differenceInCalendarDays(dayOf(today), dayOf(day)) / STRIP_LENGTH,
+  );
+  const last = addDays(dayOf(today), -stretchesBack * STRIP_LENGTH);
+  const days = Array.from({ length: STRIP_LENGTH }, (_, index) => {
+    const date = addDays(last, index - STRIP_LENGTH + 1);
+    const id = dayIdOf(date);
+    return {
+      id,
+      letter: format(date, 'EEEEE', { locale: fr }).toUpperCase(),
+      dayOfMonth: date.getDate(),
+      label: longDayLabel(id),
+    };
+  });
+  return {
+    days,
+    previous: dayIdOf(addDays(dayOf(day), -STRIP_LENGTH)),
+    next: stretchesBack === 0 ? null : dayIdOf(addDays(dayOf(day), STRIP_LENGTH)),
+  };
+}
+
 /** The Mondays of the `count` weeks ending with the week holding `day`, oldest first. */
 export function weekStartsEndingAt(day: Date, count: number): Date[] {
   const last = startOfWeek(day, WEEK);

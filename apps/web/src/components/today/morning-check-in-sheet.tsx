@@ -1,6 +1,5 @@
 'use client';
 
-import { BellIcon } from 'lucide-react';
 import { Button } from '@sharpit/ui/components/ui/button';
 import {
   Dialog,
@@ -82,7 +81,7 @@ function ScaleRow({
 }
 
 /**
- * Reminder bell + « Ressenti du jour » sheet.
+ * « Noter mon ressenti », shown while the morning's check-in is owed, and its sheet.
  * Enregistrer is Instant: closes and clears the badge before the network settles.
  */
 export function MorningCheckInReminder() {
@@ -108,25 +107,16 @@ export function MorningCheckInReminder() {
   return (
     <>
       {reminderVisible ? (
-        <button
-          aria-label="Ressenti du jour"
-          className="text-muted-foreground hover:text-foreground focus-visible:ring-primary/35 relative inline-flex size-9 items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:outline-hidden"
-          type="button"
-          onClick={() => handleOpenChange(true)}
-        >
-          <BellIcon className="size-4" aria-hidden />
-          <span
-            className="bg-primary absolute top-1.5 right-1.5 size-1.5 rounded-full"
-            aria-hidden
-          />
-        </button>
+        <Button type="button" onClick={() => handleOpenChange(true)}>
+          Noter mon ressenti
+        </Button>
       ) : null}
 
       <Dialog open={state.sheetOpen} onOpenChange={handleOpenChange}>
         <DialogContent className="sm:max-w-md" showCloseButton>
           <DialogHeader>
             <DialogTitle>Ressenti du jour</DialogTitle>
-            <DialogDescription>Quatre points, une minute. Affiné le verdict.</DialogDescription>
+            <DialogDescription>Quatre points, une minute. Ça affine le verdict.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">

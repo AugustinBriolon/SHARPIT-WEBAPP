@@ -1,8 +1,11 @@
 import { Suspense, type ReactNode } from 'react';
 import { cacheLife } from 'next/cache';
+import Link from 'next/link';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { cn } from '@sharpit/app/lib/utils';
 import type { TodayViewModel } from '@sharpit/app/presentation/today-view-model';
 import { activityTypeLabels } from '@sharpit/app/lib/format';
-import { addTrainingDays, trainingDayIdForNow } from '@sharpit/core/training/training-day';
+import { trainingDayIdForNow } from '@sharpit/core/training/training-day';
 import { addDays, startOfWeek } from 'date-fns';
 import { CARNET_FRESHNESS, readSection, readViewModel } from '@/components/carnet/carnet-read';
 import {
@@ -15,13 +18,13 @@ import { Reading, Skel } from '@/components/carnet/carnet-reading';
 import {
   carnetHref,
   dayIdOf,
+  dayStrip,
   dayOf,
   longDayLabel,
   resolveDayParam,
 } from '@/components/carnet/carnet-time';
 import {
   CarnetPage,
-  CarnetStepLink,
   MeasureRow,
   Quiet,
   ReadingList,
@@ -61,26 +64,77 @@ const SIGNALS = [
 
 function TodayAside({ day, today }: { day: string; today: string }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex flex-wrap items-center gap-3">
+      <DayPicker day={day} today={today} />
       {day === today ? <MorningCheckInReminder /> : null}
-      <DayPager day={day} today={today} />
     </div>
   );
 }
 
-function DayPager({ day, today }: { day: string; today: string }) {
-  const previous = addTrainingDays(day, -1);
-  const next = addTrainingDays(day, 1);
+const hrefOfDay = (id: string, today: string) => (id === today ? '/' : `/?jour=${id}`);
+
+const PICKER_STEP =
+  'pressable text-muted-foreground hover:bg-card hover:text-foreground focus-visible:ring-ring grid size-9 place-items-center rounded-full transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none';
+const PICKER_DAY =
+  'flex size-9 flex-col items-center justify-center rounded-full text-[0.8125rem] leading-none';
+
+/**
+ * The day, picked from seven: each one to tap, the one shown in ink, and a step to the seven
+ * days before or after. Today keeps a dot when another day is shown.
+ */
+function DayPicker({ day, today }: { day: string; today: string }) {
+  const strip = dayStrip(day, today);
   return (
-    <nav aria-label="Jours" className="-mr-2.5 flex gap-1">
-      <CarnetStepLink direction="back" href={`/?jour=${previous}`}>
-        Veille
-      </CarnetStepLink>
-      {day < today ? (
-        <CarnetStepLink direction="next" href={next === today ? '/' : `/?jour=${next}`}>
-          Lendemain
-        </CarnetStepLink>
-      ) : null}
+    <nav aria-label="Jours" className="bg-background flex items-center gap-0.5 rounded-full p-1">
+      <Link
+        aria-label="Semaine précédente"
+        className={PICKER_STEP}
+        href={hrefOfDay(strip.previous, today)}
+      >
+        <ChevronLeft className="size-4" strokeWidth={1.75} aria-hidden />
+      </Link>
+      {strip.days.map((stripDay) => {
+        const face = (
+          <>
+            <span className="text-[0.625rem] opacity-70" aria-hidden>
+              {stripDay.letter}
+            </span>
+            <span className="mt-0.5 font-medium tabular-nums" aria-hidden>
+              {stripDay.dayOfMonth}
+            </span>
+          </>
+        );
+        const shown = stripDay.id === day;
+        return (
+          <Link
+            key={stripDay.id}
+            aria-current={shown ? 'date' : undefined}
+            aria-label={stripDay.label}
+            href={hrefOfDay(stripDay.id, today)}
+            className={cn(
+              PICKER_DAY,
+              'pressable focus-visible:ring-ring relative transition-colors duration-150 focus-visible:ring-2 focus-visible:outline-none',
+              shown ? 'bg-primary text-primary-foreground' : 'hover:bg-card',
+            )}
+          >
+            {face}
+            {stripDay.id === today && !shown ? (
+              <span className="bg-foreground absolute bottom-0.5 size-1 rounded-full" aria-hidden />
+            ) : null}
+          </Link>
+        );
+      })}
+      {strip.next ? (
+        <Link
+          aria-label="Semaine suivante"
+          className={PICKER_STEP}
+          href={hrefOfDay(strip.next, today)}
+        >
+          <ChevronRight className="size-4" strokeWidth={1.75} aria-hidden />
+        </Link>
+      ) : (
+        <span className="size-9" aria-hidden />
+      )}
     </nav>
   );
 }
@@ -410,7 +464,7 @@ function TodayFrame({
       {vm ? <RaceBand race={vm.race} /> : null}
 
       {/* The day as a grid of widgets (ADR-144): what the body says, the week, then why and what. */}
-      <div className="grid gap-4 lg:grid-cols-6">
+      <div className="grid gap-4 lg:col-span-full lg:grid-cols-6">
         <Tile className="lg:col-span-4" title="Les quatre lectures">
           <Signals hero={hero} />
         </Tile>
