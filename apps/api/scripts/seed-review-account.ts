@@ -3,15 +3,16 @@
  * without touching its profile, tier, goals or plan. The account is a regular Clerk user, so the
  * reviewer can write — the shared demo athlete is read-only.
  *
+ * Uses the shared client, so Neon is reached over WebSocket (port 443) where 5432 is blocked.
+ *
  * Usage (DATABASE_URL and CLERK_SECRET_KEY of the target environment in the env):
  *   yarn db:seed:review review@sharpit.app --dry-run
  *   yarn db:seed:review review@sharpit.app
  */
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@sharpit/db/client';
 import { createClerkClient } from '@clerk/nextjs/server';
 import { seedReviewAthleteHistory } from '@sharpit/server/lib/demo/seed-demo-data';
 
-const prisma = new PrismaClient();
 const [email] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
 const dryRun = process.argv.includes('--dry-run');
 
