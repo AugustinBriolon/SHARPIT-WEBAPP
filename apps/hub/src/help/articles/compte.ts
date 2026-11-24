@@ -26,7 +26,6 @@ Tout ce qui t’appartient : ton plan et le coach, tes séances, ton journal, to
 - **Envoi vers la montre** de tes séances planifiées.
 - **Écriture dans ton calendrier** (Google ou Calendrier Apple), quand tu choisis la source principale Agenda (voir [Calendrier Apple](/aide/sources/calendrier-apple) et [Google Agenda](/aide/sources/google-agenda)).
 - **[Widgets supplémentaires](/aide/compte/widgets)** : sommeil, poids, volume de la semaine, régularité et prochain objectif.
-- **Accès anticipé** aux nouveautés.
 
 ### Pourquoi c’est payant
 

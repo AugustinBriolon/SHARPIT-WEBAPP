@@ -90,12 +90,6 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
     status: 'pro',
   },
   {
-    id: 'early-access',
-    title: 'Accès anticipé',
-    description: 'Les nouveautés arrivent chez toi en premier, avant tout le monde.',
-    status: 'pro',
-  },
-  {
     id: 'support',
     title: 'Soutenir SharpIt',
     description:
