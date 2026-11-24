@@ -56,7 +56,7 @@
       "maxDuration": 300
     },
     "src/app/api/cron/demo-reseed/route.ts": {
-      "maxDuration": 60
+      "maxDuration": 120
     },
     "src/app/api/cron/planned-forecast/route.ts": {
       "maxDuration": 300
