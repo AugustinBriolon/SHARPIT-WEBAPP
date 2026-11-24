@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@sharpit/app/lib/utils';
-import { CONTAINER, DATA, HEADING, LEAD, RULE, pad } from '@/components/landing/landing-parts';
+import { CONTAINER, DATA, HEADING, LEAD, RULE } from '@/components/landing/landing-parts';
 import { HelpMotion } from '@/components/help/help-motion';
 import { HelpSearch } from '@/components/help/help-search';
 import {
@@ -36,7 +36,7 @@ function Categories() {
         Rubriques
       </p>
       <ul className="mt-10 grid gap-x-10 sm:grid-cols-2 lg:grid-cols-3">
-        {HELP_CATEGORIES.map((category, i) => (
+        {HELP_CATEGORIES.map((category) => (
           <li key={category.slug} data-help-reveal>
             <Link
               className={cn(RULE, 'group flex h-full flex-col gap-3 border-b py-8')}
@@ -46,7 +46,6 @@ function Categories() {
                 <span className="bg-muted grid size-10 place-items-center rounded-full">
                   <CategoryIcon className="size-5" icon={category.icon} />
                 </span>
-                <span className={cn(DATA, 'text-muted-foreground text-xs')}>{pad(i + 1)}</span>
               </span>
               <span
                 className={cn(
@@ -134,11 +133,8 @@ export default function HelpHomePage() {
       <main>
         <section aria-label="Centre d’aide" className="landing-canvas">
           <div className={cn(CONTAINER, 'pt-16 pb-20 sm:pt-24 sm:pb-28')}>
-            <p className="text-label text-muted-foreground" data-help-fade>
-              Centre d’aide
-            </p>
             <RisingTitle
-              className="mt-6 text-[clamp(2.6rem,6.4vw,5.6rem)] leading-[0.93]"
+              className="text-[clamp(2.6rem,6.4vw,5.6rem)] leading-[0.93]"
               lines={['Une question ?', 'Voici comment SharpIt marche.']}
             />
             <p className={cn(LEAD, 'mt-8 max-w-2xl')} data-help-fade>

@@ -92,7 +92,7 @@ export default async function RoundupPage({ params }: Props) {
         />
 
         <header className="max-w-3xl">
-          <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+          <p className="text-muted-foreground text-xs font-medium">
             Comparatif & Guide d’achat 2026
           </p>
           <h1 className={cn(HEADING, 'mt-3 text-3xl leading-tight sm:text-5xl')}>{roundup.h1}</h1>
@@ -107,7 +107,7 @@ export default async function RoundupPage({ params }: Props) {
           aria-labelledby="criteria-heading"
           className="border-border/60 bg-muted/10 my-12 max-w-3xl rounded-2xl border p-6"
         >
-          <div className="text-foreground flex items-center gap-2 text-sm font-semibold">
+          <div className="text-foreground flex items-center gap-2 text-sm font-medium">
             <SlidersHorizontal className="text-highlight size-4" aria-hidden />
             <h2 id="criteria-heading">Nos critères de notation</h2>
           </div>
@@ -141,7 +141,7 @@ export default async function RoundupPage({ params }: Props) {
                 <div className="flex items-center gap-3">
                   <span
                     className={cn(
-                      'flex size-9 shrink-0 items-center justify-center rounded-2xl text-sm font-bold',
+                      'flex size-9 shrink-0 items-center justify-center rounded-2xl text-sm font-medium',
                       app.rank === 1
                         ? 'bg-highlight text-highlight-foreground shadow-sm'
                         : 'bg-muted text-muted-foreground',
@@ -164,13 +164,13 @@ export default async function RoundupPage({ params }: Props) {
 
               <div className="mt-8 grid gap-6 sm:grid-cols-2">
                 <div className="space-y-2.5">
-                  <span className="text-xs font-semibold tracking-wider text-emerald-500 uppercase">
+                  <span className="text-foreground text-xs font-medium tracking-wider">
                     Points forts
                   </span>
                   <ul className="text-muted-foreground space-y-2 text-sm">
                     {app.strengths.map((s) => (
                       <li key={s} className="flex items-start gap-2">
-                        <Check className="mt-0.5 size-4 shrink-0 text-emerald-500" />
+                        <Check className="text-foreground mt-0.5 size-4 shrink-0" />
                         <span>{s}</span>
                       </li>
                     ))}
@@ -178,9 +178,7 @@ export default async function RoundupPage({ params }: Props) {
                 </div>
 
                 <div className="space-y-2.5">
-                  <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-                    Limites
-                  </span>
+                  <span className="text-muted-foreground text-xs font-medium">Limites</span>
                   <ul className="text-muted-foreground space-y-2 text-sm">
                     {app.weaknesses.map((w) => (
                       <li key={w} className="flex items-start gap-2">
@@ -194,7 +192,7 @@ export default async function RoundupPage({ params }: Props) {
 
               <div className="border-border/60 bg-background/50 mt-8 rounded-2xl border p-4 sm:p-5">
                 <p className="text-foreground text-sm font-medium">
-                  <strong className="text-highlight font-semibold">Verdict : </strong>
+                  <strong className="text-highlight font-medium">Verdict : </strong>
                   {app.verdict}
                 </p>
               </div>

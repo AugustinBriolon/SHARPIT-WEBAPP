@@ -16,7 +16,8 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { cn } from '@sharpit/app/lib/utils';
-import { Brand, CONTAINER, HEADING, LEAD, RULE } from '@/components/landing/landing-parts';
+import { CONTAINER, HEADING, LEAD } from '@/components/landing/landing-parts';
+import { SiteNav } from '@/components/site/site-chrome';
 import { HELP_ROOT } from '@/help/help-center';
 import type { HelpIcon } from '@/help/types';
 import { HelpSearch } from './help-search';
@@ -41,30 +42,25 @@ export function CategoryIcon({ icon, className }: { icon: HelpIcon; className?: 
   return <Icon className={className} strokeWidth={1.75} aria-hidden />;
 }
 
-/** The bar every help page shares: the brand, the way home, and the search off the home page. */
+/** What every help page opens with: the site's navigation, and the search off the home page. */
 export function HelpHeader({ withSearch = true }: { withSearch?: boolean }) {
   return (
-    <header className="bg-background/75 sticky top-0 z-20 backdrop-blur-md">
-      <div className={cn(CONTAINER, 'flex h-16 items-center justify-between gap-4')}>
-        <div className="flex items-center gap-3">
-          <Link aria-label="SharpIt, accueil" href="/">
-            <Brand />
-          </Link>
-          <span className="bg-foreground/20 h-5 w-px" aria-hidden />
+    <>
+      <SiteNav spacer />
+      {withSearch ? (
+        <div className={cn(CONTAINER, 'flex items-center justify-between gap-4 pb-4')}>
           <Link
             className="text-muted-foreground hover:text-foreground text-sm transition-colors"
             href={HELP_ROOT}
           >
-            Aide
+            Centre d’aide
           </Link>
-        </div>
-        {withSearch ? (
           <div className="flex min-w-0 flex-1 justify-end">
             <HelpSearch />
           </div>
-        ) : null}
-      </div>
-    </header>
+        </div>
+      ) : null}
+    </>
   );
 }
 
@@ -143,33 +139,4 @@ export function HelpContact() {
   );
 }
 
-const FOOTER_LINKS = [
-  { label: 'Accueil', href: '/' },
-  { label: 'Aide', href: HELP_ROOT },
-  { label: 'Carnet web', href: 'https://web.sharpit.app' },
-  { label: 'Confidentialité', href: '/privacy' },
-  { label: 'Conditions', href: '/terms' },
-] as const;
-
-export function HelpFooter() {
-  return (
-    <footer className="landing-night">
-      <div
-        className={cn(
-          CONTAINER,
-          RULE,
-          'text-muted-foreground flex flex-wrap items-center justify-between gap-4 border-t py-8 text-sm',
-        )}
-      >
-        <Brand />
-        <nav className="flex flex-wrap gap-5">
-          {FOOTER_LINKS.map((link) => (
-            <Link key={link.href} className="underline-offset-4 hover:underline" href={link.href}>
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-    </footer>
-  );
-}
+export { SiteFooter as HelpFooter } from '@/components/site/site-chrome';

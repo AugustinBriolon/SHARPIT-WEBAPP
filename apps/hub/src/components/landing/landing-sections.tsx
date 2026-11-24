@@ -16,6 +16,7 @@ import {
   type LandingCard,
 } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
+import { DownloadPill } from '@/components/site/site-chrome';
 import { DIAGRAMS } from './landing-diagrams';
 import { ConfidenceBar, MorningWidget } from './landing-morning';
 import { Phone } from './landing-phone';
@@ -47,33 +48,6 @@ const SECTION_LABEL = 'text-2xl leading-[0.9] font-medium tracking-[-0.01em]';
 const WRAP = 'mx-auto w-full max-w-[1200px] px-5 sm:px-8';
 const SECTION = 'py-20 sm:py-24';
 const CARD = 'bg-card rounded-[32px] p-6 sm:p-8';
-
-const PILL =
-  'focus-visible:ring-ring inline-flex h-11 items-center rounded-full px-5 text-base font-medium transition-transform duration-200 ease-out hover:scale-[1.04] focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] motion-reduce:transition-none';
-
-/** The one conversion control: a short ink capsule, or a white one on the ink ground. */
-export function DownloadPill({
-  onNight = false,
-  className,
-}: {
-  onNight?: boolean;
-  className?: string;
-}) {
-  return (
-    <a
-      href={LANDING_HERO.download.href}
-      className={cn(
-        PILL,
-        onNight
-          ? 'bg-(--landing-night-foreground) text-(--landing-night)'
-          : 'bg-primary text-primary-foreground focus-visible:ring-offset-2',
-        className,
-      )}
-    >
-      {LANDING_HERO.download.label}
-    </a>
-  );
-}
 
 /** A line of a headline behind a mask, so it can rise into place. */
 function Line({ children }: { children: ReactNode }) {

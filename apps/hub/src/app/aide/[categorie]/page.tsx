@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowRight } from 'lucide-react';
 import { cn } from '@sharpit/app/lib/utils';
-import { CONTAINER, DATA, HEADING, LEAD, RULE, pad } from '@/components/landing/landing-parts';
+import { CONTAINER, DATA, HEADING, LEAD, RULE } from '@/components/landing/landing-parts';
 import { HelpMotion } from '@/components/help/help-motion';
 import {
   Breadcrumbs,
@@ -72,16 +72,15 @@ export default async function HelpCategoryPage({ params }: Props) {
         </section>
         <section aria-label="Articles" className={cn(CONTAINER, 'py-16 sm:py-24')}>
           <ol className={cn(RULE, 'border-t')}>
-            {category.articles.map((article, i) => (
+            {category.articles.map((article) => (
               <li key={article.slug} data-help-reveal>
                 <Link
                   href={articleHref(category, article)}
                   className={cn(
                     RULE,
-                    'group grid gap-2 border-b py-7 sm:grid-cols-[4rem_1fr_auto] sm:items-baseline sm:gap-6',
+                    'group grid gap-2 border-b py-7 sm:grid-cols-[1fr_auto] sm:items-baseline sm:gap-6',
                   )}
                 >
-                  <span className={cn(DATA, 'text-muted-foreground text-xs')}>{pad(i + 1)}</span>
                   <span>
                     <span
                       className={cn(

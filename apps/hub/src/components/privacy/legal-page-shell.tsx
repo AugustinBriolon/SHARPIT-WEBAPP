@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { SiteFooter, SiteNav } from '@/components/site/site-chrome';
 
 export function LegalPageShell({
   title,
@@ -15,9 +15,9 @@ export function LegalPageShell({
 }) {
   return (
     <div className="bg-background text-foreground min-h-dvh">
+      <SiteNav spacer />
       <div className="mx-auto flex w-full max-w-2xl flex-col gap-8 px-6 py-10 sm:py-14">
         <header className="space-y-3">
-          <p className="text-label">SharpIt</p>
           <h1 className="text-page-title">{title}</h1>
           <p className="text-muted-foreground text-sm">
             {lang === 'en'
@@ -32,18 +32,8 @@ export function LegalPageShell({
           ) : null}
         </header>
         <div>{children}</div>
-        <footer className="border-border text-muted-foreground flex flex-wrap gap-4 border-t pt-6 text-sm">
-          <Link className="underline-offset-4 hover:underline" href="/privacy">
-            Confidentialité
-          </Link>
-          <Link className="underline-offset-4 hover:underline" href="/terms">
-            Conditions
-          </Link>
-          <Link className="underline-offset-4 hover:underline" href="/">
-            Retour à l&apos;app
-          </Link>
-        </footer>
       </div>
+      <SiteFooter />
     </div>
   );
 }

@@ -22,7 +22,7 @@ export function DirectAnswerBox({
         className,
       )}
     >
-      <div className="text-muted-foreground flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
+      <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
         <Sparkles className="text-highlight size-4" aria-hidden />
         <span>En résumé (Réponse directe)</span>
       </div>
@@ -34,7 +34,7 @@ export function DirectAnswerBox({
       {sharpitPunchline ? (
         <div className="border-border/60 bg-background/60 mt-6 rounded-xl border p-4">
           <p className="text-foreground text-sm font-medium">
-            <span className="text-highlight font-semibold">La réponse SharpIt : </span>
+            <span className="text-highlight font-medium">La réponse SharpIt : </span>
             {sharpitPunchline}
           </p>
         </div>

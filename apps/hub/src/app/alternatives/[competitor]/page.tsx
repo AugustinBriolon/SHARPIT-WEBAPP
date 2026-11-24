@@ -97,9 +97,7 @@ export default async function AlternativePage({ params }: Props) {
         />
 
         <header className="max-w-3xl">
-          <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-            Comparatif & Alternative
-          </p>
+          <p className="text-muted-foreground text-xs font-medium">Comparatif & Alternative</p>
           <h1 className={cn(HEADING, 'mt-3 text-3xl leading-tight sm:text-5xl')}>
             {competitor.h1}
           </h1>
@@ -118,8 +116,8 @@ export default async function AlternativePage({ params }: Props) {
             aria-labelledby="competitor-pros"
             className="border-border/60 bg-muted/10 rounded-2xl border p-6"
           >
-            <div className="text-foreground flex items-center gap-2 text-sm font-semibold">
-              <Check className="size-4 text-emerald-500" aria-hidden />
+            <div className="text-foreground flex items-center gap-2 text-sm font-medium">
+              <Check className="text-foreground size-4" aria-hidden />
               <h2 id="competitor-pros">Ce que {competitor.name} fait de bien</h2>
             </div>
             <ul className="text-muted-foreground mt-4 space-y-3 text-sm">
@@ -136,7 +134,7 @@ export default async function AlternativePage({ params }: Props) {
             aria-labelledby="competitor-cons"
             className="border-border/60 bg-muted/10 rounded-2xl border p-6"
           >
-            <div className="text-foreground flex items-center gap-2 text-sm font-semibold">
+            <div className="text-foreground flex items-center gap-2 text-sm font-medium">
               <AlertCircle className="size-4 text-amber-500" aria-hidden />
               <h2 id="competitor-cons">Les limites signalées par les coureurs</h2>
             </div>
@@ -165,7 +163,7 @@ export default async function AlternativePage({ params }: Props) {
               <thead>
                 <tr className={cn(RULE, 'text-muted-foreground border-b')}>
                   <th className="py-3 pr-4 font-medium">Fonctionnalité</th>
-                  <th className="text-foreground px-4 py-3 font-semibold">SharpIt</th>
+                  <th className="text-foreground px-4 py-3 font-medium">SharpIt</th>
                   <th className="px-4 py-3 font-medium">{competitor.name}</th>
                 </tr>
               </thead>
@@ -176,7 +174,7 @@ export default async function AlternativePage({ params }: Props) {
                     <td className="text-foreground px-4 py-4">
                       <div className="flex items-center gap-2">
                         {row.winner === 'sharpit' ? (
-                          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                          <span className="text-foreground inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
                             <Check className="size-3" />
                           </span>
                         ) : null}
@@ -186,7 +184,7 @@ export default async function AlternativePage({ params }: Props) {
                     <td className="text-muted-foreground px-4 py-4">
                       <div className="flex items-center gap-2">
                         {row.winner === 'competitor' ? (
-                          <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                          <span className="text-foreground inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-emerald-500/10">
                             <Check className="size-3" />
                           </span>
                         ) : null}

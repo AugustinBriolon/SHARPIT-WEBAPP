@@ -94,9 +94,7 @@ export default async function GuidePage({ params }: Props) {
         />
 
         <header className="max-w-3xl">
-          <p className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-            Guide pratique d’endurance
-          </p>
+          <p className="text-muted-foreground text-xs font-medium">Guide pratique d’endurance</p>
           <h1 className={cn(HEADING, 'mt-3 text-3xl leading-tight sm:text-5xl')}>{guide.h1}</h1>
           <p className={cn(LEAD, 'mt-4 text-base sm:text-xl')}>{guide.tagline}</p>
         </header>
@@ -106,7 +104,7 @@ export default async function GuidePage({ params }: Props) {
 
         {/* Step by step practical action plan */}
         <section aria-labelledby="steps-heading" className="my-16 max-w-3xl">
-          <div className="text-muted-foreground flex items-center gap-2 text-xs font-semibold tracking-wider uppercase">
+          <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
             <ListOrdered className="text-highlight size-4" aria-hidden />
             <span>Plan d’action recommandé</span>
           </div>
@@ -124,10 +122,10 @@ export default async function GuidePage({ params }: Props) {
                 className="border-border/60 bg-muted/10 relative rounded-2xl border p-6 sm:p-8"
               >
                 <div className="flex items-center gap-3">
-                  <span className="bg-highlight text-highlight-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold">
+                  <span className="bg-highlight text-highlight-foreground flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-medium">
                     {idx + 1}
                   </span>
-                  <h3 className="text-foreground text-lg font-semibold">{step.title}</h3>
+                  <h3 className="text-foreground text-lg font-medium">{step.title}</h3>
                 </div>
                 <p className="text-muted-foreground mt-4 text-base leading-relaxed">{step.body}</p>
               </div>
@@ -140,14 +138,14 @@ export default async function GuidePage({ params }: Props) {
           aria-labelledby="rules-heading"
           className="border-border/60 bg-muted/20 my-16 max-w-3xl rounded-2xl border p-6 sm:p-8"
         >
-          <div className="text-foreground flex items-center gap-2 text-sm font-semibold">
-            <ShieldCheck className="size-5 text-emerald-500" aria-hidden />
+          <div className="text-foreground flex items-center gap-2 text-sm font-medium">
+            <ShieldCheck className="text-foreground size-5" aria-hidden />
             <h2 id="rules-heading">Les règles physiologiques indispensables</h2>
           </div>
           <ul className="text-muted-foreground mt-6 space-y-3 text-sm sm:text-base">
             {guide.goldenRules.map((rule) => (
               <li key={rule} className="flex items-start gap-3">
-                <CheckCircle2 className="mt-1 size-4 shrink-0 text-emerald-500" />
+                <CheckCircle2 className="text-foreground mt-1 size-4 shrink-0" />
                 <span>{rule}</span>
               </li>
             ))}
