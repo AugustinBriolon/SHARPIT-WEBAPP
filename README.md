@@ -324,6 +324,11 @@ realised pool sessions ([ADR-021](./docs/adr/ADR-021-swim-css-from-session-pace.
 A session with no authored structure is still sent, as a single timed step derived from its
 duration and intensity, and reported as derived rather than prescribed.
 
+Changing a session's intensity — a morning « Augmenter / Alléger » or a manual edit — rewrites
+what is done, not only the label: the steps take the new target (a recovery block becomes work),
+strength sets and loads scale, and a title naming the old intensity names the new one
+([ADR-149](./docs/adr/ADR-149-a-change-of-intensity-rewrites-the-session.md)).
+
 ## Related documentation
 
 - [`docs/product/PRODUCT.md`](./docs/product/PRODUCT.md) — canonical product document
