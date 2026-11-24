@@ -48,55 +48,9 @@
 }
 
 /*
- * The landing's own look (ADR-147): the style guide in `docs/design/LANDING_STYLE.md`, held to
- * the landing by this one class. It is a light page whatever the theme: the semantic tokens the
- * shared components read are set here, so a widget inside it takes the guide's palette.
+ * The landing wears the app's own tokens (ADR-148): ink, lime on data, the canvas and its white
+ * cards. Only what floats over the page casts a shadow.
  */
-.landing-style {
-  --paper: #ffffff;
-  --charcoal: #1f2025;
-  --ink: #222326;
-  --cloud: #ebf0f8;
-  --body-gray: #747679;
-  --recovery-green: #31ce01;
-  --metric-blue: #415eee;
-  --sleep-lilac: #b9a6ff;
-  --coral: #ffab94;
-  --hero-sky: linear-gradient(#d2e5ff, #fff9ee);
-  --image-lift: rgb(0 0 0 / 25%) 0 0 16px -8px;
-  --float-lift: rgb(0 0 0 / 15%) 0 2px 16px 0;
-
-  --background: var(--paper);
-  --foreground: var(--ink);
-  --card: var(--cloud);
-  --card-foreground: var(--ink);
-  --primary: var(--charcoal);
-  --primary-foreground: var(--cloud);
-  --muted: var(--paper);
-  --muted-foreground: var(--body-gray);
-  --border: rgb(34 35 38 / 10%);
-  --accent: color-mix(in srgb, var(--recovery-green) 18%, var(--paper));
-  --accent-foreground: var(--ink);
-  --highlight: var(--recovery-green);
-  --highlight-foreground: var(--ink);
-  --ring: var(--ink);
-  --landing-night: var(--charcoal);
-  --landing-night-foreground: var(--cloud);
-
-  background-color: var(--paper);
-  color: var(--ink);
-  color-scheme: light;
-  font-family: -apple-system, BlinkMacSystemFont, var(--font-sans), 'Segoe UI', sans-serif;
-}
-
-@utility hero-sky {
-  background-image: var(--hero-sky);
-}
-
-@utility image-lift {
-  box-shadow: var(--image-lift);
-}
-
 @utility float-lift {
-  box-shadow: var(--float-lift);
+  box-shadow: 0 2px 16px 0 oklch(0 0 0 / 15%);
 }

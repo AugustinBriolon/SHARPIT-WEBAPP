@@ -34,26 +34,39 @@ const SOURCE_LOGOS: Record<(typeof LANDING_SOURCES.connected)[number], StaticIma
   'Google Agenda': googleCalendar,
 };
 
-/* The guide's type roles (LANDING_STYLE.md): weight 600, -0.03em, one line of leading. */
-const TIGHT = 'font-semibold tracking-[-0.03em] leading-none text-balance';
+/* Display type as the app sets its titles: medium weight, tight tracking, one line of leading. */
+const TIGHT =
+  'font-[family-name:var(--font-heading)] font-medium tracking-[-0.03em] leading-none text-balance';
 // The size comes first: merged after it, a size class would drop the leading.
-const HERO_DISPLAY = cn('text-[clamp(2.75rem,7.6vw,5rem)]', TIGHT);
+const HERO_DISPLAY = cn('text-[clamp(2.5rem,6.4vw,4.5rem)]', TIGHT);
 const DISPLAY = cn('text-[clamp(2.25rem,6vw,4rem)]', TIGHT);
 const CARD_HEADING = cn('text-[clamp(1.625rem,3.1vw,2.5rem)]', TIGHT);
 const BODY = 'text-muted-foreground text-[clamp(1.0625rem,1.9vw,1.5rem)] leading-[1.3] text-pretty';
-const SECTION_LABEL = 'text-2xl leading-[0.9] font-semibold tracking-[-0.01em]';
+const SECTION_LABEL = 'text-2xl leading-[0.9] font-medium tracking-[-0.01em]';
 
 const WRAP = 'mx-auto w-full max-w-[1200px] px-5 sm:px-8';
 const SECTION = 'py-20 sm:py-24';
-const CLOUD_CARD = 'bg-card rounded-[32px] p-6 sm:p-8';
+const CARD = 'bg-card rounded-[32px] p-6 sm:p-8';
 
-/** The one conversion control: a short charcoal capsule. */
-export function DownloadPill({ className }: { className?: string }) {
+const PILL =
+  'focus-visible:ring-ring inline-flex h-11 items-center rounded-full px-5 text-base font-medium transition-transform duration-200 ease-out hover:scale-[1.04] focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] motion-reduce:transition-none';
+
+/** The one conversion control: a short ink capsule, or a white one on the ink ground. */
+export function DownloadPill({
+  onNight = false,
+  className,
+}: {
+  onNight?: boolean;
+  className?: string;
+}) {
   return (
     <a
       href={LANDING_HERO.download.href}
       className={cn(
-        'bg-primary text-primary-foreground focus-visible:ring-ring inline-flex h-11 items-center rounded-full px-5 text-base font-medium transition-transform duration-200 ease-out hover:scale-[1.04] focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none active:scale-[0.97] motion-reduce:transition-none',
+        PILL,
+        onNight
+          ? 'bg-(--landing-night-foreground) text-(--landing-night)'
+          : 'bg-primary text-primary-foreground focus-visible:ring-offset-2',
         className,
       )}
     >
@@ -87,7 +100,7 @@ function Chip({
     <div
       data-depth={depth}
       className={cn(
-        'bg-background float-lift absolute hidden rounded-3xl px-5 py-4 text-left lg:block',
+        'bg-card text-card-foreground float-lift absolute hidden rounded-3xl px-5 py-4 text-left lg:block',
         className,
       )}
       aria-hidden
@@ -109,13 +122,13 @@ function HeroChips() {
       </Chip>
       <Chip className="top-56 -right-60 w-56" depth={1}>
         <p className="text-muted-foreground text-xs">{example.confidenceLabel}</p>
-        <p className="mt-1.5 text-2xl leading-none font-semibold tracking-[-0.03em]">
+        <p className="mt-1.5 text-2xl leading-none font-medium tracking-[-0.03em]">
           {example.confidenceValue.toLocaleString('fr')}
         </p>
-        <ConfidenceBar className="bg-card mt-3" value={example.confidenceValue} />
+        <ConfidenceBar className="mt-3" value={example.confidenceValue} />
       </Chip>
       <Chip className="top-96 -left-52 w-48" depth={1.4}>
-        <p className="text-2xl leading-none font-semibold tracking-[-0.03em]">
+        <p className="text-2xl leading-none font-medium tracking-[-0.03em]">
           {LANDING_GATE_RULE_COUNT} / {LANDING_GATE_RULE_COUNT}
         </p>
         <p className="text-muted-foreground mt-1.5 text-xs">{LANDING_MODEL.gate.title}</p>
@@ -125,14 +138,14 @@ function HeroChips() {
 }
 
 /**
- * The opening screen: a tall rounded field of daylight that holds the promise and the app. The
- * field contains the composition; the phone runs off its foot.
+ * The opening screen: a tall rounded field of ink that holds the promise and the app, whose
+ * light screen stands out on it. The field contains the composition; the phone runs off its foot.
  */
 export function Hero() {
   return (
     <section aria-labelledby="hero-title" className="p-2 sm:p-3" data-hero>
       <div
-        className="hero-sky relative flex min-h-[calc(100svh-1rem)] flex-col items-center overflow-hidden rounded-[32px] px-5 pt-32 text-center sm:min-h-[calc(100svh-1.5rem)] sm:pt-40"
+        className="landing-night relative flex min-h-[calc(100svh-1rem)] flex-col items-center overflow-hidden rounded-[32px] px-5 pt-32 text-center sm:min-h-[calc(100svh-1.5rem)] sm:pt-40"
         data-hero-field
       >
         <div data-hero-copy>
@@ -141,12 +154,15 @@ export function Hero() {
               <Line key={line}>{line}</Line>
             ))}
           </h1>
-          <p className={cn(BODY, 'mx-auto mt-6 max-w-2xl')} data-hero-fade>
+          <p
+            className={cn(BODY, 'mx-auto mt-6 max-w-2xl text-(--landing-night-muted)')}
+            data-hero-fade
+          >
             {LANDING_HERO.body}
           </p>
           <div className="mt-8 flex flex-col items-center gap-3" data-hero-fade>
-            <DownloadPill />
-            <p className="text-muted-foreground text-xs">{LANDING_HERO.downloadNote}</p>
+            <DownloadPill onNight />
+            <p className="text-xs text-(--landing-night-muted)">{LANDING_HERO.downloadNote}</p>
           </div>
         </div>
         <div className="relative mt-14 -mb-32" data-hero-device>
@@ -212,7 +228,7 @@ function SectionIntro({ id, title, lead }: { id: string; title: string; lead: st
   );
 }
 
-/** A feature card on the cloud surface: the widget, then its name and one sentence. */
+/** A feature card, white on the canvas: the widget, then its name and one sentence. */
 function FeatureCard({
   card,
   className,
@@ -223,10 +239,7 @@ function FeatureCard({
   children: ReactNode;
 }) {
   return (
-    <article
-      className={cn(CLOUD_CARD, 'flex flex-col justify-between gap-10', className)}
-      data-card
-    >
+    <article className={cn(CARD, 'flex flex-col justify-between gap-10', className)} data-card>
       {children}
       <div>
         <h3 className={CARD_HEADING}>{card.title}</h3>
@@ -246,7 +259,7 @@ export function Morning() {
           title={LANDING_MORNING.title}
         />
         <div className="grid gap-4 lg:grid-cols-5">
-          <article className={cn(CLOUD_CARD, 'lg:col-span-3')} data-card>
+          <article className={cn(CARD, 'lg:col-span-3')} data-card>
             <MorningWidget />
           </article>
           <FeatureCard card={LANDING_MORNING.arbitrate} className="lg:col-span-2">
@@ -333,14 +346,14 @@ function ConfidenceScale() {
   );
 }
 
-/** The three rings of the app's readings, in the data hues the guide keeps for visuals. */
+/** Three of the app's readings as thin rings, each in its pillar's hue (ADR-130). */
 function ConsentRings() {
-  const rings = ['var(--metric-blue)', 'var(--recovery-green)', 'var(--sleep-lilac)'];
+  const rings = ['var(--pillar-sleep)', 'var(--pillar-recovery)', 'var(--pillar-coach)'];
   return (
     <div className="flex gap-3" aria-hidden>
       {rings.map((stroke, index) => (
         <svg key={stroke} className="size-20 -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" fill="none" r="42" stroke="var(--paper)" strokeWidth="9" />
+          <circle cx="50" cy="50" fill="none" r="42" stroke="var(--divider)" strokeWidth="4" />
           <circle
             cx="50"
             cy="50"
@@ -349,7 +362,7 @@ function ConsentRings() {
             stroke={stroke}
             strokeDasharray={`${170 + index * 34} 264`}
             strokeLinecap="round"
-            strokeWidth="9"
+            strokeWidth="4"
             data-d-ring
           />
         </svg>
@@ -390,7 +403,7 @@ export function Pricing() {
         </div>
         <div className="mx-auto grid max-w-4xl gap-4 md:grid-cols-2">
           {LANDING_PRICING.tiers.map((tier) => (
-            <article key={tier.name} className={cn(CLOUD_CARD, 'flex flex-col gap-4')} data-card>
+            <article key={tier.name} className={cn(CARD, 'flex flex-col gap-4')} data-card>
               <h3 className={CARD_HEADING}>{tier.name}</h3>
               <p className="text-lg font-medium">{tier.price}</p>
               <p className={BODY}>{tier.body}</p>
@@ -430,7 +443,7 @@ export function Faq() {
   );
 }
 
-/** The last word on a charcoal block that grows to the page's width as it arrives. */
+/** The last word on an ink block that grows to the page's width as it arrives. */
 export function Closing() {
   return (
     <section aria-labelledby="closing-title" className="p-2 sm:p-3">
@@ -441,15 +454,10 @@ export function Closing() {
         <h2 className={cn(DISPLAY, 'max-w-4xl')} id="closing-title">
           <Line>{LANDING_CLOSING.title}</Line>
         </h2>
-        <p className={cn(BODY, 'mt-6')} data-rise>
+        <p className={cn(BODY, 'mt-6 text-(--landing-night-muted)')} data-rise>
           {LANDING_CLOSING.body}
         </p>
-        <a
-          className="bg-card text-card-foreground focus-visible:ring-ring mt-9 inline-flex h-11 items-center rounded-full px-5 text-base font-medium transition-transform duration-200 ease-out hover:scale-[1.04] focus-visible:ring-2 focus-visible:outline-none active:scale-[0.97] motion-reduce:transition-none"
-          href={LANDING_HERO.download.href}
-        >
-          {LANDING_HERO.download.label}
-        </a>
+        <DownloadPill className="mt-9" onNight />
       </div>
     </section>
   );

@@ -29,7 +29,7 @@ function FloatingNav() {
       className="pointer-events-none fixed inset-x-0 top-4 z-30 flex justify-center px-3"
       data-nav
     >
-      <div className="bg-background/80 float-lift pointer-events-auto flex h-14 items-center gap-4 rounded-[32px] pr-2 pl-5 backdrop-blur-xl">
+      <div className="bg-card/85 float-lift pointer-events-auto flex h-14 items-center gap-4 rounded-[32px] pr-2 pl-5 backdrop-blur-xl">
         <Link className="mr-2" href="/">
           <Brand />
         </Link>
@@ -80,10 +80,10 @@ function Footer() {
 }
 
 /**
- * sharpit.app's home, built to `docs/design/LANDING_STYLE.md` (ADR-147): a field of daylight
- * holding the promise and the app, then the product shown as widgets on cloud cards. Markup is
- * complete without script; motion lives in `LandingMotion`, the one interaction in
- * `MorningWidget`. It is a light page whatever the theme (`landing-style`).
+ * sharpit.app's home (ADR-148): the composition and motion of `docs/design/LANDING_STYLE.md` in
+ * the app's own tokens. A field of ink holds the promise and the app, then the product is shown
+ * as widgets on white cards. Markup is complete without script; motion lives in
+ * `LandingMotion`, the one interaction in `MorningWidget`.
  */
 export function Landing() {
   return (

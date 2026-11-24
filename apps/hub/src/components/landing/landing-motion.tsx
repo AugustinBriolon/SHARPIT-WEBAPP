@@ -309,7 +309,7 @@ export function LandingMotion({ children }: { children: ReactNode }) {
   );
 
   return (
-    <div ref={scope} className="landing-style min-h-screen" data-landing-motion>
+    <div ref={scope} className="bg-background min-h-screen" data-landing-motion>
       {children}
     </div>
   );
