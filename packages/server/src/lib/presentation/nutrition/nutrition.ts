@@ -92,12 +92,35 @@ async function loadFuelDensity(
   return { proteinGPerKg, carbohydratesGPerKg, referenceWeightKg };
 }
 
-function resolveGoalsProgress(
-  _athleteId: string,
+/**
+ * The day's goals: the ones written on its row, or — for a day written before the athlete set
+ * targets, or imported without any — the profile's current targets, so « Objectif » and
+ * « Restant » never vanish from a day that has food on it.
+ */
+async function resolveGoalsProgress(
+  athleteId: string,
   row: NutritionRow,
-  _fetchLive: boolean,
-): NutritionGoalsProgress | null {
-  return goalsFromRow(row);
+  fetchLive: boolean,
+): Promise<NutritionGoalsProgress | null> {
+  if (!fetchLive) {
+    return goalsFromRow(row);
+  }
+  const profile = await prisma.athleteProfile.findUnique({
+    where: { id: athleteId },
+    select: {
+      nutritionTargetKcal: true,
+      nutritionTargetProteinG: true,
+      nutritionTargetCarbsG: true,
+      nutritionTargetFatG: true,
+    },
+  });
+  return goalsFromRow({
+    ...row,
+    goalCalories: profile?.nutritionTargetKcal ?? null,
+    goalProtein: profile?.nutritionTargetProteinG ?? null,
+    goalCarbohydrates: profile?.nutritionTargetCarbsG ?? null,
+    goalFat: profile?.nutritionTargetFatG ?? null,
+  });
 }
 
 async function enrichSelectedDay(

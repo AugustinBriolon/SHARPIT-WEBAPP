@@ -2,7 +2,10 @@ import { format } from 'date-fns';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const findMany = vi.fn();
-vi.mock('@sharpit/db/client', () => ({ prisma: { dailyNutrition: { findMany } } }));
+const findProfile = vi.fn();
+vi.mock('@sharpit/db/client', () => ({
+  prisma: { dailyNutrition: { findMany }, athleteProfile: { findUnique: findProfile } },
+}));
 const computeDayFeatures = vi.fn();
 vi.mock('@sharpit/server/lib/engines/feature-engine', () => ({
   featureEngine: { computeDayFeatures },
@@ -82,5 +85,33 @@ describe('buildNutritionViewModel', () => {
     findMany.mockResolvedValue([row()]);
     getLatestBodyWeightKg.mockResolvedValue(null);
     expect((await buildNutritionViewModel('athlete-1', today)).selectedDay?.fuelDensity).toBeNull();
+  });
+
+  it('reads the profile targets for a day whose row was written before they were set', async () => {
+    findMany.mockResolvedValue([
+      row({ goalCalories: null, goalProtein: null, goalCarbohydrates: null, goalFat: null }),
+    ]);
+    findProfile.mockResolvedValue({
+      nutritionTargetKcal: 2400,
+      nutritionTargetProteinG: 140,
+      nutritionTargetCarbsG: 280,
+      nutritionTargetFatG: 70,
+    });
+    const { buildNutritionViewModel } = await import('./nutrition');
+
+    const goals = (await buildNutritionViewModel('athlete-1', today)).selectedDay?.goalsProgress;
+
+    expect(goals?.calories).toMatchObject({ goal: 2400, remaining: 400 });
+    expect(goals?.protein).toMatchObject({ goal: 140 });
+  });
+
+  it('keeps the goals written on the day', async () => {
+    findMany.mockResolvedValue([row()]);
+    const { buildNutritionViewModel } = await import('./nutrition');
+
+    const goals = (await buildNutritionViewModel('athlete-1', today)).selectedDay?.goalsProgress;
+
+    expect(findProfile).not.toHaveBeenCalled();
+    expect(goals?.calories.goal).toBe(2500);
   });
 });
