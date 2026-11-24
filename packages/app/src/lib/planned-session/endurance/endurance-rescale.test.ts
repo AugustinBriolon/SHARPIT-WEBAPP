@@ -115,3 +115,50 @@ describe('rescaleEndurancePrescription', () => {
     ).toBeNull();
   });
 });
+
+describe('rescaleEndurancePrescription — a recovery session pushed', () => {
+  const RECOVERY_RUN: EndurancePrescription = {
+    version: 1,
+    sport: 'RUN',
+    blocks: [
+      {
+        kind: 'step',
+        step: {
+          kind: 'warmup',
+          duration: { type: 'time', seconds: 600 },
+          target: { metric: 'none' },
+        },
+      },
+      {
+        kind: 'step',
+        step: {
+          kind: 'recovery',
+          duration: { type: 'time', seconds: 900 },
+          target: { metric: 'none' },
+        },
+      },
+      {
+        kind: 'step',
+        step: {
+          kind: 'cooldown',
+          duration: { type: 'time', seconds: 300 },
+          target: { metric: 'none' },
+        },
+      },
+    ],
+  };
+
+  it('turns the recovery block into endurance work with its target, same length', () => {
+    const pushed = rescaleEndurancePrescription({
+      prescription: RECOVERY_RUN,
+      durationMin: 30,
+      intensity: 'ENDURANCE',
+    });
+    expect(minutes(pushed)).toEqual([10, 15, 5]);
+    const [, main] = pushed!.blocks;
+    expect(main.kind === 'step' && main.step.kind).toBe('interval');
+    expect(main.kind === 'step' && main.step.target).toEqual(
+      defaultTargetForIntensity('RUN', 'ENDURANCE').target,
+    );
+  });
+});

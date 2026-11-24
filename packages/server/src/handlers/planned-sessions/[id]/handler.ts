@@ -22,6 +22,7 @@ import {
 } from '@sharpit/server/lib/decision-memory/repository';
 import { enduranceSportFromActivityType } from '@sharpit/app/lib/planned-session/endurance/endurance-prescription';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
+import { recalibratedStructure } from '@sharpit/server/lib/morning-recalibration/recalibrated-structure';
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -212,9 +213,50 @@ async function applyPlannedSessionPatch(
   const patchedSport = parsed.endurancePrescription?.sport;
   const effectiveSport = enduranceSportFromActivityType(parsed.type ?? existing.type);
   return updatePlannedSession(athleteId, id, {
+    ...intensityFollowUp(parsed, existing),
     ...(parsed as Parameters<typeof updatePlannedSession>[2]),
     ...(patchedSport && !effectiveSport ? { endurancePrescription: Prisma.DbNull } : {}),
   });
+}
+
+/**
+ * A new intensity changes the session, not only its label: the steps take the new target, the
+ * sets the new load, and a title naming the old intensity names the new one. Spread before the
+ * patch, so anything the athlete wrote in the same edit wins.
+ */
+function intensityFollowUp(
+  parsed: UpdatePlannedSessionInput,
+  existing: NonNullable<Awaited<ReturnType<typeof getPlannedSessionById>>>,
+): Prisma.PlannedSessionUncheckedUpdateInput {
+  const changesSport = parsed.type !== undefined && parsed.type !== existing.type;
+  if (!parsed.intensity || parsed.intensity === existing.intensity || changesSport) {
+    return {};
+  }
+  const structure = recalibratedStructure({
+    type: existing.type,
+    title: existing.title,
+    endurancePrescription: existing.endurancePrescription,
+    strengthPrescription: existing.strengthPrescription,
+    durationMin: parsed.durationMin ?? existing.durationMin,
+    fromIntensity: existing.intensity,
+    intensity: parsed.intensity,
+    toDescription: existing.description,
+  });
+  return {
+    ...(structure.title === undefined ? {} : { title: structure.title }),
+    ...(structure.description === undefined ? {} : { description: structure.description }),
+    ...(structure.strengthPrescription
+      ? { strengthPrescription: structure.strengthPrescription as Prisma.InputJsonValue }
+      : {}),
+    ...(structure.endurancePrescription === undefined
+      ? {}
+      : {
+          endurancePrescription:
+            structure.endurancePrescription === null
+              ? Prisma.DbNull
+              : (structure.endurancePrescription as Prisma.InputJsonValue),
+        }),
+  };
 }
 
 /**

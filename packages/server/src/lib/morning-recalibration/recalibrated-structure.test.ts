@@ -97,4 +97,35 @@ describe('recalibratedStructure', () => {
       }),
     ).toEqual({ description: 'Sortie souple' });
   });
+
+  it('renames a title that names the old intensity, and leaves one that does not', () => {
+    const base = {
+      type: 'RUN',
+      endurancePrescription: null,
+      durationMin: 30,
+      fromIntensity: 'RECOVERY' as const,
+      intensity: 'ENDURANCE' as const,
+      toDescription: null,
+    };
+    expect(recalibratedStructure({ ...base, title: 'Récupération 30min' }).title).toBe(
+      'Endurance 30min',
+    );
+    expect(recalibratedStructure({ ...base, title: 'Footing' }).title).toBeUndefined();
+  });
+
+  it('writes a pushed strength session’s sets and loads', () => {
+    const structure = recalibratedStructure({
+      type: 'STRENGTH',
+      endurancePrescription: null,
+      strengthPrescription: {
+        version: 1,
+        sets: [{ exercise: 'Squat', sets: 3, reps: 10, weightKg: 40, order: 0 }],
+      },
+      durationMin: 30,
+      fromIntensity: 'RECOVERY',
+      intensity: 'ENDURANCE',
+      toDescription: 'Version un cran plus exigeante',
+    });
+    expect(structure.strengthPrescription?.sets[0]).toMatchObject({ sets: 4, weightKg: 50 });
+  });
 });

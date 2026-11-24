@@ -416,12 +416,22 @@ export async function acceptMorningRecalibration(
   const mr = validated.decision.snapshotContext.morningRecalibration!;
   const session = await prisma.plannedSession.findFirst({
     where: { id: sessionId!, athleteId },
-    select: { type: true, endurancePrescription: true, durationMin: true, intensity: true },
+    select: {
+      type: true,
+      title: true,
+      endurancePrescription: true,
+      strengthPrescription: true,
+      durationMin: true,
+      intensity: true,
+    },
   });
   const structure = recalibratedStructure({
     type: session?.type ?? '',
+    title: session?.title ?? null,
     endurancePrescription: session?.endurancePrescription ?? null,
+    strengthPrescription: session?.strengthPrescription ?? null,
     durationMin: durationMin ?? session?.durationMin ?? null,
+    fromIntensity: session?.intensity ?? null,
     intensity: intensity ?? session?.intensity ?? null,
     toDescription: mr.toDescription,
   });
@@ -430,7 +440,11 @@ export async function acceptMorningRecalibration(
     intensity: intensity ?? undefined,
     durationMin: durationMin ?? undefined,
     load: load ?? undefined,
+    title: structure.title,
     description: structure.description,
+    ...(structure.strengthPrescription
+      ? { strengthPrescription: structure.strengthPrescription as Prisma.InputJsonValue }
+      : {}),
     ...(structure.endurancePrescription === undefined
       ? {}
       : {

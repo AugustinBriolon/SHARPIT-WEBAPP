@@ -201,4 +201,84 @@ describe('PATCH /api/planned-sessions/[id]', () => {
     expect(findDecisionForPlannedSession).toHaveBeenCalledWith('default', 'session-1');
     expect(recordDecisionAction).not.toHaveBeenCalled();
   });
+
+  it('rewrites the steps and the title when only the intensity changes', async () => {
+    const { getPlannedSessionById, updatePlannedSession } =
+      await import('@sharpit/server/lib/queries');
+    vi.mocked(getPlannedSessionById).mockResolvedValue({
+      ...EXISTING,
+      intensity: 'RECOVERY',
+      durationMin: 30,
+      title: 'Récupération 30min',
+      endurancePrescription: {
+        version: 1,
+        sport: 'RUN',
+        blocks: [
+          {
+            kind: 'step',
+            step: {
+              kind: 'warmup',
+              duration: { type: 'time', seconds: 600 },
+              target: { metric: 'none' },
+            },
+          },
+          {
+            kind: 'step',
+            step: {
+              kind: 'recovery',
+              duration: { type: 'time', seconds: 900 },
+              target: { metric: 'none' },
+            },
+          },
+          {
+            kind: 'step',
+            step: {
+              kind: 'cooldown',
+              duration: { type: 'time', seconds: 300 },
+              target: { metric: 'none' },
+            },
+          },
+        ],
+      },
+    } as never);
+    vi.mocked(updatePlannedSession).mockResolvedValue(EXISTING as never);
+
+    const { PATCH } = await importRoute();
+    await PATCH(patchRequest({ intensity: 'ENDURANCE' }), {
+      params: Promise.resolve({ id: 'session-1' }),
+    });
+
+    expect(updatePlannedSession).toHaveBeenCalledWith(
+      'default',
+      'session-1',
+      expect.objectContaining({
+        intensity: 'ENDURANCE',
+        title: 'Endurance 30min',
+        description: '10 min échauffement · 15 min endurance · 5 min retour au calme',
+        endurancePrescription: expect.objectContaining({ sport: 'RUN' }),
+      }),
+    );
+  });
+
+  it('keeps what the athlete wrote in the same edit over the rewrite', async () => {
+    const { getPlannedSessionById, updatePlannedSession } =
+      await import('@sharpit/server/lib/queries');
+    vi.mocked(getPlannedSessionById).mockResolvedValue({
+      ...EXISTING,
+      intensity: 'RECOVERY',
+      title: 'Récupération',
+    } as never);
+    vi.mocked(updatePlannedSession).mockResolvedValue(EXISTING as never);
+
+    const { PATCH } = await importRoute();
+    await PATCH(patchRequest({ intensity: 'ENDURANCE', title: 'Footing du lundi' }), {
+      params: Promise.resolve({ id: 'session-1' }),
+    });
+
+    expect(updatePlannedSession).toHaveBeenCalledWith(
+      'default',
+      'session-1',
+      expect.objectContaining({ title: 'Footing du lundi' }),
+    );
+  });
 });

@@ -25,6 +25,19 @@ function withSeconds(step: EnduranceStep, seconds: number): EnduranceStep {
 }
 
 /**
+ * A main step at the new intensity: it takes the intensity's target, and a step that was the
+ * recovery itself becomes the work — a 15 min recovery block pushed to endurance is an
+ * endurance block, on the screen and on the watch, not a « récup » with a new number. A rest
+ * stays a rest.
+ */
+function mainStepAt(step: EnduranceStep, target: EnduranceStep['target']): EnduranceStep {
+  if (step.kind === 'rest') {
+    return step;
+  }
+  return { ...step, kind: step.kind === 'recovery' ? 'interval' : step.kind, target };
+}
+
+/**
  * The same session at a new length and intensity — what a morning lightening (or push) means
  * for its steps. Warm-up and cool-down keep their length while they leave the main work at
  * least half the session, and shrink together otherwise; the main steps share the rest in
@@ -67,8 +80,7 @@ export function rescaleEndurancePrescription(input: {
     if (EDGE_KINDS.has(step.kind)) {
       return withSeconds(step, roundToMinute(timeSeconds(step) * edgeScale));
     }
-    const retargeted = step.target.metric === 'none' ? step : { ...step, target };
-    return withSeconds(retargeted, roundToMinute(timeSeconds(step) * mainScale));
+    return withSeconds(mainStepAt(step, target), roundToMinute(timeSeconds(step) * mainScale));
   });
 
   // Whole minutes drift from the total: the longest step absorbs the difference.
