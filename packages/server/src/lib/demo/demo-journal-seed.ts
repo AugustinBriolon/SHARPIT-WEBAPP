@@ -199,6 +199,11 @@ export async function seedDemoJournalAnalyses(
     },
   });
 
+  await seedDemoJournalDays(prisma, athleteId);
+}
+
+/** The 14 journal days and their nights alone, leaving the profile's tier and prefs as they are. */
+export async function seedDemoJournalDays(prisma: PrismaClient, athleteId: string): Promise<void> {
   await prisma.athleteDayJournal.deleteMany({ where: { athleteId } });
 
   for (let daysAgo = DEMO_JOURNAL_DAYS - 1; daysAgo >= 0; daysAgo -= 1) {

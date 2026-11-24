@@ -15,6 +15,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:demo": "tsx prisma/seed-demo.ts",
+    "db:seed:review": "tsx scripts/seed-review-account.ts",
     "db:seed:worst": "tsx prisma/seed-worst-case.ts",
     "db:clean:activities": "tsx scripts/clean-activities.ts",
     "db:backfill:narratives": "tsx scripts/backfill-activity-narratives.ts",

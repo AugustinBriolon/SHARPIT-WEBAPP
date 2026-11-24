@@ -14,7 +14,10 @@ import {
 } from '@prisma/client';
 import { ensureDemoSessionLinkStory } from '@sharpit/server/lib/demo/demo-session-link-seed';
 import { DEMO_SESSION_LINK_PLANNED_TITLE } from '@sharpit/app/lib/demo/demo-session-link-markers';
-import { seedDemoJournalAnalyses } from '@sharpit/server/lib/demo/demo-journal-seed';
+import {
+  seedDemoJournalAnalyses,
+  seedDemoJournalDays,
+} from '@sharpit/server/lib/demo/demo-journal-seed';
 import {
   demoAnchorTrainingDayId,
   demoDateFromTrainingDayId,
@@ -722,6 +725,29 @@ export async function seedDemoAthlete(prisma: PrismaClient): Promise<void> {
   await seedDemoCoachConversation(prisma, athleteId);
 
   await ensureDemoSessionLinkStory(prisma, athleteId);
+  await finalizeDemoSeed(prisma, athleteId);
+}
+
+/**
+ * The demo's three weeks of history — sessions, nights, recovery, journal, meals, weight — on a
+ * real athlete, for the App Review account (a regular Clerk user, so it can write). Leaves what
+ * the athlete made themselves: profile, tier, goals, plan. Refuses an athlete that already has
+ * sessions, so it never doubles a history.
+ */
+export async function seedReviewAthleteHistory(
+  prisma: PrismaClient,
+  athleteId: string,
+): Promise<void> {
+  if ((await prisma.activity.count({ where: { athleteId } })) > 0) {
+    throw new Error(`athlete ${athleteId} already has sessions: nothing seeded`);
+  }
+  const today = demoDateFromTrainingDayId(demoAnchorTrainingDayId());
+
+  await seedDemoPastActivities(prisma, athleteId, today);
+  await seedDemoRecoveryTrend(prisma, athleteId, today);
+  await seedDemoJournalDays(prisma, athleteId);
+  await seedDemoNutritionWindow(prisma, athleteId, today);
+  await seedDemoBodyComposition(prisma, athleteId, today);
   await finalizeDemoSeed(prisma, athleteId);
 }
 
