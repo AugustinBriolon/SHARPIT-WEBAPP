@@ -6,10 +6,11 @@ vi.mock('@sharpit/server/lib/demo/finalize-demo-seed', () => ({
   purgeDemoDerivedState: vi.fn(),
 }));
 
-const { seedReviewAthleteHistory } = await import('@sharpit/server/lib/demo/seed-demo-data');
+const { refreshReviewAthleteHistory, seedReviewAthleteHistory } =
+  await import('@sharpit/server/lib/demo/seed-demo-data');
 
 /** A Prisma double that records every write, by model and operation. */
-function prismaDouble(existingSessions: number) {
+function prismaDouble(existingSessions: number, syncedSessions = 0) {
   const writes: string[] = [];
   const model = (name: string) =>
     new Proxy(
@@ -44,5 +45,18 @@ describe('seedReviewAthleteHistory', () => {
     expect(writes).toContain('athleteDayJournal.create');
     expect(writes).toContain('dailyNutrition.upsert');
     expect(writes.some((w) => /^(athleteProfile|goal|plannedSession)\./.test(w))).toBe(false);
+  });
+
+  it('refreshes by deleting the seeded history, then seeding it again', async () => {
+    const { prisma, writes } = prismaDouble(0);
+    await refreshReviewAthleteHistory(prisma, 'a1');
+    expect(writes.indexOf('activity.deleteMany')).toBeLessThan(writes.indexOf('activity.create'));
+    expect(writes.some((w) => /^(athleteProfile|goal|plannedSession)\./.test(w))).toBe(false);
+  });
+
+  it('refuses to refresh an athlete with synced sessions, writing nothing', async () => {
+    const { prisma, writes } = prismaDouble(5, 2);
+    await expect(refreshReviewAthleteHistory(prisma, 'a1')).rejects.toThrow('not a review account');
+    expect(writes).toEqual([]);
   });
 });

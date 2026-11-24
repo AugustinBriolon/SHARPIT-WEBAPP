@@ -751,6 +751,36 @@ export async function seedReviewAthleteHistory(
   await finalizeDemoSeed(prisma, athleteId);
 }
 
+/**
+ * Moves the review account's history to today: deletes what `seedReviewAthleteHistory` wrote —
+ * sessions, nights, journal, meals, weight, and what was derived from them — then seeds it again.
+ * Profile, tier, goals and plan stay (a planned session loses only its link to a deleted session).
+ * Refuses an athlete with a session from a real source, so it can never wipe an athlete's own data.
+ */
+export async function refreshReviewAthleteHistory(
+  prisma: PrismaClient,
+  athleteId: string,
+): Promise<void> {
+  const synced = await prisma.activity.count({
+    where: { athleteId, source: { not: 'manual' } },
+  });
+  if (synced > 0) {
+    throw new Error(`athlete ${athleteId} has ${synced} synced sessions: not a review account`);
+  }
+  await prisma.activity.deleteMany({ where: { athleteId } });
+  await prisma.dailyHealth.deleteMany({ where: { athleteId } });
+  await prisma.athleteDayJournal.deleteMany({ where: { athleteId } });
+  await prisma.dailyNutrition.deleteMany({ where: { athleteId, provider: 'myfitnesspal' } });
+  await prisma.bodyCompositionMeasurement.deleteMany({
+    where: { athleteId, externalId: { startsWith: 'demo-body-' } },
+  });
+  await prisma.observation.deleteMany({ where: { athleteId } });
+  await prisma.featureSet.deleteMany({ where: { athleteId } });
+  await prisma.athleteSnapshotRecord.deleteMany({ where: { athleteId } });
+  await prisma.digitalTwin.deleteMany({ where: { athleteId } });
+  await seedReviewAthleteHistory(prisma, athleteId);
+}
+
 async function demoSeedNeedsRefresh(prisma: PrismaClient, athleteId: string): Promise<boolean> {
   const [renpho, latestHealth, goalCount, conversationCount, journalCount] = await Promise.all([
     prisma.renphoAccount.findUnique({ where: { athleteId }, select: { athleteId: true } }),

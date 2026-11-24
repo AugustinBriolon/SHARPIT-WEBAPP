@@ -8,13 +8,18 @@
  * Usage (DATABASE_URL and CLERK_SECRET_KEY of the target environment in the env):
  *   yarn db:seed:review review@sharpit.app --dry-run
  *   yarn db:seed:review review@sharpit.app
+ *   yarn db:seed:review review@sharpit.app --refresh   (moves the history to today, before a submission)
  */
 import { prisma } from '@sharpit/db/client';
 import { createClerkClient } from '@clerk/nextjs/server';
-import { seedReviewAthleteHistory } from '@sharpit/server/lib/demo/seed-demo-data';
+import {
+  refreshReviewAthleteHistory,
+  seedReviewAthleteHistory,
+} from '@sharpit/server/lib/demo/seed-demo-data';
 
 const [email] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
 const dryRun = process.argv.includes('--dry-run');
+const refresh = process.argv.includes('--refresh');
 
 async function main() {
   if (!email) {
@@ -39,7 +44,7 @@ async function main() {
   if (dryRun) {
     return;
   }
-  await seedReviewAthleteHistory(prisma, profile.id);
+  await (refresh ? refreshReviewAthleteHistory : seedReviewAthleteHistory)(prisma, profile.id);
   console.log(
     `seeded: ${await prisma.activity.count({ where: { athleteId: profile.id } })} sessions`,
   );
