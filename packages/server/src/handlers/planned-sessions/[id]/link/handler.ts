@@ -2,6 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server';
 import { enrichActivityObservedContext } from '@sharpit/server/lib/activity/detail/enrich-observed-context';
 import { getCurrentAthleteId } from '@sharpit/server/lib/auth/current-athlete';
 import { analyzeLinkedPlannedSessions } from '@sharpit/server/lib/planned-session/linking/session-linking';
+import { pushSessionToGoogle } from '@sharpit/server/lib/integrations/google/google-sync';
 import { prisma } from '@sharpit/db/client';
 import { getPlannedSessionById, linkPlannedSessionActivity } from '@sharpit/server/lib/queries';
 
@@ -23,7 +24,10 @@ export async function POST(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Séance planifiée introuvable' }, { status: 404 });
     }
 
-    const session = await linkPlannedSessionActivity(athleteId, id, activityId);
+    // Done on another day, or at another time: the session goes where it was done.
+    const session = await linkPlannedSessionActivity(athleteId, id, activityId, {
+      takeDoneSchedule: true,
+    });
     if (!session) {
       return NextResponse.json({ error: 'Activité introuvable' }, { status: 404 });
     }
@@ -34,6 +38,11 @@ export async function POST(request: NextRequest, context: RouteContext) {
         } catch (error) {
           console.error('[planned-sessions/link/enrich]', error);
         }
+        // Its Google event follows the session to the slot it was done in (a no-op when Google
+        // does not hold the plan).
+        await pushSessionToGoogle(session).catch((error) => {
+          console.error('[planned-sessions/link/google]', error);
+        });
         await analyzeLinkedPlannedSessions(athleteId, [id]);
       });
     }

@@ -12,6 +12,11 @@ import {
 } from '@sharpit/app/lib/query/activity-include';
 import type { BrickEvaluationFields } from '@sharpit/app/lib/validators/brick-evaluation';
 import { chainBrickLegStartTimes } from '@sharpit/server/lib/planned-session/brick/brick-schedule';
+import {
+  doneScheduleOf,
+  schedulePatchForDoneSession,
+} from '@sharpit/server/lib/planned-session/linking/done-schedule';
+import { athleteTimeZone } from '@sharpit/server/lib/athlete-time-zone';
 
 export async function getPlannedSessions(athleteId: string, params?: { from?: Date; to?: Date }) {
   return prisma.plannedSession.findMany({
@@ -46,19 +51,38 @@ export async function getPlannedSessionById(athleteId: string, id: string) {
   });
 }
 
+/**
+ * Links (or, with null, delinks) an activity. With `takeDoneSchedule`, the session also moves to
+ * the day and the time it was done (`done-schedule.ts`) — asked by the athlete's own link, not by
+ * the same-day auto-link. A brick's leg keeps its place: the chain's times hang together.
+ */
 export async function linkPlannedSessionActivity(
   athleteId: string,
   id: string,
   activityId: string | null,
+  options: { takeDoneSchedule?: boolean } = {},
 ) {
+  let schedulePatch: { date?: Date; startTime?: string | null } = {};
   if (activityId) {
     // An absorbed multisport leg cannot take a plan link: it is hidden behind its parent.
     const owned = await prisma.activity.findFirst({
       where: { id: activityId, athleteId, ...visibleActivityWhere },
-      select: { id: true },
+      select: { id: true, date: true },
     });
     if (!owned) {
       return null;
+    }
+    if (options.takeDoneSchedule) {
+      const planned = await prisma.plannedSession.findFirst({
+        where: { id, athleteId },
+        select: { date: true, startTime: true, brickGroupId: true },
+      });
+      if (planned && !planned.brickGroupId) {
+        schedulePatch = schedulePatchForDoneSession(
+          planned,
+          doneScheduleOf(owned.date, await athleteTimeZone(athleteId)),
+        );
+      }
     }
   }
 
@@ -67,6 +91,7 @@ export async function linkPlannedSessionActivity(
     data: {
       activityId,
       completed: isSet(activityId),
+      ...schedulePatch,
       ...(activityId === undefined || activityId === null
         ? { analysis: Prisma.DbNull, analyzedAt: null }
         : {}),

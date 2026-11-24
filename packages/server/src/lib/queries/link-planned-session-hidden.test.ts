@@ -16,7 +16,7 @@ describe('linkPlannedSessionActivity — absorbed legs', () => {
     expect(linked).toBeNull();
     expect(prismaMock.activity.findFirst).toHaveBeenCalledWith({
       where: { id: 'leg-swim', athleteId: 'athlete-1', mergedIntoId: null },
-      select: { id: true },
+      select: { id: true, date: true },
     });
     expect(prismaMock.plannedSession.updateMany).not.toHaveBeenCalled();
   });
