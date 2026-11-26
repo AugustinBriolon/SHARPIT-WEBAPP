@@ -4308,5 +4308,12 @@
   "élastiques": "resistance bands",
   "≠ Strain du jour": "≠ Today's strain",
   "Session Garmin expirée. Reconnecte Garmin dans les paramètres.": "Garmin session expired. Reconnect Garmin in settings.",
-  "Garmin non configuré. Ajoute GARMIN_CLIENT_ID et GARMIN_CLIENT_SECRET dans .env": "Garmin not configured. Add GARMIN_CLIENT_ID and GARMIN_CLIENT_SECRET to .env"
+  "Garmin non configuré. Ajoute GARMIN_CLIENT_ID et GARMIN_CLIENT_SECRET dans .env": "Garmin not configured. Add GARMIN_CLIENT_ID and GARMIN_CLIENT_SECRET to .env",
+  "Coach à la demande": "On-demand coach",
+  "Le coach écrit ta semaine et la réajuste après une séance sautée ou une nuit courte. La suivante arrive avant la fin de celle-ci.": "The coach writes your week and readjusts it after a skipped session or a short night. The next one arrives before this one ends.",
+  "Le coach fait le point sur ton volume, ta charge et ta récup, puis prépare la semaine suivante.": "The coach reviews your volume, load and recovery, then prepares the week ahead.",
+  "Chaque séance lue par le coach : ce qui a marché, ce qui a coûté, ce que ça change pour la suite.": "Every session read by the coach: what worked, what it cost, what it changes next.",
+  "Habitudes qui paient": "Habits that pay off",
+  "Le coach croise ton journal avec ta progression et te propose 1 à 2 changements à tester sur 7 jours.": "The coach cross-checks your journal with your progress and suggests 1 or 2 changes to try for 7 days.",
+  "Tes séances planifiées envoyées sur ta montre Garmin (course, vélo, natation).": "Your planned sessions sent to your Garmin watch (run, ride, swim)."
 }

@@ -26,7 +26,7 @@ export type ProPerkData = {
 export const PRO_ONLY_PERKS: ProPerkData[] = [
   {
     id: 'coach',
-    title: 'Coach',
+    title: 'Coach à la demande',
     description: `Pose tes questions au coach qui connaît tes données : environ ${questionsFor(PRO_DAILY_TOKEN_BUDGET)} par 24 h.`,
     status: 'pro',
   },
@@ -34,14 +34,14 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
     id: 'adaptive-plan',
     title: 'Plan qui s’adapte',
     description:
-      'Ta semaine écrite par le coach, réajustée quand ta forme ou ton agenda change, et la suivante prête avant la fin de celle-ci.',
+      'Le coach écrit ta semaine et la réajuste après une séance sautée ou une nuit courte. La suivante arrive avant la fin de celle-ci.',
     status: 'pro',
   },
   {
     id: 'weekly-review',
     title: 'Bilan hebdomadaire',
     description:
-      'Volume, charge, sommeil et récupération de la semaine, synthétisés par le coach — avec un plan pour la semaine suivante.',
+      'Le coach fait le point sur ton volume, ta charge et ta récup, puis prépare la semaine suivante.',
     status: 'pro',
     href: '/plan/bilan',
   },
@@ -49,15 +49,15 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
     id: 'session-analysis',
     title: 'Analyse de séance',
     description:
-      'Interprétation approfondie de chaque entraînement : ce qui a marché, ce qui a coûté cher, ce que ça change pour la suite.',
+      'Chaque séance lue par le coach : ce qui a marché, ce qui a coûté, ce que ça change pour la suite.',
     status: 'pro',
     href: '/activite',
   },
   {
     id: 'journal-coach-read',
-    title: 'Optimisation des habitudes',
+    title: 'Habitudes qui paient',
     description:
-      'Le coach analyse tes habitudes du journal — sommeil, alimentation, récupération — pour repérer celles qui te font progresser, et te propose 1 à 2 ajustements concrets à tester sur 7 jours.',
+      'Le coach croise ton journal avec ta progression et te propose 1 à 2 changements à tester sur 7 jours.',
     status: 'pro',
     href: '/journal/analyses',
   },
@@ -78,7 +78,7 @@ export const PRO_ONLY_PERKS: ProPerkData[] = [
   {
     id: 'watch-push',
     title: 'Envoi vers la montre',
-    description: 'Pousse tes séances planifiées directement sur ta montre connectée.',
+    description: 'Tes séances planifiées envoyées sur ta montre Garmin (course, vélo, natation).',
     status: 'pro',
     href: '/plan/semaine',
   },
