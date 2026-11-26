@@ -109,7 +109,7 @@ export default async function RoundupPage({ params }: Props) {
         >
           <div className="text-foreground flex items-center gap-2 text-sm font-medium">
             <SlidersHorizontal className="text-highlight size-4" aria-hidden />
-            <h2 id="criteria-heading">Nos critères de notation</h2>
+            <h2 id="criteria-heading">Nos critères de classement</h2>
           </div>
           <ul className="text-muted-foreground mt-4 grid gap-2.5 text-sm sm:grid-cols-2">
             {roundup.selectionCriteria.map((criterion) => (
@@ -220,8 +220,8 @@ export default async function RoundupPage({ params }: Props) {
 
         {/* CTA Banner */}
         <SeoCtaBanner
-          subtitle="Connectez votre montre Garmin en quelques secondes et observez comment SharpIt répare votre semaine."
-          title="Faites le test avec vos propres séances."
+          subtitle="Apple Santé, Garmin ou Strava : tes données arrivent dès la connexion. Le plan et le coach viennent avec SharpIt Pro."
+          title="Fais le test avec tes propres données."
         />
       </main>
 

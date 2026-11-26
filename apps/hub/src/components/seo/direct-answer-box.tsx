@@ -1,9 +1,7 @@
 import { ArrowUpRight, Sparkles } from 'lucide-react';
 import { buttonVariants } from '@sharpit/ui/components/ui/button';
+import { LANDING_HERO, LANDING_LINKS } from '@sharpit/app/lib/landing/landing-copy';
 import { cn } from '@sharpit/app/lib/utils';
-
-const DEMO_URL = 'https://web.sharpit.app/demo';
-const APP_STORE_URL = 'https://apps.apple.com/app/sharpit/id6737190000'; // Fallback / canonical App Store
 
 export function DirectAnswerBox({
   directAnswer,
@@ -16,7 +14,7 @@ export function DirectAnswerBox({
 }) {
   return (
     <section
-      aria-label="Réponse directe"
+      aria-label="En résumé"
       className={cn(
         'border-border/80 bg-muted/20 relative my-8 overflow-hidden rounded-2xl border p-6 sm:p-8',
         className,
@@ -24,7 +22,7 @@ export function DirectAnswerBox({
     >
       <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium">
         <Sparkles className="text-highlight size-4" aria-hidden />
-        <span>En résumé (Réponse directe)</span>
+        <span>En résumé</span>
       </div>
 
       <p className="text-foreground mt-4 text-base leading-relaxed font-normal sm:text-lg">
@@ -42,7 +40,7 @@ export function DirectAnswerBox({
 
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <a
-          href={DEMO_URL}
+          href={LANDING_LINKS.demo}
           className={buttonVariants({
             size: 'default',
             className: 'px-5 font-medium shadow-sm',
@@ -52,7 +50,7 @@ export function DirectAnswerBox({
           <ArrowUpRight className="ml-1.5 size-4" aria-hidden />
         </a>
         <a
-          href={APP_STORE_URL}
+          href={LANDING_LINKS.download}
           rel="noreferrer"
           target="_blank"
           className={buttonVariants({
@@ -61,7 +59,7 @@ export function DirectAnswerBox({
             className: 'px-5',
           })}
         >
-          <span>App Store iOS</span>
+          <span>{LANDING_HERO.download.label}</span>
           <ArrowUpRight className="ml-1.5 size-4" aria-hidden />
         </a>
       </div>

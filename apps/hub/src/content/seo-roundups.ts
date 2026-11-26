@@ -1,3 +1,5 @@
+import { LANDING_GATE_RULE_COUNT } from '@sharpit/app/lib/landing/landing-copy';
+
 export type AppReview = {
   rank: number;
   name: string;
@@ -20,20 +22,23 @@ export type RoundupData = {
   faq: { question: string; answer: string }[];
 };
 
+// Written by the SharpIt team: the ranking is ours and says so; competitor prices and
+// limits stay generic until a dated public source backs them.
 export const ROUNDUPS: Record<string, RoundupData> = {
   'meilleures-applications-plan-entrainement-running': {
     slug: 'meilleures-applications-plan-entrainement-running',
     metaTitle: 'Les 7 meilleures applications de plan d’entraînement running en 2026',
     metaDescription:
-      'Comparatif honnête des meilleures applications de course à pied : Garmin Coach, SharpIt, Campus Coach, Runna, TrainingPeaks. Trouvez l’application idéale selon votre pratique.',
+      'Comparatif par l’équipe SharpIt, critères publiés : Garmin Coach, Campus Coach, Runna, TrainingPeaks… Trouve l’application qui colle à ta pratique.',
     h1: 'Les 7 meilleures applications de plan d’entraînement running en 2026',
-    tagline: 'Un comparatif indépendant et transparent pour progresser sans se blesser.',
+    tagline:
+      'Comparatif écrit par l’équipe SharpIt. On se classe premiers : voici nos critères, à toi de juger.',
     directAnswer:
-      'En 2026, la meilleure application de plan d’entraînement dépend de votre matériel et de votre flexibilité de vie : pour un coureur possédant une montre Garmin et cherchant un plan véritablement adaptatif qui s’ajuste chaque matin à la fatigue réelle, SharpIt est le choix n°1. Si vous cherchez une solution 100 % gratuite pour débuter sur 5 ou 10 km, Garmin Coach est suffisant. Si vous aimez le guidage vocal dynamique et la motivation sur tapis, choisissez Runna. Si vous voulez des plans communautaires structurés par allures fixes, Campus Coach reste une excellente référence.',
+      'En 2026, la bonne application dépend de ton matériel et de ta semaine. Si tu veux un plan qui se recale après une séance ratée et une proposition chaque matin, SharpIt (c’est nous) répond à ce besoin. Pour débuter gratuitement sur 5 ou 10 km avec une montre Garmin, Garmin Coach suffit. Si tu aimes le guidage vocal et le tapis, regarde Runna. Si tu veux des plans par allures fixes avec une pédagogie poussée, Campus Coach reste une référence.',
     selectionCriteria: [
       'Capacité d’adaptation en cas de séance ratée ou d’imprévu d’agenda.',
-      'Lecture de la récupération physiologique réelle (sommeil, fréquence cardiaque, VFC).',
-      'Protection contre le surentraînement et présence de garde-fous physiologiques.',
+      'Lecture de la récupération (sommeil, fréquence cardiaque, VFC).',
+      'Contrôles de charge et d’espacement des séances intenses.',
       'Facilité d’envoi des séances vers les montres de sport (Garmin, Apple Watch).',
       'Rapport qualité / prix et clarté de l’offre.',
     ],
@@ -41,20 +46,22 @@ export const ROUNDUPS: Record<string, RoundupData> = {
       {
         rank: 1,
         name: 'SharpIt',
-        bestFor: 'Coureurs réguliers cherchant un plan adaptatif et respectueux de leur fatigue',
-        pricing: 'Freemium / Version complète sans engagement',
+        bestFor: 'Triathlètes et coureurs qui préparent une course avec une semaine chargée',
+        pricing: 'Gratuit (données) · Pro 12,99 €/mois ou 99,99 €/an, sans engagement',
         strengths: [
-          'Un plan qui se répare automatiquement dès qu’une séance saute.',
-          'Une proposition chaque matin pour alléger ou maintenir l’effort selon la nuit.',
-          '17 garde-fous stricts empêchant le surentraînement.',
-          'Synchronisation Garmin Connect native avec explications claires.',
+          'Un plan qui se recale dès qu’une séance saute (Pro).',
+          'Une proposition chaque matin pour alléger ou garder la séance selon ta nuit.',
+          `${LANDING_GATE_RULE_COUNT} règles vérifiées avant chaque séance.`,
+          'Garmin, Apple Santé, Strava, Withings reliés.',
         ],
         weaknesses: [
           'Pas de guidage audio dans les écouteurs (tout passe par la montre).',
           'Pensé pour les sportifs réguliers plutôt que les sédentaires complets.',
+          'Pas d’application Android.',
+          'Coach IA réservé à Pro.',
+          'Garmin : les données arrivent à partir de la connexion, sans historique.',
         ],
-        verdict:
-          'L’outil le plus intelligent pour concilier progression sportive et vie de famille ou professionnelle chargée.',
+        verdict: 'Pour l’athlète qui prépare un objectif avec une semaine chargée.',
       },
       {
         rank: 2,
@@ -66,28 +73,20 @@ export const ROUNDUPS: Record<string, RoundupData> = {
           'Suggestions quotidiennes (DSW) basées sur la charge.',
           'Zéro abonnement supplémentaire.',
         ],
-        weaknesses: [
-          'Plans limités au semi-marathon (pas de vrai plan marathon ou ultra).',
-          'Gestion catastrophique des séances manquées (décalage brutal ou disparition).',
-          'Boîte noire : aucune explication sur les modifications d’allures.',
-        ],
-        verdict:
-          'Très bien pour faire son premier 10 km, vite limité dès qu’on prépare une épreuve longue ou avec imprévus.',
+        weaknesses: ['Réservé aux possesseurs d’une montre Garmin.'],
+        verdict: 'Très bien pour faire son premier 10 km avec une montre Garmin.',
       },
       {
         rank: 3,
         name: 'Campus Coach',
         bestFor: 'Coureurs appréciant la pédagogie et les plans par allures précises',
-        pricing: 'Environ 12 à 15 € / mois',
+        pricing: 'Abonnement payant (tarif sur leur site)',
         strengths: [
           'Excellente pédagogie signée Running Addict.',
           'Communauté active et entraide francophone.',
           'Plans personnalisés selon son chrono de référence.',
         ],
-        weaknesses: [
-          'Algorithme peu flexible face aux baisses de forme ponctuelles.',
-          'Pas d’adaptation matinale automatique selon les nuits.',
-        ],
+        weaknesses: ['Centré sur la course à pied.'],
         verdict:
           'Une valeur sûre pour les coureurs disciplinés capables de suivre un planning sans trop d’aléas.',
       },
@@ -95,34 +94,29 @@ export const ROUNDUPS: Record<string, RoundupData> = {
         rank: 4,
         name: 'Runna',
         bestFor: 'Coureurs sur tapis et amateurs de guidage vocal dynamique',
-        pricing: 'Environ 18 $ / mois ou 120 $ / an',
+        pricing: 'Abonnement payant (tarif sur leur site)',
         strengths: [
           'Guidage audio très immersif pendant les fractionnés.',
           'Compatibilité tapis de course bien pensée.',
           'Interface moderne et engageante.',
         ],
-        weaknesses: [
-          'Allures très agressives risquant la blessure (tendinites, périostites).',
-          'Abonnement onéreux.',
-        ],
-        verdict:
-          'Efficace si vous êtes jeune, en pleine forme et adorez vous faire encourager au casque.',
+        weaknesses: ['Abonnement payant.'],
+        verdict: 'Bien si tu aimes être guidé à l’oreille pendant tes séances.',
       },
       {
         rank: 5,
         name: 'TrainingPeaks',
         bestFor: 'Athlètes entraînés par un coach humain ou triathlètes confirmés',
-        pricing: 'Gratuit limité ou 19 $ / mois + achat des plans (50 à 150 $)',
+        pricing: 'Version gratuite limitée, Premium payant, plans vendus à part',
         strengths: [
           'Standard mondial pour l’analyse avancée (TSS, ATL, CTL).',
           'Plateforme idéale pour communiquer avec un véritable entraîneur.',
         ],
         weaknesses: [
-          'Interface austère et complexe pour un amateur.',
-          'Aucune adaptation automatisée intelligente du plan sans coach humain.',
+          'Beaucoup de métriques à apprendre pour un amateur.',
+          'Pensé d’abord pour travailler avec un coach humain.',
         ],
-        verdict:
-          'L’outil professionnel incontournable avec un coach dédié, inutile et rebutant en solo.',
+        verdict: 'La référence pour travailler avec un coach humain.',
       },
       {
         rank: 6,
@@ -149,21 +143,20 @@ export const ROUNDUPS: Record<string, RoundupData> = {
           'Séances audio guidées par des coachs et athlètes inspirants.',
           'Expérience utilisateur soignée et bienveillante.',
         ],
-        weaknesses: ['Plans totalement figés.', 'Synchronisations tierces parfois instables.'],
-        verdict:
-          'Parfait pour se remettre au sport avec le sourire, insuffisant pour performer sur course officielle.',
+        weaknesses: ['Pensé pour courir pour le plaisir plutôt que pour un objectif chronométré.'],
+        verdict: 'Parfait pour se remettre au sport avec le sourire.',
       },
     ],
     faq: [
       {
         question: 'Quelle est la meilleure application de running gratuite ?',
         answer:
-          'Si vous possédez une montre Garmin, Garmin Coach est la meilleure option sans frais. Pour courir au feeling sans montre, Nike Run Club offre la meilleure expérience gratuite.',
+          'Si tu as une montre Garmin, Garmin Coach est une bonne option sans frais. Pour courir au feeling sans montre, Nike Run Club est une bonne option gratuite.',
       },
       {
         question: 'Une application peut-elle remplacer un entraîneur humain ?',
         answer:
-          'Pour 95 % des coureurs amateurs, une application adaptative comme SharpIt qui relit l’état physiologique et réorganise les séances offre une régularité et une sécurité équivalentes à un suivi personnalisé, pour un coût 10 à 20 fois inférieur.',
+          'Pour beaucoup d’amateurs, une app qui recale le plan suffit. Un coach humain reste utile pour un objectif élite ou une blessure. SharpIt Pro coûte 12,99 €/mois.',
       },
     ],
   },

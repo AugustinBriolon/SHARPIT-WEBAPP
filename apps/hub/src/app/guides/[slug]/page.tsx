@@ -11,6 +11,7 @@ import {
   SeoFooter,
   SeoHeader,
 } from '@/components/seo/seo-shell';
+import { LANDING_GATE_RULE_COUNT } from '@sharpit/app/lib/landing/landing-copy';
 import { allGuideSlugs, findGuide } from '@/content/seo-guides';
 
 type Props = { params: Promise<{ slug: string }> };
@@ -140,7 +141,7 @@ export default async function GuidePage({ params }: Props) {
         >
           <div className="text-foreground flex items-center gap-2 text-sm font-medium">
             <ShieldCheck className="text-foreground size-5" aria-hidden />
-            <h2 id="rules-heading">Les règles physiologiques indispensables</h2>
+            <h2 id="rules-heading">Les règles à retenir</h2>
           </div>
           <ul className="text-muted-foreground mt-6 space-y-3 text-sm sm:text-base">
             {guide.goldenRules.map((rule) => (
@@ -157,8 +158,8 @@ export default async function GuidePage({ params }: Props) {
 
         {/* CTA Banner */}
         <SeoCtaBanner
-          subtitle="Découvrez comment SharpIt répare votre planning d’entraînement en 1 clic grâce à 17 garde-fous stricts."
-          title="Ne laissez plus jamais un imprévu gâcher votre préparation."
+          subtitle={`« Rattraper ma semaine » (SharpIt Pro) garde tes séances clés et vérifie chaque séance avec ${LANDING_GATE_RULE_COUNT} règles.`}
+          title="Une séance saute ? Ton plan se recale."
         />
       </main>
 

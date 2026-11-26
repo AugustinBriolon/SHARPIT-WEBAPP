@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import { cn } from '@sharpit/app/lib/utils';
 import { CONTAINER, HEADING, LEAD, RULE } from '@/components/landing/landing-parts';
 import { DirectAnswerBox } from '@/components/seo/direct-answer-box';
@@ -110,44 +110,24 @@ export default async function AlternativePage({ params }: Props) {
           sharpitPunchline={competitor.sharpitSolution}
         />
 
-        {/* Honest breakdown: where the competitor shines vs where it frustrates */}
-        <div className="my-12 grid gap-8 md:grid-cols-2">
-          <section
-            aria-labelledby="competitor-pros"
-            className="border-border/60 bg-muted/10 rounded-2xl border p-6"
-          >
-            <div className="text-foreground flex items-center gap-2 text-sm font-medium">
-              <Check className="text-foreground size-4" aria-hidden />
-              <h2 id="competitor-pros">Ce que {competitor.name} fait de bien</h2>
-            </div>
-            <ul className="text-muted-foreground mt-4 space-y-3 text-sm">
-              {competitor.honestCompetitorStrengths.map((pro) => (
-                <li key={pro} className="flex items-start gap-2.5">
-                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-emerald-500/60" />
-                  <span>{pro}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-
-          <section
-            aria-labelledby="competitor-cons"
-            className="border-border/60 bg-muted/10 rounded-2xl border p-6"
-          >
-            <div className="text-foreground flex items-center gap-2 text-sm font-medium">
-              <AlertCircle className="size-4 text-amber-500" aria-hidden />
-              <h2 id="competitor-cons">Les limites signalées par les coureurs</h2>
-            </div>
-            <ul className="text-muted-foreground mt-4 space-y-3 text-sm">
-              {competitor.complaintsFromRunners.map((con) => (
-                <li key={con} className="flex items-start gap-2.5">
-                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-amber-500/60" />
-                  <span>{con}</span>
-                </li>
-              ))}
-            </ul>
-          </section>
-        </div>
+        {/* Where the competitor shines; its limits stay out until a source backs them. */}
+        <section
+          aria-labelledby="competitor-pros"
+          className="border-border/60 bg-muted/10 my-12 max-w-3xl rounded-2xl border p-6"
+        >
+          <div className="text-foreground flex items-center gap-2 text-sm font-medium">
+            <Check className="text-foreground size-4" aria-hidden />
+            <h2 id="competitor-pros">Ce que {competitor.name} fait de bien</h2>
+          </div>
+          <ul className="text-muted-foreground mt-4 space-y-3 text-sm">
+            {competitor.honestCompetitorStrengths.map((pro) => (
+              <li key={pro} className="flex items-start gap-2.5">
+                <span className="mt-1 size-1.5 shrink-0 rounded-full bg-emerald-500/60" />
+                <span>{pro}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {/* Detailed feature matrix */}
         <section aria-labelledby="comparison-matrix" className="my-16">
@@ -155,7 +135,7 @@ export default async function AlternativePage({ params }: Props) {
             Tableau comparatif : SharpIt vs {competitor.name}
           </h2>
           <p className="text-muted-foreground mt-2 text-sm">
-            Comparaison objective des fonctionnalités clés en pratique réelle.
+            SharpIt et {competitor.name}, fonction par fonction.
           </p>
 
           <div className="mt-6 overflow-x-auto">
@@ -203,8 +183,8 @@ export default async function AlternativePage({ params }: Props) {
 
         {/* CTA Banner */}
         <SeoCtaBanner
-          subtitle="Explorez le carnet d'entraînement et testez la démo interactive sans inscription."
-          title={`Passez de la rigidité de ${competitor.name} à un plan qui s’adapte.`}
+          subtitle="Teste la démo sans inscription : une semaine réelle, recalée sous tes yeux."
+          title="Ton plan, recalé chaque fois que la semaine déraille."
         />
       </main>
 

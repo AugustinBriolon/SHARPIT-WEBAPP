@@ -66,15 +66,15 @@ export function SeoFaqSection({
 }
 
 export function SeoCtaBanner({
-  title = 'Prêt à courir avec un plan qui s’adapte vraiment ?',
-  subtitle = 'Testez SharpIt gratuitement : synchronisez votre montre Garmin et laissez le coach relire votre forme chaque matin.',
+  title = 'Prêt pour un plan qui se recale tout seul ?',
+  subtitle = 'Teste la démo sans inscription. Dans l’app : tes données gratuites, le coach avec SharpIt Pro.',
 }: {
   title?: string;
   subtitle?: string;
 }) {
   return (
     <section
-      aria-label="Appel à l'action"
+      aria-label="Appel à l’action"
       className="landing-night my-16 overflow-hidden rounded-3xl p-8 text-center sm:p-12"
     >
       <h2 className={cn(HEADING, 'text-foreground mx-auto max-w-2xl text-2xl sm:text-4xl')}>

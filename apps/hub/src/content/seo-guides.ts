@@ -1,3 +1,5 @@
+import { LANDING_GATE_RULE_COUNT } from '@sharpit/app/lib/landing/landing-copy';
+
 export type GuideStep = {
   title: string;
   body: string;
@@ -22,48 +24,47 @@ export const GUIDES: Record<string, GuideData> = {
     slug: 'rattraper-seance-course-a-pied-sans-se-blesser',
     metaTitle: 'Comment rattraper une séance de course à pied ratée sans se blesser',
     metaDescription:
-      'Séance de running manquée ? Découvrez la règle exacte pour réorganiser votre semaine d’entraînement sans risquer la blessure ni accumuler de fatigue inutile.',
+      'Séance manquée ? La règle pour réorganiser ta semaine d’entraînement sans te surcharger ni accumuler de fatigue inutile.',
     h1: 'Comment rattraper une séance d’entraînement ratée sans risquer la blessure',
-    tagline: 'La règle d’or : ne doublez jamais le lendemain.',
+    tagline: 'La règle d’or : ne double jamais le lendemain.',
     directAnswer:
-      'Si vous avez manqué une séance d’entraînement, la règle d’or est formelle : ne doublez jamais votre volume le lendemain et ne cherchez pas à combler le kilométrage manquant. Si la séance ratée était un simple footing en endurance fondamentale, ignorez-la : son impact sur votre forme est négligeable (< 2 %). S’il s’agissait d’une séance clé (fractionné, seuil ou sortie longue), déplacez-la au surlendemain en remplaçant un footing léger, à condition de conserver au moins 24 à 48 heures de récupération avant votre prochaine séance intense. Ne programmez jamais deux séances dures en deux jours consécutifs.',
-    calloutTitle: 'Comment SharpIt gère vos séances manquées',
-    calloutText:
-      'Dans SharpIt, la commande « Rattraper ma semaine » rééquilibre automatiquement vos jours restants en préservant vos séances clés et en appliquant nos 17 garde-fous physiologiques.',
+      'Si tu as manqué une séance, ne double pas ton volume le lendemain et ne cherche pas à combler le kilométrage manquant. Si c’était un simple footing en endurance fondamentale, ignore-le : un footing raté ne change rien à ta préparation. S’il s’agissait d’une séance clé (fractionné, seuil ou sortie longue), déplace-la au surlendemain à la place d’un footing léger, en gardant au moins 24 h avant ta prochaine séance intense. Ne programme jamais deux séances dures deux jours de suite.',
+    calloutTitle: 'Comment SharpIt gère tes séances manquées',
+    calloutText: `Avec SharpIt Pro, « Rattraper ma semaine » recale tes jours restants, garde tes séances clés et vérifie chaque séance avec ${LANDING_GATE_RULE_COUNT} règles.`,
     steps: [
       {
-        title: 'Étape 1 : Classifier la séance manquée',
-        body: 'Distinguez immédiatement une séance clé d’une séance de soutien. Une séance de soutien (footing de récupération 40 min) peut être tout simplement annulée sans remords. Une séance clé (allure spécifique semi/marathon ou travail de seuil) mérite d’être sauvée si votre calendrier le permet.',
+        title: 'Étape 1 : Classer la séance manquée',
+        body: 'Distingue d’abord une séance clé d’une séance de soutien. Une séance de soutien (footing de récupération de 40 min) peut être annulée sans remords. Une séance clé (allure spécifique, travail de seuil, sortie longue) mérite d’être sauvée si ton calendrier le permet.',
       },
       {
-        title: 'Étape 2 : Vérifier la fenêtre des 24-48 heures',
-        body: 'Si vous déplacez votre séance clé, vérifiez la date de votre prochaine séance intense. Vos tendons, vos articulations et votre système nerveux ont besoin de 48 heures pour assimiler un travail lactique ou neuromusculaire. Si le délai est trop court, réduisez le volume de moitié ou privilégiez l’endurance fondamentale.',
+        title: 'Étape 2 : Vérifier l’écart de 24 h',
+        body: 'Si tu déplaces ta séance clé, regarde la date de ta prochaine séance intense et garde au moins 24 h entre les deux. Si le délai est plus court, réduis le volume de moitié ou passe en endurance fondamentale.',
       },
       {
         title: 'Étape 3 : Ne jamais cumuler deux séances le même jour',
-        body: 'Tenter de caser une séance de fractionné le matin et une sortie longue le soir ou le lendemain matin est la première cause de périostite tibiale et de tendinopathie achilléenne chez le coureur amateur en préparation d’objectif.',
+        body: 'Caser une séance de fractionné le matin et une sortie longue le soir ou le lendemain matin augmente le risque de surcharge des tibias et des tendons d’Achille.',
       },
       {
-        title: 'Étape 4 : Écouter la forme matinale plutôt que l’agenda',
-        body: 'Même si votre calendrier vous autorise à rattraper la séance, vérifiez votre niveau de fatigue (qualité de sommeil, fréquence cardiaque au repos, variabilité cardiaque). Si les signaux sont au rouge, acceptez le repos.',
+        title: 'Étape 4 : Écouter la forme du matin plutôt que l’agenda',
+        body: 'Même si ton calendrier te permet de rattraper la séance, regarde ton niveau de fatigue (qualité de sommeil, fréquence cardiaque au repos, variabilité cardiaque). Si les signaux sont au rouge, accepte le repos.',
       },
     ],
     goldenRules: [
       'Séance manquée = 0 km à rattraper par orgueil.',
       'Les séances clés priment toujours sur le volume poubelle.',
       'Un repos imprévu est souvent plus bénéfique qu’une séance forcée dans la fatigue.',
-      'Respecter impérativement 24h d’écart entre deux efforts intenses.',
+      'Garde au moins 24 h d’écart entre deux efforts intenses.',
     ],
     faq: [
       {
         question: 'Est-ce grave de rater une sortie longue ?',
         answer:
-          'Rater une seule sortie longue sur un plan de 12 semaines ne compromet en rien votre objectif marathon. Si vous avez le temps le week-end suivant, vous pourrez courir cette distance, mais n’écourtez jamais votre semaine d’affûtage pour la caler.',
+          'Rater une seule sortie longue sur un plan de 12 semaines ne compromet pas ton objectif. Si tu as le temps le week-end suivant, tu pourras faire cette distance, mais n’écourte jamais ta semaine d’affûtage pour la caler.',
       },
       {
         question: 'Comment réagir si j’ai manqué une semaine entière pour maladie ?',
         answer:
-          'Après une coupure de 7 jours, ne reprenez jamais là où le plan en était. Reprenez par 2 à 3 footings faciles à allure très lente pour réhabituer votre système cardiovasculaire avant de réintroduire de l’intensité.',
+          'Après une coupure de 7 jours, ne reprends jamais là où le plan en était. Reprends par 2 à 3 footings faciles à allure très lente avant de réintroduire de l’intensité.',
       },
     ],
   },
@@ -71,43 +72,43 @@ export const GUIDES: Record<string, GuideData> = {
     slug: 'statut-garmin-non-productif-que-faire',
     metaTitle: 'Statut Garmin « Non productif » : pourquoi et comment réagir ?',
     metaDescription:
-      'Votre montre Garmin affiche le statut Non Productif ? Comprenez pourquoi votre charge augmente alors que votre condition stagne, et comment ajuster vos séances dès aujourd’hui.',
-    h1: 'Statut Garmin « Non productif » : pourquoi s’affiche-t-il et comment ajuster votre plan ?',
-    tagline: 'Comprendre l’alerte de votre montre sans paniquer.',
+      'Ta montre Garmin affiche le statut Non productif ? Comprends pourquoi ta charge monte alors que ta condition stagne, et comment ajuster tes séances dès aujourd’hui.',
+    h1: 'Statut Garmin « Non productif » : pourquoi s’affiche-t-il et comment ajuster ton plan ?',
+    tagline: 'Comprendre l’alerte de ta montre sans paniquer.',
     directAnswer:
-      'Le statut d’entraînement « Non productif » sur votre montre Garmin signifie que votre charge d’entraînement est suffisante ou élevée, mais que vos indicateurs de forme physique (notamment la VO2 max estimée et la variabilité cardiaque) déclinent. En clair : votre corps dépense de l’énergie mais ne parvient pas à l’assimiler en raison d’un manque de récupération, d’un sommeil dégradé, d’un stress extérieur ou d’une accumulation excessive d’allures trop rapides. Pour corriger ce statut en 5 à 7 jours, réduisez l’intensité globale de 30 %, supprimez les séances de fractionné court et courez exclusivement en endurance fondamentale sous votre premier seuil ventilatoire.',
-    calloutTitle: 'SharpIt déchiffre les alertes de votre montre Garmin',
+      'Le statut d’entraînement « Non productif » sur ta montre Garmin signifie que ta charge reste stable ou monte alors que ta VO2 max estimée baisse. Les causes : mauvais sommeil, stress, chaleur, footings trop rapides. Passe 3 à 5 jours en endurance facile et regarde la tendance.',
+    calloutTitle: 'SharpIt lit ta forme chaque matin',
     calloutText:
-      'Plutôt qu’un simple verdict anxiogène, SharpIt lit chaque matin vos nuits et votre VFC pour vous proposer une décision claire et explicite : alléger l’effort, maintenir ou insérer un repos réparateur.',
+      'SharpIt lit chaque matin ta nuit et ta VFC (Apple Santé, Withings) et te propose d’alléger ou de garder la séance du jour.',
     steps: [
       {
         title: 'Cause n°1 : Trop de temps passé en zone grise',
-        body: 'Le piège classique consiste à courir ses footings trop vite. Si vous courez à 80-85 % de votre FC max lors de vos sorties faciles, vous accumulez de la fatigue chronique sans stimuler efficacement ni votre aérobie ni votre vitesse.',
+        body: 'Le piège classique consiste à courir ses footings trop vite. Si tu cours à 80-85 % de ta FC max lors de tes sorties faciles, tu accumules de la fatigue sans stimuler efficacement ni ton aérobie ni ta vitesse.',
       },
       {
         title: 'Cause n°2 : Mauvaise récupération nocturne ou stress',
-        body: 'Garmin calcule l’efficacité de votre entraînement en comparant l’effort fourni à la réponse cardiaque. Si vous êtes déshydraté, fatigué par le travail ou que votre sommeil a été haché, votre cœur bat plus vite à allure égale : la montre interprète cela comme une perte de forme.',
+        body: 'Garmin calcule l’efficacité de ton entraînement en comparant l’effort fourni à la réponse cardiaque. Si tu es déshydraté, fatigué par le travail ou que ton sommeil a été haché, ton cœur bat plus vite à allure égale : la montre interprète cela comme une perte de forme.',
       },
       {
-        title: 'La solution : 3 jours en vraie endurance fondamentale',
-        body: 'Passez vos prochaines séances en totale aisance respiratoire (capacité à parler sans essoufflement). Laissez votre VFC remonter dans sa plage normale avant de programmer à nouveau un entraînement avec dénivelé ou fractionné.',
+        title: 'La solution : quelques jours en vraie endurance fondamentale',
+        body: 'Passe tes prochaines séances en totale aisance respiratoire (capacité à parler sans essoufflement). Laisse ta VFC remonter dans sa plage normale avant de programmer à nouveau un entraînement avec dénivelé ou fractionné.',
       },
     ],
     goldenRules: [
       'Un statut non productif est un appel à la récupération, pas à en faire plus.',
-      '80 % de votre volume hebdomadaire doit impérativement se faire à basse intensité.',
+      'Fais environ 80 % de ton volume à basse intensité.',
       'La chaleur, la déshydratation et le manque de sommeil faussent la mesure de VO2 max.',
     ],
     faq: [
       {
         question: 'Combien de temps faut-il pour repasser en statut « Productif » ?',
         answer:
-          'En observant 2 à 3 jours de repos ou de footings très légers avec un sommeil de qualité, votre VFC remontera et Garmin réajustera généralement votre statut sous 4 à 7 jours.',
+          'Le statut revient en général après quelques jours de récupération : repos ou footings très légers, avec un sommeil de qualité.',
       },
       {
         question: 'Faut-il arrêter totalement de courir ?',
         answer:
-          'Non. L’arrêt complet n’est nécessaire qu’en cas de blessure ou de maladie. Des footings régénérants de 30 à 40 minutes à allure lente favorisent la circulation sanguine et accélèrent la récupération active.',
+          'Non. L’arrêt complet n’est nécessaire qu’en cas de blessure ou de maladie. Des footings de 30 à 40 minutes à allure lente aident à récupérer.',
       },
     ],
   },
