@@ -23,17 +23,17 @@ export const LANDING_LINKS = {
 } as const;
 
 export const LANDING_HERO = {
-  titleLines: ['Un plan qui se répare.', 'Une décision chaque matin.'],
+  titleLines: ['Tu rates une séance, ton plan se recale.', 'Une décision chaque matin.'],
   body: 'SharpIt construit ta semaine vers ta course, la relit chaque matin avec ce que ta montre a mesuré, et la répare quand la vie s’en mêle.',
-  download: { label: 'Télécharger', href: LANDING_LINKS.download },
-  downloadNote: 'iPhone, en bêta sur TestFlight',
+  download: { label: 'Rejoindre la bêta iPhone', href: LANDING_LINKS.download },
+  downloadNote: 'Via TestFlight, l’app d’Apple pour les bêtas.',
   demo: { label: 'Voir la démo', href: LANDING_LINKS.demo },
   signIn: { label: 'Connexion', href: LANDING_LINKS.signIn },
 } as const;
 
 /** Read word by word as the visitor scrolls. */
 export const LANDING_STATEMENT =
-  'Tu ne manques pas de données. Il te manque quelqu’un qui les relie, se souvient de ce qui a marché, et te dit honnêtement quoi faire ce matin.';
+  'Ta montre mesure tout. Personne ne te dit quoi en faire ce matin.';
 
 export type LandingCard = { title: string; body: string };
 
@@ -64,7 +64,7 @@ export const LANDING_MORNING = {
   },
   arbitrate: {
     title: 'La prudence gagne',
-    body: 'Cinq lectures, une seule décision. Tu sais laquelle a tranché.',
+    body: 'État physique, fatigue, forme, météo, progression : quand l’une dit prudence, la séance s’allège. Tu vois laquelle.',
   } satisfies LandingCard,
 } as const;
 
@@ -73,12 +73,12 @@ export const LANDING_PLAN = {
   lead: 'Construit vers ta course, réparé quand la vie s’en mêle.',
   programme: {
     title: 'Construit vers ta course',
-    body: 'Deux ou trois séances clés par semaine. Le reste est du bonus.',
+    body: 'Deux ou trois séances clés par semaine. Rate le reste, le plan tient.',
   } satisfies LandingCard,
   repair: {
     // A no-break space keeps the question mark with its word.
-    title: 'Une séance ratée\u00a0? Il réorganise',
-    body: 'La fin de ta semaine est replacée, et attend ton accord.',
+    title: 'Une séance ratée\u00a0? SharpIt replace la fin de ta semaine',
+    body: 'Tu valides ou tu refuses.',
   } satisfies LandingCard,
 } as const;
 
@@ -93,8 +93,8 @@ export const LANDING_CONFIDENCE_STEPS = [
 ] as const;
 
 export const LANDING_MODEL = {
-  title: 'Il te connaît, et il le prouve',
-  lead: 'Tout ce qu’il te dit, tu peux le vérifier.',
+  title: 'SharpIt te connaît, et le prouve',
+  lead: 'Chaque conseil montre ses raisons.',
   consent: {
     title: 'Rien ne change sans ton accord',
     body: 'Tu acceptes, tu ajustes ou tu gardes ton plan.',
@@ -105,11 +105,11 @@ export const LANDING_MODEL = {
   } satisfies LandingCard,
   compare: {
     title: 'Comparé à toi, pas à une moyenne',
-    body: 'Sous 5 % d’écart, c’est du bruit.',
+    body: 'Un écart de −3 % ne déclenche rien. À −9 %, tu le sais.',
   } satisfies LandingCard,
   gate: {
     title: 'contrôles avant chaque séance',
-    body: 'Le coach rédige, des règles fixes vérifient.',
+    body: `Le coach propose, ${LANDING_GATE_RULE_COUNT} règles fixes vérifient. Une séance trop dure pour ta semaine ne passe pas.`,
   } satisfies LandingCard,
   honesty: {
     title: 'Il te dit quand il ne sait pas',
@@ -153,17 +153,17 @@ export const LANDING_SOURCES = {
 
 /** The prices chosen on 2026-10-20 (iOS ADR 0020); the App Store shows the ones that bind. */
 export const LANDING_PRICING = {
-  title: 'Gratuit pour t’entraîner',
+  title: 'Tes données sont gratuites. Le coach est Pro.',
   tiers: [
     {
       name: 'Gratuit',
       price: '0 €',
-      body: 'Ton plan, ton journal et toutes tes données.',
+      body: 'Ton journal, tes séances et toutes tes mesures, quelle que soit la source. La proposition du matin, calculée sur tes données.',
     },
     {
       name: 'SharpIt Pro',
       price: '12,99 € par mois ou 99,99 € par an',
-      body: 'Les lectures approfondies : bilan de la semaine, analyse de chaque séance, lecture de ton alimentation.',
+      body: 'Le plan construit vers ta course, réparé par le coach quand tu rates une séance. Le coach, l’analyse de chaque séance, le bilan de la semaine. Sans engagement.',
     },
   ],
 } as const;
@@ -176,7 +176,7 @@ export const LANDING_FAQ = {
     {
       question: 'Faut-il une montre connectée ?',
       answer:
-        'Non. Une Apple Watch, une montre Garmin ou Strava suffisent. Les séances viennent de Garmin, de Strava et d’Apple Santé. Pour les mesures du matin, Garmin, Apple Santé et Withings font foi.',
+        'Il te faut une source de séances : Apple Watch (par Apple Santé), Garmin ou Strava. Pour les mesures du matin, Apple Santé, Garmin ou Withings. Garmin envoie tes séances à partir du jour où tu le connectes.',
     },
     {
       question: 'Pour quels sports ?',
@@ -186,7 +186,7 @@ export const LANDING_FAQ = {
     {
       question: 'Est-ce que ça remplace un coach ?',
       answer:
-        'SharpIt coache à partir de ton modèle et te laisse toujours le dernier mot. Un coach humain peut travailler à côté : rien ne change sans ton accord.',
+        'SharpIt planifie et ajuste à partir de tes données, et te laisse le dernier mot. Un coach humain peut travailler à côté : rien ne change sans ton accord.',
     },
     {
       question: 'Où sont mes données ?',
@@ -203,7 +203,7 @@ export const LANDING_FAQ = {
 
 export const LANDING_CLOSING = {
   title: 'Une décision le matin. Le reste de la journée t’appartient.',
-  body: 'L’app iPhone est en bêta sur TestFlight.',
+  body: 'Tes données restent gratuites. Pro se résilie à tout moment depuis ton compte Apple.',
 } as const;
 
 export const LANDING_FOOTER_LINKS = [
