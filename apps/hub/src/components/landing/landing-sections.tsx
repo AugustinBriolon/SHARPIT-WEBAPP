@@ -379,7 +379,10 @@ export function Pricing() {
           {LANDING_PRICING.tiers.map((tier) => (
             <article key={tier.name} className={cn(CARD, 'flex flex-col gap-4')} data-card>
               <h3 className={CARD_HEADING}>{tier.name}</h3>
-              <p className="text-lg font-medium">{tier.price}</p>
+              <div>
+                <p className="text-lg font-medium">{tier.price}</p>
+                {'offer' in tier && <p className="text-muted-foreground mt-1">{tier.offer}</p>}
+              </div>
               <p className={BODY}>{tier.body}</p>
             </article>
           ))}

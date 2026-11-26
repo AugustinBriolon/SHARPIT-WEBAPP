@@ -151,7 +151,11 @@ export const LANDING_SOURCES = {
   upcoming: ['Polar'],
 } as const;
 
-/** The prices chosen on 2026-10-20 (iOS ADR 0020); the App Store shows the ones that bind. */
+/**
+ * The prices chosen on 2026-10-20 (iOS ADR 0020); the App Store shows the ones that bind. The
+ * first month is the monthly's pay-as-you-go introductory offer (6,49 € in France), which Apple
+ * grants once per Apple ID.
+ */
 export const LANDING_PRICING = {
   title: 'Tes données sont gratuites. Le coach est Pro.',
   tiers: [
@@ -163,6 +167,7 @@ export const LANDING_PRICING = {
     {
       name: 'SharpIt Pro',
       price: '12,99 € par mois ou 99,99 € par an',
+      offer: 'Premier mois à 6,49 €',
       body: 'Le plan construit vers ta course, réparé par le coach quand tu rates une séance. Le coach, l’analyse de chaque séance, le bilan de la semaine. Sans engagement.',
     },
   ],
@@ -258,7 +263,12 @@ export function landingCopyStrings(): string[] {
     LANDING_SOURCES.upcomingLabel,
     ...LANDING_SOURCES.upcoming,
     LANDING_PRICING.title,
-    ...LANDING_PRICING.tiers.flatMap((tier) => [tier.name, tier.price, tier.body]),
+    ...LANDING_PRICING.tiers.flatMap((tier) => [
+      tier.name,
+      tier.price,
+      tier.body,
+      ...('offer' in tier ? [tier.offer] : []),
+    ]),
     LANDING_FAQ.title,
     ...LANDING_FAQ.items.flatMap((item) => [item.question, item.answer]),
     LANDING_CLOSING.title,
