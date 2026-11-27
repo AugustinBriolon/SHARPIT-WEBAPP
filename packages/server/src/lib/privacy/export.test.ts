@@ -42,6 +42,7 @@ vi.mock('@sharpit/db/client', () => ({
     athleteThresholdSnapshot: { findMany: (...args: unknown[]) => findManyMock(...args) },
     athleteActivityStatus: { findMany: (...args: unknown[]) => findManyMock(...args) },
     athleteActivityStatusHistory: { findMany: (...args: unknown[]) => findManyMock(...args) },
+    athleteActivityStatusDay: { findMany: (...args: unknown[]) => findManyMock(...args) },
     brickAnalysis: { findMany: (...args: unknown[]) => findManyMock(...args) },
     brickEvaluation: { findMany: (...args: unknown[]) => findManyMock(...args) },
     coachingDecision: { findMany: (...args: unknown[]) => findManyMock(...args) },

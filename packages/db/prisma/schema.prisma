@@ -412,6 +412,7 @@ model AthleteProfile {
   journalHabitExperiments     JournalHabitExperiment[]
   activityStatus              AthleteActivityStatus?
   activityStatusHistory       AthleteActivityStatusHistory[]
+  activityStatusDays          AthleteActivityStatusDay[]
   brickAnalyses               BrickAnalysis[]
   brickEvaluations            BrickEvaluation[]
   analysisEvidenceSnapshots   AnalysisEvidenceSnapshot[]
@@ -2051,6 +2052,21 @@ model AthleteActivityStatusHistory {
 
   @@index([athleteId, startedAt])
   @@index([athleteId, endedAt])
+}
+
+/// A past day's mode set after the fact (« ce jour-là j'étais malade »). It wins over the
+/// history period covering that day; the current mode is never touched by it.
+model AthleteActivityStatusDay {
+  id        String         @id @default(cuid())
+  athleteId String
+  athlete   AthleteProfile @relation(fields: [athleteId], references: [id], onDelete: Cascade)
+  day       DateTime       @db.Date
+  /// active | paused | injured | sick
+  status    String
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  @@unique([athleteId, day])
 }
 
 // Analyse globale d'un brick (enchaînement multisport) : agrège les jambes

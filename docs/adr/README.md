@@ -142,6 +142,7 @@
 | [ADR-147](./ADR-147-the-landing-follows-its-own-style-guide.md)                            | The landing's home follows `docs/design/LANDING_STYLE.md` under one class: daylight hero, cloud cards, GSAP entrance, parallax, a pinned track; amends ADR-142/143 for the landing                              |
 | [ADR-148](./ADR-148-the-landing-keeps-the-borrowed-mechanics-and-wears-sharpits-skin.md)   | The landing keeps ADR-147's composition and motion and returns to SharpIt's tokens: ink hero, white cards, medium weight, lime on data; borrow mechanics, never the skin                                        |
 | [ADR-149](./ADR-149-a-change-of-intensity-rewrites-the-session.md)                         | A change of intensity rewrites the session: endurance steps take the new target (recovery → work), strength sets and load scale, a title naming the intensity is renamed; athlete edits win                     |
+| [ADR-150](./ADR-150-the-activity-mode-is-kept-per-day.md)                                  | The activity mode is kept per day: a past day can be set after the fact (`AthleteActivityStatusDay`), each day read from it, else the history, else Actif                                                       | Accepted                          |
 
 **Template:** [ADR-template.md](./ADR-template.md)
 

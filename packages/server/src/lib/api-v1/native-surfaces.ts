@@ -92,6 +92,7 @@ export const NATIVE_V1_ONLY = [
   { path: 'training-load', methods: ['GET'] },
   { path: 'nutrition', methods: ['GET'] },
   { path: 'data-days', methods: ['GET'] },
+  { path: 'activity-status/days', methods: ['GET'] },
   { path: 'sync', methods: ['POST'] },
   { path: 'sync-status', methods: ['GET'] },
   { path: 'health-samples', methods: ['POST'] },
